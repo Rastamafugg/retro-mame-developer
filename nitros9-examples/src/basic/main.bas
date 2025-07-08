@@ -1,28 +1,35 @@
 PROCEDURE getWinInfo
   TYPE WININFO=FORMAT:BYTE; XSIZE:BYTE; YSIZE:BYTE; FOREGROUND:BYTE; BACKGROUND:BYTE; BORDER:BYTE
   PARAM info:WININFO
+
   RUN GFX2("WINFO", info.FORMAT, info.XSIZE, info.YSIZE, info.FOREGROUND, info.BACKGROUND, info.BORDER)
 END
 
 PROCEDURE setWinInfo
   TYPE WININFO=FORMAT:BYTE; XSIZE:BYTE; YSIZE:BYTE; FOREGROUND:BYTE; BACKGROUND:BYTE; BORDER:BYTE
   PARAM info:WININFO
+
   RUN GFX2("DWEND")
-  RUN GFX2("DWSET", info.FORMAT, 0, 0, info.XSIZE, info.YSIZE, info.FOREGROUND, info.BACKGROUND, info.BORDER)
+  RUN GFX2("DWSET", info.FORMAT, 0, 0, 80, 25, info.FOREGROUND, info.BACKGROUND, info.BORDER)
 END
 
 PROCEDURE main
   TYPE WININFO=FORMAT:BYTE; XSIZE:BYTE; YSIZE:BYTE; FOREGROUND:BYTE; BACKGROUND:BYTE; BORDER:BYTE
-  DIM original:WININFO
+  DIM path:INTEGER
+  DIM info:WININFO
 
-  RUN getWinInfo(original)
+  REM info(original).FORMAT=0; info(original).XSIZE=0; info(original).YSIZE=0
+  REM info(original).FOREGROUND=0; info(original).BACKGROUND=0; info(original).BORDER=0
 
-  PRINT "Format:     " + info.FORMAT
-  PRINT "X Size:     " + info.XSIZE
-  PRINT "Y Size:     " + info.YSIZE
-  PRINT "Foreground: " + info.FOREGROUND
-  PRINT "Background: " + info.BACKGROUND
-  PRINT "Border:     " + info.BORDER
+  RUN getWinInfo(info)
 
-  RUN setWinInfo(original)
+  PRINT "Format:     "; info.FORMAT
+  PRINT "X Size:     "; info.XSIZE
+  PRINT "Y Size:     "; info.YSIZE
+  PRINT "Foreground: "; info.FOREGROUND
+  PRINT "Background: "; info.BACKGROUND
+  PRINT "Border:     "; info.BORDER
+  INPUT RESPONSE
+
+  RUN setWinInfo(info)
 END
