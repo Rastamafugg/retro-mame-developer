@@ -1,0 +1,60 @@
+PROCEDURE paletteCycle
+  DIM T,K,J,X,Y,COLOR,PALSTART:INTEGER
+
+  RUN GFX2("DWEND")
+  RUN GFX2("DWSET",7,0,0,80,25,0,2,2)
+  RUN GFX2("COLOR",3,2,2)
+
+  COLOR=0
+  RUN GFX2("CLEAR")
+  RUN GFX2("CUROFF")
+
+  (* Top bars *)
+  FOR Y=0 TO 23 STEP 3
+    RUN GFX2("COLOR",COLOR)
+    RUN GFX2("BAR",0,Y,639,Y+3)
+    COLOR=COLOR+1
+    IF COLOR=2 THEN
+      COLOR=COLOR+1
+    ENDIF
+  NEXT Y
+
+  (* Bottom bars *)
+  FOR Y=164 TO 185 STEP 3
+    RUN GFX2("COLOR",COLOR)
+    RUN GFX2("BAR",0,Y,639,Y+3)
+    COLOR=COLOR+1
+  NEXT Y
+
+  (* Circles *)
+  COLOR=0
+  FOR K=45 TO 170 STEP 48
+    FOR T=100 TO 580 STEP 100
+      RUN GFX2("COLOR",3)
+      RUN GFX2("CIRCLE",T,K,30)
+      RUN GFX2("COLOR",COLOR)
+      RUN GFX2("FILL",T,K)
+      COLOR=COLOR+1
+      IF COLOR=2 THEN
+        COLOR=COLOR+1
+      ENDIF
+    NEXT T
+  NEXT K
+
+  (* Palette sweep: apply 4 colors at a time to logical colors 0,1,3,4 *)
+  FOR PALSTART=0 TO 60 STEP 4
+    RUN GFX2("PALETTE",0,PALSTART)
+    RUN GFX2("PALETTE",1,PALSTART+1)
+    RUN GFX2("PALETTE",3,PALSTART+2)
+    RUN GFX2("PALETTE",4,PALSTART+3)
+    FOR J=1 TO 6000
+    NEXT J
+  NEXT PALSTART
+
+  (* Final delay *)
+  FOR J=1 TO 6000
+  NEXT J
+
+  RUN GFX2("DEFCOL")
+  RUN GFX2("CURON")
+END
