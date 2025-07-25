@@ -90,7 +90,7 @@ Des Moines, Iowa 50304 U.S.A.
 
 ### Introduction
 
-Basic09 is an enhanced and structured BASIC language programming system specially created for the 6809 Advanced Microprocessor. In addition to the standard BASIC language statements and functions, BASICO9 includes many of the most useful elements of the PASCAL programming language so that programs can be modular, well-structured and use sophisticated data structures. It also permits full access to almost all of the OS-9 Operating System commands and functions so it can be used as a systems programming language. These features make Basic09 an ideal language for many applications: scientific, business, industrial control, education, and more.
+Basic09 is an enhanced and structured BASIC language programming system specially created for the 6809 Advanced Microprocessor. In addition to the standard BASIC language statements and functions, BASIC09 includes many of the most useful elements of the PASCAL programming language so that programs can be modular, well-structured and use sophisticated data structures. It also permits full access to almost all of the OS-9 Operating System commands and functions so it can be used as a systems programming language. These features make Basic09 an ideal language for many applications: scientific, business, industrial control, education, and more.
 
 Basic09 is unusual in that it is an Interactive Compiler that has the best of both kinds of language system: it gives the fast execution speed typical of compiler languages plus the ease of use and memory space efficiency typical of interpreter languages. Basic09 is truly a complete PROGRAMMING SYSTEM that includes a powerful text editor, multipass compiler, run-time interpreter, high-level interactive debugger, and a system executive. Each of these components was carefully integrated so the user "sees" a friendly, highly interactive programming resource that provides all the tools and helpful "extra" facilities needed for fast, accurate creation and testing of structured programs.
 
@@ -159,13 +159,13 @@ When you turn on the Basic09 computer it will print some heading information. If
 
 To <create a new procedure you command the system to enter the "edit mode" by typing a simple "e" (in upper or lower case) and a carriage- return (the ENTER or RETOURN key). The Editor lets you enter or change programs and actually checks for many common errors as you type in your program. Automatic checking feature is one of the nicest things about Basic09. Because it's always "looking over your shoulder"" to catch mistakes, it saves a 1lot of debugging time! If you're not 100% sure about how something works, you can go ahead and try it instead of digging though this manual,. If you guess wrong, Basic09 will usually show you wnhere and why.
 
-Because you did not specify a particular procedure name, BASICO9 will auvtomatically select the name "PROGRAM" for you and will respond by printing out "PROCEDURE PROGRAM"; this means that you will be editing a procedure which is named PROGRAM. Later you will see that you can enter many different procedures and give them different names (just type the name you want to use for the program after the "e"). A procedure name may be any combination of alphanumeric characters beginning with a letter.
+Because you did not specify a particular procedure name, BASIC09 will auvtomatically select the name "PROGRAM" for you and will respond by printing out "PROCEDURE PROGRAM"; this means that you will be editing a procedure which is named PROGRAM. Later you will see that you can enter many different procedures and give them different names (just type the name you want to use for the program after the "e"). A procedure name may be any combination of alphanumeric characters beginning with a letter.
 
 The computer output so far is as follows:
 
 ```
   0S9: basic09
-  BASICO9
+  BASIC09
   READY
   B:e
   PROCEDURE PROGRAM
@@ -503,7 +503,7 @@ B: $basic09 fourier(20)& starts another concurrent Basic09 program
 
 *BYE (or ESCAPE character)*
 
-BYE exits Basic09 and returns to OS-9 or the program that called BASICO9. Any procedures in the workspace are lost if not previously saved. The escape key (technically speaking, an end-of-file condition on Basic09's standard input path) does the same thing.
+BYE exits Basic09 and returns to OS-9 or the program that called BASIC09. Any procedures in the workspace are lost if not previously saved. The escape key (technically speaking, an end-of-file condition on Basic09's standard input path) does the same thing.
 
 ```
   CHD <pathlist> or CHX <pathlist>
@@ -1425,7 +1425,7 @@ The following functions return BOOLEAN values:
 | FALSE | always returns FALSE |
 | EOF(#\<num>) | End of File test on disk file path \<num>, returns TRUE if end-of-file condition. |
 
-### PROGRAM STRUCTURE
+### Program Structure
 
 A Basic09 program can be written as a single procedure, or it may be divided into a number of smaller procedures, each of which is designed to- perform a specific function. Single procedure programs may be useful when the program is relatively small. However, large complex programs are generally much easier to develop, test, and maintain when the program is divided into several procedures. Generally, the programmer will create a main routine which will then call other Basic09 procedures to perform specific functions as subroutines. These Basic09 procedures may in turn call other Basic09 procedures in the same manner. These techniques reflect sound structured programming practice.
 
@@ -1726,7 +1726,7 @@ is equivalent to
   ENDEXIT
     y = y-1
   ENDLOOP
-
+```
 
 *GOTO Statement*
 
@@ -1827,6 +1827,7 @@ ON ERROR GOTO Statement
 Syntax:
 ```
   ON ERROR [ GOTO <line #> ]
+```
 
 This statement sets a "trap" that transfers control to the line number given when a non-fatal run-time error occurs. If no ON ERROR GOTO has been executed in a procedure before an error occurs, the procedurewill stop and enter DEBUG mode. The error trap can be turned off by executing ON ERROR without a GOTO.
 
@@ -2297,7 +2298,7 @@ Basic09 normally works with two types of files: sequential files and random-acce
 
 A sequential file sends or receives (WRITE/READ) textual data only in order. t is not generally possible to start over at the beginning of a seguential file once a number of bytes have been accessed (many I/0 devices such as printers are necessarily sequential). A seguential file contains only valid ASCII characters; the READ and WRITE commands perform format conversion similar to that done automatically in INPUT and PRINT conmands. A sequential file contains record-delimiter characters (carriage return) which separate the data created by different WRITE operations. Each WRITE command will send a complete sequential-file record, which is an arbitrary number of characters terminated by a carriage return. Each READ will also read all characters up to the next carriage return.
 
-A random-access file sends and receives (PUT/GET) data in binary form exactly as it is internally represented in BASICO0Y9 which minimizes both the time involved in converting the data to and from ASCII representation as well as reducing the file space required to store the data. It is possible to PUT and GET individual bytes or a substructure of many bytes (in a complex structure). The GET of a structure merely recovers the number of bytes associated with that type of structure. It is possible to move to a particular byte in a random-access file (using SEEE) and to begin to PUT or GET seguentially from that point (in general, "SEEK #path,0" is egquivalent to the REWIND whichis used in some forms of BASIC). Since the random-access file contains no record- separators to indicate the size of particular elements of the file, the programmer should use the SIZE function to determine the size of a single element, then use SEEK to move to the desired element within the file.
+A random-access file sends and receives (PUT/GET) data in binary form exactly as it is internally represented in BASIC09 which minimizes both the time involved in converting the data to and from ASCII representation as well as reducing the file space required to store the data. It is possible to PUT and GET individual bytes or a substructure of many bytes (in a complex structure). The GET of a structure merely recovers the number of bytes associated with that type of structure. It is possible to move to a particular byte in a random-access file (using SEEK) and to begin to PUT or GET seguentially from that point (in general, "SEEK #path,0" is egquivalent to the REWIND whichis used in some forms of BASIC). Since the random-access file contains no record- separators to indicate the size of particular elements of the file, the programmer should use the SIZE function to determine the size of a single element, then use SEEK to move to the desired element within the file.
 
 A new file is created on a storage device by executing CREATE. Once a file exists, the OPEN command is used to notify the operating system to set up a channel to the desired device and return that path number to the Basic09 program. This channel number is then used in file-access cperations (e.g., RERD, WRITE, GET, PUT, SEEK, etc.). When the programmer is finished with the file, it should be terminated by CLOSE to assure that the file system has updated all data back onto magnetic media.
 
@@ -2930,9 +2931,9 @@ Because the Basic09 I-code is interpreted, a variety of entry-time and run-time 
 
 #### OPTIMUM USE OF NUMERIC DATA TYPES
 
-Because Basic09 includes several different numeric representations (i.e., REAL, INTEGER, and BYTE) and does "automatic type conversions between them, it is easy to write expressions or loops that take at least ten times longer to execute than is necessary. Some particular BASICO9 numeric operators (+, -, *, /) and control structures (FOR..NEXT) include versions both for REAL and INTEGER values. The INTEGER versions, of course, are much faster, and may have slightly different properties (e.g., INTEGER divides discard any remainder). Type conversions take time, so expressions whose operands and operators are of the same type are more efficient.
+Because Basic09 includes several different numeric representations (i.e., REAL, INTEGER, and BYTE) and does "automatic type conversions between them, it is easy to write expressions or loops that take at least ten times longer to execute than is necessary. Some particular BASIC09 numeric operators (+, -, *, /) and control structures (FOR..NEXT) include versions both for REAL and INTEGER values. The INTEGER versions, of course, are much faster, and may have slightly different properties (e.g., INTEGER divides discard any remainder). Type conversions take time, so expressions whose operands and operators are of the same type are more efficient.
 
-Basic09's REAL (floating-point) math package provides excellent performance, A special 40-bit binary flcating point representation designed for speed and accuracy, was develcped especially for BASICO9after exhaustive research. The new CORDIC technique is used to deriveall transcendental functions (SIN, TAN, LOG, EXP, etc.). The integer shift-and-add technique is faster and more consistantly accurate than the commonly used series-expansion approximations.
+Basic09's REAL (floating-point) math package provides excellent performance, A special 40-bit binary flcating point representation designed for speed and accuracy, was develcped especially for BASIC09after exhaustive research. The new CORDIC technique is used to deriveall transcendental functions (SIN, TAN, LOG, EXP, etc.). The integer shift-and-add technique is faster and more consistantly accurate than the commonly used series-expansion approximations.
 
 Nonetheless, INTEGER operations are faster because they generally have corresponding 6809 machine-language instructions. Overall program speed will increase and storage requirements will decrease if INTEGERSs are used whenever possible. INTEGER arithmetic operations use the same symbols as REAL but Basic09 automatically selects the INTEGER operations when working with an integer-value result. Only if all operands of an expression are of types BYTE or INTEGER will the result also be INTEGER.
 
@@ -4112,135 +4113,135 @@ Packed modules can be executed without Runb, but Basic09 will haveto be used and
 
 ### Appendix E - Index
 
-| Subject | Page Number(s) |
+| Subject | Section(s) |
 |---|---|
-| $ | 3-3 |
-| Abs | 8-5 |
-| Acn | 8-4 |
-| Addr | 8-2 |
-| And | 8-2 |
-| Array | 8-5 |
-| Asc | 8-5 |
-| Asn | 8-4 |
-| Atn | 8-4 |
-| Base | 7-9 |
-| Boolean | 6-2 |
-| Break | 6-3 |
-| Byte | 6-2 |
-| Bye | 3-3, 9-18 |
-| Chain | 9-15 |
-| Chd | 3-3, 9-19 |
-| Chr$ | 8-6 |
-| Chx | 3-3 |
-| Close | 10-8 |
-| Constants | 7-3 |
-| Cont | 6-3 |
-| Cos | 8-4 |
-| Create | 10-7 |
-| Date$ | 8-6 |
-| Debug Mode | 6-1 |
-| Deg | 6-3, 9-19 |
-| Delete | 10-9 |
-| Dim | 9-22 |
-| Dir | 3-3 |
-| Do | 9-6 |
-| Edit | 3-4 |
-| Else | 9-4 |
-| End | 6-3, 9-17 |
-| Endexit | 9-8 |
-| Endif | 9-4 |
-| Endloop | 9-6 |
-| Endwhile | 9-7 |
-| Eof | 8-6 |
-| Err | 8-8 |
-| Error | 9-5 |
-| Exec | 10-5 |
-| Exitif | 9-8 |
-| Exp | 8-4 |
-| Expressions | 8-1 |
-| False | 8-6 |
-| Files | 10-1 |
-| Fix | 8-5 |
-| Float | 8-4 |
-| For | 9-5 |
-| Formats | 8-4 |
-| Functions | 8-4 |
-| Get | 10-13 |
-| Gosub | 9-9 |
-| Goto | 9-9 |
-| If | 9-4 |
-| Input | 10-3 |
-| Int | 8-4 |
-| Integer | 6-2 |
-| Kill | 2-8, 3-4 |
-| Land | 8-6 |
-| Left$ | 8-6 |
-| Len | 8-5 |
-| Let | 6-3, 9-2 |
-| List | 2-8, 3-1, 3-5 |
-| Lnot | 8-6 |
-| Load | 2-8, 3-5 |
-| Log | 8-4 |
-| Log10 | 8-4 |
-| Loop | 9-6 |
-| Lxor | 8-6 |
-| Mem | 2-7, 3-6 |
-| Mid$ | 8-6 |
-| Mod | 8-6 |
-| Next | 9-5 |
-| Not | 8-2 |
-| On Error | 9-11 |
-| On Gosub | 9-10 |
-| On Goto | 9-10 |
-| Operators | 8-2 |
-| Or | 8-2 |
-| Pack | 3-6 |
-| Param | 9-24 |
-| Pause | 9-12 |
-| Peek | 8-5 |
-| Pi | 8-4 |
-| Poke | 9-3 |
-| Pos | 8-5 |
-| Print | 6-3, 10-4 |
-| Put | 10-13 |
-| Q | 6-3 |
-| Rad | 6-3, 9-19 |
-| Read | 10-12, 10-16 |
-| Real | 7-3 |
-| Rem | 9-20 |
-| Rename | 3-7 |
-| Repeat | 9-7 |
-| Restore | 10-16 |
-| Return | 9-9 |
-| Right$ | 8-6 |
-| Rnd | 8-4 |
-| Run | 3-7, 5-1, 9-12 |
-| Save | 2-8, 3-8 |
-| Seek | 10-10 |
-| Sgn | 8-5 |
-| Shell | 9-16 |
-| Sin | 8-4 |
-| Size | 8-8, 5-10, 13 |
-| Sqr | 8-5 |
-| Sqrt | 8-4 |
-| Sqrt$ | 8-4 |
-| State | 6-4 |
-| Step | 6-4, 9-5 |
-| Stop | 9-18 |
-| Str$ | 8-6 |
-| String | 7-4 |
-| Substr | 8-6 |
-| Tab | 10-4 |
-| Tan | 8-4 |
-| Trim$ | 8-6 |
-| Troff | 6-4, 9-19 |
-| Tron | 6-4, 9-19 |
-| True | 8-6 |
-| Type | 9-25 |
-| Until | 9-7 |
-| Update | 10-6 |
-| Using | 10-17 |
-| Val | 8-5 |
-| While | 9-6 |
-| Write | 10-11 |
-| Xor | 8-2 |
+| $ | [System Mode Commands](#system-mode-commands) |
+| Abs | [Functions](#functions) |
+| Acn | [Functions](#functions) |
+| Addr | [Operators](#operators) |
+| And | [Operators](#operators) |
+| Array | [Arrays](#arrays) |
+| Asc | [Functions](#functions) |
+| Asn | [Functions](#functions) |
+| Atn | [Functions](#functions) |
+| Base | [Complex Data Types](#complex-data-types) |
+| Boolean | [Atomic Data Types](#atomic-data-types) |
+| Break | [Control Statements](#control-statements) |
+| Byte | [Atomic Data Types](#atomic-data-types) |
+| Bye | [System Mode Commands](#system-mode-commands), [Debug Mode Commands](#debug-mode-commands) |
+| Chain | [Calling External Procedures](#calling-external-procedures) |
+| Chd | [System Mode Commands](#system-mode-commands), [Debug Mode Commands](#debug-mode-commands) |
+| Chr$ | [Functions](#functions) |
+| Chx | [System Mode Commands](#system-mode-commands) |
+| Close | [Input and Output Functions](#input-and-output-functions) |
+| Constants | [Constants](#constants) |
+| Cont | [Control Statements](#control-statements) |
+| Cos | [Functions](#functions) |
+| Create | [Input and Output Functions](#input-and-output-functions) |
+| Date$ | [Functions](#functions) |
+| Debug Mode | [Debug Mode](#debug-mode) |
+| Deg | [Control Statements](#control-statements), [Debug Mode Commands](#debug-mode-commands) |
+| Delete | [Input and Output Functions](#input-and-output-functions) |
+| Dim | [Declarations](#declarations) |
+| Dir | [System Mode Commands](#system-mode-commands) |
+| Do | [Control Statements](#control-statements) |
+| Edit | [Edit Mode](#edit-mode) |
+| Else | [Control Statements](#control-statements) |
+| End | [Control Statements](#control-statements), [Calling External Procedures](#calling-external-procedures) |
+| Endexit | [Control Statements](#control-statements) |
+| Endif | [Control Statements](#control-statements) |
+| Endloop | [Control Statements](#control-statements) |
+| Endwhile | [Control Statements](#control-statements) |
+| Eof | [Functions](#functions) |
+| Err | [Functions](#functions) |
+| Error | [Control Statements](#control-statements) |
+| Exec | [Input and Output Functions](#input-and-output-functions) |
+| Exitif | [Control Statements](#control-statements) |
+| Exp | [Functions](#functions) |
+| Expressions | [Expressions](#expressions) |
+| False | [Functions](#functions) |
+| Files | [Input and Output Functions](#input-and-output-functions) |
+| Fix | [Functions](#functions) |
+| Float | [Atomic Data Types](#atomic-data-types) |
+| For | [Control Statements](#control-statements) |
+| Formats | [Functions](#functions) |
+| Functions | [Functions](#functions) |
+| Get | [Input and Output Functions](#input-and-output-functions) |
+| Gosub | [Control Statements](#control-statements) |
+| Goto | [Control Statements](#control-statements) |
+| If | [Control Statements](#control-statements) |
+| Input | [Input and Output Functions](#input-and-output-functions) |
+| Int | [Functions](#functions) |
+| Integer | [Atomic Data Types](#atomic-data-types) |
+| Kill | [System Mode Commands](#system-mode-commands), [Edit Mode](#edit-mode) |
+| Land | [Functions](#functions) |
+| Left$ | [Functions](#functions) |
+| Len | [Functions](#functions) |
+| Let | [Assignment Statements](#assignment-statements), [Control Statements](#control-statements) |
+| List | [System Mode Commands](#system-mode-commands), [Edit Mode](#edit-mode) |
+| Lnot | [Functions](#functions) |
+| Load | [System Mode Commands](#system-mode-commands), [Edit Mode](#edit-mode) |
+| Log | [Functions](#functions) |
+| Log10 | [Functions](#functions) |
+| Loop | [Control Statements](#control-statements) |
+| Lxor | [Functions](#functions) |
+| Mem | [System Mode Commands](#system-mode-commands) |
+| Mid$ | [Functions](#functions) |
+| Mod | [Functions](#functions) |
+| Next | [Control Statements](#control-statements) |
+| Not | [Operators](#operators) |
+| On Error | [Control Statements](#control-statements) |
+| On Gosub | [Control Statements](#control-statements) |
+| On Goto | [Control Statements](#control-statements) |
+| Operators | [Operators](#operators) |
+| Or | [Operators](#operators) |
+| Pack | [System Mode Commands](#system-mode-commands) |
+| Param | [Parameters](#parameters) |
+| Pause | [Control Statements](#control-statements) |
+| Peek | [Functions](#functions) |
+| Pi | [Functions](#functions) |
+| Poke | [Assignment Statements](#assignment-statements) |
+| Pos | [Functions](#functions) |
+| Print | [Assignment Statements](#assignment-statements), [Input and Output Functions](#input-and-output-functions) |
+| Put | [Input and Output Functions](#input-and-output-functions) |
+| Q | [Control Statements](#control-statements) |
+| Rad | [Control Statements](#control-statements), [Debug Mode Commands](#debug-mode-commands) |
+| Read | [Input and Output Functions](#input-and-output-functions) |
+| Real | [Constants](#constants) |
+| Rem | [Control Statements](#control-statements) |
+| Rename | [System Mode Commands](#system-mode-commands) |
+| Repeat | [Control Statements](#control-statements) |
+| Restore | [Input and Output Functions](#input-and-output-functions) |
+| Return | [Control Statements](#control-statements) |
+| Right$ | [Functions](#functions) |
+| Rnd | [Functions](#functions) |
+| Run | [System Mode Commands](#system-mode-commands), [Execution Mode](#execution-mode), [Control Statements](#control-statements) |
+| Save | [System Mode Commands](#system-mode-commands) |
+| Seek | [Input and Output Functions](#input-and-output-functions) |
+| Sgn | [Functions](#functions) |
+| Shell | [Calling External Procedures](#calling-external-procedures) |
+| Sin | [Functions](#functions) |
+| Size | [Functions](#functions), [Program Optimization](#program-optimization) |
+| Sqr | [Functions](#functions) |
+| Sqrt | [Functions](#functions) |
+| Sqrt$ | [Functions](#functions) |
+| State | [Control Statements](#control-statements) |
+| Step | [Control Statements](#control-statements) |
+| Stop | [Control Statements](#control-statements) |
+| Str$ | [Functions](#functions) |
+| String | [Complex Data Types](#complex-data-types) |
+| Substr | [Functions](#functions) |
+| Tab | [Input and Output Functions](#input-and-output-functions) |
+| Tan | [Functions](#functions) |
+| Trim$ | [Functions](#functions) |
+| Troff | [Control Statements](#control-statements), [Debug Mode Commands](#debug-mode-commands) |
+| Tron | [Control Statements](#control-statements), [Debug Mode Commands](#debug-mode-commands) |
+| True | [Functions](#functions) |
+| Type | [Declarations](#declarations) |
+| Until | [Control Statements](#control-statements) |
+| Update | [Input and Output Functions](#input-and-output-functions) |
+| Using | [Input and Output Functions](#input-and-output-functions) |
+| Val | [Functions](#functions) |
+| While | [Control Statements](#control-statements) |
+| Write | [Input and Output Functions](#input-and-output-functions) |
+| Xor | [Operators](#operators) |
