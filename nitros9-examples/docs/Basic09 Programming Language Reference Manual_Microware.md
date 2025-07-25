@@ -2178,7 +2178,7 @@ Examples:
   (* This is another kind of comment
 ```
 
-*DECLARATIVE STATEMENTS*
+#### DECLARATIVE STATEMENTS
 
 The DIM, PARAM, and TYPE statements are called declarative Statements because they are used to define and/or declare variables, arrays, and complex data structures. The DIM and PARAM statements are almost identical, the difference being that DIM statements are used to declare storage used exclusively within the procedure, and the PARAM statement is used to declare variables received from another calling procedure.
 
@@ -4159,36 +4159,36 @@ Packed modules can be executed without Runb, but Basic09 will haveto be used and
 | $ | [System Mode Commands](#system-mode-commands) |
 | Abs | [Functions](#functions) |
 | Acn | [Functions](#functions) |
-| Addr | [Operators](#operators) |
+| Addr | [Functions](#functions) |
 | And | [Operators](#operators) |
 | Array | [Arrays](#arrays) |
 | Asc | [Functions](#functions) |
 | Asn | [Functions](#functions) |
 | Atn | [Functions](#functions) |
-| Base | [Complex Data Types](#complex-data-types) |
-| Boolean | [Atomic Data Types](#atomic-data-types) |
-| Break | [Control Statements](#control-statements) |
+| Base | [Control Statements](#control-statements) |
+| Boolean | [Boolean Constants](#boolean-contants) |
+| Break | [Debug Mode Commands](#debug-mode-commands) |
+| Bye | [Syntax Notation Used in Descriptions of System Commands](#syntax-notation-used-in-descriptions-of-system-commands), [Control Statements](#control-statements) |
 | Byte | [Atomic Data Types](#atomic-data-types) |
-| Bye | [System Mode Commands](#system-mode-commands), [Debug Mode Commands](#debug-mode-commands) |
-| Chain | [Calling External Procedures](#calling-external-procedures) |
-| Chd | [System Mode Commands](#system-mode-commands), [Debug Mode Commands](#debug-mode-commands) |
+| Chain | [Control Statements](#control-statements) |
+| Chd | [System Mode Commands](#system-mode-commands), [Control Statements](#control-statements) |
 | Chr$ | [Functions](#functions) |
 | Chx | [System Mode Commands](#system-mode-commands) |
-| Close | [Input and Output Functions](#input-and-output-functions) |
+| Close | [I/O Paths](#io-paths) |
 | Constants | [Constants](#constants) |
-| Cont | [Control Statements](#control-statements) |
+| Cont | [Debug Mode Commands](#debug-mode-commands) |
 | Cos | [Functions](#functions) |
-| Create | [Input and Output Functions](#input-and-output-functions) |
+| Create | [I/O Paths](#io-paths) |
 | Date$ | [Functions](#functions) |
 | Debug Mode | [Debug Mode](#debug-mode) |
 | Deg | [Control Statements](#control-statements), [Debug Mode Commands](#debug-mode-commands) |
-| Delete | [Input and Output Functions](#input-and-output-functions) |
-| Dim | [Declarations](#declarations) |
-| Dir | [System Mode Commands](#system-mode-commands) |
+| Delete | [I/O Paths](#io-paths) |
+| Dim | [Declarative Statements](#declarative-statements) |
+| Dir | [Syntax Notation Used in Descriptions of System Commands](#syntax-notation-used-in-descriptions-of-system-commands), [Debug Mode Commands](#debug-mode-commands) |
 | Do | [Control Statements](#control-statements) |
-| Edit | [Edit Mode](#edit-mode) |
+| Edit Mode | [Edit Mode](#edit-mode) |
 | Else | [Control Statements](#control-statements) |
-| End | [Control Statements](#control-statements), [Calling External Procedures](#calling-external-procedures) |
+| End | [Control Statements](#control-statements) |
 | Endexit | [Control Statements](#control-statements) |
 | Endif | [Control Statements](#control-statements) |
 | Endloop | [Control Statements](#control-statements) |
@@ -4196,7 +4196,6 @@ Packed modules can be executed without Runb, but Basic09 will haveto be used and
 | Eof | [Functions](#functions) |
 | Err | [Functions](#functions) |
 | Error | [Control Statements](#control-statements) |
-| Exec | [Input and Output Functions](#input-and-output-functions) |
 | Exitif | [Control Statements](#control-statements) |
 | Exp | [Functions](#functions) |
 | Expressions | [Expressions](#expressions) |
