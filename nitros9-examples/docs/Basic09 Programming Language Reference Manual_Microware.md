@@ -1,18 +1,22 @@
 # BasicO9 Programming Language Reference Manual
 
-Copyright 1980, 1984 Microware Systems Corporation. All Rights Reserved
+Original Copyright 1980, 1984 Microware Systems Corporation. All Rights Reserved
 
 This document and the software it describes are copyrighted products of Microware Systems Corporation. Reproduction by any means is strictly prohibited except by prior written permission from Microware Systems Corporation.
 
 The information contained herein is believed to be accurate as of the date of publication, however Microware will not be liable for any damages, including indirect or consequential, resulting from reliance upon the software or this documentation.
 
-Revision H, January 1984
+Based on Revision H, January 1984
 
 Microware System Corporation
 P.O. Box 4865
 Des Moines, Iowa 50304 U.S.A.
 
+Markdown Conversion, July 2025
+
 ## Basic09 REFERENCE MANUAL TABLE OF CONTENTS
+
+[Markdown Conversion Forward](#markdown-conversion-forward)
 
 [Introduction](#introduction)  
 [Basic09 Features](#basic09-features)  
@@ -87,6 +91,14 @@ Des Moines, Iowa 50304 U.S.A.
 [Appendix C - Basic09 Error Codes](#appendix-c---basic09-error-codes)  
 [Appendix D - Runb](#appendix-d---runb)  
 [Appendix E - Index](#appendix-e---index)  
+
+### Markdown Conversion Forward
+
+I converted this document from an OCR pass on a scanned PDF of the original printed work that I found online.  I created separate code snippets for each example code sample and tried to preserve the original diagrams and other content that didn't convert directly through this process.  Page references have been replaced with chapter or section title links, although some page numbers may still exist in the text of the manual.  This document is a work in progress, with additional fixes needed to match the original document where possible.  I intend to add newer Basic09 language and platform changes to bring the manual up to the current NitrOS9 EOU release and include instructions for experienced developers coming to the NitrOS9 ecosystem for the first time. 
+
+| Markdown Editor |
+|-----------------|
+| Jason Ross      |
 
 ### Introduction
 
