@@ -13,63 +13,80 @@ P.O. Box 4865
 Des Moines, Iowa 50304 U.S.A.
 
 ## Basic09 REFERENCE MANUAL TABLE OF CONTENTS
-### Introduction
-#### Basic09 Features
-#### History of BasicO9
-### Introduction to Basic09 Programming
-#### What is a Program?
-#### A Simple Basic Program
-#### Basic Programming Techniques: Loops and Arithmetic
-#### Listing Procedure Names
-#### Requesting More Memory
-#### Storing and Recalling Programs
-#### How to Print Program Listings
-#### Basic09's Four Modes
-#### More About the Workspace
-### System Mode
-#### System Mode Commands
-### Edit Mode
-#### Overview of Edit Commands
-#### How the Editor Works
-#### Line-Number Oriented Editing
-#### String Oriented Editing
-#### Detailed Edit Commands
-### Execution Mode
-#### Running Programs
-#### Execution Mode: Technically Speaking
-### Debug Mode
-#### Overview of Debug Mode
-#### Debug Mode Commands
-#### Debugging Techniques
-#### Debug Mode as a Desk Calculator
-### Data Types, Variables, and Data Structures
-#### Why Are There Different Data Types
-#### Data Structures
-#### Atomic Data Types
-#### Constants
-#### Variables
-#### Parameters
-#### Arrays
-#### Complex Data Types
-### Expressions, Operators, and Functions
-#### Expressions
-#### Operators
-#### Functions
-### Program Statements and Structure
-#### Program Structure
-#### Line Numbers
-#### Assignment Statements
-#### Control Statements
-#### Parameter Passing
-#### Calling External Procedures
-#### Declarations
-### Input and Output Functions
-### Program Optimization
-### Appendix A - Sample Programs
-### Appendix B - Quick Reference Summary
-### Appendix C - Basic09 Error Codes
-### Appendix D - Runb
-### Appendix E - Index
+
+[Introduction](#introduction)  
+[Basic09 Features](#basic09-features)  
+[The History of Basic09](#the-history-of-basic09)  
+
+[Introduction to Basic09 Programming](#introduction-to-basic09-programming)  
+[What is a Program?](#what-is-a-program)  
+[A Simple Basic Program](#a-simple-basic-program)  
+[Basic Programming Techniques: Loops and Arithmetic](#basic-programming-techniques-loops-and-arithmetic)  
+[Listing Procedure Names](#listing-procedure-names)  
+[Requesting More Memory](#requesting-more-memory)  
+[Storing and Recalling Programs](#storing-and-recalling-programs)  
+[How to Print Program Listings](#how-to-print-program-listings)  
+[Basic09's Four Modes](#basic09s-four-modes)  
+[More About the Workspace](#more-about-the-workspace)  
+
+[System Mode](#system-mode)  
+[System Mode Commands](#system-mode-commands)  
+[Syntax Notation Used in Descriptions of System Commands](#syntax-notation-used-in-descriptions-of-system-commands)
+
+[Edit Mode](#edit-mode)  
+[Overview of Edit Commands](#overview-of-edit-commands)  
+[How the Editor Works](#how-the-editor-works)  
+[Line-Number Oriented Editing](#line-number-oriented-editing)  
+[String Oriented Editing](#string-oriented-editing)  
+[Detailed Edit Commands](#detailed-edit-commands)  
+[Moving the Edit Pointer](#moving-the-edit-pointer)
+[Inserting Lines](#inserting-lines)
+[Deleting Lines](#deleting-lines)
+[Listing Lines](#listing-lines)
+[Search: Finding Strings](#search-finding-strings)
+[Charge: String Substitution](#charge-string-substitution)
+
+[Execution Mode](#execution-mode)  
+[Running Programs](#running-programs)  
+[Execution Mode: Technically Speaking](#execution-mode-technically-speaking)  
+
+[Debug Mode](#debug-mode)  
+[Overview of Debug Mode](#overview-of-debug-mode)  
+[Debug Mode Commands](#debug-mode-commands)  
+[Debugging Techniques](#debugging-techniques)  
+[Debug Mode as a Desk Calculator](#debug-mode-as-a-desk-calculator)  
+
+[Data Types, Variables, and Data Structures](#data-types-variables-and-data-structures)  
+[Why Are There Different Data Types](#why-are-there-different-data-types)  
+[Data Structures](#data-structures)  
+[Atomic Data Types](#atomic-data-types)  
+[Constants](#constants)  
+[Variables](#variables)  
+[Parameters](#parameters)  
+[Arrays](#arrays)  
+[Complex Data Types](#complex-data-types)  
+
+[Expressions, Operators, and Functions](#expressions-operators-and-functions)  
+[Expressions](#expressions)  
+[Operators](#operators)  
+[Functions](#functions)  
+
+[Program Statements and Structure](#program-statements-and-structure)  
+[Program Structure](#program-structure)  
+[Line Numbers](#line-numbers)  
+[Assignment Statements](#assignment-statements)  
+[Control Statements](#control-statements)  
+[Parameter Passing](#parameter-passing)  
+[Calling External Procedures](#calling-external-procedures)  
+[Declarations](#declarations)  
+[Input and Output Functions](#input-and-output-functions)  
+[Program Optimization](#program-optimization)  
+
+[Appendix A - Sample Programs](#appendix-a---sample-programs)  
+[Appendix B - Basic09 Quick Reference](#appendix-b---basic09-quick-reference)  
+[Appendix C - Basic09 Error Codes](#appendix-c---basic09-error-codes)  
+[Appendix D - Runb](#appendix-d---runb)  
+[Appendix E - Index](#appendix-e---index)  
 
 ### Introduction
 
@@ -122,8 +139,6 @@ Excellent feedback, thoughtful suggestions, and carefully documented bug reports
 
 ### Introduction to Basic09 Programming
 
-### An Introduction To BasicO9
-
 This section is intended for persons who have not previously written computer programs. If you are familiar with programming in general or BASIC programming specifically, this section can give you a "feel" for the Basic09 interactive environment.
 
 #### What Is A Program?
@@ -144,7 +159,7 @@ When you turn on the Basic09 computer it will print some heading information. If
 
 To <create a new procedure you command the system to enter the "edit mode" by typing a simple "e" (in upper or lower case) and a carriage- return (the ENTER or RETOURN key). The Editor lets you enter or change programs and actually checks for many common errors as you type in your program. Automatic checking feature is one of the nicest things about Basic09. Because it's always "looking over your shoulder"" to catch mistakes, it saves a 1lot of debugging time! If you're not 100% sure about how something works, you can go ahead and try it instead of digging though this manual,. If you guess wrong, Basic09 will usually show you wnhere and why.
 
-Because you did not specify a particular procedure name, BASICO9 will auvtomatically select the name "PROGRAM" for you and will respond by printing out "PRCCEDURE PROGRAM"; this means that you will be editing a procedure which is named PROGRAM. Later you will see that you can enter many different procedures and give them different names (just type the name you want to use for the program after the "e"). A procedure name may be any combination of alphanumeric characters beginning with a letter.
+Because you did not specify a particular procedure name, BASICO9 will auvtomatically select the name "PROGRAM" for you and will respond by printing out "PROCEDURE PROGRAM"; this means that you will be editing a procedure which is named PROGRAM. Later you will see that you can enter many different procedures and give them different names (just type the name you want to use for the program after the "e"). A procedure name may be any combination of alphanumeric characters beginning with a letter.
 
 The computer output so far is as follows:
 
@@ -355,9 +370,9 @@ So far, you have been exposed to System Mode (SAVE, LOAD, etc.), Edit Mode (the 
 |-----------|-------------|-----------|----------------|------------|
 |  BASIC09  |  ==>        |  +        |                |            |
 |           |  $          |  -        |                |            |
-|   <==     |  <e0f>      |  <cr>     |                |            |
-|           |  BYE        |  <line#>  |                |            |
-|           |  CHD        |  <space>  |                |            |
+|   <==     |  \<e0f>     |  \<cr>    |                |            |
+|           |  BYE        |  \<line#> |                |            |
+|           |  CHD        |  \<space> |                |            |
 |           |  CHX        |  c        |                |            |
 |           |  DIR        |  d        |                |            |
 |           |  EDIT       |  ==>      |                |            |
@@ -371,11 +386,11 @@ So far, you have been exposed to System Mode (SAVE, LOAD, etc.), Edit Mode (the 
 |           |  RUN        |           |  ==>           |  TRON      |
 |           |  SAVE       |           |                |  TROFF     |
 |           |  <==        |           |  END           |  END or Q  |
-|           |  <==        |           |  <CTRL Q>      |  STATE     |
+|           |  <==        |           |  \<CTRL Q>     |  STATE     |
 |           |  <==        |           |  STOP          |  $         |
 |           |             |           |  PAUSE         |  ==>       |
 |           |             |           |  ERROR         |  ==>       |
-|           |             |           |  <CTRL C>      |  ==>       |
+|           |             |           |  \<CTRL C>     |  ==>       |
 |  <==      |             |           |  BYE           |            |
 |           |             |           |  PROGRAM       |  BREAK     |
 |  BASIC09  |             |           |  <==           |  CONT      |
@@ -395,7 +410,7 @@ As the software is written and debugged, Basic09 makes it easy to deal with the 
 
 Basic09 always reserves approximately 1.2K bytes of the workspace for internal use. All remaining space is used for storage of procedures and for procedure variable storage during execution. Basic09 will not run a procedure if there is not enough space for variables. If you run out of workspace area, you can use the MEM command to enlarge the workspace or you can kill procedures in the workspace that are not needed. The "MEM" command can be used at any time to change the size of the workspace. The size of the workspace can be increased (subject to availability of free memory) or decreased (but not below the minimal amount needed to store the present contests of the workspace).
 
-#### WHERE TO GO FROM HERE?
+*WHERE TO GO FROM HERE?*
 
 A good way to learn Basic09 is to use it! Try typing in and running some of the example programs in the back of the book. Look up and study the function of each program statement. Read the chapters on the EDIT and DEBUG modes and experiment with more advanced commands. Since Basic09 and the OS-9 Operating System are so intimately connected, a basic wunderstanding of 05-9 is necessary. See Chapter 2 of the "OS-9 OPERATING SYSTEM USER'S MANUAL.
 
@@ -406,7 +421,8 @@ A good way to learn Basic09 is to use it! Try typing in and running some of the 
 System Mode includes commands to save, load, examine procedures; commands to interact with 08-9; and other commands to control the workspace environment. A complete list of system commands is given below.
 
 *System Mode Commands*
-
+||||||
+|-|-|-|-|-|
 | $ | CHX | EDIT | LOAD | RENAME |
 | BYE | DIR | KILL | MEM | RUN |
 | CHD | E | LIST | PACK | SAVE |
@@ -467,11 +483,11 @@ Individual descriptions of each system command follow. 1In order to precisely de
   <number> is a decimal or hex number
 ```
 
-*$ [<text>] ("Shell" Command)*
+*$ [\<text>] ("Shell" Command)*
 
 This command calls the OS-9 Shell command interpreter to process an OS-9 command or to run another program. Running the 05-9 command does not cause Basic09 or its workspace to be disturbed.
 
-If the - "$" is followed by text, the Shell is called to process the text as a single 05-9 command line. After the command is executed, Basic09 is immediately reentered. ' '
+If the "$" is followed by text, the Shell is called to process the text as a single 05-9 command line. After the command is executed, Basic09 is immediately reentered. ' '
 
 If no text is given, Basic09 is suspended and the OS-9 Shell is called to process multiple command lines individually entered from the keyboard. Control is returned to Basic09 when an end-of-file character (usually ESCAPE) is entered. The contents of the Basic09 workspace is not affected. This is a convenient way to temporarily leave Basic09 to manipulate files or perform other "housekeeping.
 
@@ -501,7 +517,7 @@ Example:
   CED /dl1/joe/games
 ```
 
-*DIR [<pathlist>]*
+*DIR [\<pathlist>]*
 
 DIR displays the name, size, and variable storage requirement of each. procedure presently in the workspace. The current working procedure has an asterisk before its name. BAll PACKed procedures have a dash before their name (see PACK). The available free memory within the workspace is also given, If a pathlist is given, output is directed to that file or device.
 
@@ -510,8 +526,9 @@ procedure.
 
 Note: This command should not be confused with the OS-9 "DIR" command.They have completely different functions.
 
-*EDIT [<procname>]*
-*E [<procname>]*
+*EDIT [\<procname>]*
+
+*E [<\procname>]*
 
 EDIT (E) exits command mode and enters the text editor/compiler moée. If the procedure named does not exist, a new one is created.
 
@@ -523,7 +540,8 @@ Examples:
   EDIT printreport
 ```
 
-*KILL [<procname> {,<procname>}]*
+*KILL [\<procname> {,\<procname>}]*
+
 *KILL\**
 
 KILL erases the procedure(s) specified. KILL* clears the entire workspace. The process may take some time if there are many procedures in the workspace.
@@ -535,8 +553,9 @@ Examples:
   KILL progl,prog3,prog7
 ```
 
-*LIST [<procname> {,<procname>}] [> <pathlist>]*
-*LIST\* [<pathlist>]:*
+*LIST [\<procname> {,\<procname>}] [> \<pathlist>]*
+
+*LIST\* [\<pathlist>]:*
 
 LIST prints a formatted "pretty printed" listing of one or nmore procedures. The listing includes the relative I-code storage addresses in hexadecimal numbers in the first column. The second column is reserved for program line numbers (if line numbers are used).
 
@@ -554,7 +573,7 @@ Examples:
   LIST prog5 >temp
 ```
 
-*LOAD <pathlist>*
+*LOAD \<pathlist>*
 
 LOAD loads all procedures from the file specified into the workspace. As procedures are loaded, their names are displayed. If any of the procedures being loaded have the same name as a procedure already in the vorkspace, the existing procedures are erased and replaced with the procedure being loaded.
 
@@ -567,7 +586,7 @@ Example:
 ```
 
 *MEM*
-*MEM <number>*
+*MEM \<number>*
 
 MEM used without a number displays the present total workspace size in (decimal) bytes. If a number is given, Basic09 asks 05-9 to expand the workspace to that size. A hex value can be used if preceded by a dollar sign. If MEM responds with "WHAT?", you either asked for more memory than is available, tried to give back too much memory (there has to be. enough to store all procedures in the workspace), or gave an invalid number.
 
@@ -577,8 +596,9 @@ Example:
   MEM 18000
 ```
 
-*PACK [<procname> {,<procname>}] [> <pathlist>]*
-*PACK\* [<pathlist>]*
+*PACK [\<procname> {,\<procname>}] [> \<pathlist>]*
+
+*PACK\* [\<pathlist>]*
 
 PACK causes an extra compiler pass on the procedure(s) specified which removes names, line numbers, non-executable statements, etc. The result is a smaller, faster procedure(s) that CANNOT be edited or debugged but can be executed by Basic09 or by the Basic09 run-time-only program called "RunB". If a pathlist is not given, the name of the first procedure in the list will be used as a default pathname. The procedure is written to the file/device specified in OS-9 memory module format suitable for loading in ROM or RAM OUTSIDE the workspace. THE RESULTING FILE CANNOT BE LOADED INTO THE WORKSPACE LATER ON, so you should always perform a regular SAVE before PACKing a procedure!
 
@@ -600,7 +620,7 @@ Examples:
   PACK* packedfile
 ```
 
-*RENAME <procname>,<new procname>*
+*RENAME \<procname>,\<new procname>*
 
 RENAME changes' the name of a procedure. Can be used to allow two copies of the same procedure in the workspace under different names.
 
@@ -609,7 +629,7 @@ Example:
   RENAME thisproc thatproc
 ```
 
-*RUN [<procname> [ ( <expr> , {<expr>} ) ]]*
+*RUN [\<procname> [ ( \<expr> , {\<expr>} ) ]]*
 
 RUN executes the procedure specified. Technically speaking, Basic09 then leaves System Mode and enters Execution Mode. A
 
@@ -626,8 +646,9 @@ Examples:
   RUN power ($32, sin(pi/2))
 ```
 
-*SAVE [<procname> {,<procname>} [> <pathlist>]]*
-*SAVE\* [<pathlist>]*
+*SAVE [\<procname> {,\<procname>} [> \<pathlist>]]*
+
+*SAVE\* [\<pathlist>]*
 
 Writes the procedure(s) (or all procedures) to an output file or device in source format. This command is similar to the LIST command except the output is not formatted and 1I-code addresses are not included. If a pathlist is not specified, it will default to the name of the first procedure listed. -
 
@@ -661,27 +682,27 @@ The Editor includes the following commands. Each command is described in detail 
 
 *EDIT MODE COMMANDS*
 
-|    Command     |              Description               |
-|----------------|----------------------------------------|
-| <cr>           | move edit pointer forward one line     |
-| +[<number>]    | move edit pointer forward              |
-| +*             | move edit pointer to end of text       |
-| - [<number>]   | move edit pointer backward             |
-| -*             | move edit pointer to beginning of text |
-| <space> <text> | insert unnumbered line                 |
-| <line#> <text> | insert or replace numbered line        |
-| <line%#> <cr>  | find numbered line                     |
-| c              | change string                          |
-| c*             | change all occurrences of string       |
-| d              | delete line                            |
-| a*             | delete all lines                       |
-| 1              | list line(s)                           |
-| 1*             | list all lines                         |
-| q              | guit editing                           |
-| r              | renumber line                          |
-| r*             | renumber all lines                     |
-| s              | search for string.                     |
-| s*             | search for all occurrences of string   |
+|    Command       |              Description               |
+|------------------|----------------------------------------|
+| \<cr>            | move edit pointer forward one line     |
+| +[\<number>]     | move edit pointer forward              |
+| +*               | move edit pointer to end of text       |
+| - [\<number>]    | move edit pointer backward             |
+| -*               | move edit pointer to beginning of text |
+| \<space> \<text> | insert unnumbered line                 |
+| \<line#> \<text> | insert or replace numbered line        |
+| \<line#> \<cr>   | find numbered line                     |
+| c                | change string                          |
+| c*               | change all occurrences of string       |
+| d                | delete line                            |
+| a*               | delete all lines                       |
+| l                | list line(s)                           |
+| l*               | list all lines                         |
+| q                | quit editing                           |
+| r                | renumber line                          |
+| r*               | renumber all lines                     |
+| s                | search for string                      |
+| s*               | search for all occurrences of string   |
 
 #### HOW THE EDITOR WORKS
 
@@ -709,13 +730,13 @@ If you have experience with another version of the BASIC language, this is the k
 
 The line number oriented commands are:
 
-|    Command     |              Description               |
-|----------------|----------------------------------------|
-| <line#> <text> | insert or replace numbered line        |
-| <line%#> <cr>  | find numbered line                     |
-| d              | delete line                            |
-| r              | renumber line                          |
-| r*             | renumber all lines                     |
+|    Command      |              Description               |
+|-----------------|----------------------------------------|
+| <line#> \<text> | insert or replace numbered line        |
+| <line#> \<cr>   | find numbered line                     |
+| d               | delete line                            |
+| r               | renumber line                          |
+| r*              | renumber all lines                     |
 
 To enter or replace a numbered line, simply type in the line number and statement. Numbered lines can be entered in any order but will be automatically stored in ascending sequence. To move to a numbered line, type the line number followed by a carriage return. The editor will move to that line (or the one with the next higher number if not found) and print it. The line may be deleted using the "d" command.
 
@@ -747,10 +768,10 @@ The "+" and "-" commands are used to reposition the edit pointer:
 |    Command     |              Description               |
 |----------------|----------------------------------------|
 | +              | move edit pointer forward one line     |
-| + <number>     | move edit pointer forward n lines      |
+| + \<number>    | move edit pointer forward n lines      |
 | +*             | move edit pointer to end of text       |
 | -              | move edit pointer backward one line    |
-| - <number>     | move edit pointer backward n lines     |
+| - \<number>    | move edit pointer backward n lines     |
 | -*             | move edit pointer to beginning of text |
 
 The number indicates how many lines to move. Backward means towards the first line of the procedure. 1If the number is omitted, a count of one is used (this is true of most edit commands). A line consisting of a carriage return only also moves the pointer forward one line, which makes it easy to "step" through a program a line at a time. Therefore, the following commands all do the same thing:
@@ -759,6 +780,7 @@ The number indicates how many lines to move. Backward means towards the first li
   <CR>
   + <CR>
   +1 <CR>
+```
 
 #### INSERTING LINES
 
@@ -777,7 +799,8 @@ The first form deletes <number> lines starting at the current edit pointer 1loca
 
 #### LISTING LINES
 
-The "1 command is used to display one or more lines. It also has the forms: -
+The "1 command is used to display one or more lines. It also has the forms:
+
 ```
   1. [<number>] <CR>
   1*
@@ -876,7 +899,7 @@ Execution mode is Basic09's state when any procedure is being run. It involves e
 
 Execution Mode can be entered in a number of ways:
 
-l. By means of the RUN system command.
+1. By means of the RUN system command.
 2. By Basic09's auto-run feature.
 
 The Auto-run feature allows Basic09 to get the name of a file to load and run from the same command line used to call Basic09. The file loaded and run can be either a SAVED file (in the data directory), or a PACKED file (in the execution directory). The file may contain severalprocedures; the one executed is the one with the same name as the file. Parameters may be passed following the pathname specified. For example, the following OS-9 command lines use this feature:
@@ -894,7 +917,7 @@ One of Basic09's outstanding features is its set of powerful svmbolic debugging 
 
 Debug Mode is entered from Execution Mode in one of three ways:
 
-l. When an error occurs during execution of a procedure (that is not intercepted by an ON ERROR GOTO statement within the program).
+1. When an error occurs during execution of a procedure (that is not intercepted by an ON ERROR GOTO statement within the program).
 2. When a procedure executes a PAUSE statement.
 3. When a keyboard interrupt (CONTROL-C) occurs.
 
@@ -909,11 +932,11 @@ Notice that Debug Mode displays a "D:" prompt when it is awaiting a command. Any
 
 #### DEBUG MODE COMMARDS
 
-*$ <text> (Shell Command)*
+*$ \<text> (Shell Command)*
 
 Calls 05-9's Shell command interpreter to run a program or OS-9 command. Exactly the same as System Mode "$" command.
 
-*BREAK <proc name>*
+*BREAK \<proc name>*
 
 BREAK sets up a "breakpoint" at the procedure named. This command is used when procedures call each other and provides a way to re-enter Debug Mode when returning to a specific procedure. To illustrate how BREAK works, suppose there are three procedures in the workspace: PROC1, PROC2, and PROC3. Assume that PROC1 calls PROC2 which in turn calls PROC3. While ©PROC3 is executing, you type CORTROL-C to enter debug mode. You can now enter: 
 ```
@@ -926,7 +949,7 @@ Notice that BREAK responds with "ok" if the procedure was found on the current R
 
 There are three characteristics of BREAK you should note:
 
-l. The bteakpoint is removed as soon as it occurs.
+1. The bteakpoint is removed as soon as it occurs.
 2. You can use one breakpoint for each active procedure.
 3. You can't éut a breakpoint on a procedure unless it has been called but not yet returned to. Hence, BREAK cannot be used on procedures that have not yet been run.
 
@@ -940,7 +963,7 @@ Causes program execution to continue at the next statement. It may be used to re
 
 Select either degrees or radians as the angle unit measure used by trig- onometric functions. These commands only affect the procedure currently being debugged or run.
 
-*DIR [<pathname>]*
+*DIR [\<pathname>]*
 
 DIR displays workspace procedure directory in exactly the same way as the System Mode DIR command.
 
@@ -958,7 +981,7 @@ Essentially the same as the Basic09 LET program statement, which allows the valu
 
 LIST displaysa formatted source listing of the suspended procedure with I-code addresses. An asterisk is printed to the left of the statement where the procedure is suspended. Only the current procedure may be listed.
 
-*PRINT [#<expr>,] [USING <expr>,] <expr list>*
+*PRINT [#\<expr>,] [USING \<expr>,] \<expr list>*
 
 PRINT can be used to examine the present value of variables in the suspended program, All variable names must be the same as in the original program, and no new variable names can be used. User-defined data structures can not be printed.
 
@@ -974,7 +997,7 @@ STATE lists the calling ("nesting") order of all active procedures. The highest~
   CALLED BY PROGRAM
 ```
 
-*STEP [<number>] or <CR>*
+*STEP [\<number>] or \<CR>*
 
 STEP allows the suspended procedure to be executed one or more source statements at a time, For example, "STEP 5" would execute the equivalent of the next 5 source statements. A debug command line which is just a carriage return is considered the same as "STEP 1". The STEP command is most commonly used with the trace mode on, so the original source lines can be seen as they are executed.
 
@@ -1020,6 +1043,7 @@ The simple program listed below turns Debug Mode into a powerfuldesk calculator.
   DIM n,o,p,q,r,s,t,u,v,w,x,y,z
   PAUSE
   END
+```
 
 Recall that while in Debug Mode you can't create new variables, hence the DIM statements that pre-define26 working variables for you. If you wish you can use more or fewer variables. The PAUSE statement causes Debug Mode to be entered. Here's a sample session:
 
@@ -1111,7 +1135,7 @@ Floating point arithmetic is inherently inexact, thus a sequence of operations c
 
 *Type STRING*
 
-A STRING is a variable-length sequence of characters or nil (an empty STRING). A variable may be defined as a STRING either explicitly (e.g., DIM title:STRING ) or implicitly by appending the dollar-sign character to the identifier (e.g., title$ := "My First Program." ). The default maximum length allocated to each string is 32 characters, but each string may be dimensioned less (e.g., DIM A:STRING [4] ) for memorysavings or more (e.g., DIN long:STRING [2880] ) to allow long strings. Notice that strings are inherently variable-length entities, and dimensioning: the storage for a string only defines the maximum length string which can be stored there. When a STRING value is assigned to a STRING variable, the bytes composing the string are copied into the variable storage byte-by-byte. The beginning of a string is always character number one, and this is NOT affected by the BASEDO or BASEl statements. Operations which result in strings too long to fit in the dimensioned storage truncate the string on the right and no error is generated.
+A STRING is a variable-length sequence of characters or nil (an empty STRING). A variable may be defined as a STRING either explicitly (e.g., DIM title:STRING ) or implicitly by appending the dollar-sign character to the identifier (e.g., title$ := "My First Program." ). The default maximum length allocated to each string is 32 characters, but each string may be dimensioned less (e.g., DIM A:STRING [4] ) for memorysavings or more (e.g., DIN long:STRING [2880] ) to allow long strings. Notice that strings are inherently variable-length entities, and dimensioning: the storage for a string only defines the maximum length string which can be stored there. When a STRING value is assigned to a STRING variable, the bytes composing the string are copied into the variable storage byte-by-byte. The beginning of a string is always character number one, and this is NOT affected by the BASE0 or BASEl statements. Operations which result in strings too long to fit in the dimensioned storage truncate the string on the right and no error is generated.
 
 Normally the internal representation of the string is hidden from the user. A string is stored in a fixed-size storage area and is represented by a sequence of bytes terminated by the value zero or by the maximum length allotted to that STRING variable. Any remaining "unused" storage after the zero byte allows the stored string to expand and contract during execution. The example below shows the internal storage of a wvariable dimensioned as STRING[6] and assigned a value of "SAM". Notice the byte at +3 contains the zero string terminator, and the two following bytes are not used.
 
@@ -1146,6 +1170,8 @@ Constants are frequently used in program statements and in expres- cions to assi
 
 Numeric constants can be either type REAL or type INTEGER. If a number constant includes a decimal point or uses the "E format exponential form, it forces Basic09 to store the number in REAL format even if the number could have been stored in INTEGER or BYTE format. Thus if you specifically want to specify a REAL constant, use a decimal point (for example 12.0). This is sometimes done if all other values in an expression are of type REAL so Basic09 does not have to do a time- consuming type conversion at run-time. Numbers that do not have a decimal point but are too large to be represented as integers are also stored in REAL format. Here are some examples of legal real constants:
 
+|||
+|-|-|
 | 1.0 | 9.8433218 |
 | -.01 | -999.000099 |
 | 100000000 | 5655.34532 |
@@ -1154,6 +1180,8 @@ Numeric constants can be either type REAL or type INTEGER. If a number constant 
 Numbers that do not have a decimal point and are in the range of -32768 to +32767 are treated as INTEGER numbers. Basic09 will also accept integer constants as unsigned decimal numbers in the range 0 to 65535 or in hexadecimal in the range 0 to $FFFF. Hex numbers must have a leading
 dollar sign. Here are some examples of integer constants:
 
+||||
+|-|-|-|
 | 12 | -3000 | 64000 |
 | $20 | $FFFE | $0 |
 | 0 | -12 | -32768 |
@@ -1185,7 +1213,7 @@ Each Basic09 variable is "local" to the procedure where it is defined. Local mea
 
 Storage for variables is allocated from the Basic09 workspace when the procedure is called. It is not possible to force a variable to occupy a particular absolute address in memory. When the procedure is exited, variable storage is given back and values stored in it are lost. Procedures can call themselves (this is referred to as recursion) which causes another separate storage space for variables to be allocated.
 
-WARNING!! Basic09 DOES NOT AUTOMATICALLY INITIALIZE VARIABLES. WHEN A PROCEDURE IS RUN ALL VARIABLES, ARRAYS AND STRUCTURES WILL HAVE RANDOM VALUES. YOUR PROGRAM MUST ASSIGN ANY INITIAL VALUE IF NEEDED.
+**WARNING!!** Basic09 does not automatically initialize variables. when a procedure is run all variables, arrays and structures will have random values. your program must assign any initial value if needed.
 
 #### PARAMETER VARIABLES
 
@@ -1195,6 +1223,8 @@ Parameters are usually passed "by reference"; this is done by enclosing the name
 
 Parameters may be passed "by value" by writing the value to be passed as an expression which is evaluated at the time of the call. Useful expression-generators that don't alter values are +0 for numbers or +"" for strings. For example:
 
+|||
+|-|-|
 | RUN inverse(x) | passes "x" by reference |
 | RUN inverse(x+0) | passes "x" by value |
 | RUN translate(word$) | passes "word$" by reference |
@@ -1246,11 +1276,11 @@ The "<" operator compares two numeric operands. The result of the comparison is 
 
 Basic09 allows intermixing of the three numeric types because it performs automatic type conversion of operands. If different types areused in an expression, the "result" will be the same type as the operand(s) having the largest representation. As a rule, any numeric tvpe operand may be used in a expression that is expected to produce a result of type REAL. Expressions that must produce byte or integer results must evaluate to a value that is small enough to fit the representation. Basic09 has a complete set of functions that can perform compatible type conversion. Type-mismatch errors are reported by the second compiler pass when leaving Edit mode.
 
-#### OPENATORS
+#### OPERATORS
 
 Operators: take two operands (except negation) and cause some operation to be performed producing a result, which is generally the same type as the operands (except comparisons). The table below lists the operators available and the types they accept and produce. "NUMERIC" refers to either BYTE, INTEGER, or REAL types.
 
-*Basic09 EXPRESSION OPENATORS*
+*Basic09 EXPRESSION OPERATORS*
 
 | Operator | Function              | Operand Type     | Result Type |
 |----------|-----------------------|------------------|-------------|
@@ -1274,7 +1304,7 @@ Operators: take two operands (except negation) and cause some operation to be pe
 
 * When comparing strings, the ASCII collating segquence is used, so that 0 < 1 ... < 9 < A < B ... < Z < a < b ... < x
 
-#### OPENATOR PRECEDENCE
+#### OPERATOR PRECEDENCE
 
 Operators have "precedence" which means they are evaluated in a
 specific order (i.e., multiplications performed before addition).
@@ -1300,11 +1330,13 @@ Operators of equal precedence are shown on the same line, and are evaluated left
 
 In the examples below, Basic09 expressions on the left will be evaluated as indicated on the right. Either form may be entered, but the simpler form on the left will always be generated by the decompiler.
 
+|||
+|-|-|
 | Basic09 Representation | Equivalent Form                |
 | a:= b+c**2/d           | a:= b+((c**2)/d)               |
 | a:= b>c AND d>e OR c=e | a:= ((b>c) AND (d>e)) OR (c=e) |
 | a:= (b+c+d)/e          | a:= ((b+c)+d)/e
-| a:= b**c**d/e          | a:= (b**(c**d))/e
+| a:= b\**c**d/e          | a:= (b**(c**d))/e
 | a:= —(b)**2            | a:= (-b)**2
 | a=b=c                  | a:= (b=c) (returns BOOLEAN value)
 
@@ -1322,63 +1354,76 @@ In the descriptions of functions that follow, the following notation is used to 
 
 The functions below return REAL results. Accuracy of transcedental functions is 8+ decimal digits. 2Angles can be either degrees or radians (see DEG/RAD statement descriptions).
 
-SIN(<num>) trigonometric sine of <num>
-COS((num>) trigonometric cosine of <num>
-TAN(<num>) trigonometric tangent of <num>
-ASN(<num>) trigonometric arcsine of <num>
-ACS(<num>) trigonometric arcosine of <num>
-ATN(<num>) trigonometric arctangent of <num>
-LOG(<num>) natural logarithm (base e) of <num>
-LOG10 (<num>) logarithm (base 10) of <num>
-EXP(<num>) e (2.71828183) raised to the power <num>, which must be a positive number.
-FLOAT(<num>) <num> converted to type REAL (from BYTE or INTEGER)
-INT(<num>) largest whole number less than or egual to <num>
-PI the constant 3.14159265
-SQR(<num>) square root of <num>, which must be positive
-SQRT(<num>) square root of <num>; same as SQR
-RND(<num>) if <num> = 0 returns random x, 0 <= x < 1; if <num> > 0 returns random x, 0 <= x < <num>; if <num> < 0 use ABS(<num>) as new random number seed
+|||
+|-|-|
+| SIN(\<num>)    | trigonometric sine of \<num> |
+| COS(\<num>)    | trigonometric cosine of \<num> |
+| TAN(\<num>)    | trigonometric tangent of \<num> |
+| ASN(\<num>)    | trigonometric arcsine of \<num> |
+| ACS(\<num>)    | trigonometric arcosine of \<num> |
+| ATN(\<num>)    | trigonometric arctangent of \<num> |
+| LOG(\<num>)    | natural logarithm (base e) of \<num> |
+| LOG10 (\<num>) | logarithm (base 10) of \<num> |
+| EXP(\<num>)    | e (2.71828183) raised to the power \<num>, which must be a positive number. |
+| FLOAT(\<num>)  | \<num> converted to type REAL (from BYTE or INTEGER) |
+| INT(\<num>)    | largest whole number less than or egual to \<num> |
+| PI             | the constant 3.14159265 |
+| SQR(\<num>)    | square root of \<num>, which must be positive |
+| SQRT(\<num>)   | square root of \<num>; same as SQR |
+| RND(\<num>)    | if \<num> = 0 returns random x, 0 <= x < 1; if \<num> > 0 returns random x, 0 <= x < \<num>; if \<num> < 0 use ABS(\<num>) as new random number seed |
 
 The following functions can return ANY numeric type, depending on the type of the input parameter(s).
 
-ABS(<num>) absolute value of <num>
-SGN(<num>) signum of <num>: -1 if <num> < 0, 0 if <num> = 0, or 1 if <num> > 0
-SQ(<num>) square <num>
-VAL(<str>) convert type string to type numeric
+|||
+|-|-|
+| ABS(\<num>) | absolute value of \<num> |
+| SGN(\<num>) | signum of \<num>: -1 if \<num> < 0, 0 if \<num> = 0, or 1 if \<num> > 0 |
+| SQ(\<num>)  | square \<num> |
+| VAL(\<str>)  | convert type string to type numeric |
 
 The following functions return results of type INTEGER or BYTE
 
-FIX(<num>) round REAL <num> and convert to type INTEGER
-MOD(<numl>, <num2>) modulus (remainder) function, <numl> mod <num2>
-ADDR(<name>) absolute memory address of variable, array, or structure named <name>.
-SIZE(<name>) storage size in bytes of variable, array, or structure named <name>.
-ERR error code of most recent error, automatically resets to zero when referenced
-PEEK(<int>) value of byte at memory address <int>
-POS current character position of PRINT buffer
-ASC(<str>) numeric value of first character of <str>
-LEN(<str>) length of string <str>
-SUBSTR(<strl>,<str2>) substring search: returns starting position of first occurrence of <strl> in <str2>, or 0 if not found.
+|||
+|-|-|
+| FIX(\<num>) | round REAL \<num> and convert to type INTEGER |
+| MOD(\<numl>, \<num2>) | modulus (remainder) function, \<numl> mod \<num2> |
+| ADDR(\<name>) | absolute memory address of variable, array, or structure named \<name>. |
+| SIZE(\<name>) | storage size in bytes of variable, array, or structure named \<name>. |
+| ERR | error code of most recent error, automatically resets to zero when referenced |
+| PEEK(\<int>) | value of byte at memory address \<int> |
+| POS | current character position of PRINT buffer |
+| ASC(\<str>) | numeric value of first character of \<str> |
+| LEN(\<str>) | length of string \<str> |
+| SUBSTR(\<strl>,\<str2>) | substring search: returns starting position of first occurrence of \<strl> in \<str2>, or 0 if not found. |
 
 The following functions perform bit-by-bit logical operations on integer or byte data types and return integer results. They should NOT be confused with the BOOLEAN-type operators.
 
-LAND(<num>, <num>) Logical AND
-LOR(<num>, <num>) Logical OR
-LXOR(<num>, <num>>) Logical EXCLUSIVE OR
-LNOT(<num>) Logical NOT
+|||
+|-|-|
+| LAND(\<num>, \<num>) | Logical AND |
+| LOR(\<num>, \<num>) | Logical OR |
+| LXOR(\<num>, \<num>>) | Logical EXCLUSIVE OR |
+| LNOT(\<num>) | Logical NOT |
 
 These functions return a result of type STRING:
 
-CHR$(<int>) ASCII char. equivalent of <int>
-DATE$ date and time, format: "yy/mm/dd hh:mm:ss"
-LEFT$(<str>,<int>) leftmost <int> characters of <str>
-RIGHT$(<str>,<int>) rightmost <int> characters of <str>
-MID$(<strd>,<intld>,<int2> middle <int2> characters of <str> starting at character position <intl>STR$ (<num>) converts numeric type <num> to displayable characters of type STRING representing the number converted.
-TRIM$(<str>) <str> with trailing spaces removed
+|||
+|-|-|
+| CHR$(\<int>) | ASCII char. equivalent of \<int> |
+| DATE$ | date and time, format: "yy/mm/dd hh:mm:ss" |
+| LEFT$(\<str>,\<int>) | leftmost \<int> characters of \<str> |
+| RIGHT$(\<str>,\<int>) | rightmost \<int> characters of \<str> |
+| MID$(\<str>,\<int1>,\<int2>) | middle <int2> characters of \<str> starting at character position <intl> |
+| STR$(\<num>) | converts numeric type \<num> to displayable characters of type STRING representing the number converted. |
+| TRIM$(\<str>) | \<str> with trailing spaces removed |
 
 The following functions return BOOLEAN values:
 
-TRUE always returns TROE
-FALSE always returns FALSE
-EOF(#<num>) End of File test on disk file path <num>, returns TRUE if end-of-file condition.
+|||
+|-|-|
+| TRUE | always returns TRUE |
+| FALSE | always returns FALSE |
+| EOF(#\<num>) | End of File test on disk file path \<num>, returns TRUE if end-of-file condition. |
 
 ### PROGRAM STRUCTURE
 
@@ -1412,7 +1457,7 @@ Syntax:
 ```
   [LET] <var> := <expr>
   [LET] <var> = <expr>
-  [LET] <struct)> := <struct>
+  [LET] <struct> := <struct>
   [LET] <struct> = <struct>
 ```
 
@@ -1541,7 +1586,7 @@ Examples:
   NEXT x
 ```
 
-*WHILE..DO Statement*
+*WHILE/DO Statement*
 
 Syntax:
 ```
@@ -2158,7 +2203,7 @@ Arrays can have one, two or three dimensions. The DIM statement format (includin
   DIM a(10),b(20,30),c:INTEGER; x(5,5,5):STRING[12]
 ```
 
-In the example above, "a" is an array of 10 integers, "b" is a 20 by 30 matrix of integers, "c" is a simple integer variable, and "x" is a three- dimensional array of l2-character strings.
+In the example above, "a" is an array of 10 integers, "b" is a 20 by 30 matrix of integers, "c" is a simple integer variable, and "x" is a three- dimensional array of 12-character strings.
 
 Arrays can be any atomic or user-defined type. By declaring arrays of wuser-defined types, structures of arbitrary complexity and shape can be generated. Here's an example declaration that generates a doubly- linked list of character strings. Each element of the array consists of the string containing the data and two integer "pointers".
 
@@ -2895,6 +2940,8 @@ Sometimes, similar or identical results can be obtained in a number of different
 
 *ARITHMETIC FUNCTIORS RANKED BY SPEED*
 
+|||
+|-|-|
 | Operation                     | Typical Speed (MPU Cycles) |
 | INTEGER ADD OR SUBTRACT       |             150            |
 | INTEGER RULTIPLY              |             240            |
@@ -3667,286 +3714,297 @@ D 000A            Length2  rmb   2          size
   005E            InKeyEnd equ   *
 ```
 
-### Appendix B - Quick Reference
+### Appendix B - Basic09 Quick Reference
 
 #### System Mode Commands
-    $
-    BYE
-    CHD
-    CHX
-    DIR
-    E
-    EDIT
-    KILL
-    LOAD
-    MEM
-    PACK
-    RENAME
-    RUN
-    SAVE
 
-EDIT MODE COMMANDS
-    +
-    +*
-    -
-    -*
-    <cr>
-    <line #>
-    <space>
-    c
-    c*
-    d
-    d*
-    l
-    l*
-    q
-    r
-    r*
-    s
-    s*
+- $
+- BYE
+- CHD
+- CHX
+- DIR
+- E
+- EDIT
+- KILL
+- LOAD
+- MEM
+- PACK
+- RENAME
+- RUN
+- SAVE
 
-DEBUG MODE COMMANDS
-    $
-    BREAK
-    CONT
-    DEG
-    DIR
-    END
-    LET
-    LIST
-    PRINT
-    Q
-    RAD
-    STATE
-    STEP
-    TROFF
-    TRON
+#### Edit Mode Commands
 
-PROGRAM RESERVED WORDS
-    ABS
-    ACS
-    ADDR
-    AND
-    ASC
-    ASN
-    ATN
-    BASE
-    BOOLEAN
-    BYE
-    BYTE
-    CHAIN
-    CHD
-    CHR$
-    CHX
-    CLOSE
-    COS
-    CREATE
-    DATE$
-    DEG
-    DELETE
-    DIM
-    DIR
-    DO
-    ELSE
-    END
-    ENDEXIT
-    ENDIF
-    ENDLOOP
-    ENDWHILE
-    EOF
-    ERR
-    ERROR
-    EXEC
-    EXITIF
-    EXP
-    FALSE
-    FIX
-    FLOAT
-    FOR
-    GET
-    GOSUB
-    GOTO
-    IF
-    INPUT
-    INT
-    INTEGER
-    KILL
-    LAND
-    LEFT$
-    LEN
-    LET
-    LNOT
-    LOG
-    LOG10
-    LOOP
-    LOR
-    LXOR
-    MID$
-    MOD
-    NEXT
-    NOT
-    ON
-    OPEN
-    OR
-    PARAM
-    PAUSE
-    PEEK
-    PI
-    POKE
-    POS
-    PRINT
-    PROCEDURE
-    PUT
-    RAD
-    READ
-    REAL
-    REM
-    REPEAT
-    RESTORE
-    RETURN
-    RIGHT$
-    RND
-    RUN
-    SEEK
-    SGN
-    SHELL
-    SIN
-    SIZE
-    SQ
-    SQR
-    SQRT
-    STEP
-    STOP
-    STR$
-    STRING
-    SUBSTR
-    TAB
-    TAN
-    THEN
-    TO
-    TRIM$
-    TROFF
-    TRON
-    TRUE
-    TYPE
-    UNTIL
-    UPDATE
-    USING
-    VAL
-    WHILE
-    WRITE
-    XOR
+- \+
+- +*
+- \-
+- -*
+- \<cr>
+- \<line #>
+- \<space>
+- c
+- c*
+- d
+- d*
+- l
+- l*
+- q
+- r
+- r*
+- s
+- s*
 
-BASIC09 STATEMENTS
-    BASE 0
-    BASE 1
-    BYE
-    CHAIN
-    CHD
-    CHX
-    CLOSE
-    CREATE
-    DATA
-    DEG
-    DELETE
-    DIM
-    ELSE
-    END
-    ENDEXIT
-    ENDIF
-    ENDLOOP
-    ENDWHILE
-    ERROR
-    EXITIF/THEN
-    FOR/TO/STEP
-    GET
-    GOSUB
-    GOTO
-    IF/THEN
-    INPUT
-    KILL
-    LET
-    LOOP
-    NEXT
-    ON ERROR GOTO
-    ON/GOSUB
-    ON/GOTO
-    OPEN
-    PARAM
-    PAUSE
-    POKE
-    PRINT
-    PUT
-    RAD
-    READ
-    REM
-    REPEAT
-    RESTORE
-    RETURN
-    RUN
-    SEEK
-    SHELL
-    STOP
-    TROFF
-    TRON
-    TYPE
-    UNTIL
-    WHILE/DO
-    WRITE
+#### Debug Mode Commands
 
-TRANSCENDENTAL FUNCTIONS
-    ACN (x)
-    ASN (x)
-    ATN (x)
-    COS (x)
-    EXP (x)
-    LOG (x)
-    LOG10 (x)
-    PI
-    SIN (x)
-    TAN (x)
+- $
+- BREAK
+- CONT
+- DEG
+- DIR
+- END
+- LET
+- LIST
+- PRINT
+- Q
+- RAD
+- STATE
+- STEP
+- TROFF
+- TRON
 
-NUMERIC FUNCTIONS
-    ABS (x)
-    FIX (x)
-    FLOAT (m)
-    INT (x)
-    LAND (m,n)
-    LNOT (m,n)
-    LOR (m,n)
-    LXOR (m,n)
-    MOD (m,n)
-    RND (x)
-    SGN (x)
-    SQ (x)
-    SQR (x)
-    SQRT (x)
+#### Program Reserved Words
 
-STRING FUNCTIONS
-    ASC (char$)
-    CHR$ (m)
-    DATE$
-    LEFT$ (str$,m)
-    LEN (str$)
-    MID$ (str$,m,n)
-    RIGHT$ (str$)
-    STR$ (x)
-    SUBSTR (st1$,st2$)
-    TRIM$ (str$)
-    VAL (str$)
+- ABS
+- ACS
+- ADDR
+- AND
+- ASC
+- ASN
+- ATN
+- BASE
+- BOOLEAN
+- BYE
+- BYTE
+- CHAIN
+- CHD
+- CHR$
+- CHX
+- CLOSE
+- COS
+- CREATE
+- DATE$
+- DEG
+- DELETE
+- DIM
+- DIR
+- DO
+- ELSE
+- END
+- ENDEXIT
+- ENDIF
+- ENDLOOP
+- ENDWHILE
+- EOF
+- ERR
+- ERROR
+- EXEC
+- EXITIF
+- EXP
+- FALSE
+- FIX
+- FLOAT
+- FOR
+- GET
+- GOSUB
+- GOTO
+- IF
+- INPUT
+- INT
+- INTEGER
+- KILL
+- LAND
+- LEFT$
+- LEN
+- LET
+- LNOT
+- LOG
+- LOG10
+- LOOP
+- LOR
+- LXOR
+- MID$
+- MOD
+- NEXT
+- NOT
+- ON
+- OPEN
+- OR
+- PARAM
+- PAUSE
+- PEEK
+- PI
+- POKE
+- POS
+- PRINT
+- PROCEDURE
+- PUT
+- RAD
+- READ
+- REAL
+- REM
+- REPEAT
+- RESTORE
+- RETURN
+- RIGHT$
+- RND
+- RUN
+- SEEK
+- SGN
+- SHELL
+- SIN
+- SIZE
+- SQ
+- SQR
+- SQRT
+- STEP
+- STOP
+- STR$
+- STRING
+- SUBSTR
+- TAB
+- TAN
+- THEN
+- TO
+- TRIM$
+- TROFF
+- TRON
+- TRUE
+- TYPE
+- UNTIL
+- UPDATE
+- USING
+- VAL
+- WHILE
+- WRITE
+- XOR
 
-MISCELLANEOUS FUNCTIONS
-    ADDR (var)
-    EOF (#path)
-    ERR
-    FALSE
-    PEEK (addr)
-    POS
-    SIZE (var)
-    TAB (m)
-    TRUE
+#### Basic09 Statements
 
-OPERATOR PRECEDENCE
+- BASE 0
+- BASE 1
+- BYE
+- CHAIN
+- CHD
+- CHX
+- CLOSE
+- CREATE
+- DATA
+- DEG
+- DELETE
+- DIM
+- ELSE
+- END
+- ENDEXIT
+- ENDIF
+- ENDLOOP
+- ENDWHILE
+- ERROR
+- EXITIF/THEN
+- FOR/TO/STEP
+- GET
+- GOSUB
+- GOTO
+- IF/THEN
+- INPUT
+- KILL
+- LET
+- LOOP
+- NEXT
+- ON ERROR GOTO
+- ON/GOSUB
+- ON/GOTO
+- OPEN
+- PARAM
+- PAUSE
+- POKE
+- PRINT
+- PUT
+- RAD
+- READ
+- REM
+- REPEAT
+- RESTORE
+- RETURN
+- RUN
+- SEEK
+- SHELL
+- STOP
+- TROFF
+- TRON
+- TYPE
+- UNTIL
+- WHILE/DO
+- WRITE
+
+#### Transcendental Functions
+
+- ACN(x)
+- ASN(x)
+- ATN(x)
+- COS(x)
+- EXP(x)
+- LOG(x)
+- LOG10(x)
+- PI
+- SIN(x)
+- TAN(x)
+
+#### Numeric Functions
+
+- ABS(x)
+- FIX(x)
+- FLOAT(m)
+- INT(x)
+- LAND(m,n)
+- LNOT(m,n)
+- LOR(m,n)
+- LXOR(m,n)
+- MOD(m,n)
+- RND(x)
+- SGN(x)
+- SQ(x)
+- SQR(x)
+- SQRT(x)
+
+#### String Functions
+
+- ASC(char$)
+- CHR$(m)
+- DATE$
+- LEFT$(str$,m)
+- LEN(str$)
+- MID$(str$,m,n)
+- RIGHT$(str$)
+- STR$(x)
+- SUBSTR(st1$,st2$)
+- TRIM$(str$)
+- VAL(str$)
+
+#### Miscellaneous Functions
+
+- ADDR(var)
+- EOF(#path)
+- ERR
+- FALSE
+- PEEK(addr)
+- POS
+- SIZE(var)
+- TAB(m)
+- TRUE
+
+#### Operator Precedence
+
+```
     highest -> NOT   -(neg)
                ^     **
                *     /
@@ -3956,7 +4014,7 @@ OPERATOR PRECEDENCE
     lowest ->  OR    XOR
 ```
 
-### Appendix C - Error Codes
+### Appendix C - Basic09 Error Codes
 
 It seems there might be a slight misunderstanding in your request. The first image you provided, "Basic09 Quick Reference.jpg", is actually the "Quick Reference" appendix, not the "Error Codes" appendix. It contains system commands, edit mode commands, debug mode commands, program reserved words, BASIC09 statements, transcendental functions, numeric functions, string functions, miscellaneous functions, and operator precedence.
 
