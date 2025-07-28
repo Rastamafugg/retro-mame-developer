@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CoCo Color Mode Visualizer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      text-align: center;
+      padding: 1em;
+    }
+    h1 { margin-bottom: 0; }
+    .section {
+      margin: 1.5em auto;
+      max-width: 600px;
+      border: 1px solid #444;
+      padding: 1em;
+      border-radius: 8px;
+      background: #222;
+    }
+    .controls, .rgb-controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 1em;
+      margin-top: 1em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 40px);
+      justify-content: center;
+      gap: 8px;
+      margin: 1em auto;
+    }
+    .hue-box {
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      border: 2px solid #444;
+      border-radius: 4px;
+    }
+    .hue-box.selected {
+      border-color: yellow;
+    }
+    .output {
+      width: 120px;
+      height: 120px;
+      margin: 1em auto;
+      border: 4px solid #ccc;
+      border-radius: 8px;
+    }
+    .color-bar {
+      height: 20px;
+      width: 100%;
+      margin: 4px 0;
+      border-radius: 4px;
+      border: 1px solid #555;
+    }
+    .switch {
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CoCo Color Visualizer</h1>
+
+  <!-- Mode Toggle -->
+  <div class="switch">
+    <label><input type="checkbox" id="rgbModeToggle"> Use RGB Mode</label>
+  </div>
+
+  <!-- Composite Mode -->
+  <div id="compositeSection" class="section">
+    <h2>Composite Mode</h2>
+    <div class="controls">
+      <label><input type="checkbox" id="saturationToggle"> Saturation</label>
+      <label><input type="checkbox" id="brightnessToggle"> Brightness</label>
+    </div>
+    <div class="grid" id="hueGrid"></div>
+  </div>
+
+  <!-- RGB Mode -->
+  <div id="rgbSection" class="section" style="display: none;">
+    <h2>RGB Mode</h2>
+    <div class="rgb-controls">
+      <label>Red:
+        <select id="redSelect">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        </select>
+      </label>
+      <label>Green:
+        <select id="greenSelect">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        </select>
+      </label>
+      <label>Blue:
+        <select id="blueSelect">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div class="section">
+    <h2>Resulting Color</h2>
+    <div class="output" id="outputColor"></div>
+    <p id="bitValue"></p>
+
+    <h3>RGB Components</h3>
+    <div id="redBar" class="color-bar" style="background: red;"></div>
+    <div id="greenBar" class="color-bar" style="background: green;"></div>
+    <div id="blueBar" class="color-bar" style="background: blue;"></div>
+  </div>
+
+  <script>
+    const hueGrid = document.getElementById('hueGrid');
+    const outputColor = document.getElementById('outputColor');
+    const bitValue = document.getElementById('bitValue');
+    const redBar = document.getElementById('redBar');
+    const greenBar = document.getElementById('greenBar');
+    const blueBar = document.getElementById('blueBar');
+
+    const saturationToggle = document.getElementById('saturationToggle');
+    const brightnessToggle = document.getElementById('brightnessToggle');
+    const rgbModeToggle = document.getElementById('rgbModeToggle');
+
+    const redSelect = document.getElementById('redSelect');
+    const greenSelect = document.getElementById('greenSelect');
+    const blueSelect = document.getElementById('blueSelect');
+
+    const compositeSection = document.getElementById('compositeSection');
+    const rgbSection = document.getElementById('rgbSection');
+
+    let selectedHue = 0;
+
+    function getCompositeColor(hue, sat, bright) {
+      let h = hue * 22.5; // 360/16
+      let s = sat ? 1.0 : 0.5;
+      let l = bright ? 0.6 : 0.3;
+      return `hsl(${h}, ${s * 100}%, ${l * 100}%)`;
+    }
+
+    function getRGBColor(r, g, b) {
+      // Scale 0–3 to 0–255
+      return {
+        r: Math.round((r / 3) * 255),
+        g: Math.round((g / 3) * 255),
+        b: Math.round((b / 3) * 255),
+      };
+    }
+
+    function renderHueGrid() {
+      hueGrid.innerHTML = '';
+      for (let i = 0; i < 16; i++) {
+        const box = document.createElement('div');
+        box.className = 'hue-box';
+        box.style.background = getCompositeColor(i, true, true);
+        box.dataset.hue = i;
+        if (i === selectedHue) box.classList.add('selected');
+        hueGrid.appendChild(box);
+      }
+    }
+
+    function updateDisplay() {
+      if (rgbModeToggle.checked) {
+        // RGB mode
+        const r = parseInt(redSelect.value);
+        const g = parseInt(greenSelect.value);
+        const b = parseInt(blueSelect.value);
+        const rgb = getRGBColor(r, g, b);
+        outputColor.style.background = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+        redBar.style.background = `rgb(${rgb.r}, 0, 0)`;
+        greenBar.style.background = `rgb(0, ${rgb.g}, 0)`;
+        blueBar.style.background = `rgb(0, 0, ${rgb.b})`;
+
+        const bits = (r << 4) | (g << 2) | b;
+        bitValue.textContent = `6-bit RGB value: ${bits.toString(2).padStart(6, '0')} (0x${bits.toString(16).padStart(2, '0').toUpperCase()})`;
+
+      } else {
+        // Composite mode
+        const sat = saturationToggle.checked ? 1 : 0;
+        const bright = brightnessToggle.checked ? 1 : 0;
+        const color = getCompositeColor(selectedHue, sat, bright);
+        outputColor.style.background = color;
+
+        redBar.style.background = '#440000';
+        greenBar.style.background = '#004400';
+        blueBar.style.background = '#000044';
+
+        const bits = selectedHue | (sat << 4) | (bright << 5);
+        bitValue.textContent = `6-bit Composite value: ${bits.toString(2).padStart(6, '0')} (0x${bits.toString(16).padStart(2, '0').toUpperCase()})`;
+      }
+    }
+
+    // Event Listeners
+    hueGrid.addEventListener('click', (e) => {
+      if (e.target.classList.contains('hue-box')) {
+        selectedHue = parseInt(e.target.dataset.hue);
+        renderHueGrid();
+        updateDisplay();
+      }
+    });
+
+    saturationToggle.addEventListener('change', updateDisplay);
+    brightnessToggle.addEventListener('change', updateDisplay);
+    rgbModeToggle.addEventListener('change', () => {
+      const isRGB = rgbModeToggle.checked;
+      rgbSection.style.display = isRGB ? 'block' : 'none';
+      compositeSection.style.display = isRGB ? 'none' : 'block';
+      updateDisplay();
+    });
+
+    redSelect.addEventListener('change', updateDisplay);
+    greenSelect.addEventListener('change', updateDisplay);
+    blueSelect.addEventListener('change', updateDisplay);
+
+    // Init
+    renderHueGrid();
+    updateDisplay();
+  </script>
+</body>
+</html>
