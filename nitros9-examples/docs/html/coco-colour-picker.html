@@ -141,39 +141,40 @@ const rgbSection = document.getElementById('rgbSection');
 
 let selectedHue = 0;
 
-function getCompositeColor(hue, mode) {
-  if (hue === 0) return '#808080'; // Gray for hue 0
-
-  const degreesPerStep = 22.5;
-  const steps = 16; // Full circle (360 / 22.5)
-  const baseHue = 120; // Green hue in HSL
-
-  // Calculate hue in reverse (counter-clockwise), with hue 1 as green
-  const hueDeg = (baseHue - (hue - 1) * degreesPerStep + 360) % 360;
-
+function getHueAndModeParams(hue, mode) {
   const [bright, sat] = [
     [0.3, 1.0],
     [0.45, 0.75],
     [0.6, 0.5],
     [0.75, 0.25]
   ][mode];
+
+  const degreesPerStep = 22.5;
+  const baseHue = 120;
+  const hueDeg = (hue === 0)
+    ? 0 // any hueDeg is fine for grey
+    : (baseHue - (hue - 1) * degreesPerStep + 360) % 360;
+
+  return { hueDeg, bright, sat };
+}
+
+function getCompositeColor(hue, mode) {
+  const { hueDeg, bright, sat } = getHueAndModeParams(hue, mode);
+
+  if (hue === 0) {
+    return `hsl(0, 0%, ${bright * 100}%)`; // grey using mode-based brightness
+  }
 
   return `hsl(${hueDeg}, ${sat * 100}%, ${bright * 100}%)`;
 }
 
 function getHSLComponents(hue, mode) {
-  if (hue === 0) return [128, 128, 128]; // Gray
+  const { hueDeg, bright, sat } = getHueAndModeParams(hue, mode);
 
-  const degreesPerStep = 22.5;
-  const baseHue = 120; // Pure green
-  const hueDeg = (baseHue - (hue - 1) * degreesPerStep + 360) % 360;
-
-  const [bright, sat] = [
-    [0.3, 1.0],
-    [0.45, 0.75],
-    [0.6, 0.5],
-    [0.75, 0.25]
-  ][mode];
+  if (hue === 0) {
+    const grey = Math.round(bright * 255);
+    return [grey, grey, grey];
+  }
 
   const h = hueDeg / 360;
   const s = sat;
