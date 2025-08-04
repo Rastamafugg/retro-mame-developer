@@ -1,12 +1,50 @@
-(* FILEMGR.BAS - File Manager Demonstration
- * Purpose: Template demonstrating proper Basic09 coding standards
- * Platform: CoCo 3 / NitrOS-9 Level 2 EOU
- * Author: Template Example
- * Date: 2024
- *
- * Compilation: SAVE "FILEMGR" then PACK "FILEMGR"
- * Execution: RUN FILEMGR or from OS-9: basic09 filemgr
- *)
+PROCEDURE README
+(* README - Documentation for Basic09 File Manager Module *)
+PRINT
+PRINT "=== BASIC09 FILE MANAGER MODULE DOCUMENTATION ==="
+PRINT
+PRINT "This module demonstrates various Basic09 programming techniques:"
+PRINT
+PRINT "MAIN PROCEDURES:"
+PRINT "- FILEMGR: Main file management demonstration procedure"
+PRINT "  Contains the main program loop using structured programming"
+PRINT "  Uses ON GOTO for menu selection - cleaner than nested IF statements"
+PRINT
+PRINT "- display_menu: Display the main menu - no parameters needed"
+PRINT
+PRINT "- create_file: Demonstrate file creation with error handling"
+PRINT "  Uses structured error handling and validates input"
+PRINT "  Uses INTEGER counter for optimal FOR/NEXT performance"
+PRINT "  Uses WRITE for sequential text file - adds CR automatically"
+PRINT
+PRINT "- read_file: Demonstrate file reading with EOF handling"
+PRINT "  Basic09 will trigger error 211 at EOF"
+PRINT "  EOF is expected - not a real error"
+PRINT
+PRINT "- list_directory: Demonstrate directory listing using OS-9 shell command"
+PRINT "  Use SHELL to execute OS-9 commands - more efficient than"
+PRINT "  trying to implement directory reading in Basic09"
+PRINT
+PRINT "ADDITIONAL TEMPLATE EXAMPLES:"
+PRINT "- data_structure_demo: Demonstrate TYPE definitions and complex data structures"
+PRINT "- binary_io_demo: Demonstrate efficient binary I/O with GET/PUT"
+PRINT "  Binary I/O is much faster than text I/O"
+PRINT "  PUT writes exact binary representation - very fast"
+PRINT "  GET reads exact binary representation"
+PRINT "- optimization_demo: Demonstrate performance optimization techniques"
+PRINT "  INTEGER faster than REAL"
+PRINT "  INTEGER loop counter is fastest"
+PRINT "  Use addition instead of multiplication by constants"
+PRINT "  BAD: x := x + SQRT(100) / 2    <- calculated every time"
+PRINT "  GOOD: x := x + 5               <- pre-calculated"
+PRINT "  Use appropriate data types"
+PRINT "  1 byte vs 2 for INTEGER"
+PRINT "  Only when range exceeds INTEGER"
+PRINT "  For TRUE/FALSE values"
+PRINT
+PRINT "TO RUN: Execute 'RUN FILEMGR' to start the main program"
+PRINT
+END
 
 PROCEDURE FILEMGR
 (* Main file management demonstration procedure *)
@@ -36,7 +74,7 @@ REPEAT
   
   (* Invalid choice handling *)
   PRINT "Invalid choice. Please enter 1-4."
-  GOTO 50  (* Continue loop *)
+  GOTO 50  \(* Continue loop *)
   
   (* Menu option 1: Create file *)
   100 RUN create_file
@@ -53,7 +91,7 @@ REPEAT
   (* Menu option 4: Exit *)
   400 done := TRUE
   
-  50 REM (* Continue point for main loop *)
+  50 REM \(* Continue point for main loop *)
 UNTIL done
 
 PRINT "File Manager terminated."
@@ -68,8 +106,6 @@ END
     ENDIF
     END
 
-(* ================================================================ *)
-
 PROCEDURE display_menu
 (* Display the main menu - no parameters needed *)
 
@@ -81,8 +117,6 @@ PRINT "3. List current directory"
 PRINT "4. Exit"
 PRINT
 END
-
-(* ================================================================ *)
 
 PROCEDURE create_file
 (* Demonstrate file creation with error handling *)
@@ -123,8 +157,6 @@ END
     IF path > 2 THEN CLOSE #path
     END
 
-(* ================================================================ *)
-
 PROCEDURE read_file
 (* Demonstrate file reading with EOF handling *)
 
@@ -162,8 +194,6 @@ ENDLOOP
     IF path > 2 THEN CLOSE #path
     END
 
-(* ================================================================ *)
-
 PROCEDURE list_directory
 (* Demonstrate directory listing using OS-9 shell command *)
 
@@ -178,12 +208,8 @@ SHELL "dir -e"
 
 PRINT
 PRINT "Press ENTER to continue...";
-INPUT current_dir  (* Use as dummy input *)
+INPUT current_dir  \(* Use as dummy input *)
 END
-
-(* ================================================================ *)
-
-(* ADDITIONAL TEMPLATE EXAMPLES *)
 
 PROCEDURE data_structure_demo
 (* Demonstrate TYPE definitions and complex data structures *)
@@ -205,8 +231,6 @@ NEXT index
 
 PRINT "Data structure initialized"
 END
-
-(* ================================================================ *)
 
 PROCEDURE binary_io_demo
 (* Demonstrate efficient binary I/O with GET/PUT *)
@@ -240,12 +264,10 @@ PRINT "Data: "; record.data
 PRINT "Checksum:"; record.checksum
 END
 
-(* ================================================================ *)
-
 PROCEDURE optimization_demo
 (* Demonstrate performance optimization techniques *)
 
-DIM counter: INTEGER        (* INTEGER faster than REAL *)
+DIM counter: INTEGER        \(* INTEGER faster than REAL *)
 DIM result: INTEGER
 DIM temp: INTEGER
 DIM start_time: REAL
@@ -254,9 +276,9 @@ PRINT "Performance optimization examples:"
 
 (* Use INTEGER arithmetic when possible *)
 result := 0
-FOR counter := 1 TO 1000   (* INTEGER loop counter is fastest *)
+FOR counter := 1 TO 1000   \(* INTEGER loop counter is fastest *)
   (* Use addition instead of multiplication by constants *)
-  temp := counter + counter  (* Faster than counter * 2 *)
+  temp := counter + counter  \(* Faster than counter * 2 *)
   result := result + temp
 NEXT counter
 
@@ -267,39 +289,9 @@ PRINT "Integer optimization result:"; result
 (* GOOD: x := x + 5               <- pre-calculated *)
 
 (* Use appropriate data types *)
-DIM flags: BYTE             (* 1 byte vs 2 for INTEGER *)
-DIM large_number: REAL      (* Only when range exceeds INTEGER *)
-DIM status: BOOLEAN         (* For TRUE/FALSE values *)
+DIM flags: BYTE             \(* 1 byte vs 2 for INTEGER *)
+DIM large_number: REAL      \(* Only when range exceeds INTEGER *)
+DIM status: BOOLEAN         \(* For TRUE/FALSE values *)
 
 PRINT "Data type examples completed"
 END
-
-(* ================================================================ *)
-(*
- * COMPILATION AND EXECUTION NOTES:
- *
- * 1. Save source: SAVE "FILEMGR"
- * 2. Compile: The source is automatically compiled to I-code
- * 3. Optimize: PACK "FILEMGR" (creates FILEMGR.BIN, 10-30% faster)
- * 4. Execute from Basic09: RUN FILEMGR
- * 5. Execute from OS-9: basic09 filemgr
- * 6. Memory management: Use KILL "procedurename" to unlink external procedures
- *
- * PLATFORM REQUIREMENTS:
- * - CoCo 3 with 128K+ RAM recommended
- * - NitrOS-9 Level 2 EOU
- * - Basic09 module loaded
- * - Standard I/O paths available (0,1,2)
- *
- * CODING STANDARDS DEMONSTRATED:
- * 1. Comment headers with purpose and platform
- * 2. PROCEDURE-based modular design  
- * 3. Local variable declarations with DIM
- * 4. Structured loops (FOR/NEXT, REPEAT/UNTIL, LOOP/ENDLOOP)
- * 5. Error handling with ON ERROR GOTO
- * 6. INTEGER variables for performance
- * 7. Proper file I/O with path management
- * 8. TYPE definitions for complex data
- * 9. Binary I/O with GET/PUT for speed
- * 10. OS-9 integration with SHELL command
- *)
