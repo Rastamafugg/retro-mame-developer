@@ -1,0 +1,305 @@
+(* FILEMGR.BAS - File Manager Demonstration
+ * Purpose: Template demonstrating proper Basic09 coding standards
+ * Platform: CoCo 3 / NitrOS-9 Level 2 EOU
+ * Author: Template Example
+ * Date: 2024
+ *
+ * Compilation: SAVE "FILEMGR" then PACK "FILEMGR"
+ * Execution: RUN FILEMGR or from OS-9: basic09 filemgr
+ *)
+
+PROCEDURE FILEMGR
+(* Main file management demonstration procedure *)
+
+(* Variable declarations - all variables are local to this procedure *)
+DIM choice: INTEGER
+DIM filename: STRING[32]
+DIM buffer: STRING[255]
+DIM path: INTEGER
+DIM done: BOOLEAN
+DIM error_code: INTEGER
+
+(* Initialize variables *)
+done := FALSE
+choice := 0
+
+(* Set up error handling *)
+ON ERROR GOTO 900
+
+(* Main program loop using structured programming *)
+REPEAT
+  RUN display_menu
+  INPUT "Enter choice (1-4): ", choice
+  
+  (* Use ON GOTO for menu selection - cleaner than nested IF statements *)
+  ON choice GOTO 100, 200, 300, 400
+  
+  (* Invalid choice handling *)
+  PRINT "Invalid choice. Please enter 1-4."
+  GOTO 50  (* Continue loop *)
+  
+  (* Menu option 1: Create file *)
+  100 RUN create_file
+      GOTO 50
+  
+  (* Menu option 2: Read file *)
+  200 RUN read_file  
+      GOTO 50
+  
+  (* Menu option 3: List directory *)
+  300 RUN list_directory
+      GOTO 50
+  
+  (* Menu option 4: Exit *)
+  400 done := TRUE
+  
+  50 REM (* Continue point for main loop *)
+UNTIL done
+
+PRINT "File Manager terminated."
+END
+
+(* Error handler *)
+900 error_code := ERR
+    PRINT "Error"; error_code; "occurred."
+    (* Close any open paths *)
+    IF path > 2 THEN
+      CLOSE #path
+    ENDIF
+    END
+
+(* ================================================================ *)
+
+PROCEDURE display_menu
+(* Display the main menu - no parameters needed *)
+
+PRINT
+PRINT "=== Basic09 File Manager ==="
+PRINT "1. Create a text file"
+PRINT "2. Read a text file" 
+PRINT "3. List current directory"
+PRINT "4. Exit"
+PRINT
+END
+
+(* ================================================================ *)
+
+PROCEDURE create_file
+(* Demonstrate file creation with error handling *)
+
+DIM path: INTEGER
+DIM line_data: STRING[80]
+DIM line_count: INTEGER
+
+INPUT "Enter filename to create: ", filename
+INPUT "How many lines to write: ", line_count
+
+(* Validate input - use INTEGER for loop efficiency *)
+IF line_count < 1 OR line_count > 100 THEN
+  PRINT "Line count must be 1-100"
+  END
+ENDIF
+
+(* Create file using structured error handling *)
+ON ERROR GOTO 110
+CREATE #path, filename: WRITE
+
+PRINT "Enter"; line_count; "lines of text:"
+
+(* Use INTEGER counter for optimal FOR/NEXT performance *)
+FOR i := 1 TO line_count
+  PRINT "Line"; i; ": ";
+  INPUT line_data
+  (* Use WRITE for sequential text file - adds CR automatically *)
+  WRITE #path, line_data
+NEXT i
+
+CLOSE #path
+PRINT "File '"; filename; "' created successfully."
+END
+
+(* Local error handler *)
+110 PRINT "Error creating file: "; ERR
+    IF path > 2 THEN CLOSE #path
+    END
+
+(* ================================================================ *)
+
+PROCEDURE read_file
+(* Demonstrate file reading with EOF handling *)
+
+DIM path: INTEGER  
+DIM line_data: STRING[80]
+DIM line_num: INTEGER
+
+INPUT "Enter filename to read: ", filename
+
+ON ERROR GOTO 210
+OPEN #path, filename: READ
+
+PRINT
+PRINT "Contents of '"; filename; "':"
+PRINT "----------------------------------------"
+
+line_num := 1
+
+(* Read until EOF - Basic09 will trigger error 211 at EOF *)
+LOOP
+  READ #path, line_data
+  PRINT STR$(line_num); ": "; line_data
+  line_num := line_num + 1
+ENDLOOP
+
+210 (* Error handler - check for EOF *)
+    IF ERR = 211 THEN
+      (* EOF is expected - not a real error *)
+      PRINT "----------------------------------------"
+      PRINT "End of file reached."
+    ELSE
+      PRINT "Error reading file: "; ERR
+    ENDIF
+    
+    IF path > 2 THEN CLOSE #path
+    END
+
+(* ================================================================ *)
+
+PROCEDURE list_directory
+(* Demonstrate directory listing using OS-9 shell command *)
+
+DIM current_dir: STRING[64]
+
+PRINT "Current directory contents:"
+PRINT
+
+(* Use SHELL to execute OS-9 commands - more efficient than *)
+(* trying to implement directory reading in Basic09 *)
+SHELL "dir -e"
+
+PRINT
+PRINT "Press ENTER to continue...";
+INPUT current_dir  (* Use as dummy input *)
+END
+
+(* ================================================================ *)
+
+(* ADDITIONAL TEMPLATE EXAMPLES *)
+
+PROCEDURE data_structure_demo
+(* Demonstrate TYPE definitions and complex data structures *)
+
+(* Define a record type for file information *)
+TYPE file_record = name: STRING[32]; size: INTEGER; date: STRING[8]
+
+(* Create array of records *)
+DIM file_list(50): file_record
+DIM count: INTEGER
+DIM index: INTEGER
+
+(* Initialize using structured approach *)
+FOR index := 1 TO 50
+  file_list(index).name := ""
+  file_list(index).size := 0
+  file_list(index).date := ""
+NEXT index
+
+PRINT "Data structure initialized"
+END
+
+(* ================================================================ *)
+
+PROCEDURE binary_io_demo
+(* Demonstrate efficient binary I/O with GET/PUT *)
+
+TYPE data_block = id: INTEGER; data: STRING[64]; checksum: BYTE
+DIM record: data_block
+DIM path: INTEGER
+
+(* Binary I/O is much faster than text I/O *)
+CREATE #path, "BINDATA.DAT": UPDATE
+
+(* Initialize record *)
+record.id := 1001
+record.data := "Sample binary data block"
+record.checksum := ASC("X")
+
+(* PUT writes exact binary representation - very fast *)
+PUT #path, record
+
+(* Seek to beginning for read *)
+SEEK #path, 0
+
+(* GET reads exact binary representation *)
+GET #path, record
+
+CLOSE #path
+
+PRINT "Binary I/O completed"
+PRINT "ID:"; record.id
+PRINT "Data: "; record.data  
+PRINT "Checksum:"; record.checksum
+END
+
+(* ================================================================ *)
+
+PROCEDURE optimization_demo
+(* Demonstrate performance optimization techniques *)
+
+DIM counter: INTEGER        (* INTEGER faster than REAL *)
+DIM result: INTEGER
+DIM temp: INTEGER
+DIM start_time: REAL
+
+PRINT "Performance optimization examples:"
+
+(* Use INTEGER arithmetic when possible *)
+result := 0
+FOR counter := 1 TO 1000   (* INTEGER loop counter is fastest *)
+  (* Use addition instead of multiplication by constants *)
+  temp := counter + counter  (* Faster than counter * 2 *)
+  result := result + temp
+NEXT counter
+
+PRINT "Integer optimization result:"; result
+
+(* Demonstrate constant expression optimization *)
+(* BAD: x := x + SQRT(100) / 2    <- calculated every time *)
+(* GOOD: x := x + 5               <- pre-calculated *)
+
+(* Use appropriate data types *)
+DIM flags: BYTE             (* 1 byte vs 2 for INTEGER *)
+DIM large_number: REAL      (* Only when range exceeds INTEGER *)
+DIM status: BOOLEAN         (* For TRUE/FALSE values *)
+
+PRINT "Data type examples completed"
+END
+
+(* ================================================================ *)
+(*
+ * COMPILATION AND EXECUTION NOTES:
+ *
+ * 1. Save source: SAVE "FILEMGR"
+ * 2. Compile: The source is automatically compiled to I-code
+ * 3. Optimize: PACK "FILEMGR" (creates FILEMGR.BIN, 10-30% faster)
+ * 4. Execute from Basic09: RUN FILEMGR
+ * 5. Execute from OS-9: basic09 filemgr
+ * 6. Memory management: Use KILL "procedurename" to unlink external procedures
+ *
+ * PLATFORM REQUIREMENTS:
+ * - CoCo 3 with 128K+ RAM recommended
+ * - NitrOS-9 Level 2 EOU
+ * - Basic09 module loaded
+ * - Standard I/O paths available (0,1,2)
+ *
+ * CODING STANDARDS DEMONSTRATED:
+ * 1. Comment headers with purpose and platform
+ * 2. PROCEDURE-based modular design  
+ * 3. Local variable declarations with DIM
+ * 4. Structured loops (FOR/NEXT, REPEAT/UNTIL, LOOP/ENDLOOP)
+ * 5. Error handling with ON ERROR GOTO
+ * 6. INTEGER variables for performance
+ * 7. Proper file I/O with path management
+ * 8. TYPE definitions for complex data
+ * 9. Binary I/O with GET/PUT for speed
+ * 10. OS-9 integration with SHELL command
+ *)
