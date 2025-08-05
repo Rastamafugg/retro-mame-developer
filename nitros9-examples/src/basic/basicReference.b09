@@ -10,28 +10,28 @@ PRINT "- FILEMGR: Main file management demonstration procedure"
 PRINT "  Contains the main program loop using structured programming"
 PRINT "  Uses ON GOTO for menu selection - cleaner than nested IF statements"
 PRINT
-PRINT "- display_menu: Display the main menu - no parameters needed"
+PRINT "- displayMenu: Display the main menu - no parameters needed"
 PRINT
-PRINT "- create_file: Demonstrate file creation with error handling"
+PRINT "- createFile: Demonstrate file creation with error handling"
 PRINT "  Uses structured error handling and validates input"
 PRINT "  Uses INTEGER counter for optimal FOR/NEXT performance"
 PRINT "  Uses WRITE for sequential text file - adds CR automatically"
 PRINT
-PRINT "- read_file: Demonstrate file reading with EOF handling"
+PRINT "- readFile: Demonstrate file reading with EOF handling"
 PRINT "  Basic09 will trigger error 211 at EOF"
 PRINT "  EOF is expected - not a real error"
 PRINT
-PRINT "- list_directory: Demonstrate directory listing using OS-9 shell command"
+PRINT "- listDirectory: Demonstrate directory listing using OS-9 shell command"
 PRINT "  Use SHELL to execute OS-9 commands - more efficient than"
 PRINT "  trying to implement directory reading in Basic09"
 PRINT
 PRINT "ADDITIONAL TEMPLATE EXAMPLES:"
-PRINT "- data_structure_demo: Demonstrate TYPE definitions and complex data structures"
-PRINT "- binary_io_demo: Demonstrate efficient binary I/O with GET/PUT"
+PRINT "- dataStructureDemo: Demonstrate TYPE definitions and complex data structures"
+PRINT "- binaryIODemo: Demonstrate efficient binary I/O with GET/PUT"
 PRINT "  Binary I/O is much faster than text I/O"
 PRINT "  PUT writes exact binary representation - very fast"
 PRINT "  GET reads exact binary representation"
-PRINT "- optimization_demo: Demonstrate performance optimization techniques"
+PRINT "- optimizationDemo: Demonstrate performance optimization techniques"
 PRINT "  INTEGER faster than REAL"
 PRINT "  INTEGER loop counter is fastest"
 PRINT "  Use addition instead of multiplication by constants"
@@ -55,7 +55,7 @@ DIM filename: STRING[32]
 DIM buffer: STRING[255]
 DIM path: INTEGER
 DIM done: BOOLEAN
-DIM error_code: INTEGER
+DIM errorCode: INTEGER
 
 (* Initialize variables *)
 done := FALSE
@@ -66,7 +66,7 @@ ON ERROR GOTO 900
 
 (* Main program loop using structured programming *)
 REPEAT
-  RUN display_menu
+  RUN displayMenu
   INPUT "Enter choice (1-4): ", choice
   
   (* Use ON GOTO for menu selection - cleaner than nested IF statements *)
@@ -77,15 +77,15 @@ REPEAT
   GOTO 50  \(* Continue loop *)
   
   (* Menu option 1: Create file *)
-  100 RUN create_file
+  100 RUN createFile
       GOTO 50
   
   (* Menu option 2: Read file *)
-  200 RUN read_file  
+  200 RUN readFile  
       GOTO 50
   
   (* Menu option 3: List directory *)
-  300 RUN list_directory
+  300 RUN listDirectory
       GOTO 50
   
   (* Menu option 4: Exit *)
@@ -98,15 +98,15 @@ PRINT "File Manager terminated."
 END
 
 (* Error handler *)
-900 error_code := ERR
-    PRINT "Error"; error_code; "occurred."
+900 errorCode := ERR
+    PRINT "Error"; errorCode; "occurred."
     (* Close any open paths *)
     IF path > 2 THEN
       CLOSE #path
     ENDIF
     END
 
-PROCEDURE display_menu
+PROCEDURE displayMenu
 (* Display the main menu - no parameters needed *)
 
 PRINT
@@ -118,18 +118,18 @@ PRINT "4. Exit"
 PRINT
 END
 
-PROCEDURE create_file
+PROCEDURE createFile
 (* Demonstrate file creation with error handling *)
 
-DIM path: INTEGER
-DIM line_data: STRING[80]
-DIM line_count: INTEGER
+DIM path: BYTE
+DIM lineData: STRING[80]
+DIM lineCount: INTEGER
 
 INPUT "Enter filename to create: ", filename
-INPUT "How many lines to write: ", line_count
+INPUT "How many lines to write: ", lineCount
 
 (* Validate input - use INTEGER for loop efficiency *)
-IF line_count < 1 OR line_count > 100 THEN
+IF lineCount < 1 OR lineCount > 100 THEN
   PRINT "Line count must be 1-100"
   END
 ENDIF
@@ -138,14 +138,14 @@ ENDIF
 ON ERROR GOTO 110
 CREATE #path, filename: WRITE
 
-PRINT "Enter"; line_count; "lines of text:"
+PRINT "Enter"; lineCount; "lines of text:"
 
 (* Use INTEGER counter for optimal FOR/NEXT performance *)
-FOR i := 1 TO line_count
+FOR i := 1 TO lineCount
   PRINT "Line"; i; ": ";
-  INPUT line_data
+  INPUT lineData
   (* Use WRITE for sequential text file - adds CR automatically *)
-  WRITE #path, line_data
+  WRITE #path, lineData
 NEXT i
 
 CLOSE #path
@@ -155,14 +155,15 @@ END
 (* Local error handler *)
 110 PRINT "Error creating file: "; ERR
     IF path > 2 THEN CLOSE #path
+    ENDIF
     END
 
-PROCEDURE read_file
+PROCEDURE readFile
 (* Demonstrate file reading with EOF handling *)
 
-DIM path: INTEGER  
-DIM line_data: STRING[80]
-DIM line_num: INTEGER
+DIM path: BYTE  
+DIM lineData: STRING[80]
+DIM lineNum: INTEGER
 
 INPUT "Enter filename to read: ", filename
 
@@ -173,13 +174,13 @@ PRINT
 PRINT "Contents of '"; filename; "':"
 PRINT "----------------------------------------"
 
-line_num := 1
+lineNum := 1
 
 (* Read until EOF - Basic09 will trigger error 211 at EOF *)
 LOOP
-  READ #path, line_data
-  PRINT STR$(line_num); ": "; line_data
-  line_num := line_num + 1
+  READ #path, lineData
+  PRINT STR$(lineNum); ": "; lineData
+  lineNum := lineNum + 1
 ENDLOOP
 
 210 (* Error handler - check for EOF *)
@@ -192,12 +193,13 @@ ENDLOOP
     ENDIF
     
     IF path > 2 THEN CLOSE #path
+    ENDIF
     END
 
-PROCEDURE list_directory
+PROCEDURE listDirectory
 (* Demonstrate directory listing using OS-9 shell command *)
 
-DIM current_dir: STRING[64]
+DIM currentDir: STRING[64]
 
 PRINT "Current directory contents:"
 PRINT
@@ -208,35 +210,35 @@ SHELL "dir -e"
 
 PRINT
 PRINT "Press ENTER to continue...";
-INPUT current_dir  \(* Use as dummy input *)
+INPUT currentDir  \(* Use as dummy input *)
 END
 
-PROCEDURE data_structure_demo
+PROCEDURE dataStructureDemo
 (* Demonstrate TYPE definitions and complex data structures *)
 
 (* Define a record type for file information *)
-TYPE file_record = name: STRING[32]; size: INTEGER; date: STRING[8]
+TYPE fileRecord = name: STRING[32]; size: INTEGER; date: STRING[8]
 
 (* Create array of records *)
-DIM file_list(50): file_record
+DIM fileList(50): fileRecord
 DIM count: INTEGER
 DIM index: INTEGER
 
 (* Initialize using structured approach *)
 FOR index := 1 TO 50
-  file_list(index).name := ""
-  file_list(index).size := 0
-  file_list(index).date := ""
+  fileList(index).name := ""
+  fileList(index).size := 0
+  fileList(index).date := ""
 NEXT index
 
 PRINT "Data structure initialized"
 END
 
-PROCEDURE binary_io_demo
+PROCEDURE binaryIODemo
 (* Demonstrate efficient binary I/O with GET/PUT *)
 
-TYPE data_block = id: INTEGER; data: STRING[64]; checksum: BYTE
-DIM record: data_block
+TYPE dataBlock = id: INTEGER; data: STRING[64]; checksum: BYTE
+DIM record: dataBlock
 DIM path: INTEGER
 
 (* Binary I/O is much faster than text I/O *)
@@ -264,13 +266,13 @@ PRINT "Data: "; record.data
 PRINT "Checksum:"; record.checksum
 END
 
-PROCEDURE optimization_demo
+PROCEDURE optimizationDemo
 (* Demonstrate performance optimization techniques *)
 
 DIM counter: INTEGER        \(* INTEGER faster than REAL *)
 DIM result: INTEGER
 DIM temp: INTEGER
-DIM start_time: REAL
+DIM startTime: REAL
 
 PRINT "Performance optimization examples:"
 
@@ -290,7 +292,7 @@ PRINT "Integer optimization result:"; result
 
 (* Use appropriate data types *)
 DIM flags: BYTE             \(* 1 byte vs 2 for INTEGER *)
-DIM large_number: REAL      \(* Only when range exceeds INTEGER *)
+DIM largeNumber: REAL      \(* Only when range exceeds INTEGER *)
 DIM status: BOOLEAN         \(* For TRUE/FALSE values *)
 
 PRINT "Data type examples completed"
