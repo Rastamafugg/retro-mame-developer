@@ -74,24 +74,24 @@ REPEAT
   
   (* Invalid choice handling *)
   PRINT "Invalid choice. Please enter 1-4."
-  GOTO 50  \(* Continue loop *)
+  GOTO 500  \(* Continue loop *)
   
   (* Menu option 1: Create file *)
   100 RUN createFile
-      GOTO 50
+      GOTO 500
   
   (* Menu option 2: Read file *)
   200 RUN readFile  
-      GOTO 50
+      GOTO 500
   
   (* Menu option 3: List directory *)
   300 RUN listDirectory
-      GOTO 50
+      GOTO 500
   
   (* Menu option 4: Exit *)
   400 done := TRUE
   
-  50 REM \(* Continue point for main loop *)
+  500 REM \(* Continue point for main loop *)
 UNTIL done
 
 PRINT "File Manager terminated."
