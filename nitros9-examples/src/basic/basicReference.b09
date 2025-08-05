@@ -51,7 +51,7 @@ PROCEDURE FILEMGR
 
 (* Variable declarations - all variables are local to this procedure *)
 DIM choice: INTEGER
-DIM filename: STRING[32]
+DIM fileName: STRING[32]
 DIM buffer: STRING[255]
 DIM path: INTEGER
 DIM done: BOOLEAN
@@ -122,10 +122,11 @@ PROCEDURE createFile
 (* Demonstrate file creation with error handling *)
 
 DIM path: BYTE
+DIM fileName: STRING[80]
 DIM lineData: STRING[80]
 DIM lineCount: INTEGER
 
-INPUT "Enter filename to create: ", filename
+INPUT "Enter file name to create: ", fileName
 INPUT "How many lines to write: ", lineCount
 
 (* Validate input - use INTEGER for loop efficiency *)
@@ -136,7 +137,7 @@ ENDIF
 
 (* Create file using structured error handling *)
 ON ERROR GOTO 110
-CREATE #path, filename: WRITE
+CREATE #path, fileName: WRITE
 
 PRINT "Enter"; lineCount; "lines of text:"
 
@@ -149,7 +150,7 @@ FOR i := 1 TO lineCount
 NEXT i
 
 CLOSE #path
-PRINT "File '"; filename; "' created successfully."
+PRINT "File '"; fileName; "' created successfully."
 END
 
 (* Local error handler *)
@@ -162,16 +163,17 @@ PROCEDURE readFile
 (* Demonstrate file reading with EOF handling *)
 
 DIM path: BYTE  
+DIM fileName: STRING[80]
 DIM lineData: STRING[80]
 DIM lineNum: INTEGER
 
-INPUT "Enter filename to read: ", filename
+INPUT "Enter file name to read: ", fileName
 
 ON ERROR GOTO 210
-OPEN #path, filename: READ
+OPEN #path, fileName: READ
 
 PRINT
-PRINT "Contents of '"; filename; "':"
+PRINT "Contents of '"; fileName; "':"
 PRINT "----------------------------------------"
 
 lineNum := 1
@@ -217,7 +219,7 @@ PROCEDURE dataStructureDemo
 (* Demonstrate TYPE definitions and complex data structures *)
 
 (* Define a record type for file information *)
-TYPE fileRecord = name: STRING[32]; size: INTEGER; date: STRING[8]
+TYPE fileRecord = name: STRING[32]; fileSize: INTEGER; date: STRING[8]
 
 (* Create array of records *)
 DIM fileList(50): fileRecord
@@ -227,7 +229,7 @@ DIM index: INTEGER
 (* Initialize using structured approach *)
 FOR index := 1 TO 50
   fileList(index).name := ""
-  fileList(index).size := 0
+  fileList(index).fileSize := 0
   fileList(index).date := ""
 NEXT index
 
@@ -237,7 +239,7 @@ END
 PROCEDURE binaryIODemo
 (* Demonstrate efficient binary I/O with GET/PUT *)
 
-TYPE dataBlock = id: INTEGER; data: STRING[64]; checksum: BYTE
+TYPE dataBlock = id: INTEGER; binaryData: STRING[64]; checksum: BYTE
 DIM record: dataBlock
 DIM path: INTEGER
 
@@ -246,7 +248,7 @@ CREATE #path, "BINDATA.DAT": UPDATE
 
 (* Initialize record *)
 record.id := 1001
-record.data := "Sample binary data block"
+record.binaryData := "Sample binary data block"
 record.checksum := ASC("X")
 
 (* PUT writes exact binary representation - very fast *)
@@ -262,7 +264,7 @@ CLOSE #path
 
 PRINT "Binary I/O completed"
 PRINT "ID:"; record.id
-PRINT "Data: "; record.data  
+PRINT "Data: "; record.binaryData  
 PRINT "Checksum:"; record.checksum
 END
 
