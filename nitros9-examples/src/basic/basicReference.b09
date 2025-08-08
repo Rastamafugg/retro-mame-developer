@@ -53,6 +53,7 @@ PROCEDURE FILEMGR
 DIM done:BOOLEAN
 DIM choice,timer:INTEGER
 DIM errorCode:INTEGER
+DIM key:STRING[1]
 
 ! Initialize variables
 done := FALSE
@@ -65,7 +66,12 @@ ON ERROR GOTO 900
 REPEAT
   RUN displayMenu
 
-  INPUT "Enter choice (1-4): ", choice
+  PRINT "Enter choice (1-4): ";
+  REPEAT
+    GET #0,key
+  UNTIL VAL(key)>0 AND VAL(key)<5
+  choice = VAL(key)
+  PRINT \! Move cursor to next line
 
   IF choice >= 1 AND choice <= 4 THEN
     ! Use ON GOSUB for menu selection - cleaner than nested IF statements
@@ -99,11 +105,9 @@ RETURN
 
 ! Error handler
 900 errorCode := ERR
-
+PRINT "Error"; errorCode; "occurred."
 PRINT "File Manager terminated."
 END
-    PRINT "Error"; errorCode; "occurred."
-    END
 
 PROCEDURE displayMenu
 DIM cls:BYTE
@@ -127,9 +131,9 @@ PROCEDURE createFile
 
 DIM path:BYTE
 DIM pathOpen:BOOLEAN
-DIM fileName:STRING[80]
-DIM lineData:STRING[80]
+DIM fileName,lineData:STRING[80]
 DIM lineCount:INTEGER
+DIM anyKey:STRING[1]
 
 pathOpen := FALSE
 
@@ -141,7 +145,7 @@ REPEAT
   IF lineCount < 1 OR lineCount > 100 THEN
     PRINT "Line count must be 1-100"
   ENDIF
-UNTIL lineCount>0 AND lineCount<100
+UNTIL lineCount >= 1 AND lineCount <= 100
 
 
 ! Create file using structured error handling
@@ -159,10 +163,12 @@ FOR i := 1 TO lineCount
 NEXT i
 
 CLOSE #path
+
 PRINT "File '"; fileName; "' created successfully."
 PRINT
 PRINT "Press any to continue...";
 GET #0, anyKey
+PRINT \! Move cursor to next line
 END
 
 ! Local error handler
@@ -178,14 +184,14 @@ DIM pathOpen:BOOLEAN
 DIM fileName:STRING[80]
 DIM lineData:STRING[80]
 DIM lineNum:INTEGER
-DIM anyKey:BYTE
+DIM anyKey:STRING[1]
 
 pathOpen := FALSE
 
 INPUT "Enter file name to read: ", fileName
 
 ON ERROR GOTO 210
-OPEN #path, fileName: READ
+OPEN #path, fileName: READ \pathOpen := TRUE
 
 PRINT
 PRINT "Contents of '"; fileName; "':"
@@ -200,10 +206,13 @@ WHILE NOT(EOF(#path)) DO
   lineNum := lineNum + 1
 ENDWHILE
 
+CLOSE #path
+
 PRINT "----------------------------------------"
 PRINT
 PRINT "Press any to continue...";
 GET #0, anyKey
+PRINT \! Move cursor to next line
 END
 
 210 ! Error handler - check for EOF
@@ -221,7 +230,7 @@ END
 PROCEDURE listDirectory
 ! Demonstrate directory listing using OS-9 shell command
 
-DIM anyKey:BYTE
+DIM anyKey:STRING[1]
 
 PRINT "Current directory contents:"
 PRINT
@@ -234,6 +243,39 @@ PRINT
 PRINT "Press any to continue...";
 GET #0, anyKey
 END
+
+PROCEDURE readDirectory
+  TYPE DIRENTRY=fileName:STRING[29]; LSN(3):BYTE
+  DIM path:BYTE; count,count2:INTEGER; entry:DIRENTRY
+  DIM char:STRING[1]; name:STRING[29]; dirName:STRING[80]
+  
+  INPUT "Enter the directory path/name: ",dirName
+  
+  OPEN #path,dirName:READ+DIR
+  count:=1
+  WHILE NOT(EOF(#path)) DO
+    GET #path,entry
+    IF count>2 THEN \! The first two entries are . and ..
+      name:=""
+      count2:=1
+      REPEAT
+        char:=MID$(entry.fileName,count2,1)
+        IF ASC(char)>127 THEN 
+          name:=name+CHR$(LAND(ASC(char),127))
+        ELSE
+          name:=name+char
+        ENDIF
+        count2:=count2+1
+      UNTIL ASC(char)>127
+      PRINT name
+    ENDIF
+    count:=count+1
+  ENDWHILE
+  CLOSE #path
+  
+  PRINT
+  PRINT count-1
+  END
 
 PROCEDURE dataStructureDemo
 ! Demonstrate TYPE definitions and complex data structures
