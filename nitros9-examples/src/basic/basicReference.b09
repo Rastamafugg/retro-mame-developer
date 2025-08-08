@@ -1,5 +1,5 @@
 PROCEDURE README
-(* README - Documentation for Basic09 File Manager Module *)
+! README - Documentation for Basic09 File Manager Module
 PRINT
 PRINT "=== BASIC09 FILE MANAGER MODULE DOCUMENTATION ==="
 PRINT
@@ -47,68 +47,72 @@ PRINT
 END
 
 PROCEDURE FILEMGR
-(* Main file management demonstration procedure *)
+! Main file management demonstration procedure
 
-(* Variable declarations - all variables are local to this procedure *)
-DIM choice: INTEGER
-DIM fileName: STRING[32]
-DIM buffer: STRING[255]
-DIM path: INTEGER
-DIM done: BOOLEAN
-DIM errorCode: INTEGER
+! Variable declarations - all variables are local to this procedure
+DIM done:BOOLEAN
+DIM choice,timer:INTEGER
+DIM errorCode:INTEGER
 
-(* Initialize variables *)
+! Initialize variables
 done := FALSE
 choice := 0
 
-(* Set up error handling *)
+! Set up error handling
 ON ERROR GOTO 900
 
-(* Main program loop using structured programming *)
+! Main program loop using structured programming
 REPEAT
   RUN displayMenu
+
   INPUT "Enter choice (1-4): ", choice
-  
-  (* Use ON GOTO for menu selection - cleaner than nested IF statements *)
-  ON choice GOTO 100, 200, 300, 400
-  
-  (* Invalid choice handling *)
-  PRINT "Invalid choice. Please enter 1-4."
-  GOTO 500  \(* Continue loop *)
-  
-  (* Menu option 1: Create file *)
-  100 RUN createFile
-      GOTO 500
-  
-  (* Menu option 2: Read file *)
-  200 RUN readFile  
-      GOTO 500
-  
-  (* Menu option 3: List directory *)
-  300 RUN listDirectory
-      GOTO 500
-  
-  (* Menu option 4: Exit *)
-  400 done := TRUE
-  
-  500 REM \(* Continue point for main loop *)
+
+  IF choice >= 1 AND choice <= 4 THEN
+    ! Use ON GOSUB for menu selection - cleaner than nested IF statements
+    ON choice GOSUB 100,200,300,400
+  ELSE
+    ! Invalid choice handling
+    PRINT "Invalid choice. Please enter 1-4."
+    FOR timer:=1 TO 10000 \NEXT timer
+  ENDIF
+
 UNTIL done
 
 PRINT "File Manager terminated."
 END
 
-(* Error handler *)
+! Menu option 1: Create file
+100 RUN createFile
+RETURN
+
+! Menu option 2: Read file
+200 RUN readFile  
+RETURN
+
+! Menu option 3: List directory
+300 RUN listDirectory
+RETURN
+
+! Menu option 4: Exit
+400 done := TRUE
+RETURN
+
+! Error handler
 900 errorCode := ERR
+
+PRINT "File Manager terminated."
+END
     PRINT "Error"; errorCode; "occurred."
-    (* Close any open paths *)
-    IF path > 2 THEN
-      CLOSE #path
-    ENDIF
     END
 
 PROCEDURE displayMenu
-(* Display the main menu - no parameters needed *)
+DIM cls:BYTE
 
+cls := 12 \! Clear screen code
+
+PUT #1,cls \! Clear the screen when the loop repeats
+
+! Display the main menu - no parameters needed
 PRINT
 PRINT "=== Basic09 File Manager ==="
 PRINT "1. Create a text file"
@@ -119,53 +123,64 @@ PRINT
 END
 
 PROCEDURE createFile
-(* Demonstrate file creation with error handling *)
+! Demonstrate file creation with error handling
 
-DIM path: BYTE
-DIM fileName: STRING[80]
-DIM lineData: STRING[80]
-DIM lineCount: INTEGER
+DIM path:BYTE
+DIM pathOpen:BOOLEAN
+DIM fileName:STRING[80]
+DIM lineData:STRING[80]
+DIM lineCount:INTEGER
+
+pathOpen := FALSE
 
 INPUT "Enter file name to create: ", fileName
-INPUT "How many lines to write: ", lineCount
+REPEAT
+  PRINT "How many lines to write: "
+  INPUT lineCount
+  ! Validate input - use INTEGER for loop efficiency
+  IF lineCount < 1 OR lineCount > 100 THEN
+    PRINT "Line count must be 1-100"
+  ENDIF
+UNTIL lineCount>0 AND lineCount<100
 
-(* Validate input - use INTEGER for loop efficiency *)
-IF lineCount < 1 OR lineCount > 100 THEN
-  PRINT "Line count must be 1-100"
-  END
-ENDIF
 
-(* Create file using structured error handling *)
+! Create file using structured error handling
 ON ERROR GOTO 110
-CREATE #path, fileName: WRITE
+CREATE #path, fileName:WRITE \pathOpen := TRUE
 
 PRINT "Enter"; lineCount; "lines of text:"
 
-(* Use INTEGER counter for optimal FOR/NEXT performance *)
+! Use INTEGER counter for optimal FOR/NEXT performance
 FOR i := 1 TO lineCount
   PRINT "Line"; i; ": ";
   INPUT lineData
-  (* Use WRITE for sequential text file - adds CR automatically *)
+  ! Use WRITE for sequential text file - adds CR automatically
   WRITE #path, lineData
 NEXT i
 
 CLOSE #path
 PRINT "File '"; fileName; "' created successfully."
+PRINT
+PRINT "Press any to continue...";
+GET #0, anyKey
 END
 
-(* Local error handler *)
+! Local error handler
 110 PRINT "Error creating file: "; ERR
-    IF path > 2 THEN CLOSE #path
-    ENDIF
+    IF pathOpen THEN CLOSE #path \ENDIF
     END
 
 PROCEDURE readFile
-(* Demonstrate file reading with EOF handling *)
+! Demonstrate file reading with EOF handling
 
-DIM path: BYTE  
-DIM fileName: STRING[80]
-DIM lineData: STRING[80]
-DIM lineNum: INTEGER
+DIM path:BYTE  
+DIM pathOpen:BOOLEAN
+DIM fileName:STRING[80]
+DIM lineData:STRING[80]
+DIM lineNum:INTEGER
+DIM anyKey:BYTE
+
+pathOpen := FALSE
 
 INPUT "Enter file name to read: ", fileName
 
@@ -178,55 +193,60 @@ PRINT "----------------------------------------"
 
 lineNum := 1
 
-(* Read until EOF - Basic09 will trigger error 211 at EOF *)
-LOOP
+! Read until EOF - Basic09 will trigger error 211 at EOF
+WHILE NOT(EOF(#path)) DO
   READ #path, lineData
-  PRINT STR$(lineNum); ": "; lineData
+  PRINT lineNum; ": "; lineData
   lineNum := lineNum + 1
-ENDLOOP
+ENDWHILE
 
-210 (* Error handler - check for EOF *)
+PRINT "----------------------------------------"
+PRINT
+PRINT "Press any to continue...";
+GET #0, anyKey
+END
+
+210 ! Error handler - check for EOF
     IF ERR = 211 THEN
-      (* EOF is expected - not a real error *)
+      ! EOF is expected - not a real error
       PRINT "----------------------------------------"
       PRINT "End of file reached."
     ELSE
       PRINT "Error reading file: "; ERR
     ENDIF
     
-    IF path > 2 THEN CLOSE #path
-    ENDIF
+    IF pathOpen THEN CLOSE #path \ENDIF
     END
 
 PROCEDURE listDirectory
-(* Demonstrate directory listing using OS-9 shell command *)
+! Demonstrate directory listing using OS-9 shell command
 
-DIM currentDir: STRING[64]
+DIM anyKey:BYTE
 
 PRINT "Current directory contents:"
 PRINT
 
-(* Use SHELL to execute OS-9 commands - more efficient than *)
-(* trying to implement directory reading in Basic09 *)
+! Use SHELL to execute OS-9 commands - more efficient than
+! trying to implement directory reading in Basic09
 SHELL "dir -e"
 
 PRINT
-PRINT "Press ENTER to continue...";
-INPUT currentDir  \(* Use as dummy input *)
+PRINT "Press any to continue...";
+GET #0, anyKey
 END
 
 PROCEDURE dataStructureDemo
-(* Demonstrate TYPE definitions and complex data structures *)
+! Demonstrate TYPE definitions and complex data structures
 
-(* Define a record type for file information *)
-TYPE fileRecord = name: STRING[32]; fileSize: INTEGER; date: STRING[8]
+! Define a record type for file information
+TYPE fileRecord = name:STRING[32]; fileSize:INTEGER; date:STRING[8]
 
-(* Create array of records *)
-DIM fileList(50): fileRecord
-DIM count: INTEGER
-DIM index: INTEGER
+! Create array of records
+DIM fileList(50):fileRecord
+DIM count:INTEGER
+DIM index:INTEGER
 
-(* Initialize using structured approach *)
+! Initialize using structured approach
 FOR index := 1 TO 50
   fileList(index).name := ""
   fileList(index).fileSize := 0
@@ -237,27 +257,27 @@ PRINT "Data structure initialized"
 END
 
 PROCEDURE binaryIODemo
-(* Demonstrate efficient binary I/O with GET/PUT *)
+! Demonstrate efficient binary I/O with GET/PUT
 
-TYPE dataBlock = id: INTEGER; binaryData: STRING[64]; checksum: BYTE
-DIM record: dataBlock
-DIM path: INTEGER
+TYPE dataBlock = id:INTEGER; binaryData:STRING[64]; checksum:BYTE
+DIM record:dataBlock
+DIM path:INTEGER
 
-(* Binary I/O is much faster than text I/O *)
+! Binary I/O is much faster than text I/O
 CREATE #path, "BINDATA.DAT": UPDATE
 
-(* Initialize record *)
+! Initialize record
 record.id := 1001
 record.binaryData := "Sample binary data block"
 record.checksum := ASC("X")
 
-(* PUT writes exact binary representation - very fast *)
+! PUT writes exact binary representation - very fast
 PUT #path, record
 
-(* Seek to beginning for read *)
+! Seek to beginning for read
 SEEK #path, 0
 
-(* GET reads exact binary representation *)
+! GET reads exact binary representation
 GET #path, record
 
 CLOSE #path
@@ -269,33 +289,33 @@ PRINT "Checksum:"; record.checksum
 END
 
 PROCEDURE optimizationDemo
-(* Demonstrate performance optimization techniques *)
+! Demonstrate performance optimization techniques
 
-DIM counter: INTEGER        \(* INTEGER faster than REAL *)
-DIM result: INTEGER
-DIM temp: INTEGER
-DIM startTime: REAL
+DIM counter:INTEGER        \! INTEGER faster than REAL
+DIM result:INTEGER
+DIM temp:INTEGER
+DIM startTime:REAL
 
 PRINT "Performance optimization examples:"
 
-(* Use INTEGER arithmetic when possible *)
+! Use INTEGER arithmetic when possible
 result := 0
-FOR counter := 1 TO 1000   \(* INTEGER loop counter is fastest *)
-  (* Use addition instead of multiplication by constants *)
-  temp := counter + counter  \(* Faster than counter * 2 *)
+FOR counter := 1 TO 1000   \! INTEGER loop counter is fastest
+  ! Use addition instead of multiplication by constants
+  temp := counter + counter  \! Faster than counter * 2
   result := result + temp
 NEXT counter
 
 PRINT "Integer optimization result:"; result
 
-(* Demonstrate constant expression optimization *)
-(* BAD: x := x + SQRT(100) / 2    <- calculated every time *)
-(* GOOD: x := x + 5               <- pre-calculated *)
+! Demonstrate constant expression optimization
+! BAD: x := x + SQRT(100) / 2    <- calculated every time
+! GOOD: x := x + 5               <- pre-calculated
 
-(* Use appropriate data types *)
-DIM flags: BYTE             \(* 1 byte vs 2 for INTEGER *)
-DIM largeNumber: REAL      \(* Only when range exceeds INTEGER *)
-DIM status: BOOLEAN         \(* For TRUE/FALSE values *)
+! Use appropriate data types
+DIM flags:BYTE             \! 1 byte vs 2 for INTEGER
+DIM largeNumber:REAL      \! Only when range exceeds INTEGER
+DIM status:BOOLEAN         \! For TRUE/FALSE values
 
 PRINT "Data type examples completed"
 END
