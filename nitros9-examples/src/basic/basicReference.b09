@@ -237,7 +237,7 @@ PRINT
 
 ! Use SHELL to execute OS-9 commands - more efficient than
 ! trying to implement directory reading in Basic09
-SHELL "dir -e"
+RUN readDirectory("/d1")
 
 PRINT
 PRINT "Press any to continue...";
@@ -245,11 +245,10 @@ GET #0, anyKey
 END
 
 PROCEDURE readDirectory
+  PARAM dirName:STRING[80]
   TYPE DIRENTRY=fileName:STRING[29]; LSN(3):BYTE
   DIM path:BYTE; count,count2:INTEGER; entry:DIRENTRY
-  DIM char:STRING[1]; name:STRING[29]; dirName:STRING[80]
-  
-  INPUT "Enter the directory path/name: ",dirName
+  DIM char:STRING[1]; name:STRING[29]
   
   OPEN #path,dirName:READ+DIR
   count:=1
@@ -272,9 +271,6 @@ PROCEDURE readDirectory
     count:=count+1
   ENDWHILE
   CLOSE #path
-  
-  PRINT
-  PRINT count-1
   END
 
 PROCEDURE dataStructureDemo
