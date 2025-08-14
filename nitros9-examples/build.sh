@@ -4,7 +4,7 @@ set -e
 # --- Project-specific variables ---
 PROJECT_NAME="nitros9-examples"
 TARGET_TYPE="floppy"
-IMAGE_NAME="test2"
+IMAGE_NAME="nitros9-examples"
 
 # --- Script location awareness ---
 SOURCE="${BASH_SOURCE[0]}"

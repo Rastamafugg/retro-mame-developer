@@ -37,14 +37,17 @@ case "$TARGET_TYPE" in
   floppy)
     IMAGE="$DISKS/${IMAGE_NAME}.dsk"
     CREATE_CMD="os9 format $IMAGE -ds -t80 -e -9"
+    ATTR_CMD="os9 attr $IMAGE -ews"
     ;;
   cassette)
     IMAGE="$CASSETTES/${IMAGE_NAME}.cas"
-    CREATE_CMD="os9 os9gen -c $IMAGE"
+    CREATE_CMD="cecb bulkerase -c $IMAGE"
+    ATTR_CMD="os9 attr $IMAGE -ews"
     ;;
   hard)
     IMAGE="$DRIVES/${IMAGE_NAME}.vhd"
     CREATE_CMD="os9 format $IMAGE -bs256 -l40960 -e -n$PROJECT"
+    ATTR_CMD="os9 attr $IMAGE -ews"
     ;;
   *)
     echo "Unknown target type: $TARGET_TYPE"
@@ -57,11 +60,15 @@ if [ ! -f "$IMAGE" ]; then
   if [ "$FORCE_CREATE" -eq 1 ]; then
     echo "Creating image: $IMAGE"
     eval "$CREATE_CMD"
+    echo "Setting image attributes: $IMAGE"
+    eval "$ATTR_CMD"
   else
     read -p "Image $IMAGE not found. Create it? [y/N] " CONFIRM
     if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
       echo "Creating image: $IMAGE"
       eval "$CREATE_CMD"
+      echo "Setting image attributes: $IMAGE"
+      eval "$ATTR_CMD"
     else
       echo "Aborted. Image required."
       exit 2
