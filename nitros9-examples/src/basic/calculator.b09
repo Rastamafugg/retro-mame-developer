@@ -6,35 +6,20 @@ PROCEDURE CALCULATOR
 (* PRIORITY 1A: CORE DATA TYPE DEFINITIONS *)
 (* ============================================================================ *)
 
-(* Result structure for calculations *)
+(* Result structure for calculations: value, errorCode, valid *)
 TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
 
-(* Individual history entry *)
-TYPE historyEntry = 
-  timeStamp: STRING[19];      (* "yy/mm/dd hh:mm:ss" format *)
-  expression: STRING[80];     (* Input expression string *)
-  result: calcResult;         (* Calculated result with error info *)
-  mode: BYTE                  (* Calculator mode when calculated *)
+(* Individual history entry: timeStamp "yy/mm/dd hh:mm:ss", expression, result, mode *)
+TYPE historyEntry = timeStamp: STRING[19]; expression: STRING[80]; result: calcResult; mode: BYTE
 
-(* Complete calculator state *)
-TYPE calcState =
-  currentValue: REAL;         (* Current display value *)
-  memoryValue: REAL;          (* Memory storage *)
-  lastResult: REAL;           (* Previous calculation result *)
-  angleMode: BYTE;            (* 0=RAD, 1=DEG *)
-  displayFormat: BYTE;        (* 0=NORMAL, 1=SCI, 2=ENG *)
-  decimalPlaces: BYTE;        (* 0-9 decimal places *)
-  calcMode: BYTE;             (* 0=BASIC, 1=SCI, 2=STAT, 3=PROG *)
-  errorState: BYTE;           (* Current error code *)
-  historyCount: INTEGER       (* Number of history entries *)
+(* Calculator state: currentValue, memoryValue, lastResult, angleMode (0=RAD,1=DEG), *)
+(* displayFormat (0=NORMAL,1=SCI,2=ENG), decimalPlaces (0-9), calcMode (0=BASIC,1=SCI,2=STAT,3=PROG), *)
+(* errorState (current error code), historyCount (number of history entries) *)
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
 
-(* Configuration data structure *)
-TYPE configData =
-  autoSave: BOOLEAN;          (* Save session on exit *)
-  maxHistory: INTEGER;        (* Maximum history entries *)
-  backupInterval: INTEGER;    (* Minutes between backups *)
-  startupMode: BYTE;          (* Default calculator mode *)
-  soundEnabled: BOOLEAN       (* Beep on errors *)
+(* Configuration data: autoSave (save on exit), maxHistory (max entries), *)
+(* backupInterval (minutes between backups), startupMode (default mode), soundEnabled (beep on errors) *)
+TYPE configData = autoSave: BOOLEAN; maxHistory: INTEGER; backupInterval: INTEGER; startupMode: BYTE; soundEnabled: BOOLEAN
 
 (* ============================================================================ *)
 (* GLOBAL ERROR CONSTANTS *)
@@ -75,7 +60,7 @@ DIM currentState: calcState
 (* Configuration settings *)
 DIM config: configData
 
-(* Data arrays *)
+(* Data arrays - these will need to be global for sharing between procedures *)
 DIM history(500): historyEntry      (* Calculation history *)
 DIM memoryBanks(10): REAL           (* Multiple memory slots *)
 DIM statData(1000): REAL            (* Statistical dataset *)
@@ -92,11 +77,11 @@ DIM errorMessage: STRING[80]
 (* ============================================================================ *)
 
 (* Initialize system and start main program *)
-RUN initCalculator
+RUN initCalculator(currentState, config, memoryBanks(), userConstants(), functionKeys(), history())
 PRINT "Basic09 Scientific Calculator v1.0 - Foundation Week 1"
 PRINT "Initialization completed successfully."
 PRINT
-RUN testFoundation
+RUN testFoundation(currentState, config, memoryBanks(), tempResult)
 
 END
 
@@ -106,8 +91,51 @@ END
 
 PROCEDURE initCalculator
 (* Initialize all calculator data structures and constants *)
+PARAM state: calcState; conf: configData; memBanks: REAL; userConst: REAL; funcKeys: STRING[20]; hist: historyEntry
+
+(* Re-declare types used in this procedure *)
+(* Calculator state: currentValue, memoryValue, lastResult, angleMode (0=RAD,1=DEG), *)
+(* displayFormat (0=NORMAL,1=SCI,2=ENG), decimalPlaces (0-9), calcMode (0=BASIC,1=SCI,2=STAT,3=PROG), *)
+(* errorState (current error code), historyCount (number of history entries) *)
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+(* Configuration data: autoSave (save on exit), maxHistory (max entries), *)
+(* backupInterval (minutes between backups), startupMode (default mode), soundEnabled (beep on errors) *)
+TYPE configData = autoSave: BOOLEAN; maxHistory: INTEGER; backupInterval: INTEGER; startupMode: BYTE; soundEnabled: BOOLEAN
+
+(* Result structure for calculations: value, errorCode, valid *)
+TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
+
+(* Individual history entry: timeStamp "yy/mm/dd hh:mm:ss", expression, result, mode *)
+TYPE historyEntry = timeStamp: STRING[19]; expression: STRING[80]; result: calcResult; mode: BYTE
 
 DIM i: INTEGER
+
+(* Error constants - local to this procedure *)
+DIM errNone: BYTE
+DIM errDivideZero: BYTE  
+DIM errOverflow: BYTE
+DIM errUnderflow: BYTE
+DIM errInvalidFunc: BYTE
+DIM errDomainError: BYTE
+DIM errSyntaxError: BYTE
+DIM errFileError: BYTE
+DIM errMemoryFull: BYTE
+
+(* Mode constants - local to this procedure *)
+DIM modeBasic: BYTE
+DIM modeScientific: BYTE
+DIM modeStatistical: BYTE
+DIM modeProgramming: BYTE
+
+(* Display format constants - local to this procedure *)
+DIM formatNormal: BYTE
+DIM formatScientific: BYTE
+DIM formatEngineering: BYTE
+
+(* Angle mode constants - local to this procedure *)
+DIM angleRadians: BYTE
+DIM angleDegrees: BYTE
 
 (* Initialize error constants *)
 errNone := 0
@@ -136,60 +164,58 @@ angleRadians := 0
 angleDegrees := 1
 
 (* Initialize calculator state *)
-currentState.currentValue := 0.0
-currentState.memoryValue := 0.0
-currentState.lastResult := 0.0
-currentState.angleMode := angleRadians
-currentState.displayFormat := formatNormal
-currentState.decimalPlaces := 3
-currentState.calcMode := modeBasic
-currentState.errorState := errNone
-currentState.historyCount := 0
+state.currentValue := 0.0
+state.memoryValue := 0.0
+state.lastResult := 0.0
+state.angleMode := angleRadians
+state.displayFormat := formatNormal
+state.decimalPlaces := 3
+state.calcMode := modeBasic
+state.errorState := errNone
+state.historyCount := 0
 
 (* Initialize configuration *)
-config.autoSave := TRUE
-config.maxHistory := 500
-config.backupInterval := 15
-config.startupMode := modeBasic
-config.soundEnabled := FALSE
+conf.autoSave := TRUE
+conf.maxHistory := 500
+conf.backupInterval := 15
+conf.startupMode := modeBasic
+conf.soundEnabled := FALSE
 
 (* Initialize memory banks - use INTEGER loop for efficiency *)
 FOR i := 0 TO 9
-  memoryBanks(i) := 0.0
+  memBanks(i) := 0.0
 NEXT i
 
 (* Initialize user constants A-Z *)
 FOR i := 1 TO 26
-  userConstants(i) := 0.0
+  userConst(i) := 0.0
 NEXT i
 
 (* Initialize function key definitions *)
-functionKeys(1) := "HELP"
-functionKeys(2) := "MODE" 
-functionKeys(3) := "MEMORY"
-functionKeys(4) := "HISTORY"
-functionKeys(5) := "EXPORT"
-functionKeys(6) := "IMPORT"
-functionKeys(7) := "CONFIG"
-functionKeys(8) := "CLEAR"
-functionKeys(9) := "STAT"
-functionKeys(10) := "PROG"
-functionKeys(11) := "SAVE"
-functionKeys(12) := "EXIT"
+funcKeys(1) := "HELP"
+funcKeys(2) := "MODE" 
+funcKeys(3) := "MEMORY"
+funcKeys(4) := "HISTORY"
+funcKeys(5) := "EXPORT"
+funcKeys(6) := "IMPORT"
+funcKeys(7) := "CONFIG"
+funcKeys(8) := "CLEAR"
+funcKeys(9) := "STAT"
+funcKeys(10) := "PROG"
+funcKeys(11) := "SAVE"
+funcKeys(12) := "EXIT"
 
 (* Initialize history array *)
-FOR i := 1 TO 500
-  history(i).timeStamp := ""
-  history(i).expression := ""
-  history(i).result.value := 0.0
-  history(i).result.errorCode := errNone
-  history(i).result.valid := FALSE
-  history(i).mode := modeBasic
-NEXT i
+DIM tempHist: historyEntry
+tempHist.timeStamp := ""
+tempHist.expression := ""
+tempHist.result.value := 0.0
+tempHist.result.errorCode := errNone
+tempHist.result.valid := FALSE
+tempHist.mode := modeBasic
 
-(* Initialize statistical data array *)
-FOR i := 1 TO 1000
-  statData(i) := 0.0
+FOR i := 1 TO 500
+  hist(i) := tempHist
 NEXT i
 
 PRINT "Calculator initialization completed."
@@ -201,13 +227,9 @@ END
 
 PROCEDURE formatNumber
 (* Format a number for display based on current settings *)
-PARAM value: REAL; format: BYTE
+PARAM value: REAL; format: BYTE; places: INTEGER
 
 DIM result: STRING[20]
-DIM places: INTEGER
-
-(* Get decimal places from current state *)
-places := currentState.decimalPlaces
 
 (* Format based on display format *)
 ON format GOTO 100, 200, 300
@@ -235,7 +257,11 @@ END
 
 PROCEDURE isValidNumber
 (* Validate if a string represents a valid number *)
-PARAM testString: STRING[80]
+PARAM testString: STRING[80]; result: calcResult
+
+(* Re-declare type used in this procedure *)
+(* Result structure for calculations: value, errorCode, valid *)
+TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
 
 DIM valid: BOOLEAN
 DIM testValue: REAL
@@ -255,17 +281,17 @@ GOTO 600
 500 errorCode := ERR
     valid := FALSE
 
-600 (* Return result by setting global flag *)
-    tempResult.valid := valid
-    tempResult.errorCode := errorCode
+600 (* Set result values *)
+    result.valid := valid
+    result.errorCode := errorCode
+    result.value := testValue
     
 END
 
 PROCEDURE stringLength
 (* Calculate length of string - Basic09 utility *)
-PARAM inputString: STRING[80]
+PARAM inputString: STRING[80]; length: INTEGER
 
-DIM length: INTEGER
 DIM i: INTEGER
 
 length := 0
@@ -276,28 +302,40 @@ FOR i := 1 TO 80
   length := length + 1
 NEXT i
 
-700 (* Store result in global for return *)
-    (* In full implementation, would use PARAM to return value *)
-    PRINT "String length:"; length
+700 (* Length calculated and returned via parameter *)
 END
 
 PROCEDURE clearErrorState
 (* Clear calculator error state *)
+PARAM state: calcState
 
-currentState.errorState := errNone
-errorMessage := ""
+(* Re-declare type used in this procedure *)
+(* Calculator state: currentValue, memoryValue, lastResult, angleMode (0=RAD,1=DEG), *)
+(* displayFormat (0=NORMAL,1=SCI,2=ENG), decimalPlaces (0-9), calcMode (0=BASIC,1=SCI,2=STAT,3=PROG), *)
+(* errorState (current error code), historyCount (number of history entries) *)
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+DIM errNone: BYTE
+errNone := 0
+
+state.errorState := errNone
 PRINT "Error state cleared."
 END
 
 PROCEDURE setErrorState  
 (* Set calculator error state *)
-PARAM errorCode: BYTE; message: STRING[80]
+PARAM state: calcState; errorCode: BYTE; message: STRING[80]; soundEnabled: BOOLEAN
 
-currentState.errorState := errorCode
-errorMessage := message
+(* Re-declare type used in this procedure *)
+(* Calculator state: currentValue, memoryValue, lastResult, angleMode (0=RAD,1=DEG), *)
+(* displayFormat (0=NORMAL,1=SCI,2=ENG), decimalPlaces (0-9), calcMode (0=BASIC,1=SCI,2=STAT,3=PROG), *)
+(* errorState (current error code), historyCount (number of history entries) *)
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+state.errorState := errorCode
 
 (* Display error if sound enabled *)
-IF config.soundEnabled THEN
+IF soundEnabled THEN
   (* In full OS-9 implementation, could use system beep *)
   PRINT CHR$(7)  (* ASCII bell character *)
 ENDIF
@@ -311,9 +349,8 @@ END
 
 PROCEDURE trimString
 (* Remove leading and trailing spaces from string *)
-PARAM inputString: STRING[80]
+PARAM inputString: STRING[80]; result: STRING[80]
 
-DIM result: STRING[80]
 DIM startPos: INTEGER
 DIM endPos: INTEGER  
 DIM i: INTEGER
@@ -355,8 +392,6 @@ length := 80
     ELSE
       result := ""
     ENDIF
-    
-    PRINT "Trimmed: '"; result; "'"
 END
 
 (* ============================================================================ *)
@@ -365,67 +400,83 @@ END
 
 PROCEDURE testFoundation
 (* Test all foundation components - Week 1 validation *)
+PARAM state: calcState; conf: configData; memBanks: REAL; tempRes: calcResult
+
+(* Re-declare types used in this procedure *)
+(* Calculator state: currentValue, memoryValue, lastResult, angleMode (0=RAD,1=DEG), *)
+(* displayFormat (0=NORMAL,1=SCI,2=ENG), decimalPlaces (0-9), calcMode (0=BASIC,1=SCI,2=STAT,3=PROG), *)
+(* errorState (current error code), historyCount (number of history entries) *)
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+(* Configuration data: autoSave (save on exit), maxHistory (max entries), *)
+(* backupInterval (minutes between backups), startupMode (default mode), soundEnabled (beep on errors) *)
+TYPE configData = autoSave: BOOLEAN; maxHistory: INTEGER; backupInterval: INTEGER; startupMode: BYTE; soundEnabled: BOOLEAN
+
+(* Result structure for calculations: value, errorCode, valid *)
+TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
+
+DIM testResult: STRING[80]
+DIM testLength: INTEGER
+DIM errDivideZero: BYTE
+
+errDivideZero := 1
 
 PRINT "=== FOUNDATION TESTING ==="
 PRINT
 
 (* Test 1: Data structure initialization *)
 PRINT "Test 1: Data Structures"
-PRINT "Current value:"; currentState.currentValue
-PRINT "Memory value:"; currentState.memoryValue  
-PRINT "Calculator mode:"; currentState.calcMode
-PRINT "Error state:"; currentState.errorState
-PRINT "History count:"; currentState.historyCount
+PRINT "Current value:"; state.currentValue
+PRINT "Memory value:"; state.memoryValue  
+PRINT "Calculator mode:"; state.calcMode
+PRINT "Error state:"; state.errorState
+PRINT "History count:"; state.historyCount
 PRINT
 
-(* Test 2: Error constants *)
-PRINT "Test 2: Error Constants"
-PRINT "No error:"; errNone
-PRINT "Divide by zero:"; errDivideZero
-PRINT "Overflow:"; errOverflow
-PRINT "Invalid function:"; errInvalidFunc
+(* Test 2: Configuration data *)
+PRINT "Test 2: Configuration"
+PRINT "Auto save:"; conf.autoSave
+PRINT "Max history:"; conf.maxHistory
+PRINT "Backup interval:"; conf.backupInterval
+PRINT "Sound enabled:"; conf.soundEnabled
 PRINT
 
 (* Test 3: Memory banks *)
 PRINT "Test 3: Memory Banks"
-memoryBanks(0) := 42.5
-memoryBanks(1) := -17.3
-PRINT "Bank 0:"; memoryBanks(0)
-PRINT "Bank 1:"; memoryBanks(1)
-PRINT "Bank 2:"; memoryBanks(2)
+memBanks(0) := 42.5
+memBanks(1) := -17.3
+PRINT "Bank 0:"; memBanks(0)
+PRINT "Bank 1:"; memBanks(1)
+PRINT "Bank 2:"; memBanks(2)
 PRINT
 
-(* Test 4: Function keys *)
-PRINT "Test 4: Function Keys"
-PRINT "F1:"; functionKeys(1)
-PRINT "F2:"; functionKeys(2)
-PRINT "F12:"; functionKeys(12)
+(* Test 4: Number formatting *)
+PRINT "Test 4: Number Formatting"
+RUN formatNumber(123.456789, 0, 3)
 PRINT
 
-(* Test 5: Number formatting *)
-PRINT "Test 5: Number Formatting"
-RUN formatNumber(123.456789, formatNormal)
+(* Test 5: String validation *)
+PRINT "Test 5: String Validation"
+RUN isValidNumber("123.45", tempRes)
+PRINT "Valid number result:"; tempRes.valid
+RUN isValidNumber("abc", tempRes)
+PRINT "Invalid number result:"; tempRes.valid
 PRINT
 
-(* Test 6: String validation *)
-PRINT "Test 6: String Validation"
-RUN isValidNumber("123.45")
-PRINT "Valid number result:"; tempResult.valid
-RUN isValidNumber("abc")
-PRINT "Invalid number result:"; tempResult.valid
+(* Test 6: Error state management *)
+PRINT "Test 6: Error Management"
+RUN setErrorState(state, errDivideZero, "Test error message", FALSE)
+PRINT "Current error state:"; state.errorState
+RUN clearErrorState(state)
+PRINT "After clearing:"; state.errorState
 PRINT
 
-(* Test 7: Error state management *)
-PRINT "Test 7: Error Management"
-RUN setErrorState(errDivideZero, "Test error message")
-PRINT "Current error state:"; currentState.errorState
-RUN clearErrorState
-PRINT "After clearing:"; currentState.errorState
-PRINT
-
-(* Test 8: String utilities *)
-PRINT "Test 8: String Utilities"
-RUN trimString("  hello world  ")
+(* Test 7: String utilities *)
+PRINT "Test 7: String Utilities"
+RUN stringLength("Hello World", testLength)
+PRINT "String length:"; testLength
+RUN trimString("  hello world  ", testResult)
+PRINT "Trimmed: '"; testResult; "'"
 PRINT
 
 PRINT "=== FOUNDATION TESTING COMPLETED ==="

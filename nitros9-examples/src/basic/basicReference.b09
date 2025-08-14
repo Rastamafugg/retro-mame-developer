@@ -273,6 +273,29 @@ PROCEDURE readDirectory
   CLOSE #path
   END
 
+PROCEDURE devName
+! Demonstrate getting device name for terminal window - WIP
+TYPE REG=cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs:REG
+DIM callCode,winPacket(32):BYTE
+DIM count:INTEGER
+DIM winName:STRING
+
+winName:=""
+callCode:=$8D
+regs.a:=1
+regs.b:=$0E
+regs.x:=ADDR(winPacket)
+RUN SysCall(callCode,regs)
+
+count:=0
+REPEAT
+  count:=count+1
+  winName:=winName+CHR$(LAND(winPacket(count),127))
+UNTIL winPacket(count)>127
+PRINT winName
+END
+
 PROCEDURE dataStructureDemo
 ! Demonstrate TYPE definitions and complex data structures
 
