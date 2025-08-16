@@ -245,45 +245,46 @@ GET #0, anyKey
 END
 
 PROCEDURE readDirectory
-  PARAM dirName:STRING[80]
-  TYPE DIRENTRY=fileName:STRING[29]; LSN(3):BYTE
-  DIM path:BYTE; count,count2:INTEGER; entry:DIRENTRY
-  DIM char:STRING[1]; name:STRING[29]
-  
-  OPEN #path,dirName:READ+DIR
-  count:=1
-  WHILE NOT(EOF(#path)) DO
-    GET #path,entry
-    IF count>2 THEN \! The first two entries are . and ..
-      name:=""
-      count2:=1
-      REPEAT
-        char:=MID$(entry.fileName,count2,1)
-        IF ASC(char)>127 THEN 
-          name:=name+CHR$(LAND(ASC(char),127))
-        ELSE
-          name:=name+char
-        ENDIF
-        count2:=count2+1
-      UNTIL ASC(char)>127
-      PRINT name
-    ENDIF
-    count:=count+1
-  ENDWHILE
-  CLOSE #path
-  END
+PARAM dirName:STRING[80]
+@@TYPE DirEntry
+DIM path:BYTE; count,count2:INTEGER; entry:DirEntry
+DIM char:STRING[1]; name:STRING[29]
+
+OPEN #path,dirName:READ+DIR
+count:=1
+WHILE NOT(EOF(#path)) DO
+  GET #path,entry
+  IF count>2 THEN \! The first two entries are . and ..
+    name:=""
+    count2:=1
+    REPEAT
+      char:=MID$(entry.fileName,count2,1)
+      IF ASC(char)>127 THEN 
+        name:=name+CHR$(LAND(ASC(char),127))
+      ELSE
+        name:=name+char
+      ENDIF
+      count2:=count2+1
+    UNTIL ASC(char)>127
+    PRINT name
+  ENDIF
+  count:=count+1
+ENDWHILE
+CLOSE #path
+END
 
 PROCEDURE devName
 ! Demonstrate getting device name for terminal window - WIP
-TYPE REG=cc,a,b,dp:BYTE; x,y,u:INTEGER
-DIM regs:REG
+@@TYPE Register
+@@CONST DeviceId
+DIM regs:Register
 DIM callCode,winPacket(32):BYTE
 DIM count:INTEGER
 DIM winName:STRING
 
 winName:=""
 callCode:=$8D
-regs.a:=1
+regs.a:=DeviceId
 regs.b:=$0E
 regs.x:=ADDR(winPacket)
 RUN SysCall(callCode,regs)
@@ -300,10 +301,10 @@ PROCEDURE dataStructureDemo
 ! Demonstrate TYPE definitions and complex data structures
 
 ! Define a record type for file information
-TYPE fileRecord = name:STRING[32]; fileSize:INTEGER; date:STRING[8]
+@@TYPE FileRecord
 
 ! Create array of records
-DIM fileList(50):fileRecord
+DIM fileList(50):FileRecord
 DIM count:INTEGER
 DIM index:INTEGER
 
@@ -320,8 +321,8 @@ END
 PROCEDURE binaryIODemo
 ! Demonstrate efficient binary I/O with GET/PUT
 
-TYPE dataBlock = id:INTEGER; binaryData:STRING[64]; checksum:BYTE
-DIM record:dataBlock
+@@TYPE DataBlock
+DIM record:DataBlock
 DIM path:INTEGER
 
 ! Binary I/O is much faster than text I/O
