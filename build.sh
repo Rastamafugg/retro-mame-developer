@@ -32,7 +32,106 @@ if [ -z "$PROJECT" ] || [ -z "$TARGET_TYPE" ]; then
   usage
 fi
 
+# --- Selective TYPE merge (exact one-line replacements from types.b09) ---
 SOURCE_PATH="$PROJECTS/$PROJECT/src/basic"
+BUILD_PATH="$PROJECTS/$PROJECT/build/basic"
+
+set -e
+set -u
+
+# Verbose mode toggle
+VERBOSE=false
+
+# === Preprocessing step: Replace @@TYPE and @@CONST in src/basic/*.b09 ===
+
+TYPES_FILE="$SOURCE_PATH/types.b09"
+CONSTS_FILE="$SOURCE_PATH/constants.b09"
+
+if [[ ! -f "$TYPES_FILE" ]]; then
+    echo "ERROR: Missing $TYPES_FILE"
+    exit 1
+fi
+
+if [[ ! -f "$CONSTS_FILE" ]]; then
+    echo "ERROR: Missing $CONSTS_FILE"
+    exit 1
+fi
+
+# Load definitions into associative arrays
+declare -A type_defs
+declare -A const_defs
+
+# Remove CRLF and read type definitions
+while IFS= read -r line; do
+    if [[ "$line" =~ ^TYPE[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
+        type_name="${BASH_REMATCH[1]}"
+        type_defs["$type_name"]="$line"
+    fi
+done < <(tr -d '\r' < "$TYPES_FILE")
+
+# Remove CRLF and read constant definitions
+while IFS= read -r line; do
+    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
+        const_name="${BASH_REMATCH[1]}"
+        const_defs["$const_name"]="$line"
+    fi
+done < <(tr -d '\r' < "$CONSTS_FILE")
+
+files_processed=0
+replacements_made=0
+missing_defs=0
+
+# Process source files
+find "$SOURCE_PATH" -type f -name "*.b09" ! -name "types.b09" ! -name "constants.b09" | while read -r src_file; do
+    files_processed=$((files_processed+1))
+    dest_file="$BUILD_PATH/$(realpath --relative-to="$SOURCE_PATH" "$src_file")"
+    mkdir -p "$(dirname "$dest_file")"
+    
+    # Process line-by-line
+    {
+        tr -d '\r' < "$src_file" | while IFS= read -r line; do
+            if [[ "$line" =~ ^([[:space:]]*)@@TYPE[[:space:]]+(.+)$ ]]; then
+                indent="${BASH_REMATCH[1]}"
+                type_name="${BASH_REMATCH[2]}"
+                if [[ -n "${type_defs[$type_name]+x}" ]]; then
+                    echo "${indent}${type_defs[$type_name]}"
+                    replacements_made=$((replacements_made+1))
+                    $VERBOSE && echo "Replaced TYPE $type_name in $src_file"
+                else
+                    echo "${indent}REM Missing TYPE definition for $type_name"
+                    echo "ERROR: Missing TYPE definition for $type_name in $src_file"
+                    missing_defs=$((missing_defs+1))
+                fi
+            elif [[ "$line" =~ ^([[:space:]]*)@@CONST[[:space:]]+(.+)$ ]]; then
+                indent="${BASH_REMATCH[1]}"
+                const_name="${BASH_REMATCH[2]}"
+                if [[ -n "${const_defs[$const_name]+x}" ]]; then
+                    echo "${indent}${const_defs[$const_name]}"
+                    replacements_made=$((replacements_made+1))
+                    $VERBOSE && echo "Replaced CONST $const_name in $src_file"
+                else
+                    echo "${indent}REM Missing CONST definition for $const_name"
+                    echo "ERROR: Missing CONST definition for $const_name in $src_file"
+                    missing_defs=$((missing_defs+1))
+                fi
+            else
+                echo "$line"
+            fi
+        done
+    } > "$dest_file"
+done
+
+# Summary log
+echo "=== Preprocessing Summary ==="
+echo "Files processed: $files_processed"
+echo "Replacements made: $replacements_made"
+echo "Missing definitions: $missing_defs"
+
+# Replace SOURCE_PATH with BUILD_PATH for rest of build
+SOURCE_PATH="$BUILD_PATH"
+
+# === Rest of your original build.sh logic continues here ===
+
 case "$TARGET_TYPE" in
   floppy)
     IMAGE="$DISKS/${IMAGE_NAME}.dsk"
