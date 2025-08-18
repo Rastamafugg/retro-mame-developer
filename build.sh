@@ -68,7 +68,7 @@ declare -A type_defs
 declare -A const_defs
 declare -A var_defs
 
-# Remove CRLF and read type definitions
+# Read TYPE definitions
 while IFS= read -r line; do
     if [[ "$line" =~ ^TYPE[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
         type_name="${BASH_REMATCH[1]}"
@@ -76,9 +76,9 @@ while IFS= read -r line; do
     fi
 done < <(tr -d '\r' < "$TYPES_FILE")
 
-# Remove CRLF and read constant definitions
+# Read CONST definitions
 while IFS= read -r line; do
-    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
+    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+) ]]; then
         const_name="${BASH_REMATCH[1]}"
         const_defs["$const_name"]="$line"
     fi
@@ -86,7 +86,7 @@ done < <(tr -d '\r' < "$CONSTS_FILE")
 
 # Read VAR definitions
 while IFS= read -r line; do
-    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
+    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+) ]]; then
         var_name="${BASH_REMATCH[1]}"
         var_defs["$var_name"]="$line"
     fi

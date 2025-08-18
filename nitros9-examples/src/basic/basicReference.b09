@@ -402,13 +402,16 @@ INPUT "Enter a simple expression (e.g., 12+34): ", expression
 foundOp := FALSE
 errCode := 0
 
-! Find the first occurrence of an operator
-opPos := INSTR(expression, "+")
-IF opPos = 0 THEN opPos := INSTR(expression, "-")
+! Find the first occurrence of an operator using the built-in SUBSTR function
+opPos := SUBSTR("+", expression)
+IF opPos = 0 THEN
+  opPos := SUBSTR("-", expression)
 ENDIF
-IF opPos = 0 THEN opPos := INSTR(expression, "*")
+IF opPos = 0 THEN
+  opPos := SUBSTR("*", expression)
 ENDIF
-IF opPos = 0 THEN opPos := INSTR(expression, "/")
+IF opPos = 0 THEN
+  opPos := SUBSTR("/", expression)
 ENDIF
 
 IF opPos > 0 THEN
@@ -423,14 +426,17 @@ IF opPos > 0 THEN
 
   ! Perform calculation based on operator
   ON ERROR GOTO 900 \! Local error handling for division by zero
-  IF operator = "+" THEN result := operand1 + operand2
+  IF operator = "+" THEN
+    result := operand1 + operand2
   ENDIF
-  IF operator = "-" THEN result := operand1 - operand2
+  IF operator = "-" THEN
+    result := operand1 - operand2
   ENDIF
-  IF operator = "*" THEN result := operand1 * operand2
+  IF operator = "*" THEN
+    result := operand1 * operand2
   ENDIF
-  IF operator = "/" THEN 
-    IF operand2 = 0 THEN 
+  IF operator = "/" THEN
+    IF operand2 = 0 THEN
       errCode := 1 \! Simulate ErrDivideZero
     ELSE
       result := operand1 / operand2
@@ -448,7 +454,7 @@ ELSE
   errCode := 6 \! Simulate ErrSyntaxError
 ENDIF
 
-RETURN
+END
 
 ! Local error handler for parseSimpleExpression
 900 PRINT "System Error during calculation: "; ERR
