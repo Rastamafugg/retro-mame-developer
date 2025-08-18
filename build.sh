@@ -42,10 +42,11 @@ set -u
 # Verbose mode toggle
 VERBOSE=false
 
-# === Preprocessing step: Replace @@TYPE and @@CONST in src/basic/*.b09 ===
+# === Preprocessing step: Replace @@TYPE, @@CONST, @@VAR in src/basic/*.b09 ===
 
 TYPES_FILE="$SOURCE_PATH/types.b09"
 CONSTS_FILE="$SOURCE_PATH/constants.b09"
+VARS_FILE="$SOURCE_PATH/variables.b09"
 
 if [[ ! -f "$TYPES_FILE" ]]; then
     echo "ERROR: Missing $TYPES_FILE"
@@ -57,9 +58,15 @@ if [[ ! -f "$CONSTS_FILE" ]]; then
     exit 1
 fi
 
+if [[ ! -f "$VARS_FILE" ]]; then
+    echo "ERROR: Missing $VARS_FILE"
+    exit 1
+fi
+
 # Load definitions into associative arrays
 declare -A type_defs
 declare -A const_defs
+declare -A var_defs
 
 # Remove CRLF and read type definitions
 while IFS= read -r line; do
@@ -77,12 +84,20 @@ while IFS= read -r line; do
     fi
 done < <(tr -d '\r' < "$CONSTS_FILE")
 
+# Read VAR definitions
+while IFS= read -r line; do
+    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
+        var_name="${BASH_REMATCH[1]}"
+        var_defs["$var_name"]="$line"
+    fi
+done < <(tr -d '\r' < "$VARS_FILE")
+
 files_processed=0
 replacements_made=0
 missing_defs=0
 
 # Process source files
-find "$SOURCE_PATH" -type f -name "*.b09" ! -name "types.b09" ! -name "constants.b09" | while read -r src_file; do
+find "$SOURCE_PATH" -type f -name "*.b09" ! -name "types.b09" ! -name "constants.b09" ! -name "variables.b09" | while read -r src_file; do
     files_processed=$((files_processed+1))
     dest_file="$BUILD_PATH/$(realpath --relative-to="$SOURCE_PATH" "$src_file")"
     mkdir -p "$(dirname "$dest_file")"
@@ -114,6 +129,18 @@ find "$SOURCE_PATH" -type f -name "*.b09" ! -name "types.b09" ! -name "constants
                     echo "ERROR: Missing CONST definition for $const_name in $src_file"
                     missing_defs=$((missing_defs+1))
                 fi
+            elif [[ "$line" =~ ^([[:space:]]*)@@VAR[[:space:]]+(.+)$ ]]; then
+                indent="${BASH_REMATCH[1]}"
+                var_name="${BASH_REMATCH[2]}"
+                if [[ -n "${var_defs[$var_name]+x}" ]]; then
+                    echo "${indent}${var_defs[$var_name]}"
+                    replacements_made=$((replacements_made+1))
+                    $VERBOSE && echo "Replaced VAR $var_name in $src_file"
+                else
+                    echo "${indent}REM Missing VAR definition for $var_name"
+                    echo "ERROR: Missing VAR definition for $var_name in $src_file"
+                    missing_defs=$((missing_defs+1))
+                fi                
             else
                 echo "$line"
             fi

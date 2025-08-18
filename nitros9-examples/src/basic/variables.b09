@@ -1,0 +1,5 @@
+DIM history(500):historyEntry      (* Calculation history *)
+DIM memoryBanks(10):REAL           (* Multiple memory slots *)
+DIM statData(1000):REAL            (* Statistical dataset *)
+DIM userConstants(26):REAL         (* A-Z user variables *)
+DIM functionKeys(12):STRING[20]    (* F1-F12 definitions *)
