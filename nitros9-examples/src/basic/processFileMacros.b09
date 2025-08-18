@@ -36,23 +36,24 @@ DIM replacementLine$:STRING[128]
 DIM i, j, k:INTEGER
 DIM cc:BYTE \! character code
 DIM isValidChar:BOOLEAN
-DIM errCode:BYTE \! Custom error code for specific failures
+DIM exitNameLoop:BOOLEAN \! Flag to simulate BREAK for name extraction loops
+DIM exitLoadLoop:BOOLEAN \! Flag to simulate BREAK for definition loading loops
 
 ! Data structures for in-memory definitions
 ! Using fixed-size arrays for simplicity. Adjust MAX_DEFINITIONS if needed.
 DIM MAX_DEFINITIONS
 MAX_DEFINITIONS := 50 \! Maximum number of definitions per file
 
-DIM typeNames$(MAX_DEFINITIONS):STRING[64]
-DIM typeContents$(MAX_DEFINITIONS):STRING[128]
+DIM typeNames$(50):STRING[64]
+DIM typeContents$(50):STRING[128]
 DIM typeCount:INTEGER
 
-DIM constNames$(MAX_DEFINITIONS):STRING[64]
-DIM constContents$(MAX_DEFINITIONS):STRING[128]
+DIM constNames$(50):STRING[64]
+DIM constContents$(50):STRING[128]
 DIM constCount:INTEGER
 
-DIM varNames$(MAX_DEFINITIONS):STRING[64]
-DIM varContents$(MAX_DEFINITIONS):STRING[128]
+DIM varNames$(50):STRING[64]
+DIM varContents$(50):STRING[128]
 DIM varCount:INTEGER
 
 ! Initialize flags and counters
@@ -101,7 +102,8 @@ typesDefPath$ := actualFolderPath$ + "types.b09"
 ON ERROR GOTO 110 \! Local error handler for types file
 OPEN #typesFileHandle, typesDefPath$:READ
 typesFileOpen := TRUE
-WHILE NOT(EOF(#typesFileHandle)) DO
+exitLoadLoop := FALSE \! Reset flag
+WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
   IF typeCount < MAX_DEFINITIONS THEN
     READ #typesFileHandle, sourceLine$
     ! Extract name and content. Assuming line format "TYPE Name = Content" or "TYPE Name:Type"
@@ -119,17 +121,16 @@ WHILE NOT(EOF(#typesFileHandle)) DO
       ! Extract the name (alphabetic, _, $) until non-valid char or end of line
       name$ := ""
       k := j
-      WHILE k <= LEN(sourceLine$) DO
+      exitNameLoop := FALSE \! Reset flag for inner loop
+      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
-        IF cc = ASC("$") AND token$ = "@@VAR" THEN isValidChar := TRUE \! Allow $ for variables
-        IF cc = ASC("$") AND token$ = "@@CONST" THEN isValidChar := TRUE \! Allow $ for constants
 
         IF isValidChar THEN
           name$ := name$ + MID$(sourceLine$, k, 1)
           k := k + 1
         ELSE
-          BREAK \! Exit WHILE loop
+          exitNameLoop := TRUE \! Simulate BREAK
         ENDIF
       ENDWHILE
       
@@ -141,7 +142,7 @@ WHILE NOT(EOF(#typesFileHandle)) DO
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for types. Some types not loaded."
-    BREAK
+    exitLoadLoop := TRUE \! Simulate BREAK
   ENDIF
 ENDWHILE
 CLOSE #typesFileHandle
@@ -166,13 +167,16 @@ constsDefPath$ := actualFolderPath$ + "constants.b09"
 ON ERROR GOTO 120 \! Local error handler for constants file
 OPEN #constsFileHandle, constsDefPath$:READ
 constsFileOpen := TRUE
-WHILE NOT(EOF(#constsFileHandle)) DO
+exitLoadLoop := FALSE \! Reset flag
+WHILE NOT(EOF(#constsFileHandle)) AND NOT exitLoadLoop DO
   IF constCount < MAX_DEFINITIONS THEN
     READ #constsFileHandle, sourceLine$
     ! Extract name (similar parsing as above, focusing on DIM or CONST)
     j := 0
     IF SUBSTR("DIM ", sourceLine$) = 1 THEN j := SUBSTR("DIM ", sourceLine$) + LEN("DIM ") - 1
+    ENDIF
     IF SUBSTR("CONST ", sourceLine$) = 1 THEN j := SUBSTR("CONST ", sourceLine$) + LEN("CONST ") - 1
+    ENDIF
 
     IF j > 0 THEN
       ! Skip whitespace
@@ -182,7 +186,8 @@ WHILE NOT(EOF(#constsFileHandle)) DO
       
       name$ := ""
       k := j
-      WHILE k <= LEN(sourceLine$) DO
+      exitNameLoop := FALSE \! Reset flag for inner loop
+      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
 
@@ -190,7 +195,7 @@ WHILE NOT(EOF(#constsFileHandle)) DO
           name$ := name$ + MID$(sourceLine$, k, 1)
           k := k + 1
         ELSE
-          BREAK
+          exitNameLoop := TRUE \! Simulate BREAK
         ENDIF
       ENDWHILE
       
@@ -202,7 +207,7 @@ WHILE NOT(EOF(#constsFileHandle)) DO
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for constants. Some constants not loaded."
-    BREAK
+    exitLoadLoop := TRUE \! Simulate BREAK
   ENDIF
 ENDWHILE
 CLOSE #constsFileHandle
@@ -227,7 +232,8 @@ varsDefPath$ := actualFolderPath$ + "variables.b09"
 ON ERROR GOTO 130 \! Local error handler for variables file
 OPEN #varsFileHandle, varsDefPath$:READ
 varsFileOpen := TRUE
-WHILE NOT(EOF(#varsFileHandle)) DO
+exitLoadLoop := FALSE \! Reset flag
+WHILE NOT(EOF(#varsFileHandle)) AND NOT exitLoadLoop DO
   IF varCount < MAX_DEFINITIONS THEN
     READ #varsFileHandle, sourceLine$
     ! Extract name (similar parsing as above, focusing on DIM)
@@ -241,7 +247,8 @@ WHILE NOT(EOF(#varsFileHandle)) DO
       
       name$ := ""
       k := j
-      WHILE k <= LEN(sourceLine$) DO
+      exitNameLoop := FALSE \! Reset flag for inner loop
+      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
 
@@ -249,7 +256,7 @@ WHILE NOT(EOF(#varsFileHandle)) DO
           name$ := name$ + MID$(sourceLine$, k, 1)
           k := k + 1
         ELSE
-          BREAK
+          exitNameLoop := TRUE \! Simulate BREAK
         ENDIF
       ENDWHILE
       
@@ -261,7 +268,7 @@ WHILE NOT(EOF(#varsFileHandle)) DO
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for variables. Some variables not loaded."
-    BREAK
+    exitLoadLoop := TRUE \! Simulate BREAK
   ENDIF
 ENDWHILE
 CLOSE #varsFileHandle
@@ -311,6 +318,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
   ! Trim leading whitespace for token/name parsing
   trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
 
+  token$ := "@@" \! Default value
   ! Check for tokens
   IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
     token$ := "@@TYPE"
@@ -337,16 +345,18 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ! Extract the name (alphabetic, _, $) until non-valid char or end of line
     name$ := ""
     k := j
-    WHILE k <= LEN(trimmedLine$) DO
+    exitNameLoop := FALSE \! Reset flag for inner loop
+    WHILE k <= LEN(trimmedLine$) AND NOT exitNameLoop DO
       cc := ASC(MID$(trimmedLine$, k, 1))
       isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
-      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN isValidChar := TRUE \! Allow $ for consts/vars
+      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN isValidChar := TRUE
+      ENDIF
       
       IF isValidChar THEN
         name$ := name$ + MID$(trimmedLine$, k, 1)
         k := k + 1
       ELSE
-        BREAK \! Exit WHILE loop
+        exitNameLoop := TRUE \! Simulate BREAK
       ENDIF
     ENDWHILE
     
@@ -358,7 +368,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
       FOR i := k TO LEN(trimmedLine$)
         IF NOT (MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
           remainingAreWhitespace := FALSE
-          BREAK
+          i := LEN(trimmedLine$) + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
       
@@ -368,27 +378,27 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ENDIF
 
     ! Lookup and replace
-    replacementLine$ := sourceLine$ ! Default to original if not found
+    replacementLine$ := sourceLine$ \! Default to original if not found
     
     IF token$ = "@@TYPE" THEN
       FOR i := 1 TO typeCount
         IF typeNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + typeContents$(i)
-          BREAK
+          i := typeCount + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
     ELSEIF token$ = "@@CONST" THEN
       FOR i := 1 TO constCount
         IF constNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + constContents$(i)
-          BREAK
+          i := constCount + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
     ELSEIF token$ = "@@VAR" THEN
       FOR i := 1 TO varCount
         IF varNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + varContents$(i)
-          BREAK
+          i := varCount + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
     ENDIF
@@ -423,5 +433,5 @@ END
   IF constsFileOpen THEN CLOSE #constsFileHandle \ENDIF
   IF varsFileOpen THEN CLOSE #varsFileHandle \ENDIF
   
-  END \! Terminate procedure on error
-
+  ! Terminate procedure on error
+  END
