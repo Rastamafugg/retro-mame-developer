@@ -368,30 +368,30 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ENDIF
 
     ! Lookup and replace
-    replacementLine$ := sourceLine$ \! Default to original if not found
-    SELECT token$
-      CASE "@@TYPE"
-        FOR i := 1 TO typeCount
-          IF typeNames$(i) = name$ THEN
-            replacementLine$ := leadingWhitespace$ + typeContents$(i)
-            BREAK
-          ENDIF
-        NEXT i
-      CASE "@@CONST"
-        FOR i := 1 TO constCount
-          IF constNames$(i) = name$ THEN
-            replacementLine$ := leadingWhitespace$ + constContents$(i)
-            BREAK
-          ENDIF
-        NEXT i
-      CASE "@@VAR"
-        FOR i := 1 TO varCount
-          IF varNames$(i) = name$ THEN
-            replacementLine$ := leadingWhitespace$ + varContents$(i)
-            BREAK
-          ENDIF
-        NEXT i
-    ENDSELECT
+    replacementLine$ := sourceLine$ ! Default to original if not found
+    
+    IF token$ = "@@TYPE" THEN
+      FOR i := 1 TO typeCount
+        IF typeNames$(i) = name$ THEN
+          replacementLine$ := leadingWhitespace$ + typeContents$(i)
+          BREAK
+        ENDIF
+      NEXT i
+    ELSEIF token$ = "@@CONST" THEN
+      FOR i := 1 TO constCount
+        IF constNames$(i) = name$ THEN
+          replacementLine$ := leadingWhitespace$ + constContents$(i)
+          BREAK
+        ENDIF
+      NEXT i
+    ELSEIF token$ = "@@VAR" THEN
+      FOR i := 1 TO varCount
+        IF varNames$(i) = name$ THEN
+          replacementLine$ := leadingWhitespace$ + varContents$(i)
+          BREAK
+        ENDIF
+      NEXT i
+    ENDIF
 
     IF replacementLine$ = sourceLine$ AND LEN(name$) > 0 THEN
         PRINT "Warning: Definition for '"; name$; "' ("; token$; ") not found in corresponding file."
