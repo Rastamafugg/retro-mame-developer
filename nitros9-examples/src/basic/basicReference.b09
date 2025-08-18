@@ -381,3 +381,102 @@ DIM status:BOOLEAN         \! For TRUE/FALSE values
 
 PRINT "Data type examples completed"
 END
+
+PROCEDURE parseSimpleExpression
+! Demonstrates a very basic string parsing approach for expressions like "NUM OP NUM"
+! Basic09 lacks direct SPLIT. This example assumes a single operator (+, -, *, /).
+! For a full calculator, a more robust parsing algorithm (e.g., Shunting-Yard)
+! would be required, built up from these primitives.
+
+DIM expression:STRING[80]
+DIM opPos:INTEGER
+DIM operator:STRING[1]
+DIM operand1Str, operand2Str:STRING[80]
+DIM operand1, operand2, result:REAL
+DIM foundOp:BOOLEAN
+DIM errCode:BYTE \! Using custom error codes
+
+INPUT "Enter a simple expression (e.g., 12+34): ", expression
+
+! Initialize
+foundOp := FALSE
+errCode := 0
+
+! Find the first occurrence of an operator
+opPos := INSTR(expression, "+")
+IF opPos = 0 THEN opPos := INSTR(expression, "-")
+ENDIF
+IF opPos = 0 THEN opPos := INSTR(expression, "*")
+ENDIF
+IF opPos = 0 THEN opPos := INSTR(expression, "/")
+ENDIF
+
+IF opPos > 0 THEN
+  ! Operator found
+  operator := MID$(expression, opPos, 1)
+  operand1Str := LEFT$(expression, opPos - 1)
+  operand2Str := RIGHT$(expression, LEN(expression) - opPos)
+  
+  ! Convert operands to REAL
+  operand1 := VAL(operand1Str)
+  operand2 := VAL(operand2Str)
+
+  ! Perform calculation based on operator
+  ON ERROR GOTO 900 \! Local error handling for division by zero
+  IF operator = "+" THEN result := operand1 + operand2
+  ENDIF
+  IF operator = "-" THEN result := operand1 - operand2
+  ENDIF
+  IF operator = "*" THEN result := operand1 * operand2
+  ENDIF
+  IF operator = "/" THEN 
+    IF operand2 = 0 THEN 
+      errCode := 1 \! Simulate ErrDivideZero
+    ELSE
+      result := operand1 / operand2
+    ENDIF
+  ENDIF
+
+  IF errCode = 0 THEN
+    PRINT "Result: "; result
+  ELSE
+    PRINT "Calculation Error: "; errCode \! Report simulated error
+  ENDIF
+
+ELSE
+  PRINT "Error: No valid operator found or invalid expression format."
+  errCode := 6 \! Simulate ErrSyntaxError
+ENDIF
+
+RETURN
+
+! Local error handler for parseSimpleExpression
+900 PRINT "System Error during calculation: "; ERR
+    errCode := ERR \! Store actual Basic09 error
+END
+
+
+PROCEDURE getFormattedTimestamp
+! Returns the current system date and time as a string "yy/mm/dd hh:mm:ss"
+! This directly uses the DATE$ function provided by Basic09.
+
+DIM timeStampString:STRING[19]
+
+timeStampString := DATE$
+PRINT "Current Timestamp: "; timeStampString
+END
+
+
+PROCEDURE clearScreen
+! Clears the entire terminal screen.
+! This uses the PUT #1,12 method, where 12 is the ASCII form feed character,
+! commonly used in Basic09 to clear the screen via I/O path #1 (console output).
+
+DIM clsChar:BYTE
+
+clsChar := 12 \! ASCII Form Feed character for clear screen
+
+PUT #1, clsChar
+PRINT \! Move cursor to beginning of next line after clearing
+END
+
