@@ -1,0 +1,427 @@
+PROCEDURE PROCESS_FILE_MACROS
+! PROCESS_FILE_MACROS - Replaces custom tokens in a source file
+! with definitions from external files (types, constants, variables).
+
+! Parameters:
+!   sourceFilePath$: STRING - Path to the input source file.
+!   targetFilePath$: STRING - Path to the output target file.
+!   folderPath$: STRING - (Optional) Path to the folder containing definition files.
+!                         If omitted, assumes current data directory.
+
+PARAM sourceFilePath$:STRING[80]
+PARAM targetFilePath$:STRING[80]
+PARAM folderPath$:STRING[80]
+
+! --- Variable Declarations ---
+! File handles
+DIM sourceFileHandle, targetFileHandle:BYTE
+DIM typesFileHandle, constsFileHandle, varsFileHandle:BYTE
+
+! File status flags
+DIM sourceFileOpen, targetFileOpen:BOOLEAN
+DIM typesFileOpen, constsFileOpen, varsFileOpen:BOOLEAN
+
+! Paths for definition files
+DIM actualFolderPath$:STRING[80]
+DIM typesDefPath$, constsDefPath$, varsDefPath$:STRING[80]
+
+! Line buffers and parsing variables
+DIM sourceLine$:STRING[128]
+DIM trimmedLine$:STRING[128]
+DIM leadingWhitespace$:STRING[128]
+DIM tokenFound:BOOLEAN
+DIM token$:STRING[8] \! Max length for @@VAR
+DIM name$:STRING[64] \! Max length for a type/const/var name
+DIM replacementLine$:STRING[128]
+DIM i, j, k:INTEGER
+DIM cc:BYTE \! character code
+DIM isValidChar:BOOLEAN
+DIM errCode:BYTE \! Custom error code for specific failures
+
+! Data structures for in-memory definitions
+! Using fixed-size arrays for simplicity. Adjust MAX_DEFINITIONS if needed.
+DIM MAX_DEFINITIONS
+MAX_DEFINITIONS := 50 \! Maximum number of definitions per file
+
+DIM typeNames$(MAX_DEFINITIONS):STRING[64]
+DIM typeContents$(MAX_DEFINITIONS):STRING[128]
+DIM typeCount:INTEGER
+
+DIM constNames$(MAX_DEFINITIONS):STRING[64]
+DIM constContents$(MAX_DEFINITIONS):STRING[128]
+DIM constCount:INTEGER
+
+DIM varNames$(MAX_DEFINITIONS):STRING[64]
+DIM varContents$(MAX_DEFINITIONS):STRING[128]
+DIM varCount:INTEGER
+
+! Initialize flags and counters
+sourceFileOpen := FALSE
+targetFileOpen := FALSE
+typesFileOpen := FALSE
+constsFileOpen := FALSE
+varsFileOpen := FALSE
+tokenFound := FALSE
+errCode := 0
+typeCount := 0
+constCount := 0
+varCount := 0
+
+! --- Error Handling Setup ---
+ON ERROR GOTO 900 \! Global error handler for the procedure
+
+! --- Parameter Validation ---
+IF LEN(sourceFilePath$) = 0 THEN
+  PRINT "Error: Source file path cannot be empty."
+  errCode := 101 \! Custom error: Source path omitted
+  GOTO 900
+ENDIF
+
+IF LEN(targetFilePath$) = 0 THEN
+  PRINT "Error: Target file path cannot be empty."
+  errCode := 102 \! Custom error: Target path omitted
+  GOTO 900
+ENDIF
+
+! Determine actual folder path for definition files
+IF LEN(folderPath$) = 0 THEN
+  actualFolderPath$ := "" \! Assume current directory
+ELSE
+  actualFolderPath$ := folderPath$
+  ! Ensure folderPath$ ends with a slash if not empty
+  IF RIGHT$(actualFolderPath$, 1) <> "/" AND RIGHT$(actualFolderPath$, 1) <> "\" THEN
+    actualFolderPath$ := actualFolderPath$ + "/"
+  ENDIF
+ENDIF
+
+! --- Load Definition Files into Memory ---
+
+! Load types.b09
+typesDefPath$ := actualFolderPath$ + "types.b09"
+ON ERROR GOTO 110 \! Local error handler for types file
+OPEN #typesFileHandle, typesDefPath$:READ
+typesFileOpen := TRUE
+WHILE NOT(EOF(#typesFileHandle)) DO
+  IF typeCount < MAX_DEFINITIONS THEN
+    READ #typesFileHandle, sourceLine$
+    ! Extract name and content. Assuming line format "TYPE Name = Content" or "TYPE Name:Type"
+    ! For simplicity here, we'll take the entire line as content and parse the name.
+    ! A more robust parser would extract only the definition.
+    ! For now, find first non-whitespace after "TYPE "
+    j := SUBSTR("TYPE ", sourceLine$)
+    IF j > 0 THEN
+      j := j + LEN("TYPE ") -1 \! Position after "TYPE "
+      ! Skip whitespace after "TYPE "
+      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
+        j := j + 1
+      ENDWHILE
+      
+      ! Extract the name (alphabetic, _, $) until non-valid char or end of line
+      name$ := ""
+      k := j
+      WHILE k <= LEN(sourceLine$) DO
+        cc := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
+        IF cc = ASC("$") AND token$ = "@@VAR" THEN isValidChar := TRUE \! Allow $ for variables
+        IF cc = ASC("$") AND token$ = "@@CONST" THEN isValidChar := TRUE \! Allow $ for constants
+
+        IF isValidChar THEN
+          name$ := name$ + MID$(sourceLine$, k, 1)
+          k := k + 1
+        ELSE
+          BREAK \! Exit WHILE loop
+        ENDIF
+      ENDWHILE
+      
+      IF LEN(name$) > 0 THEN
+        typeCount := typeCount + 1
+        typeNames$(typeCount) := name$
+        typeContents$(typeCount) := sourceLine$
+      ENDIF
+    ENDIF
+  ELSE
+    PRINT "Warning: Exceeded MAX_DEFINITIONS for types. Some types not loaded."
+    BREAK
+  ENDIF
+ENDWHILE
+CLOSE #typesFileHandle
+typesFileOpen := FALSE
+GOTO 119 \! Skip types error handler
+
+110 \! Local error for types.b09
+  IF ERR = 210 THEN \! File not found
+    PRINT "Error: types.b09 not found at '"; typesDefPath$; "'"
+    errCode := 103 \! Custom error: types file missing
+  ELSE
+    PRINT "System Error ("; ERR; ") opening types.b09."
+    errCode := 104 \! Custom error: types file other error
+  ENDIF
+  IF typesFileOpen THEN CLOSE #typesFileHandle \ENDIF
+  GOTO 900
+
+119 \! Continue after types.b09 load
+
+! Load constants.b09
+constsDefPath$ := actualFolderPath$ + "constants.b09"
+ON ERROR GOTO 120 \! Local error handler for constants file
+OPEN #constsFileHandle, constsDefPath$:READ
+constsFileOpen := TRUE
+WHILE NOT(EOF(#constsFileHandle)) DO
+  IF constCount < MAX_DEFINITIONS THEN
+    READ #constsFileHandle, sourceLine$
+    ! Extract name (similar parsing as above, focusing on DIM or CONST)
+    j := 0
+    IF SUBSTR("DIM ", sourceLine$) = 1 THEN j := SUBSTR("DIM ", sourceLine$) + LEN("DIM ") - 1
+    IF SUBSTR("CONST ", sourceLine$) = 1 THEN j := SUBSTR("CONST ", sourceLine$) + LEN("CONST ") - 1
+
+    IF j > 0 THEN
+      ! Skip whitespace
+      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
+        j := j + 1
+      ENDWHILE
+      
+      name$ := ""
+      k := j
+      WHILE k <= LEN(sourceLine$) DO
+        cc := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
+
+        IF isValidChar THEN
+          name$ := name$ + MID$(sourceLine$, k, 1)
+          k := k + 1
+        ELSE
+          BREAK
+        ENDIF
+      ENDWHILE
+      
+      IF LEN(name$) > 0 THEN
+        constCount := constCount + 1
+        constNames$(constCount) := name$
+        constContents$(constCount) := sourceLine$
+      ENDIF
+    ENDIF
+  ELSE
+    PRINT "Warning: Exceeded MAX_DEFINITIONS for constants. Some constants not loaded."
+    BREAK
+  ENDIF
+ENDWHILE
+CLOSE #constsFileHandle
+constsFileOpen := FALSE
+GOTO 129 \! Skip consts error handler
+
+120 \! Local error for constants.b09
+  IF ERR = 210 THEN \! File not found
+    PRINT "Error: constants.b09 not found at '"; constsDefPath$; "'"
+    errCode := 105 \! Custom error: constants file missing
+  ELSE
+    PRINT "System Error ("; ERR; ") opening constants.b09."
+    errCode := 106 \! Custom error: constants file other error
+  ENDIF
+  IF constsFileOpen THEN CLOSE #constsFileHandle \ENDIF
+  GOTO 900
+
+129 \! Continue after constants.b09 load
+
+! Load variables.b09
+varsDefPath$ := actualFolderPath$ + "variables.b09"
+ON ERROR GOTO 130 \! Local error handler for variables file
+OPEN #varsFileHandle, varsDefPath$:READ
+varsFileOpen := TRUE
+WHILE NOT(EOF(#varsFileHandle)) DO
+  IF varCount < MAX_DEFINITIONS THEN
+    READ #varsFileHandle, sourceLine$
+    ! Extract name (similar parsing as above, focusing on DIM)
+    j := SUBSTR("DIM ", sourceLine$)
+    IF j > 0 THEN
+      j := j + LEN("DIM ") - 1
+      ! Skip whitespace
+      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
+        j := j + 1
+      ENDWHILE
+      
+      name$ := ""
+      k := j
+      WHILE k <= LEN(sourceLine$) DO
+        cc := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
+
+        IF isValidChar THEN
+          name$ := name$ + MID$(sourceLine$, k, 1)
+          k := k + 1
+        ELSE
+          BREAK
+        ENDIF
+      ENDWHILE
+      
+      IF LEN(name$) > 0 THEN
+        varCount := varCount + 1
+        varNames$(varCount) := name$
+        varContents$(varCount) := sourceLine$
+      ENDIF
+    ENDIF
+  ELSE
+    PRINT "Warning: Exceeded MAX_DEFINITIONS for variables. Some variables not loaded."
+    BREAK
+  ENDIF
+ENDWHILE
+CLOSE #varsFileHandle
+varsFileOpen := FALSE
+GOTO 139 \! Skip vars error handler
+
+130 \! Local error for variables.b09
+  IF ERR = 210 THEN \! File not found
+    PRINT "Error: variables.b09 not found at '"; varsDefPath$; "'"
+    errCode := 107 \! Custom error: variables file missing
+  ELSE
+    PRINT "System Error ("; ERR; ") opening variables.b09."
+    errCode := 108 \! Custom error: variables file other error
+  ENDIF
+  IF varsFileOpen THEN CLOSE #varsFileHandle \ENDIF
+  GOTO 900
+
+139 \! Continue after variables.b09 load
+
+! Reset global error handler for main processing
+ON ERROR GOTO 900
+
+! --- Main File Processing Loop ---
+
+! Open source and target files
+OPEN #sourceFileHandle, sourceFilePath$:READ
+sourceFileOpen := TRUE
+CREATE #targetFileHandle, targetFilePath$:WRITE \! CREATE will overwrite if exists
+targetFileOpen := TRUE
+
+WHILE NOT(EOF(#sourceFileHandle)) DO
+  READ #sourceFileHandle, sourceLine$
+  
+  ! Initialize for this line
+  tokenFound := FALSE
+  leadingWhitespace$ := ""
+  name$ := ""
+  replacementLine$ := sourceLine$ \! Default to original line
+
+  ! Extract leading whitespace
+  i := 1
+  WHILE i <= LEN(sourceLine$) AND (MID$(sourceLine$, i, 1) = " " OR MID$(sourceLine$, i, 1) = CHR$(9)) DO
+    leadingWhitespace$ := leadingWhitespace$ + MID$(sourceLine$, i, 1)
+    i := i + 1
+  ENDWHILE
+
+  ! Trim leading whitespace for token/name parsing
+  trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
+
+  ! Check for tokens
+  IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
+    token$ := "@@TYPE"
+    tokenFound := TRUE
+  ENDIF
+  IF NOT tokenFound AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
+    token$ := "@@CONST"
+    tokenFound := TRUE
+  ENDIF
+  IF NOT tokenFound AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
+    token$ := "@@VAR"
+    tokenFound := TRUE
+  ENDIF
+
+  IF tokenFound THEN
+    ! Position after the token
+    j := LEN(token$) + 1
+    
+    ! Skip whitespace after token
+    WHILE j <= LEN(trimmedLine$) AND (MID$(trimmedLine$, j, 1) = " " OR MID$(trimmedLine$, j, 1) = CHR$(9)) DO
+      j := j + 1
+    ENDWHILE
+
+    ! Extract the name (alphabetic, _, $) until non-valid char or end of line
+    name$ := ""
+    k := j
+    WHILE k <= LEN(trimmedLine$) DO
+      cc := ASC(MID$(trimmedLine$, k, 1))
+      isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
+      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN isValidChar := TRUE \! Allow $ for consts/vars
+      
+      IF isValidChar THEN
+        name$ := name$ + MID$(trimmedLine$, k, 1)
+        k := k + 1
+      ELSE
+        BREAK \! Exit WHILE loop
+      ENDIF
+    ENDWHILE
+    
+    ! Check if anything but whitespace follows the name
+    IF k <= LEN(trimmedLine$) THEN
+      ! Check if remaining characters are only whitespace
+      DIM remainingAreWhitespace:BOOLEAN
+      remainingAreWhitespace := TRUE
+      FOR i := k TO LEN(trimmedLine$)
+        IF NOT (MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
+          remainingAreWhitespace := FALSE
+          BREAK
+        ENDIF
+      NEXT i
+      
+      IF NOT remainingAreWhitespace THEN
+        PRINT "Warning: Trailing characters found after '"; name$; "' on line: "; sourceLine$
+      ENDIF
+    ENDIF
+
+    ! Lookup and replace
+    replacementLine$ := sourceLine$ \! Default to original if not found
+    SELECT token$
+      CASE "@@TYPE"
+        FOR i := 1 TO typeCount
+          IF typeNames$(i) = name$ THEN
+            replacementLine$ := leadingWhitespace$ + typeContents$(i)
+            BREAK
+          ENDIF
+        NEXT i
+      CASE "@@CONST"
+        FOR i := 1 TO constCount
+          IF constNames$(i) = name$ THEN
+            replacementLine$ := leadingWhitespace$ + constContents$(i)
+            BREAK
+          ENDIF
+        NEXT i
+      CASE "@@VAR"
+        FOR i := 1 TO varCount
+          IF varNames$(i) = name$ THEN
+            replacementLine$ := leadingWhitespace$ + varContents$(i)
+            BREAK
+          ENDIF
+        NEXT i
+    ENDSELECT
+
+    IF replacementLine$ = sourceLine$ AND LEN(name$) > 0 THEN
+        PRINT "Warning: Definition for '"; name$; "' ("; token$; ") not found in corresponding file."
+    ENDIF
+  ENDIF
+  
+  ! Write the processed line to the target file
+  WRITE #targetFileHandle, replacementLine$
+
+ENDWHILE
+
+! --- Close Files and Exit ---
+CLOSE #sourceFileHandle
+sourceFileOpen := FALSE
+CLOSE #targetFileHandle
+targetFileOpen := FALSE
+
+PRINT "File processing completed successfully: '"; sourceFilePath$; "' -> '"; targetFilePath$; "'"
+END
+
+! --- Global Error Handler ---
+900 \! Global error handler for PROCESS_FILE_MACROS
+  PRINT "Processing Error (Code "; errCode; "): "; ERR
+  
+  ! Close any open files
+  IF sourceFileOpen THEN CLOSE #sourceFileHandle \ENDIF
+  IF targetFileOpen THEN CLOSE #targetFileHandle \ENDIF
+  IF typesFileOpen THEN CLOSE #typesFileHandle \ENDIF
+  IF constsFileOpen THEN CLOSE #constsFileHandle \ENDIF
+  IF varsFileOpen THEN CLOSE #varsFileHandle \ENDIF
+  
+  END \! Terminate procedure on error
+
