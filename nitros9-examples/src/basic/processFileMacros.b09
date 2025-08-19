@@ -42,18 +42,18 @@ DIM exitLoadLoop:BOOLEAN \! Flag to simulate BREAK for definition loading loops
 ! Data structures for in-memory definitions
 ! Using fixed-size arrays for simplicity. Adjust MAX_DEFINITIONS if needed.
 DIM MAX_DEFINITIONS
-MAX_DEFINITIONS := 50 \! Maximum number of definitions per file
+MAX_DEFINITIONS := 10 \! Maximum number of definitions per file
 
-DIM typeNames$(50):STRING[64]
-DIM typeContents$(50):STRING[128]
+DIM typeNames$(10):STRING[64]
+DIM typeContents$(10):STRING[128]
 DIM typeCount:INTEGER
 
-DIM constNames$(50):STRING[64]
-DIM constContents$(50):STRING[128]
+DIM constNames$(10):STRING[64]
+DIM constContents$(10):STRING[128]
 DIM constCount:INTEGER
 
-DIM varNames$(50):STRING[64]
-DIM varContents$(50):STRING[128]
+DIM varNames$(10):STRING[64]
+DIM varContents$(10):STRING[128]
 DIM varCount:INTEGER
 
 ! Initialize flags and counters
