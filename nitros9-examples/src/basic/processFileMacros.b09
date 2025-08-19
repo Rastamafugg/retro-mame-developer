@@ -17,6 +17,9 @@ PARAM folderPath$:STRING[80]
 DIM sourceFileHandle,targetFileHandle:BYTE
 DIM typesFileHandle,constsFileHandle,varsFileHandle:BYTE
 
+! Error code flag
+DIM errCode:INTEGER
+
 ! File status flags
 DIM sourceFileOpen,targetFileOpen:BOOLEAN
 DIM typesFileOpen,constsFileOpen,varsFileOpen:BOOLEAN
@@ -90,7 +93,7 @@ IF LEN(folderPath$) = 0 THEN
 ELSE
   actualFolderPath$ := folderPath$
   ! Ensure folderPath$ ends with a slash if not empty
-  IF RIGHT$(actualFolderPath$, 1) <> "/" AND RIGHT$(actualFolderPath$, 1) <> "\" THEN
+  IF RIGHT$(actualFolderPath$, 1) <> "/" THEN
     actualFolderPath$ := actualFolderPath$ + "/"
   ENDIF
 ENDIF
