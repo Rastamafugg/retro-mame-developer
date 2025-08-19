@@ -14,16 +14,16 @@ PARAM folderPath$:STRING[80]
 
 ! --- Variable Declarations ---
 ! File handles
-DIM sourceFileHandle, targetFileHandle:BYTE
-DIM typesFileHandle, constsFileHandle, varsFileHandle:BYTE
+DIM sourceFileHandle,targetFileHandle:BYTE
+DIM typesFileHandle,constsFileHandle,varsFileHandle:BYTE
 
 ! File status flags
-DIM sourceFileOpen, targetFileOpen:BOOLEAN
-DIM typesFileOpen, constsFileOpen, varsFileOpen:BOOLEAN
+DIM sourceFileOpen,targetFileOpen:BOOLEAN
+DIM typesFileOpen,constsFileOpen,varsFileOpen:BOOLEAN
 
 ! Paths for definition files
 DIM actualFolderPath$:STRING[80]
-DIM typesDefPath$, constsDefPath$, varsDefPath$:STRING[80]
+DIM typesDefPath$,constsDefPath$,varsDefPath$:STRING[80]
 
 ! Line buffers and parsing variables
 DIM sourceLine$:STRING[128]
@@ -33,7 +33,7 @@ DIM tokenFound:BOOLEAN
 DIM token$:STRING[8] \! Max length for @@VAR
 DIM name$:STRING[64] \! Max length for a type/const/var name
 DIM replacementLine$:STRING[128]
-DIM i, j, k:INTEGER
+DIM i,j,k:INTEGER
 DIM cc:BYTE \! character code
 DIM isValidChar:BOOLEAN
 DIM exitNameLoop:BOOLEAN \! Flag to simulate BREAK for name extraction loops
@@ -157,7 +157,9 @@ GOTO 119 \! Skip types error handler
     PRINT "System Error ("; ERR; ") opening types.b09."
     errCode := 104 \! Custom error: types file other error
   ENDIF
-  IF typesFileOpen THEN CLOSE #typesFileHandle \ENDIF
+  IF typesFileOpen THEN
+    CLOSE #typesFileHandle
+  ENDIF
   GOTO 900
 
 119 \! Continue after types.b09 load
@@ -168,14 +170,16 @@ ON ERROR GOTO 120 \! Local error handler for constants file
 OPEN #constsFileHandle, constsDefPath$:READ
 constsFileOpen := TRUE
 exitLoadLoop := FALSE \! Reset flag
-WHILE NOT(EOF(#constsFileHandle)) AND NOT exitLoadLoop DO
+WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
   IF constCount < MAX_DEFINITIONS THEN
     READ #constsFileHandle, sourceLine$
     ! Extract name (similar parsing as above, focusing on DIM or CONST)
     j := 0
-    IF SUBSTR("DIM ", sourceLine$) = 1 THEN j := SUBSTR("DIM ", sourceLine$) + LEN("DIM ") - 1
+    IF SUBSTR("DIM ", sourceLine$) = 1 THEN
+      j := SUBSTR("DIM ", sourceLine$) + LEN("DIM ") - 1
     ENDIF
-    IF SUBSTR("CONST ", sourceLine$) = 1 THEN j := SUBSTR("CONST ", sourceLine$) + LEN("CONST ") - 1
+    IF SUBSTR("CONST ", sourceLine$) = 1 THEN
+      j := SUBSTR("CONST ", sourceLine$) + LEN("CONST ") - 1
     ENDIF
 
     IF j > 0 THEN
@@ -187,18 +191,18 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT exitLoadLoop DO
       name$ := ""
       k := j
       exitNameLoop := FALSE \! Reset flag for inner loop
-      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+      WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
 
         IF isValidChar THEN
-          name$ := name$ + MID$(sourceLine$, k, 1)
+          name$ := name$ + MID$(sourceLine$,k,1)
           k := k + 1
         ELSE
           exitNameLoop := TRUE \! Simulate BREAK
         ENDIF
       ENDWHILE
-      
+
       IF LEN(name$) > 0 THEN
         constCount := constCount + 1
         constNames$(constCount) := name$
@@ -208,8 +212,9 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT exitLoadLoop DO
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for constants. Some constants not loaded."
     exitLoadLoop := TRUE \! Simulate BREAK
-  ENDIF
-ENDWHILE
+  ENDIF 
+ENDWHILE 
+
 CLOSE #constsFileHandle
 constsFileOpen := FALSE
 GOTO 129 \! Skip consts error handler
@@ -222,7 +227,9 @@ GOTO 129 \! Skip consts error handler
     PRINT "System Error ("; ERR; ") opening constants.b09."
     errCode := 106 \! Custom error: constants file other error
   ENDIF
-  IF constsFileOpen THEN CLOSE #constsFileHandle \ENDIF
+  IF constsFileOpen THEN
+    CLOSE #constsFileHandle
+  ENDIF
   GOTO 900
 
 129 \! Continue after constants.b09 load
@@ -233,7 +240,7 @@ ON ERROR GOTO 130 \! Local error handler for variables file
 OPEN #varsFileHandle, varsDefPath$:READ
 varsFileOpen := TRUE
 exitLoadLoop := FALSE \! Reset flag
-WHILE NOT(EOF(#varsFileHandle)) AND NOT exitLoadLoop DO
+WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
   IF varCount < MAX_DEFINITIONS THEN
     READ #varsFileHandle, sourceLine$
     ! Extract name (similar parsing as above, focusing on DIM)
@@ -248,7 +255,7 @@ WHILE NOT(EOF(#varsFileHandle)) AND NOT exitLoadLoop DO
       name$ := ""
       k := j
       exitNameLoop := FALSE \! Reset flag for inner loop
-      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+      WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
 
@@ -283,7 +290,9 @@ GOTO 139 \! Skip vars error handler
     PRINT "System Error ("; ERR; ") opening variables.b09."
     errCode := 108 \! Custom error: variables file other error
   ENDIF
-  IF varsFileOpen THEN CLOSE #varsFileHandle \ENDIF
+  IF varsFileOpen THEN
+    CLOSE #varsFileHandle
+  ENDIF
   GOTO 900
 
 139 \! Continue after variables.b09 load
@@ -324,11 +333,11 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     token$ := "@@TYPE"
     tokenFound := TRUE
   ENDIF
-  IF NOT tokenFound AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
+  IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
     token$ := "@@CONST"
     tokenFound := TRUE
   ENDIF
-  IF NOT tokenFound AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
+  IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
     token$ := "@@VAR"
     tokenFound := TRUE
   ENDIF
@@ -346,10 +355,11 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     name$ := ""
     k := j
     exitNameLoop := FALSE \! Reset flag for inner loop
-    WHILE k <= LEN(trimmedLine$) AND NOT exitNameLoop DO
+    WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
       cc := ASC(MID$(trimmedLine$, k, 1))
       isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
-      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN isValidChar := TRUE
+      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN
+        isValidChar := TRUE
       ENDIF
       
       IF isValidChar THEN
@@ -366,13 +376,13 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
       DIM remainingAreWhitespace:BOOLEAN
       remainingAreWhitespace := TRUE
       FOR i := k TO LEN(trimmedLine$)
-        IF NOT (MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
+        IF NOT(MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
           remainingAreWhitespace := FALSE
           i := LEN(trimmedLine$) + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
       
-      IF NOT remainingAreWhitespace THEN
+      IF NOT(remainingAreWhitespace) THEN
         PRINT "Warning: Trailing characters found after '"; name$; "' on line: "; sourceLine$
       ENDIF
     ENDIF
@@ -387,14 +397,16 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
           i := typeCount + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
-    ELSEIF token$ = "@@CONST" THEN
+    ENDIF
+    IF token$ = "@@CONST" THEN
       FOR i := 1 TO constCount
         IF constNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + constContents$(i)
           i := constCount + 1 \! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
-    ELSEIF token$ = "@@VAR" THEN
+    ENDIF
+    IF token$ = "@@VAR" THEN
       FOR i := 1 TO varCount
         IF varNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + varContents$(i)
@@ -424,14 +436,24 @@ END
 
 ! --- Global Error Handler ---
 900 \! Global error handler for PROCESS_FILE_MACROS
-  PRINT "Processing Error (Code "; errCode; "): "; ERR
-  
-  ! Close any open files
-  IF sourceFileOpen THEN CLOSE #sourceFileHandle \ENDIF
-  IF targetFileOpen THEN CLOSE #targetFileHandle \ENDIF
-  IF typesFileOpen THEN CLOSE #typesFileHandle \ENDIF
-  IF constsFileOpen THEN CLOSE #constsFileHandle \ENDIF
-  IF varsFileOpen THEN CLOSE #varsFileHandle \ENDIF
-  
-  ! Terminate procedure on error
-  END
+PRINT "Processing Error (Code "; errCode; "): "; ERR
+
+! Close any open files
+IF sourceFileOpen THEN
+  CLOSE #sourceFileHandle
+ENDIF 
+IF targetFileOpen THEN
+  CLOSE #targetFileHandle
+ENDIF 
+IF typesFileOpen THEN
+  CLOSE #typesFileHandle
+ENDIF 
+IF constsFileOpen THEN
+  CLOSE #constsFileHandle
+ENDIF 
+IF varsFileOpen THEN
+  CLOSE #varsFileHandle
+ENDIF 
+
+! Terminate procedure on error
+END 
