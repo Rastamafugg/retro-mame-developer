@@ -1,5 +1,5 @@
-PROCEDURE PROCESS_FILE_MACROS
-! PROCESS_FILE_MACROS - Replaces custom tokens in a source file
+PROCEDURE TRANSPILE
+! TRANSPILE - Replaces custom tokens in a source file
 ! with definitions from external files (types, constants, variables).
 
 ! Parameters:
@@ -440,6 +440,16 @@ END
 ! --- Global Error Handler ---
 900 \! Global error handler for PROCESS_FILE_MACROS
 PRINT "Processing Error (Code "; errCode; "): "; ERR
+
+! Provide usage message for specific parameter errors
+IF errCode = 101 OR errCode = 102 THEN
+  PRINT ""
+  PRINT "Usage: RUN PROCESS_FILE_MACROS(sourceFilePath$, targetFilePath$, folderPath$)"
+  PRINT "  sourceFilePath$: Path to the input source file (required)."
+  PRINT "  targetFilePath$: Path to the output target file (required)."
+  PRINT "  folderPath$:     Path to the folder containing types.b09, constants.b09, variables.b09."
+  PRINT "                   (Optional: if omitted, current directory is assumed)."
+ENDIF
 
 ! Close any open files
 IF sourceFileOpen THEN
