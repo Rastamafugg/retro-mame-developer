@@ -17,7 +17,7 @@ PARAM folderPath$:STRING[80]
 DIM sourceFileHandle,targetFileHandle:BYTE
 DIM typesFileHandle,constsFileHandle,varsFileHandle:BYTE
 
-! Error code flag
+! Error code flags
 DIM errCode:INTEGER
 
 ! File status flags
@@ -75,17 +75,21 @@ varCount := 0
 ON ERROR GOTO 900 \! Global error handler for the procedure
 
 ! --- Parameter Validation ---
+errCode := 101 \ ! Set code in advance of LEN check, as error will be thrown
 IF LEN(sourceFilePath$) = 0 THEN
   PRINT "Error: Source file path cannot be empty."
   errCode := 101 \! Custom error: Source path omitted
   GOTO 900
 ENDIF
 
+errCode := 102 \ ! Set code in advance of LEN check, as error will be thrown
 IF LEN(targetFilePath$) = 0 THEN
   PRINT "Error: Target file path cannot be empty."
   errCode := 102 \! Custom error: Target path omitted
   GOTO 900
 ENDIF
+
+errCode := 0 \ ! Reset code after LEN checks
 
 ! Determine actual folder path for definition files
 IF LEN(folderPath$) = 0 THEN
@@ -438,35 +442,41 @@ PRINT "File processing completed successfully: '"; sourceFilePath$; "' -> '"; ta
 END
 
 ! --- Global Error Handler ---
-900 \! Global error handler for PROCESS_FILE_MACROS
-PRINT "Processing Error (Code "; errCode; "): "; ERR
+900 \! Global error handler for TRANSPILE
+  PRINT "Runtime Error (Code "; errCode; "): "; ERR
+  
+  ! Provide usage message for specific parameter errors
+  IF errCode = 101 OR errCode = 102 THEN
+    PRINT ""
+    PRINT "Usage: RUN TRANSPILE(sourceFilePath$, targetFilePath$, folderPath$)"
+    PRINT "  sourceFilePath$: Path to the input source file (required)."
+    PRINT "  targetFilePath$: Path to the output target file (required)."
+    PRINT "  folderPath$:     Path to the folder containing types.b09, constants.b09, variables.b09."
+    PRINT "                   (Optional: if omitted, current directory is assumed)."
+  ENDIF
 
-! Provide usage message for specific parameter errors
-IF errCode = 101 OR errCode = 102 THEN
-  PRINT ""
-  PRINT "Usage: RUN PROCESS_FILE_MACROS(sourceFilePath$, targetFilePath$, folderPath$)"
-  PRINT "  sourceFilePath$: Path to the input source file (required)."
-  PRINT "  targetFilePath$: Path to the output target file (required)."
-  PRINT "  folderPath$:     Path to the folder containing types.b09, constants.b09, variables.b09."
-  PRINT "                   (Optional: if omitted, current directory is assumed)."
-ENDIF
+  ! Close any open files
+  IF sourceFileOpen THEN
+    CLOSE #sourceFileHandle
+  ENDIF 
+  IF targetFileOpen THEN
+    CLOSE #targetFileHandle
+  ENDIF 
+  IF typesFileOpen THEN
+    CLOSE #typesFileHandle
+  ENDIF 
+  IF constsFileOpen THEN
+    CLOSE #constsFileHandle
+  ENDIF 
+  IF varsFileOpen THEN
+    CLOSE #varsFileHandle
+  ENDIF 
+  
+  ! Terminate procedure on error
+  END 
 
-! Close any open files
-IF sourceFileOpen THEN
-  CLOSE #sourceFileHandle
-ENDIF 
-IF targetFileOpen THEN
-  CLOSE #targetFileHandle
-ENDIF 
-IF typesFileOpen THEN
-  CLOSE #typesFileHandle
-ENDIF 
-IF constsFileOpen THEN
-  CLOSE #constsFileHandle
-ENDIF 
-IF varsFileOpen THEN
-  CLOSE #varsFileHandle
-ENDIF 
-
-! Terminate procedure on error
-END 
+PROCEDURE BOOTSTRAP
+PRINT "Transpile >"
+RUN TRANSPILE("/d1/source.b09", "/d1/output.b09", "/d1")
+PRINT "Transpile <"
+END
