@@ -8,6 +8,8 @@ PROCEDURE TRANSPILE
 !   folderPath$: STRING - (Optional) Path to the folder containing definition files.
 !                         If omitted, assumes current data directory.
 
+TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
+
 PARAM sourceFilePath$:STRING[80]
 PARAM targetFilePath$:STRING[80]
 PARAM folderPath$:STRING[80]
@@ -48,6 +50,7 @@ DIM verboseLogging:BOOLEAN \ ! Flag to allow more verbose logging
 DIM MAX_DEFINITIONS
 MAX_DEFINITIONS := 10 \ ! Maximum number of definitions per file
 
+DIM typesfileName$,constantsFileName$,variablesFileName$:STRING
 DIM typeNames$(10):STRING[64]
 DIM typeContents$(10):STRING[128]
 DIM typeCount:INTEGER
@@ -59,6 +62,11 @@ DIM constCount:INTEGER
 DIM varNames$(10):STRING[64]
 DIM varContents$(10):STRING[128]
 DIM varCount:INTEGER
+
+! Initialize constants
+typesFileName$ := "types.b09"
+constantsFileName$ := "constants.b09"
+variablesFileName$ := "variables.b09"
 
 ! Initialize flags and counters
 sourceFileOpen := FALSE
@@ -110,7 +118,7 @@ ENDIF
 IF verboseLogging THEN
   PRINT "> Loading Type Definitions"
 ENDIF
-typesDefPath$ := actualFolderPath$ + "types.b09"
+typesDefPath$ := actualFolderPath$ + typesFileName$
 ON ERROR GOTO 110 \ ! Local error handler for types file
 OPEN #typesFileHandle, typesDefPath$:READ
 typesFileOpen := TRUE
@@ -186,7 +194,7 @@ GOTO 119 \ ! Skip types error handler
 IF verboseLogging THEN
   PRINT "> Loading Constant Definitions"
 ENDIF
-constsDefPath$ := actualFolderPath$ + "constants.b09"
+constsDefPath$ := actualFolderPath$ + constantsFileName$
 ON ERROR GOTO 120 \ ! Local error handler for constants file
 OPEN #constsFileHandle, constsDefPath$:READ
 constsFileOpen := TRUE
@@ -265,7 +273,7 @@ GOTO 129 \ ! Skip consts error handler
 IF verboseLogging THEN
   PRINT "> Loading Variable Definitions"
 ENDIF
-varsDefPath$ := actualFolderPath$ + "variables.b09"
+varsDefPath$ := actualFolderPath$ + variablesFileName$
 ON ERROR GOTO 130 \ ! Local error handler for variables file
 OPEN #varsFileHandle, varsDefPath$:READ
 varsFileOpen := TRUE
@@ -333,9 +341,6 @@ GOTO 139 \ ! Skip vars error handler
 
 139 \ ! Continue after variables.b09 load
 
-! Reset global error handler for main processing
-ON ERROR GOTO 900
-
 ! --- Main File Processing Loop ---
 
 ! Open source and target files
@@ -344,7 +349,21 @@ IF verboseLogging THEN
 ENDIF
 OPEN #sourceFileHandle, sourceFilePath$:READ
 sourceFileOpen := TRUE
-CREATE #targetFileHandle, targetFilePath$:WRITE \ ! CREATE will overwrite if exists
+
+ON ERROR GOTO 140 \ ! Local error handler for target file exists check
+OPEN #targetFileHandle, targetFilePath$:WRITE
+
+GOTO 149 \ ! Skip consts error handler
+
+140 \ ! Local error for target file open
+  PRINT "System Error ("; ERR; ") opening constants.b09." \ ! Expected if the file doesn't exist
+  CREATE #targetFileHandle, targetFilePath$:WRITE
+
+149 \ ! Continue after target file open
+
+! Reset global error handler for main processing
+ON ERROR GOTO 900
+
 targetFileOpen := TRUE
 
 WHILE NOT(EOF(#sourceFileHandle)) DO
@@ -530,6 +549,7 @@ END
   
   ! Terminate procedure on error
   END 
+
 
 PROCEDURE BOOTSTRAP
 PRINT "Transpile >"
