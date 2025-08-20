@@ -33,19 +33,20 @@ DIM sourceLine$:STRING[128]
 DIM trimmedLine$:STRING[128]
 DIM leadingWhitespace$:STRING[128]
 DIM tokenFound:BOOLEAN
-DIM token$:STRING[8] \! Max length for @@VAR
-DIM name$:STRING[64] \! Max length for a type/const/var name
+DIM token$:STRING[8] \ ! Max length for @@VAR
+DIM name$:STRING[64] \ ! Max length for a type/const/var name
 DIM replacementLine$:STRING[128]
 DIM i,j,k:INTEGER
-DIM cc:BYTE \! character code
+DIM cc:BYTE \ ! character code
 DIM isValidChar:BOOLEAN
-DIM exitNameLoop:BOOLEAN \! Flag to simulate BREAK for name extraction loops
-DIM exitLoadLoop:BOOLEAN \! Flag to simulate BREAK for definition loading loops
+DIM exitNameLoop:BOOLEAN \ ! Flag to simulate BREAK for name extraction loops
+DIM exitLoadLoop:BOOLEAN \ ! Flag to simulate BREAK for definition loading loops
+DIM verboseLogging:BOOLEAN \ ! Flag to allow more verbose logging
 
 ! Data structures for in-memory definitions
 ! Using fixed-size arrays for simplicity. Adjust MAX_DEFINITIONS if needed.
 DIM MAX_DEFINITIONS
-MAX_DEFINITIONS := 10 \! Maximum number of definitions per file
+MAX_DEFINITIONS := 10 \ ! Maximum number of definitions per file
 
 DIM typeNames$(10):STRING[64]
 DIM typeContents$(10):STRING[128]
@@ -66,26 +67,27 @@ typesFileOpen := FALSE
 constsFileOpen := FALSE
 varsFileOpen := FALSE
 tokenFound := FALSE
+verboseLogging := TRUE
 errCode := 0
 typeCount := 0
 constCount := 0
 varCount := 0
 
 ! --- Error Handling Setup ---
-ON ERROR GOTO 900 \! Global error handler for the procedure
+ON ERROR GOTO 900 \ ! Global error handler for the procedure
 
 ! --- Parameter Validation ---
 errCode := 101 \ ! Set code in advance of LEN check, as error will be thrown
 IF LEN(sourceFilePath$) = 0 THEN
   PRINT "Error: Source file path cannot be empty."
-  errCode := 101 \! Custom error: Source path omitted
+  errCode := 101 \ ! Custom error: Source path omitted
   GOTO 900
 ENDIF
 
 errCode := 102 \ ! Set code in advance of LEN check, as error will be thrown
 IF LEN(targetFilePath$) = 0 THEN
   PRINT "Error: Target file path cannot be empty."
-  errCode := 102 \! Custom error: Target path omitted
+  errCode := 102 \ ! Custom error: Target path omitted
   GOTO 900
 ENDIF
 
@@ -93,7 +95,7 @@ errCode := 0 \ ! Reset code after LEN checks
 
 ! Determine actual folder path for definition files
 IF LEN(folderPath$) = 0 THEN
-  actualFolderPath$ := "" \! Assume current directory
+  actualFolderPath$ := "" \ ! Assume current directory
 ELSE
   actualFolderPath$ := folderPath$
   ! Ensure folderPath$ ends with a slash if not empty
@@ -105,11 +107,14 @@ ENDIF
 ! --- Load Definition Files into Memory ---
 
 ! Load types.b09
+IF verboseLogging THEN
+  PRINT "> Loading Type Definitions"
+ENDIF
 typesDefPath$ := actualFolderPath$ + "types.b09"
-ON ERROR GOTO 110 \! Local error handler for types file
+ON ERROR GOTO 110 \ ! Local error handler for types file
 OPEN #typesFileHandle, typesDefPath$:READ
 typesFileOpen := TRUE
-exitLoadLoop := FALSE \! Reset flag
+exitLoadLoop := FALSE \ ! Reset flag
 WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
   IF typeCount < MAX_DEFINITIONS THEN
     READ #typesFileHandle, sourceLine$
@@ -119,7 +124,7 @@ WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
     ! For now, find first non-whitespace after "TYPE "
     j := SUBSTR("TYPE ", sourceLine$)
     IF j > 0 THEN
-      j := j + LEN("TYPE ") -1 \! Position after "TYPE "
+      j := j + LEN("TYPE ") -1 \ ! Position after "TYPE "
       ! Skip whitespace after "TYPE "
       WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
         j := j + 1
@@ -128,7 +133,7 @@ WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
       ! Extract the name (alphabetic, _, $) until non-valid char or end of line
       name$ := ""
       k := j
-      exitNameLoop := FALSE \! Reset flag for inner loop
+      exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
@@ -137,7 +142,7 @@ WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
           name$ := name$ + MID$(sourceLine$, k, 1)
           k := k + 1
         ELSE
-          exitNameLoop := TRUE \! Simulate BREAK
+          exitNameLoop := TRUE \ ! Simulate BREAK
         ENDIF
       ENDWHILE
       
@@ -145,38 +150,47 @@ WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
         typeCount := typeCount + 1
         typeNames$(typeCount) := name$
         typeContents$(typeCount) := sourceLine$
+        IF verboseLogging THEN
+          PRINT "Type: '"; typeNames$(typeCount); "' := '"; typeContents$(typeCount); "'"
+        ENDIF
       ENDIF
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for types. Some types not loaded."
-    exitLoadLoop := TRUE \! Simulate BREAK
+    exitLoadLoop := TRUE \ ! Simulate BREAK
   ENDIF
 ENDWHILE
 CLOSE #typesFileHandle
 typesFileOpen := FALSE
-GOTO 119 \! Skip types error handler
+IF verboseLogging THEN
+  PRINT "< Loading Type Definitions"
+ENDIF
+GOTO 119 \ ! Skip types error handler
 
-110 \! Local error for types.b09
-  IF ERR = 210 THEN \! File not found
+110 \ ! Local error for types.b09
+  IF ERR = 210 THEN \ ! File not found
     PRINT "Error: types.b09 not found at '"; typesDefPath$; "'"
-    errCode := 103 \! Custom error: types file missing
+    errCode := 103 \ ! Custom error: types file missing
   ELSE
     PRINT "System Error ("; ERR; ") opening types.b09."
-    errCode := 104 \! Custom error: types file other error
+    errCode := 104 \ ! Custom error: types file other error
   ENDIF
   IF typesFileOpen THEN
     CLOSE #typesFileHandle
   ENDIF
   GOTO 900
 
-119 \! Continue after types.b09 load
+119 \ ! Continue after types.b09 load
 
 ! Load constants.b09
+IF verboseLogging THEN
+  PRINT "> Loading Constant Definitions"
+ENDIF
 constsDefPath$ := actualFolderPath$ + "constants.b09"
-ON ERROR GOTO 120 \! Local error handler for constants file
+ON ERROR GOTO 120 \ ! Local error handler for constants file
 OPEN #constsFileHandle, constsDefPath$:READ
 constsFileOpen := TRUE
-exitLoadLoop := FALSE \! Reset flag
+exitLoadLoop := FALSE \ ! Reset flag
 WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
   IF constCount < MAX_DEFINITIONS THEN
     READ #constsFileHandle, sourceLine$
@@ -197,7 +211,7 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
       
       name$ := ""
       k := j
-      exitNameLoop := FALSE \! Reset flag for inner loop
+      exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
@@ -206,7 +220,7 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
           name$ := name$ + MID$(sourceLine$,k,1)
           k := k + 1
         ELSE
-          exitNameLoop := TRUE \! Simulate BREAK
+          exitNameLoop := TRUE \ ! Simulate BREAK
         ENDIF
       ENDWHILE
 
@@ -214,39 +228,48 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
         constCount := constCount + 1
         constNames$(constCount) := name$
         constContents$(constCount) := sourceLine$
+        IF verboseLogging THEN
+          PRINT "Constant: '"; constNames$(constCount); "' := '"; constContents$(constCount); "'"
+        ENDIF
       ENDIF
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for constants. Some constants not loaded."
-    exitLoadLoop := TRUE \! Simulate BREAK
+    exitLoadLoop := TRUE \ ! Simulate BREAK
   ENDIF 
 ENDWHILE 
 
 CLOSE #constsFileHandle
 constsFileOpen := FALSE
-GOTO 129 \! Skip consts error handler
+IF verboseLogging THEN
+  PRINT "< Loading Constant Definitions"
+ENDIF
+GOTO 129 \ ! Skip consts error handler
 
-120 \! Local error for constants.b09
-  IF ERR = 210 THEN \! File not found
+120 \ ! Local error for constants.b09
+  IF ERR = 210 THEN \ ! File not found
     PRINT "Error: constants.b09 not found at '"; constsDefPath$; "'"
-    errCode := 105 \! Custom error: constants file missing
+    errCode := 105 \ ! Custom error: constants file missing
   ELSE
     PRINT "System Error ("; ERR; ") opening constants.b09."
-    errCode := 106 \! Custom error: constants file other error
+    errCode := 106 \ ! Custom error: constants file other error
   ENDIF
   IF constsFileOpen THEN
     CLOSE #constsFileHandle
   ENDIF
   GOTO 900
 
-129 \! Continue after constants.b09 load
+129 \ ! Continue after constants.b09 load
 
 ! Load variables.b09
+IF verboseLogging THEN
+  PRINT "> Loading Variable Definitions"
+ENDIF
 varsDefPath$ := actualFolderPath$ + "variables.b09"
-ON ERROR GOTO 130 \! Local error handler for variables file
+ON ERROR GOTO 130 \ ! Local error handler for variables file
 OPEN #varsFileHandle, varsDefPath$:READ
 varsFileOpen := TRUE
-exitLoadLoop := FALSE \! Reset flag
+exitLoadLoop := FALSE \ ! Reset flag
 WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
   IF varCount < MAX_DEFINITIONS THEN
     READ #varsFileHandle, sourceLine$
@@ -261,7 +284,7 @@ WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
       
       name$ := ""
       k := j
-      exitNameLoop := FALSE \! Reset flag for inner loop
+      exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
         cc := ASC(MID$(sourceLine$, k, 1))
         isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
@@ -270,7 +293,7 @@ WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
           name$ := name$ + MID$(sourceLine$, k, 1)
           k := k + 1
         ELSE
-          exitNameLoop := TRUE \! Simulate BREAK
+          exitNameLoop := TRUE \ ! Simulate BREAK
         ENDIF
       ENDWHILE
       
@@ -278,31 +301,37 @@ WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
         varCount := varCount + 1
         varNames$(varCount) := name$
         varContents$(varCount) := sourceLine$
+        IF verboseLogging THEN
+          PRINT "Variable: '"; varNames$(varCount); "' := '"; varContents$(varCount); "'"
+        ENDIF
       ENDIF
     ENDIF
   ELSE
     PRINT "Warning: Exceeded MAX_DEFINITIONS for variables. Some variables not loaded."
-    exitLoadLoop := TRUE \! Simulate BREAK
+    exitLoadLoop := TRUE \ ! Simulate BREAK
   ENDIF
 ENDWHILE
 CLOSE #varsFileHandle
 varsFileOpen := FALSE
-GOTO 139 \! Skip vars error handler
+IF verboseLogging THEN
+  PRINT "< Loading Variable Definitions"
+ENDIF
+GOTO 139 \ ! Skip vars error handler
 
-130 \! Local error for variables.b09
-  IF ERR = 210 THEN \! File not found
+130 \ ! Local error for variables.b09
+  IF ERR = 210 THEN \ ! File not found
     PRINT "Error: variables.b09 not found at '"; varsDefPath$; "'"
-    errCode := 107 \! Custom error: variables file missing
+    errCode := 107 \ ! Custom error: variables file missing
   ELSE
     PRINT "System Error ("; ERR; ") opening variables.b09."
-    errCode := 108 \! Custom error: variables file other error
+    errCode := 108 \ ! Custom error: variables file other error
   ENDIF
   IF varsFileOpen THEN
     CLOSE #varsFileHandle
   ENDIF
   GOTO 900
 
-139 \! Continue after variables.b09 load
+139 \ ! Continue after variables.b09 load
 
 ! Reset global error handler for main processing
 ON ERROR GOTO 900
@@ -310,19 +339,25 @@ ON ERROR GOTO 900
 ! --- Main File Processing Loop ---
 
 ! Open source and target files
+IF verboseLogging THEN
+  PRINT "> Opening Source and Target Files"
+ENDIF
 OPEN #sourceFileHandle, sourceFilePath$:READ
 sourceFileOpen := TRUE
-CREATE #targetFileHandle, targetFilePath$:WRITE \! CREATE will overwrite if exists
+CREATE #targetFileHandle, targetFilePath$:WRITE \ ! CREATE will overwrite if exists
 targetFileOpen := TRUE
 
 WHILE NOT(EOF(#sourceFileHandle)) DO
   READ #sourceFileHandle, sourceLine$
-  
+  IF verboseLogging THEN
+    PRINT "> Read Source Line: "; sourceLine$
+  ENDIF
+
   ! Initialize for this line
   tokenFound := FALSE
   leadingWhitespace$ := ""
   name$ := ""
-  replacementLine$ := sourceLine$ \! Default to original line
+  replacementLine$ := sourceLine$ \ ! Default to original line
 
   ! Extract leading whitespace
   i := 1
@@ -334,7 +369,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
   ! Trim leading whitespace for token/name parsing
   trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
 
-  token$ := "@@" \! Default value
+  token$ := "@@" \ ! Default value
   ! Check for tokens
   IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
     token$ := "@@TYPE"
@@ -361,7 +396,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ! Extract the name (alphabetic, _, $) until non-valid char or end of line
     name$ := ""
     k := j
-    exitNameLoop := FALSE \! Reset flag for inner loop
+    exitNameLoop := FALSE \ ! Reset flag for inner loop
     WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
       cc := ASC(MID$(trimmedLine$, k, 1))
       isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
@@ -373,7 +408,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
         name$ := name$ + MID$(trimmedLine$, k, 1)
         k := k + 1
       ELSE
-        exitNameLoop := TRUE \! Simulate BREAK
+        exitNameLoop := TRUE \ ! Simulate BREAK
       ENDIF
     ENDWHILE
     
@@ -385,7 +420,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
       FOR i := k TO LEN(trimmedLine$)
         IF NOT(MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
           remainingAreWhitespace := FALSE
-          i := LEN(trimmedLine$) + 1 \! Simulate BREAK by advancing loop counter
+          i := LEN(trimmedLine$) + 1 \ ! Simulate BREAK by advancing loop counter
         ENDIF
       NEXT i
       
@@ -395,29 +430,47 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ENDIF
 
     ! Lookup and replace
-    replacementLine$ := sourceLine$ \! Default to original if not found
+    replacementLine$ := sourceLine$ \ ! Default to original if not found
     
     IF token$ = "@@TYPE" THEN
+      IF verboseLogging THEN
+        PRINT "> Locating Type: "; name$
+      ENDIF
       FOR i := 1 TO typeCount
         IF typeNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + typeContents$(i)
-          i := typeCount + 1 \! Simulate BREAK by advancing loop counter
+          i := typeCount + 1 \ ! Simulate BREAK by advancing loop counter
+          IF verboseLogging THEN
+            PRINT "> Found replacementLine: "; replacementLine$
+          ENDIF
         ENDIF
       NEXT i
     ENDIF
     IF token$ = "@@CONST" THEN
+      IF verboseLogging THEN
+        PRINT "> Locating Constant: "; name$
+      ENDIF
       FOR i := 1 TO constCount
         IF constNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + constContents$(i)
-          i := constCount + 1 \! Simulate BREAK by advancing loop counter
+          i := constCount + 1 \ ! Simulate BREAK by advancing loop counter
+          IF verboseLogging THEN
+            PRINT "> Found replacementLine: "; replacementLine$
+          ENDIF
         ENDIF
       NEXT i
     ENDIF
     IF token$ = "@@VAR" THEN
+      IF verboseLogging THEN
+        PRINT "> Locating Variable: "; name$
+      ENDIF
       FOR i := 1 TO varCount
         IF varNames$(i) = name$ THEN
           replacementLine$ := leadingWhitespace$ + varContents$(i)
-          i := varCount + 1 \! Simulate BREAK by advancing loop counter
+          i := varCount + 1 \ ! Simulate BREAK by advancing loop counter
+          IF verboseLogging THEN
+            PRINT "> Found replacementLine: "; replacementLine$
+          ENDIF
         ENDIF
       NEXT i
     ENDIF
@@ -437,12 +490,15 @@ CLOSE #sourceFileHandle
 sourceFileOpen := FALSE
 CLOSE #targetFileHandle
 targetFileOpen := FALSE
+IF verboseLogging THEN
+  PRINT "< Closing Source and Target Files"
+ENDIF
 
 PRINT "File processing completed successfully: '"; sourceFilePath$; "' -> '"; targetFilePath$; "'"
 END
 
 ! --- Global Error Handler ---
-900 \! Global error handler for TRANSPILE
+900 \ ! Global error handler for TRANSPILE
   PRINT "Runtime Error (Code "; errCode; "): "; ERR
   
   ! Provide usage message for specific parameter errors
