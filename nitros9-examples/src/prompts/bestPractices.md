@@ -12,7 +12,7 @@ Here is a list of do's, don'ts, and general tips for writing Basic09 code.
 * **Don't write more than one program statement on a single line** The use of the backslash character to separate statements on one line is not recommended because it hides the program's structure and offers no speed advantage. There are exceptions, such as the "switch" logic example below.
 * **Do use end of line comments, if clarifying** End of line comments are allowed, using the syntax `\ ! comment text`.  It is not legal to use the `!` on any line after non-white space characters. The `\` symbol indicates to the loader that a new line is starting, thus allowing a new expression, such as a comment. Example:
 ```basic09
-IF x = 0 THEN \ ! Statement comment
+IF testVal = 0 THEN \ ! Statement comment
   ! Do stuff here
 ENDIF
 ```
