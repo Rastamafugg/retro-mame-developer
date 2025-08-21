@@ -1,4 +1,6 @@
 PROCEDURE LoadDefinitions
+  TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
+
   PARAM filePath$:STRING[80]
   PARAM tokenType:BYTE
   PARAM linePrefix$:STRING[8]
@@ -6,8 +8,6 @@ PROCEDURE LoadDefinitions
   PARAM defCount:INTEGER
   PARAM verboseLogging:BOOLEAN
   
-  TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
-
   DIM fileHandle:BYTE
   DIM fileOpen:BOOLEAN
   DIM sourceLine$:STRING[128]
@@ -198,7 +198,7 @@ IF verboseLogging THEN
   PRINT "> Loading Type Definitions"
 ENDIF
 typesDefPath$ := actualFolderPath$ + typesFileName$
-CALL LoadDefinitions(typesDefPath$, 0, "TYPE ", definitions, defCount, verboseLogging)
+RUN LoadDefinitions(typesDefPath$, 0, "TYPE ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Type Definitions"
 ENDIF
@@ -208,7 +208,7 @@ IF verboseLogging THEN
   PRINT "> Loading Constant Definitions"
 ENDIF
 constsDefPath$ := actualFolderPath$ + constantsFileName$
-CALL LoadDefinitions(constsDefPath$, 1, "CONST ", definitions, defCount, verboseLogging)
+RUN LoadDefinitions(constsDefPath$, 1, "CONST ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Constant Definitions"
 ENDIF
@@ -218,7 +218,7 @@ IF verboseLogging THEN
   PRINT "> Loading Variable Definitions"
 ENDIF
 varsDefPath$ := actualFolderPath$ + variablesFileName$
-CALL LoadDefinitions(varsDefPath$, 2, "DIM ", definitions, defCount, verboseLogging)
+RUN LoadDefinitions(varsDefPath$, 2, "DIM ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Variable Definitions"
 ENDIF
