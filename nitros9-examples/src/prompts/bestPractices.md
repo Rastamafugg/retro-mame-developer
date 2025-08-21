@@ -51,7 +51,7 @@ ELSE IF condition2 THEN
   ! Do stuff here
 ELSE IF condition3 THEN
   ! Do stuff here
-ELSE
+ELSE \ ! condition 4
   ! Do stuff here
 ENDIF \ENDIF \ENDIF
 ```
