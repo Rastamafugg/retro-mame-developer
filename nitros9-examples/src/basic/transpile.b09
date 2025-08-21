@@ -2,7 +2,7 @@ PROCEDURE LoadDefinitions
   TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
 
   PARAM filePath$:STRING[80]
-  PARAM tokenType:BYTE
+  PARAM targetType:BYTE
   PARAM linePrefix$:STRING[8]
   PARAM definitions(50):Template
   PARAM defCount:INTEGER
@@ -42,7 +42,7 @@ PROCEDURE LoadDefinitions
           charCode := ASC(MID$(sourceLine$, k, 1))
           isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
           
-          IF (tokenType = 1 OR tokenType = 2) AND charCode = ASC("$") THEN
+          IF (targetType = 1 OR targetType = 2) AND charCode = ASC("$") THEN
             isValidChar := TRUE
           ENDIF
           
@@ -56,7 +56,7 @@ PROCEDURE LoadDefinitions
         
         IF LEN(name$) > 0 THEN
           defCount := defCount + 1
-          definitions(defCount).tokenType := tokenType
+          definitions(defCount).tokenType := targetType
           definitions(defCount).typeName$ := name$
           definitions(defCount).typeContent$ := sourceLine$
           IF verboseLogging THEN
@@ -124,7 +124,7 @@ DIM trimmedLine$:STRING[128]
 DIM leadingWhitespace$:STRING[128]
 DIM tokenFound:BOOLEAN
 DIM token$:STRING[8] \ ! Max length for @@VAR
-DIM tokenType:BYTE \ ! 0=TYPE, 1=CONST, 2=VAR
+DIM targetType:BYTE \ ! 0=TYPE, 1=CONST, 2=VAR
 DIM name$:STRING[64] \ ! Max length for a type/const/var name
 DIM replacementLine$:STRING[128]
 DIM i,j,k:INTEGER
@@ -277,17 +277,17 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
   ! Check for tokens
   IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
     token$ := "@@TYPE"
-    tokenType := 0
+    targetType := 0
     tokenFound := TRUE
   ENDIF
   IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
     token$ := "@@CONST"
-    tokenType := 1
+    targetType := 1
     tokenFound := TRUE
   ENDIF
   IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
     token$ := "@@VAR"
-    tokenType := 2
+    targetType := 2
     tokenFound := TRUE
   ENDIF
 
@@ -307,7 +307,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
       charCode := ASC(MID$(trimmedLine$, k, 1))
       isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
-      IF (tokenType = 1 OR tokenType = 2) AND charCode = ASC("$") THEN \ ! CONST or VAR
+      IF (targetType = 1 OR targetType = 2) AND charCode = ASC("$") THEN \ ! CONST or VAR
         isValidChar := TRUE
       ENDIF
       
@@ -344,7 +344,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ENDIF
     
     FOR i := 1 TO defCount
-      IF definitions(i).tokenType = tokenType AND definitions(i).typeName$ = name$ THEN
+      IF definitions(i).tokenType = targetType AND definitions(i).typeName$ = name$ THEN
         replacementLine$ := leadingWhitespace$ + definitions(i).typeContent$
         IF verboseLogging THEN
           PRINT "> Found replacementLine: "; replacementLine$
