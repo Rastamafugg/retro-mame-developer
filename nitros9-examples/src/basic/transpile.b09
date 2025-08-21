@@ -39,7 +39,7 @@ DIM token$:STRING[8] \ ! Max length for @@VAR
 DIM name$:STRING[64] \ ! Max length for a type/const/var name
 DIM replacementLine$:STRING[128]
 DIM i,j,k:INTEGER
-DIM cc:BYTE \ ! character code
+DIM charCode:BYTE \ ! character code
 DIM isValidChar:BOOLEAN
 DIM exitNameLoop:BOOLEAN \ ! Flag to simulate BREAK for name extraction loops
 DIM exitLoadLoop:BOOLEAN \ ! Flag to simulate BREAK for definition loading loops
@@ -143,8 +143,8 @@ WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
       k := j
       exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
-        cc := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
+        charCode := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
 
         IF isValidChar THEN
           name$ := name$ + MID$(sourceLine$, k, 1)
@@ -221,8 +221,8 @@ WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
       k := j
       exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
-        cc := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
+        charCode := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_")) OR (charCode = ASC("$"))
 
         IF isValidChar THEN
           name$ := name$ + MID$(sourceLine$,k,1)
@@ -294,8 +294,8 @@ WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
       k := j
       exitNameLoop := FALSE \ ! Reset flag for inner loop
       WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
-        cc := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_")) OR (cc = ASC("$"))
+        charCode := ASC(MID$(sourceLine$, k, 1))
+        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_")) OR (charCode = ASC("$"))
 
         IF isValidChar THEN
           name$ := name$ + MID$(sourceLine$, k, 1)
@@ -351,15 +351,18 @@ OPEN #sourceFileHandle, sourceFilePath$:READ
 sourceFileOpen := TRUE
 
 ON ERROR GOTO 140 \ ! Local error handler for target file exists check
-OPEN #targetFileHandle, targetFilePath$:WRITE
+! We have to delete the existing file, as replacing it with a smaller file will result in garbage at the end of file
+DELETE targetFilePath$
 
 GOTO 149 \ ! Skip consts error handler
 
 140 \ ! Local error for target file open
-  PRINT "System Error ("; ERR; ") opening constants.b09." \ ! Expected if the file doesn't exist
-  CREATE #targetFileHandle, targetFilePath$:WRITE
+  ! Expected if the file doesn't exist
+  PRINT "System Error ("; ERR; ") deleting "; targetFilePath$; "."
 
-149 \ ! Continue after target file open
+149 \ ! Continue after target file delete
+
+CREATE #targetFileHandle, targetFilePath$:WRITE
 
 ! Reset global error handler for main processing
 ON ERROR GOTO 900
@@ -417,9 +420,9 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     k := j
     exitNameLoop := FALSE \ ! Reset flag for inner loop
     WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
-      cc := ASC(MID$(trimmedLine$, k, 1))
-      isValidChar := (cc >= 65 AND cc <= 90) OR (cc >= 97 AND cc <= 122) OR (cc = ASC("_"))
-      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND cc = ASC("$") THEN
+      charCode := ASC(MID$(trimmedLine$, k, 1))
+      isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND charCode = ASC("$") THEN
         isValidChar := TRUE
       ENDIF
       
