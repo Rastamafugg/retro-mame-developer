@@ -40,7 +40,7 @@ ENDIF
   - **Resource Management:** Ensure all open files are closed via `CLOSE` statements in a dedicated block of code, typically within the main procedure's error handler. This prevents file handles from being left open, which can lead to system-level issues or data corruption.
 * **Logging** Include print statements or a logging mechanism to provide clear progress updates and confirm successful operations to the user. This helps with debugging and gives the user confidence that the program is working as expected.  For example:
 ```basic09
-IF verboseLogging THEN
+IF logVerbose THEN
   PRINT "> Loading Variable Definitions"
 ENDIF
 ```
