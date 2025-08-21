@@ -1,3 +1,91 @@
+PROCEDURE LoadDefinitions
+  PARAM filePath$:STRING[80]
+  PARAM tokenType:BYTE
+  PARAM linePrefix$:STRING[8]
+  PARAM definitions(50):Template
+  PARAM defCount:INTEGER
+  PARAM verboseLogging:BOOLEAN
+  
+  TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
+
+  DIM fileHandle:BYTE
+  DIM fileOpen:BOOLEAN
+  DIM sourceLine$:STRING[128]
+  DIM name$:STRING[64]
+  DIM j, k:INTEGER
+  DIM charCode:BYTE
+  DIM isValidChar:BOOLEAN
+  DIM exitNameLoop, exitLoadLoop:BOOLEAN
+  
+  fileOpen := FALSE
+  ON ERROR GOTO 100
+  
+  OPEN #fileHandle, filePath$:READ
+  fileOpen := TRUE
+  exitLoadLoop := FALSE
+  
+  WHILE NOT(EOF(#fileHandle)) AND NOT exitLoadLoop DO
+    IF defCount < 50 THEN
+      READ #fileHandle, sourceLine$
+      j := SUBSTR(linePrefix$, sourceLine$)
+      
+      IF j > 0 THEN
+        j := j + LEN(linePrefix$) - 1
+        WHILE j <= LEN(sourceLine$) AND MID$(sourceLine$, j, 1) = " " DO
+          j := j + 1
+        ENDWHILE
+        
+        name$ := ""
+        k := j
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+          
+          IF (tokenType = 1 OR tokenType = 2) AND charCode = ASC("$") THEN
+            isValidChar := TRUE
+          ENDIF
+          
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        
+        IF LEN(name$) > 0 THEN
+          defCount := defCount + 1
+          definitions(defCount).tokenType := tokenType
+          definitions(defCount).typeName$ := name$
+          definitions(defCount).typeContent$ := sourceLine$
+          IF verboseLogging THEN
+            PRINT "Loaded: '"; name$; "' := '"; sourceLine$; "'"
+          ENDIF
+        ENDIF
+      ENDIF
+    ELSE
+      PRINT "Warning: Exceeded MAX_DEFINITIONS. Some definitions not loaded."
+      exitLoadLoop := TRUE
+    ENDIF
+  ENDWHILE
+  
+  CLOSE #fileHandle
+  fileOpen := FALSE
+END
+  
+100 \ ! LoadDefError
+  IF ERR = 210 THEN
+    PRINT "Error: Definition file not found at '"; filePath$; "'"
+  ELSE
+    PRINT "System Error ("; ERR; ") opening '"; filePath$; "'"
+  ENDIF
+  IF fileOpen THEN
+    CLOSE #fileHandle
+  ENDIF
+  ERROR(ERR)
+END
+
 PROCEDURE TRANSPILE
 ! TRANSPILE - Replaces custom tokens in a source file
 ! with definitions from external files (types, constants, variables).
@@ -36,6 +124,7 @@ DIM trimmedLine$:STRING[128]
 DIM leadingWhitespace$:STRING[128]
 DIM tokenFound:BOOLEAN
 DIM token$:STRING[8] \ ! Max length for @@VAR
+DIM tokenType:BYTE \ ! 0=TYPE, 1=CONST, 2=VAR
 DIM name$:STRING[64] \ ! Max length for a type/const/var name
 DIM replacementLine$:STRING[128]
 DIM i,j,k:INTEGER
@@ -50,18 +139,10 @@ DIM verboseLogging:BOOLEAN \ ! Flag to allow more verbose logging
 DIM MAX_DEFINITIONS
 MAX_DEFINITIONS := 10 \ ! Maximum number of definitions per file
 
+DIM definitions(50):Template
+
 DIM typesfileName$,constantsFileName$,variablesFileName$:STRING
-DIM typeNames$(10):STRING[64]
-DIM typeContents$(10):STRING[128]
-DIM typeCount:INTEGER
-
-DIM constNames$(10):STRING[64]
-DIM constContents$(10):STRING[128]
-DIM constCount:INTEGER
-
-DIM varNames$(10):STRING[64]
-DIM varContents$(10):STRING[128]
-DIM varCount:INTEGER
+DIM defCount:INTEGER
 
 ! Initialize constants
 typesFileName$ := "types.b09"
@@ -77,9 +158,7 @@ varsFileOpen := FALSE
 tokenFound := FALSE
 verboseLogging := TRUE
 errCode := 0
-typeCount := 0
-constCount := 0
-varCount := 0
+defCount := 0
 
 ! --- Error Handling Setup ---
 ON ERROR GOTO 900 \ ! Global error handler for the procedure
@@ -119,227 +198,30 @@ IF verboseLogging THEN
   PRINT "> Loading Type Definitions"
 ENDIF
 typesDefPath$ := actualFolderPath$ + typesFileName$
-ON ERROR GOTO 110 \ ! Local error handler for types file
-OPEN #typesFileHandle, typesDefPath$:READ
-typesFileOpen := TRUE
-exitLoadLoop := FALSE \ ! Reset flag
-WHILE NOT(EOF(#typesFileHandle)) AND NOT exitLoadLoop DO
-  IF typeCount < MAX_DEFINITIONS THEN
-    READ #typesFileHandle, sourceLine$
-    ! Extract name and content. Assuming line format "TYPE Name = Content" or "TYPE Name:Type"
-    ! For simplicity here, we'll take the entire line as content and parse the name.
-    ! A more robust parser would extract only the definition.
-    ! For now, find first non-whitespace after "TYPE "
-    j := SUBSTR("TYPE ", sourceLine$)
-    IF j > 0 THEN
-      j := j + LEN("TYPE ") -1 \ ! Position after "TYPE "
-      ! Skip whitespace after "TYPE "
-      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
-        j := j + 1
-      ENDWHILE
-      
-      ! Extract the name (alphabetic, _, $) until non-valid char or end of line
-      name$ := ""
-      k := j
-      exitNameLoop := FALSE \ ! Reset flag for inner loop
-      WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
-        charCode := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
-
-        IF isValidChar THEN
-          name$ := name$ + MID$(sourceLine$, k, 1)
-          k := k + 1
-        ELSE
-          exitNameLoop := TRUE \ ! Simulate BREAK
-        ENDIF
-      ENDWHILE
-      
-      IF LEN(name$) > 0 THEN
-        typeCount := typeCount + 1
-        typeNames$(typeCount) := name$
-        typeContents$(typeCount) := sourceLine$
-        IF verboseLogging THEN
-          PRINT "Type: '"; typeNames$(typeCount); "' := '"; typeContents$(typeCount); "'"
-        ENDIF
-      ENDIF
-    ENDIF
-  ELSE
-    PRINT "Warning: Exceeded MAX_DEFINITIONS for types. Some types not loaded."
-    exitLoadLoop := TRUE \ ! Simulate BREAK
-  ENDIF
-ENDWHILE
-CLOSE #typesFileHandle
-typesFileOpen := FALSE
+CALL LoadDefinitions(typesDefPath$, 0, "TYPE ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Type Definitions"
 ENDIF
-GOTO 119 \ ! Skip types error handler
-
-110 \ ! Local error for types.b09
-  IF ERR = 210 THEN \ ! File not found
-    PRINT "Error: types.b09 not found at '"; typesDefPath$; "'"
-    errCode := 103 \ ! Custom error: types file missing
-  ELSE
-    PRINT "System Error ("; ERR; ") opening types.b09."
-    errCode := 104 \ ! Custom error: types file other error
-  ENDIF
-  IF typesFileOpen THEN
-    CLOSE #typesFileHandle
-  ENDIF
-  GOTO 900
-
-119 \ ! Continue after types.b09 load
 
 ! Load constants.b09
 IF verboseLogging THEN
   PRINT "> Loading Constant Definitions"
 ENDIF
 constsDefPath$ := actualFolderPath$ + constantsFileName$
-ON ERROR GOTO 120 \ ! Local error handler for constants file
-OPEN #constsFileHandle, constsDefPath$:READ
-constsFileOpen := TRUE
-exitLoadLoop := FALSE \ ! Reset flag
-WHILE NOT(EOF(#constsFileHandle)) AND NOT(exitLoadLoop) DO
-  IF constCount < MAX_DEFINITIONS THEN
-    READ #constsFileHandle, sourceLine$
-    ! Extract name (similar parsing as above, focusing on DIM or CONST)
-    j := 0
-    IF SUBSTR("DIM ", sourceLine$) = 1 THEN
-      j := SUBSTR("DIM ", sourceLine$) + LEN("DIM ") - 1
-    ENDIF
-    IF SUBSTR("CONST ", sourceLine$) = 1 THEN
-      j := SUBSTR("CONST ", sourceLine$) + LEN("CONST ") - 1
-    ENDIF
-
-    IF j > 0 THEN
-      ! Skip whitespace
-      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
-        j := j + 1
-      ENDWHILE
-      
-      name$ := ""
-      k := j
-      exitNameLoop := FALSE \ ! Reset flag for inner loop
-      WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
-        charCode := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_")) OR (charCode = ASC("$"))
-
-        IF isValidChar THEN
-          name$ := name$ + MID$(sourceLine$,k,1)
-          k := k + 1
-        ELSE
-          exitNameLoop := TRUE \ ! Simulate BREAK
-        ENDIF
-      ENDWHILE
-
-      IF LEN(name$) > 0 THEN
-        constCount := constCount + 1
-        constNames$(constCount) := name$
-        constContents$(constCount) := sourceLine$
-        IF verboseLogging THEN
-          PRINT "Constant: '"; constNames$(constCount); "' := '"; constContents$(constCount); "'"
-        ENDIF
-      ENDIF
-    ENDIF
-  ELSE
-    PRINT "Warning: Exceeded MAX_DEFINITIONS for constants. Some constants not loaded."
-    exitLoadLoop := TRUE \ ! Simulate BREAK
-  ENDIF 
-ENDWHILE 
-
-CLOSE #constsFileHandle
-constsFileOpen := FALSE
+CALL LoadDefinitions(constsDefPath$, 1, "CONST ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Constant Definitions"
 ENDIF
-GOTO 129 \ ! Skip consts error handler
-
-120 \ ! Local error for constants.b09
-  IF ERR = 210 THEN \ ! File not found
-    PRINT "Error: constants.b09 not found at '"; constsDefPath$; "'"
-    errCode := 105 \ ! Custom error: constants file missing
-  ELSE
-    PRINT "System Error ("; ERR; ") opening constants.b09."
-    errCode := 106 \ ! Custom error: constants file other error
-  ENDIF
-  IF constsFileOpen THEN
-    CLOSE #constsFileHandle
-  ENDIF
-  GOTO 900
-
-129 \ ! Continue after constants.b09 load
 
 ! Load variables.b09
 IF verboseLogging THEN
   PRINT "> Loading Variable Definitions"
 ENDIF
 varsDefPath$ := actualFolderPath$ + variablesFileName$
-ON ERROR GOTO 130 \ ! Local error handler for variables file
-OPEN #varsFileHandle, varsDefPath$:READ
-varsFileOpen := TRUE
-exitLoadLoop := FALSE \ ! Reset flag
-WHILE NOT(EOF(#varsFileHandle)) AND NOT(exitLoadLoop) DO
-  IF varCount < MAX_DEFINITIONS THEN
-    READ #varsFileHandle, sourceLine$
-    ! Extract name (similar parsing as above, focusing on DIM)
-    j := SUBSTR("DIM ", sourceLine$)
-    IF j > 0 THEN
-      j := j + LEN("DIM ") - 1
-      ! Skip whitespace
-      WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
-        j := j + 1
-      ENDWHILE
-      
-      name$ := ""
-      k := j
-      exitNameLoop := FALSE \ ! Reset flag for inner loop
-      WHILE k <= LEN(sourceLine$) AND NOT(exitNameLoop) DO
-        charCode := ASC(MID$(sourceLine$, k, 1))
-        isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_")) OR (charCode = ASC("$"))
-
-        IF isValidChar THEN
-          name$ := name$ + MID$(sourceLine$, k, 1)
-          k := k + 1
-        ELSE
-          exitNameLoop := TRUE \ ! Simulate BREAK
-        ENDIF
-      ENDWHILE
-      
-      IF LEN(name$) > 0 THEN
-        varCount := varCount + 1
-        varNames$(varCount) := name$
-        varContents$(varCount) := sourceLine$
-        IF verboseLogging THEN
-          PRINT "Variable: '"; varNames$(varCount); "' := '"; varContents$(varCount); "'"
-        ENDIF
-      ENDIF
-    ENDIF
-  ELSE
-    PRINT "Warning: Exceeded MAX_DEFINITIONS for variables. Some variables not loaded."
-    exitLoadLoop := TRUE \ ! Simulate BREAK
-  ENDIF
-ENDWHILE
-CLOSE #varsFileHandle
-varsFileOpen := FALSE
+CALL LoadDefinitions(varsDefPath$, 2, "DIM ", definitions, defCount, verboseLogging)
 IF verboseLogging THEN
   PRINT "< Loading Variable Definitions"
 ENDIF
-GOTO 139 \ ! Skip vars error handler
-
-130 \ ! Local error for variables.b09
-  IF ERR = 210 THEN \ ! File not found
-    PRINT "Error: variables.b09 not found at '"; varsDefPath$; "'"
-    errCode := 107 \ ! Custom error: variables file missing
-  ELSE
-    PRINT "System Error ("; ERR; ") opening variables.b09."
-    errCode := 108 \ ! Custom error: variables file other error
-  ENDIF
-  IF varsFileOpen THEN
-    CLOSE #varsFileHandle
-  ENDIF
-  GOTO 900
-
-139 \ ! Continue after variables.b09 load
 
 ! --- Main File Processing Loop ---
 
@@ -395,14 +277,17 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
   ! Check for tokens
   IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
     token$ := "@@TYPE"
+    tokenType := 0
     tokenFound := TRUE
   ENDIF
   IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
     token$ := "@@CONST"
+    tokenType := 1
     tokenFound := TRUE
   ENDIF
   IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
     token$ := "@@VAR"
+    tokenType := 2
     tokenFound := TRUE
   ENDIF
 
@@ -422,7 +307,7 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
       charCode := ASC(MID$(trimmedLine$, k, 1))
       isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
-      IF (token$ = "@@CONST" OR token$ = "@@VAR") AND charCode = ASC("$") THEN
+      IF (tokenType = 1 OR tokenType = 2) AND charCode = ASC("$") THEN \ ! CONST or VAR
         isValidChar := TRUE
       ENDIF
       
@@ -454,48 +339,19 @@ WHILE NOT(EOF(#sourceFileHandle)) DO
     ! Lookup and replace
     replacementLine$ := sourceLine$ \ ! Default to original if not found
     
-    IF token$ = "@@TYPE" THEN
-      IF verboseLogging THEN
-        PRINT "> Locating Type: "; name$
-      ENDIF
-      FOR i := 1 TO typeCount
-        IF typeNames$(i) = name$ THEN
-          replacementLine$ := leadingWhitespace$ + typeContents$(i)
-          i := typeCount + 1 \ ! Simulate BREAK by advancing loop counter
-          IF verboseLogging THEN
-            PRINT "> Found replacementLine: "; replacementLine$
-          ENDIF
-        ENDIF
-      NEXT i
+    IF verboseLogging THEN
+      PRINT "> Locating "; token$; " : "; name$
     ENDIF
-    IF token$ = "@@CONST" THEN
-      IF verboseLogging THEN
-        PRINT "> Locating Constant: "; name$
-      ENDIF
-      FOR i := 1 TO constCount
-        IF constNames$(i) = name$ THEN
-          replacementLine$ := leadingWhitespace$ + constContents$(i)
-          i := constCount + 1 \ ! Simulate BREAK by advancing loop counter
-          IF verboseLogging THEN
-            PRINT "> Found replacementLine: "; replacementLine$
-          ENDIF
+    
+    FOR i := 1 TO defCount
+      IF definitions(i).tokenType = tokenType AND definitions(i).typeName$ = name$ THEN
+        replacementLine$ := leadingWhitespace$ + definitions(i).typeContent$
+        IF verboseLogging THEN
+          PRINT "> Found replacementLine: "; replacementLine$
         ENDIF
-      NEXT i
-    ENDIF
-    IF token$ = "@@VAR" THEN
-      IF verboseLogging THEN
-        PRINT "> Locating Variable: "; name$
+        i := defCount + 1 \ ! Simulate BREAK by advancing loop counter
       ENDIF
-      FOR i := 1 TO varCount
-        IF varNames$(i) = name$ THEN
-          replacementLine$ := leadingWhitespace$ + varContents$(i)
-          i := varCount + 1 \ ! Simulate BREAK by advancing loop counter
-          IF verboseLogging THEN
-            PRINT "> Found replacementLine: "; replacementLine$
-          ENDIF
-        ENDIF
-      NEXT i
-    ENDIF
+    NEXT i
 
     IF replacementLine$ = sourceLine$ AND LEN(name$) > 0 THEN
         PRINT "Warning: Definition for '"; name$; "' ("; token$; ") not found in corresponding file."
