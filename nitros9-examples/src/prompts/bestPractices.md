@@ -13,7 +13,7 @@ Here is a list of do's, don'ts, and general tips for writing Basic09 code.
 * **Do use end of line comments, if clarifying** End of line comments are allowed, using the syntax "\ ! comment text".  It is not legal to use the ! on any line after non-white space characters. The "\" symbol indicates to the loader that a new line is starting, thus allowing a new expression, such as a comment. Example:
 ```basic09
 IF x = 0 THEN \ ! Statement comment
-! Do something
+  ! Do stuff here
 ENDIF
 ```
 * **Do keep line length to 128 characters** The number of characters on a line is dependent on the content, but the general recommendation is to limit lines to 128 characters or less to avoid errors or issues when the code is compiled at runtime or when editing in Basic09's line editor.
