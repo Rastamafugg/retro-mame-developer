@@ -35,6 +35,10 @@ ENDIF
 * **Choosing numeric data types:** Use `INTEGER` or `BYTE` whenever possible, as arithmetic operations with these types are much faster and require less storage than `REAL` values. The `REAL` type is the default for undeclared variables.
 * **Variable storage:** All variables are "local" to the procedure where they are defined. Their storage is allocated when the procedure is called and is lost when the procedure is exited.  They can be passed by reference as parameters to other procedures.
 * **File Input/Output:** Files for this project include read access to the source file and types, constants, and variables, plus write access to a target file.  There should be a check for the existence of a file before creating it. In either case, the contents of the file will be overwritten. File I/O should handle edge cases for common I/O bugs.
+* **Variable and Type Name Uniqueness** All variable names and type names must be unique within a program to avoid "duplicate definition" errors. This is why using descriptive names, even for loop counters, is important.
+* **Variable Naming Convention** Use descriptive variable names that are generally under 10 characters. This improves readability while adhering to the common length limitations of Basic09's line editor.
+* **TYPE Variable Parameter Declaration** When a TYPE variable is passed as a parameter to a procedure, its TYPE must be declared at the top of both the calling and called procedures. This ensures the procedure correctly interprets the structure of the incoming data.
+* **Procedure Header Order** The order of declarations at the top of a procedure is strict: TYPE statements first, then PARAM statements, followed by DIM statements.
 * **Switch Logic:** SWITCH, CASE, and ELSEIF are not reserved words in Basic09. This has to be written in the pattern:
 ```basic09
 IF condition1 THEN
