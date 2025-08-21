@@ -38,7 +38,12 @@ ENDIF
   - **Explicit State Tracking:** Use boolean flags (e.g., `fileOpen:BOOLEAN`) to track the open/closed status of each file handle. This is critical for ensuring that files are always closed properly, even in the event of a runtime error.
   - **Error Handling:** Implement `ON ERROR GOTO` logic to catch common I/O errors (like `ERR=210` for "File Not Found") and other system errors. The error handler should provide a clear and descriptive message to the user, indicating the specific problem and the file involved.
   - **Resource Management:** Ensure all open files are closed via `CLOSE` statements in a dedicated block of code, typically within the main procedure's error handler. This prevents file handles from being left open, which can lead to system-level issues or data corruption.
-* **Logging** Include print statements or a logging mechanism to provide clear progress updates and confirm successful operations to the user. This helps with debugging and gives the user confidence that the program is working as expected.
+* **Logging** Include print statements or a logging mechanism to provide clear progress updates and confirm successful operations to the user. This helps with debugging and gives the user confidence that the program is working as expected.  For example:
+```basic09
+IF verboseLogging THEN
+  PRINT "> Loading Variable Definitions"
+ENDIF
+```
 * **Variable and Type Name Uniqueness** All variable names and type names must be unique within a program to avoid "duplicate definition" errors. This is why using descriptive names, even for counters, is important.
 * **Variable Naming Convention** Use descriptive variable names that are generally under 10 characters. This improves readability while adhering to the common length limitations of Basic09's line editor.
 * **Type Variable Parameter Declaration** When a `TYPE` variable is passed as a parameter to a procedure, its `TYPE` must be declared at the top of both the calling and called procedures. This ensures the procedure correctly interprets the structure of the incoming data.
