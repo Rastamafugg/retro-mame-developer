@@ -67,17 +67,19 @@ Here is a list of do's, don'ts, and general tips for writing Basic09 code.
 
 * **Don't use strict comparisons (`=` or `<>`) on `REAL` quantities.** Floating-point arithmetic is inherently inexact, and cumulative errors can occur, so the exact desired value may not happen during execution.
 
-* **Do use end of line comments, if clarifying** End of line comments are allowed, using the syntax "\! comment text"
+* **Do use end of line comments, if clarifying** End of line comments are allowed, using the syntax "\ ! comment text".  It is not legal to use the ! on any line after non-white space characters. The "\" symbol indicates to the loader that a new line is starting, thus allowing a new expression, such as a comment.
 
 * **Do keep line length to 128 characters** The number of characters on a line is dependent on the content, but the general recommendation is to limit lines to 128 characters or less to avoid errors when the code is decompiled at runtime.
 
-* **Do use proper termination.** All logic blocks must be terminated properly with their corresponding closing statements: `IF/THEN` with `ENDIF`, `WHILE/DO` with `ENDWHILE`, `FOR` with `NEXT`, `REPEAT` with `UNTIL`, and `LOOP` with `ENDLOOP`.
+* **Do use proper termination.** All logic blocks must be terminated properly with their corresponding closing statements: `IF/THEN` with `ENDIF`, `WHILE/DO` with `ENDWHILE`, `FOR` with `NEXT`, `REPEAT` with `UNTIL`, `LOOP` with `ENDLOOP`, and `EXITIF` with `ENDEXIT`.
+
+* **Don't assume you know how to write Basic09 code**  LLMs are trained on a lot of Basic language variants that are not Basic09.  Basic09 has language restrictions that newer languages have created solutions for, and you were trained on them.  If you don't see the name of the target language keyword in the provided reference code, ask for clarification.  
 
 
 ### General Tips
 
 
-* **STRING variable declaration:** When you declare a `STRING` variable without specifying a maximum length, the default length is 32 characters. To declare a string with a different length, use the `DIM` statement with a maximum length. For example: `DIM name:STRING[40]` for a 40-character string. Variables with a `$` appended to their name (e.g., `title$`) are automatically assigned the default `STRING` type.
+* **STRING variable declaration:** When you declare a `STRING` variable with a `$` suffix and without specifying a maximum length, the default length is 32 characters. To declare a string with a different length, use the `DIM` statement with a maximum length. For example: `DIM name:STRING[40]` for a 40-character string. Variables with a `$` suffix (e.g., `title$`) are automatically assigned the default `STRING` type.
 
 * **Automatic type conversion:** Basic09 automatically converts numeric data types (BYTE, INTEGER, or REAL) to the largest type necessary to retain accuracy in expressions. However, these conversions take time, so it's more efficient to use expressions where all values are of a single type whenever possible.
 
@@ -85,4 +87,18 @@ Here is a list of do's, don'ts, and general tips for writing Basic09 code.
 
 * **Variable storage:** All variables are "local" to the procedure where they are defined. Their storage is allocated when the procedure is called and is lost when the procedure is exited.
 
-* **Input/Output:** The `GET` and `PUT` statements are much faster for file I/O than `READ` and `WRITE` because they transfer binary data in the same format used internally by Basic09, avoiding conversion time. 
+* **File Input/Output:** Files for this project include read access to the source file and types, constants, and variables, plus write access to a target file.  There should be a check for the existence of a file before creating it. In either case, the contents of the file will be overwritten. 
+
+* **Input/Output:** The `GET` and `PUT` statements are much faster for random access file I/O than `READ` and `WRITE` because they transfer binary data in the same format used internally by Basic09, avoiding conversion time. 
+
+* **Switch Logic:** SWITCH and CASE are not reserved words in Basic09. This has to be written in the pattern:
+```basic
+IF condition1 THEN
+  ! Do stuff here
+ELSE IF condition2 THEN
+  ! Do stuff here
+ELSE IF condition3 THEN
+  ! Do stuff here
+ELSE
+ENDIF \ENDIF \ENDIF
+```
