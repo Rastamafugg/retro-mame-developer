@@ -42,117 +42,43 @@ set -u
 # Verbose mode toggle
 VERBOSE=false
 
-# === Preprocessing step: Replace @@TYPE, @@CONST, @@VAR in src/basic/*.b09 ===
+# === Preprocessing step: Transpile enhanced Basic09 using AWK ===
 
-TYPES_FILE="$SOURCE_PATH/types.b09"
-CONSTS_FILE="$SOURCE_PATH/constants.b09"
-VARS_FILE="$SOURCE_PATH/variables.b09"
+AWK_SCRIPT="$(dirname "$0")/gemini.awk"
+GLOBAL_DEFS="$SOURCE_PATH/global.b09"
 
-if [[ ! -f "$TYPES_FILE" ]]; then
-    echo "ERROR: Missing $TYPES_FILE"
+if [[ ! -f "$GLOBAL_DEFS" ]]; then
+    echo "ERROR: Missing global definitions file: $GLOBAL_DEFS"
     exit 1
 fi
 
-if [[ ! -f "$CONSTS_FILE" ]]; then
-    echo "ERROR: Missing $CONSTS_FILE"
+if [[ ! -f "$AWK_SCRIPT" ]]; then
+    echo "ERROR: Missing AWK transpiler script: $AWK_SCRIPT"
     exit 1
 fi
 
-if [[ ! -f "$VARS_FILE" ]]; then
-    echo "ERROR: Missing $VARS_FILE"
-    exit 1
-fi
-
-# Load definitions into associative arrays
-declare -A type_defs
-declare -A const_defs
-declare -A var_defs
-
-# Read TYPE definitions
-while IFS= read -r line; do
-    if [[ "$line" =~ ^TYPE[[:space:]]+([^[:space:]]+)[[:space:]]*= ]]; then
-        type_name="${BASH_REMATCH[1]}"
-        type_defs["$type_name"]="$line"
-    fi
-done < <(tr -d '\r' < "$TYPES_FILE")
-
-# Read CONST definitions
-while IFS= read -r line; do
-    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+) ]]; then
-        const_name="${BASH_REMATCH[1]}"
-        const_defs["$const_name"]="$line"
-    fi
-done < <(tr -d '\r' < "$CONSTS_FILE")
-
-# Read VAR definitions
-while IFS= read -r line; do
-    if [[ "$line" =~ ^DIM[[:space:]]+([^[:space:]]+) ]]; then
-        var_name="${BASH_REMATCH[1]}"
-        var_defs["$var_name"]="$line"
-    fi
-done < <(tr -d '\r' < "$VARS_FILE")
-
+echo "Transpiling enhanced Basic09 source files..."
 files_processed=0
-replacements_made=0
-missing_defs=0
 
-# Process source files
-find "$SOURCE_PATH" -type f -name "*.b09" ! -name "types.b09" ! -name "constants.b09" ! -name "variables.b09" | while read -r src_file; do
+# Find all .b09 module files, excluding the global defs file itself
+find "$SOURCE_PATH" -type f -name "*.b09" ! -name "global.b09" | while read -r src_file; do
     files_processed=$((files_processed+1))
-    dest_file="$BUILD_PATH/$(realpath --relative-to="$SOURCE_PATH" "$src_file")"
+    relative_path=$(realpath --relative-to="$SOURCE_PATH" "$src_file")
+    dest_file="$BUILD_PATH/$relative_path"
+
+    # Ensure the destination directory exists
     mkdir -p "$(dirname "$dest_file")"
-    
-    # Process line-by-line
-    {
-        tr -d '\r' < "$src_file" | while IFS= read -r line; do
-            if [[ "$line" =~ ^([[:space:]]*)@@TYPE[[:space:]]+(.+)$ ]]; then
-                indent="${BASH_REMATCH[1]}"
-                type_name="${BASH_REMATCH[2]}"
-                if [[ -n "${type_defs[$type_name]+x}" ]]; then
-                    echo "${indent}${type_defs[$type_name]}"
-                    replacements_made=$((replacements_made+1))
-                    $VERBOSE && echo "Replaced TYPE $type_name in $src_file"
-                else
-                    echo "${indent}REM Missing TYPE definition for $type_name"
-                    echo "ERROR: Missing TYPE definition for $type_name in $src_file"
-                    missing_defs=$((missing_defs+1))
-                fi
-            elif [[ "$line" =~ ^([[:space:]]*)@@CONST[[:space:]]+(.+)$ ]]; then
-                indent="${BASH_REMATCH[1]}"
-                const_name="${BASH_REMATCH[2]}"
-                if [[ -n "${const_defs[$const_name]+x}" ]]; then
-                    echo "${indent}${const_defs[$const_name]}"
-                    replacements_made=$((replacements_made+1))
-                    $VERBOSE && echo "Replaced CONST $const_name in $src_file"
-                else
-                    echo "${indent}REM Missing CONST definition for $const_name"
-                    echo "ERROR: Missing CONST definition for $const_name in $src_file"
-                    missing_defs=$((missing_defs+1))
-                fi
-            elif [[ "$line" =~ ^([[:space:]]*)@@VAR[[:space:]]+(.+)$ ]]; then
-                indent="${BASH_REMATCH[1]}"
-                var_name="${BASH_REMATCH[2]}"
-                if [[ -n "${var_defs[$var_name]+x}" ]]; then
-                    echo "${indent}${var_defs[$var_name]}"
-                    replacements_made=$((replacements_made+1))
-                    $VERBOSE && echo "Replaced VAR $var_name in $src_file"
-                else
-                    echo "${indent}REM Missing VAR definition for $var_name"
-                    echo "ERROR: Missing VAR definition for $var_name in $src_file"
-                    missing_defs=$((missing_defs+1))
-                fi                
-            else
-                echo "$line"
-            fi
-        done
-    } > "$dest_file"
+
+    echo "  -> Transpiling $relative_path"
+
+    # Run the awk script
+    # Input: global.b09 and the current source file
+    # Output: Redirected (>) to the destination file in the build directory
+    awk -f "$AWK_SCRIPT" "$GLOBAL_DEFS" "$src_file" > "$dest_file"
 done
 
-# Summary log
 echo "=== Preprocessing Summary ==="
 echo "Files processed: $files_processed"
-echo "Replacements made: $replacements_made"
-echo "Missing definitions: $missing_defs"
 
 # Replace SOURCE_PATH with BUILD_PATH for rest of build
 SOURCE_PATH="$BUILD_PATH"

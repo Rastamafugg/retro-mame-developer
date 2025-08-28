@@ -1,0 +1,93 @@
+MODULE Logger
+  TYPE Session=id:INTEGER,readings[10]:Reading
+  CONST DefaultSessionSize:INTEGER := 10
+  VAR logCount:INTEGER
+
+PROCEDURE AddReading
+  @@TYPE Reading
+  @@CONST DefaultSessionSize
+  @@VAR logCount
+
+  DIM newReading:Reading
+  DIM currentSession:Session
+
+  ! Use constant for array size
+  DIM tempArray[DefaultSessionSize]:REAL
+
+  DIM value:BYTE
+
+  ENUM Color = [Red=1, Green=2, Blue=3]
+  DIM selectedColor:BYTE
+
+  ON ERROR GOTO ErrorHandler
+
+  IF DefaultSessionSize <= 10 THEN
+    PRINT "DefaultSessionSize less than or equal to 10";
+  ELSE
+    PRINT "DefaultSessionSize graeter than to 10";
+  ENDIF
+
+  PRINT "Enter temperature value: ";
+  INPUT newReading.value
+  PRINT "Enter timestamp: ";
+  INPUT newReading.timestamp
+
+  logCount := logCount + 1
+  PRINT "Reading added. Log count = "; logCount
+
+  PRINT "Enter branch number (1-2): ";
+  INPUT value
+
+  ON value GOSUB GoodValue, BadValue
+
+  PRINT "Enter color (1-3): ";
+  INPUT selectedColor
+
+  SELECT selectedColor
+    CASE Color.Red
+      PRINT "Red Chosen"
+    CASE Color.Green, Color.Blue
+      PRINT "Green or Blue Chosen"
+    CASE DEFAULT
+      PRINT "Incorrect Color Selection"
+  ENDSELECT
+
+  END
+
+  GoodValue:
+    PRINT "Good Value Chosen"
+    RETURN
+
+  BadValue:
+    PRINT "Bad Value Chosen"
+    RETURN
+
+  ErrorHandler:
+    ! Do something
+    END
+END
+
+PROCEDURE ComputeAverage
+  @@CONST MaxReadings
+  @@VAR sessionCount
+
+  DIM counter,total:REAL
+  DIM avg:REAL
+
+  total := 0
+  FOR counter := 1 TO MaxReadings DO
+    total := total + counter
+  END FOR
+
+  IF MaxReadings > 0 THEN
+    avg := total / MaxReadings
+    PRINT "Average: "; avg
+  ELSE
+    PRINT "No readings available"
+  END IF
+
+  sessionCount := sessionCount + 1
+  PRINT "Sessions processed = "; sessionCount
+END
+
+ENDMODULE

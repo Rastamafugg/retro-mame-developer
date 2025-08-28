@@ -1,0 +1,3 @@
+TYPE Reading=value:REAL,timestamp:STRING[20]
+CONST MaxReadings:INTEGER := 100
+VAR sessionCount:INTEGER
