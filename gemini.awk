@@ -14,8 +14,14 @@
 #         GOTO/GOSUB labels. It respects global, module, and procedure scopes.
 #
 # Pass 2: Processes the source code line-by-line to perform transformations.
-#         A state machine ensures ONLY code inside PROCEDURE...END blocks
-#         is processed and printed to the final output.
+#         A state machine ensures ONLY code inside PROCEDURE blocks is
+#         processed and printed to the final output.
+#         - Replaces @@TOKEN statements with their full definitions.
+#         - Translates CONST and VAR into DIM statements.
+#         - Converts ENUM blocks into individual variable declarations.
+#         - Substitutes constant values within DIM array declarations.
+#         - Transforms SELECT CASE blocks into IF/ELSE IF structures.
+#         - Replaces GOTO/GOSUB labels with auto-generated line numbers.
 
 # ==============================================================================
 # === PASS 1: Read all files, collect definitions and labels                 ===
@@ -143,15 +149,25 @@ END {
     for (i = 1; i <= length(lines); i++) {
         line = lines[i]
 
-        # --- State Machine: Track if we are inside a PROCEDURE...END block ---
+        # --- State Machine: A procedure ends when the next one begins, or the module ends. ---
         is_proc_start = match(line, /^[[:space:]]*PROCEDURE[[:space:]]+([a-zA-Z0-9_]+)/, m)
-        is_proc_end = match(line, /^[[:space:]]*END$/)
+        is_endmodule = match(line, /^[[:space:]]*ENDMODULE/)
 
+        # If a new procedure or end of module is found, we are no longer "in" the previous procedure.
+        if (is_proc_start || is_endmodule) {
+            if (in_procedure != "") {
+                # Add a blank line for readability between procedures
+                print ""
+            }
+            in_procedure = ""
+        }
+
+        # If the current line starts a new procedure, enter the "in procedure" state.
         if (is_proc_start) {
             in_procedure = m[1]
         }
         
-        # If we are not in a procedure, skip this line and check the next one.
+        # Gatekeeper: If we are not in a procedure, skip to the next line.
         if (in_procedure == "") {
             continue
         }
@@ -228,7 +244,7 @@ END {
             op = m[1]; label = m[2]
             if (label in labels) print indent_str op " " labels[label] " \\ ! " label
             else print indent_str "REM ERROR: Label not found: " label
-        } else if (match(line, /^[[:space:]]*([a-zA-Z][a_zA-Z0-9_]*):/, m)) {
+        } else if (match(line, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):/, m)) {
             label = m[1]
             if (label in labels) print indent_str labels[label] ": \\ ! " label
             else print line " ! ERROR: Unindexed Label"
@@ -259,12 +275,6 @@ END {
         # Default action: Print the (possibly modified) line
         } else {
             print line
-        }
-
-        # --- State Machine: Check for exit from PROCEDURE block ---
-        if (is_proc_end) {
-            in_procedure = ""
-            print "" # Add a blank line for readability between procedures
         }
     }
 }
