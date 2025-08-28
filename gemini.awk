@@ -3,7 +3,7 @@
 # AWK Transpiler for Enhanced Basic09 to standard Basic09
 #
 # USAGE:
-#   awk -f gemini.awk global.b09 sourceModule.b09
+#   awk -f this_script.awk global.b09 module_source.b09
 #
 # DESCRIPTION:
 # This script processes an enhanced Basic09 module file and a global
@@ -13,13 +13,9 @@
 # Pass 1: Gathers all TYPE, CONST, VAR, and ENUM definitions, as well as
 #         GOTO/GOSUB labels. It respects global, module, and procedure scopes.
 #
-# Pass 2: Processes the source code line-by-line to perform transformations:
-#         - Replaces @@TOKEN statements with their full definitions.
-#         - Translates CONST and VAR into DIM statements.
-#         - Converts ENUM blocks into individual variable declarations.
-#         - Substitutes constant values within DIM array declarations.
-#         - Transforms SELECT CASE blocks into IF/ELSE IF structures.
-#         - Replaces GOTO/GOSUB labels with auto-generated line numbers.
+# Pass 2: Processes the source code line-by-line to perform transformations.
+#         A state machine ensures ONLY code inside PROCEDURE...END blocks
+#         is processed and printed to the final output.
 
 # ==============================================================================
 # === PASS 1: Read all files, collect definitions and labels                 ===
@@ -142,26 +138,36 @@ END {
     # State variables for Pass 2 transformation
     in_procedure = ""
     in_select = 0
+    select_indent = ""
     
     for (i = 1; i <= length(lines); i++) {
         line = lines[i]
+
+        # --- State Machine: Track if we are inside a PROCEDURE...END block ---
+        is_proc_start = match(line, /^[[:space:]]*PROCEDURE[[:space:]]+([a-zA-Z0-9_]+)/, m)
+        is_proc_end = match(line, /^[[:space:]]*END$/)
+
+        if (is_proc_start) {
+            in_procedure = m[1]
+        }
         
-        # --- Pre-Transformation Substitutions ---
-        
-        # Update current procedure scope
-        if (match(line, /^[[:space:]]*PROCEDURE[[:space:]]+([a-zA-Z0-9_]+)/, m)) { in_procedure = m[1] }
-        if (match(line, /^[[:space:]]*ENDMODULE/)) { in_procedure = "" }
-        
+        # If we are not in a procedure, skip this line and check the next one.
+        if (in_procedure == "") {
+            continue
+        }
+
+        # --- Line Processing: Only runs for lines inside a procedure ---
+
+        # Pre-Transformation Substitutions
         # Substitute ENUM members (e.g., "Color.Red" -> "Red")
-        if (in_procedure != "" && in_procedure in enums) {
+        if (in_procedure in enums) {
             for (enum_key in enums[in_procedure]) {
                 gsub(enum_key, enums[in_procedure][enum_key], line)
             }
         }
         
         # Substitute CONST values in DIM array declarations (e.g., "DIM arr[MaxReadings]")
-        if (in_procedure != "" && line ~ /^[[:space:]]*DIM/) {
-            # Search order: procedure -> module -> global
+        if (line ~ /^[[:space:]]*DIM/) {
             if (in_procedure in proc_const_vals) {
                 for (c in proc_const_vals[in_procedure]) gsub("\\[" c "\\]", "[" proc_const_vals[in_procedure][c] "]", line)
             }
@@ -169,19 +175,14 @@ END {
             for (c in global_const_vals) { gsub("\\[" c "\\]", "[" global_const_vals[c] "]", line) }
         }
 
-        # --- Line-by-Line Transformation Logic ---
-
         # Preserve indentation for generated code
         match(line, /^([[:space:]]*)/); indent_str = substr(line, RSTART, RLENGTH)
 
-        # Skip printing of original module-level definitions
-        if (match(line, /^[[:space:]]*(TYPE|CONST|VAR)/) && in_procedure == "") { continue }
-        if ($1 == "MODULE") { print line; continue }
+        # --- Transformation Logic (as if/else if/else chain) ---
 
         # 1. @@TOKEN Replacement
         if (match(line, /^[[:space:]]*@@(TYPE|CONST|VAR)[[:space:]]+([a-zA-Z0-9_$]+)/, m)) {
             type = m[1]; name = m[2]; found = 0
-            # Resolution order: procedure -> module -> global
             if (type == "TYPE") {
                 if (in_procedure in proc_types && name in proc_types[in_procedure]) { print indent_str proc_types[in_procedure][name]; found=1 }
                 else if (name in module_types) { print indent_str module_types[name]; found=1 }
@@ -204,21 +205,17 @@ END {
                 else if (name in global_vars) { print indent_str global_vars[name]; found=1 }
             }
             if (!found) { print indent_str "REM ERROR: Definition not found for " name }
-            continue
-        }
-
+        
         # 2. ENUM Declaration Replacement
-        if (match(line, /^[[:space:]]*ENUM[[:space:]]+([a-zA-Z0-9_]+)/, m)) {
+        } else if (match(line, /^[[:space:]]*ENUM[[:space:]]+([a-zA-Z0-9_]+)/, m)) {
             enum_name = m[1]
             if (in_procedure in enum_defs && enum_name in enum_defs[in_procedure]) {
                 split(enum_defs[in_procedure][enum_name], defs, "\n")
                 for (d in defs) if (defs[d] != "") print indent_str defs[d]
             }
-            continue
-        }
         
         # 3. GOTO/GOSUB/Label Replacement
-        if (match(line, /^[[:space:]]*ON[[:space:]]+.*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_,[:space:]]+)/, m)) {
+        } else if (match(line, /^[[:space:]]*ON[[:space:]]+.*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_,[:space:]]+)/, m)) {
             labels_str = m[2]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", labels_str)
             split(labels_str, label_arr, ","); new_list = ""
             for (l in label_arr) {
@@ -227,57 +224,47 @@ END {
             }
             sub(labels_str, new_list, line)
             print line " \\ ! " labels_str
-            continue
-        }
-        if (match(line, /^[[:space:]]*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_]+)/, m)) {
+        } else if (match(line, /^[[:space:]]*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_]+)/, m)) {
             op = m[1]; label = m[2]
             if (label in labels) print indent_str op " " labels[label] " \\ ! " label
             else print indent_str "REM ERROR: Label not found: " label
-            continue
-        }
-        if (match(line, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):/, m)) {
+        } else if (match(line, /^[[:space:]]*([a-zA-Z][a_zA-Z0-9_]*):/, m)) {
             label = m[1]
             if (label in labels) print indent_str labels[label] ": \\ ! " label
             else print line " ! ERROR: Unindexed Label"
-            continue
-        }
-
+        
         # 4. SELECT CASE Block Replacement
-        if (match(line, /^[[:space:]]*SELECT[[:space:]]+(.*)/, m)) {
+        } else if (match(line, /^[[:space:]]*SELECT[[:space:]]+(.*)/, m)) {
             in_select = 1; select_var = m[1]; select_endif_count = 0; is_first_case = 1
-            # Capture and store the indentation of the SELECT line itself
             match(line, /^([[:space:]]*)/); select_indent = substr(line, RSTART, RLENGTH)
-            continue
-        }
-        if (in_select && match(line, /^[[:space:]]*CASE[[:space:]]+DEFAULT/)) {
-            # Use the stored indentation
+        } else if (in_select && match(line, /^[[:space:]]*CASE[[:space:]]+DEFAULT/)) {
             print select_indent "ELSE"
-            continue
-        }
-        if (in_select && match(line, /^[[:space:]]*CASE[[:space:]]+(.*)/, m)) {
+        } else if (in_select && match(line, /^[[:space:]]*CASE[[:space:]]+(.*)/, m)) {
             vals_str = m[1]; split(vals_str, vals, ","); condition = ""
             for (v in vals) {
                 val = vals[v]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", val)
                 condition = condition (condition == "" ? "" : " OR ") select_var "=" val
             }
-            # Use the stored indentation
             if (is_first_case) print select_indent "IF " condition " THEN"
             else print select_indent "ELSE IF " condition " THEN"
             select_endif_count++; is_first_case = 0
-            continue
-        }
-        if (in_select && match(line, /^[[:space:]]*ENDSELECT/)) {
-            # Use the stored indentation
+        } else if (in_select && match(line, /^[[:space:]]*ENDSELECT/)) {
             endif_line = select_indent
             for (c = 1; c <= select_endif_count; c++) {
                 endif_line = endif_line (c > 1 ? " / " : "") "ENDIF"
             }
             print endif_line
             in_select = 0
-            continue
+        
+        # Default action: Print the (possibly modified) line
+        } else {
+            print line
         }
 
-        # Default action: Print the (possibly modified) line
-        print line
+        # --- State Machine: Check for exit from PROCEDURE block ---
+        if (is_proc_end) {
+            in_procedure = ""
+            print "" # Add a blank line for readability between procedures
+        }
     }
 }
