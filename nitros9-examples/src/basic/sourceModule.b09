@@ -65,7 +65,6 @@ PROCEDURE AddReading
   ErrorHandler:
     ! Do something
     END
-END
 
 PROCEDURE ComputeAverage
   @@CONST MaxReadings

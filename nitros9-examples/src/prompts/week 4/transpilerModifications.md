@@ -6,7 +6,7 @@ This procedure starts by parsing these three named files and collects the types,
 
 I want to modify this transpiler that converts my custom enhanced version of Basic09 to legal Basic09 code.  The features this transpiler will include are listed below.  I am attaching the root projects folder's build.sh file.  This file is called from a project sub-folder's build.sh file with the three command line params (PROJECT, TARGET_TYPE, and IMAGE_NAME) referenced in the source code of this parent build.sh file.
 
-Please write the awk logic code snippet to work with these requirements.  This code should first parse a global.b09 file located in the same folder as the source files to be transpiled and store all types, constants, and variables in memory, sotring the token name, type, and replacement value for each statements found in the file.
+Please write the awk logic code snippet to work with these requirements.  This code should first parse a global.b09 file located in the same folder as the source files to be transpiled and store all types, constants, and variables in memory, storing the token name, type, and replacement value for each statement found in the file.
 
 Only write the new code changes as a single code snippet.  I will perform the update to the original source. Use the logic from the provided source, replacing the logic reading from types.b09, constants.b09, and variables.b09 with the processing logic for a global.b09 file in the same folder, which contains all types, constants, and variables declarations.  Then, parse all files with the pattern *.b09, using the existing code as a guide and apply the changes described below.
 
@@ -414,7 +414,6 @@ PROCEDURE AddReading
   300: \ ! ErrorHandler
     ! Do something
     END
-END
 
 PROCEDURE ComputeAverage
   DIM MaxReadings:INTEGER
