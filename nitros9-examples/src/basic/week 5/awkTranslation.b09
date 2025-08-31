@@ -1,0 +1,401 @@
+! *****************************************************************************
+! Transpiler: Enhanced Basic09 to Standard Basic09
+! *****************************************************************************
+! This program translates enhanced Basic09 source code into a standard,
+! compilable format. It emulates the two-pass logic of the original awk script
+! by first gathering all definitions and then performing line-by-line
+! transformations.
+
+! Main procedure to start the transpilation process
+PROCEDURE MainTranspiler
+  DIM globalPath:STRING
+  DIM sourcePath:STRING
+  DIM targetPath:STRING
+  DIM logVerbose:BOOLEAN
+  DIM errCode:INTEGER
+
+  ON ERROR GOTO ErrorHandler \! Central error handler
+
+  logVerbose := TRUE
+
+  PRINT "Starting Basic09 Transpiler"
+  PRINT "---------------------------"
+
+ ! Pre-flight checks on input files
+  globalPath := "PROJECT/src/basic/global.b09"
+  sourcePath := "PROJECT/src/basic/sourceModule.b09"
+  targetPath := "PROJECT/build/basic/sourceModule.b09"
+
+  RUN CheckFileExists(globalPath) \! Check if global file exists [1]
+  RUN CheckFileExists(sourcePath) \! Check if source file exists [1]
+
+ ! Pass 1: Load all definitions and labels from input files [1]
+  IF logVerbose THEN
+    PRINT "> Pass 1: Loading Definitions..."
+  ENDIF
+  RUN LoadDefinitions(globalPath, sourcePath)
+
+ ! Pass 2: Transpile the source file and write to the target file [1]
+  IF logVerbose THEN
+    PRINT "> Pass 2: Transpiling Source..."
+  ENDIF
+  RUN TranspileSource(sourcePath, targetPath)
+
+  IF logVerbose THEN
+    PRINT "---------------------------"
+    PRINT "Transpilation complete."
+  ENDIF
+
+  END
+
+ErrorHandler:
+  errCode := ERR
+  PRINT "RUNTIME ERROR: "; errCode
+  IF errCode = 210 THEN
+    PRINT "File not found."
+    PRINT "Please ensure global.b09 and sourceModule.b09 exist."
+  ENDIF
+  END
+
+! *****************************************************************************
+! Shared Data Structures: Emulating AWK's Associative Arrays
+! *****************************************************************************
+! TYPE to hold a single symbol entry [1]
+TYPE SymEntry = name:STRING, typ:STRING, dimLine:STRING, valLine:STRING, valNum:INTEGER
+
+! Shared symbol table arrays for global, module, and procedure scopes
+! These emulate the AWK script's associative arrays [1]
+DIM globalSymtab:SymEntry
+DIM moduleSymtab:SymEntry
+DIM procSymtab:SymEntry
+
+! Special arrays for specific transformations
+DIM labelMap:SymEntry
+DIM enumMap:SymEntry
+DIM enumDefLines:STRING
+
+! Counters to track the number of entries in each table
+DIM globalCount:INTEGER
+DIM moduleCount:INTEGER
+DIM procCount:INTEGER
+DIM labelCount:INTEGER
+DIM enumCount:INTEGER
+
+! Line counter for GOTO/GOSUB labels
+DIM lineNumCounter:INTEGER
+
+! Global state variable for the current procedure name
+DIM currentProc:STRING
+
+! *****************************************************************************
+! Procedure: CheckFileExists
+! *****************************************************************************
+! Checks for a file's existence before attempting to open it
+PROCEDURE CheckFileExists(filePath:STRING)
+  PARAM filePath:STRING
+  DIM fileHandle:BYTE
+  DIM errorFlag:BOOLEAN
+
+  errorFlag := FALSE
+  ON ERROR GOTO FileCheckError
+
+  OPEN filePath AS #fileHandle
+  CLOSE #fileHandle
+  IF logVerbose THEN
+    PRINT "  > File found: "; filePath
+  ENDIF
+
+  RETURN
+
+FileCheckError:
+  errorFlag := TRUE
+  PRINT "ERROR: File not found: "; filePath
+  ERROR(210) \! Raise a "File Not Found" error [1]
+END
+
+! *****************************************************************************
+! Procedure: LoadDefinitions (Pass 1)
+! *****************************************************************************
+! Reads and parses all definitions from input files [1]
+PROCEDURE LoadDefinitions(globalFile:STRING, sourceFile:STRING)
+  PARAM globalFile:STRING
+  PARAM sourceFile:STRING
+  DIM fileHandle:BYTE
+  DIM line:STRING
+  DIM lineNum:INTEGER
+  DIM scope:STRING
+  DIM isGlobal:BOOLEAN
+
+  lineNumCounter := 100 \! Starting line number for labels [1]
+  labelCount := 0
+  enumCount := 0
+  globalCount := 0
+  moduleCount := 0
+  procCount := 0
+
+  isGlobal := TRUE
+  RUN ProcessFile(globalFile, isGlobal)
+
+  isGlobal := FALSE
+  RUN ProcessFile(sourceFile, isGlobal)
+END
+
+PROCEDURE ProcessFile(filePath:STRING, isGlobal:BOOLEAN)
+  PARAM filePath:STRING
+  PARAM isGlobal:BOOLEAN
+  DIM fileHandle:BYTE
+  DIM line:STRING
+  DIM typeName:STRING
+  DIM varName:STRING
+  DIM varType:STRING
+  DIM constVal:STRING
+  DIM constName:STRING
+  DIM labelName:STRING
+  DIM enumName:STRING
+  DIM enumPairs:STRING
+  DIM pairList:STRING
+  DIM memberName:STRING
+  DIM memberVal:INTEGER
+  DIM i, j:INTEGER
+
+  ON ERROR GOTO ProcessFileError
+
+  OPEN filePath AS #1
+  DO WHILE NOT EOF(#1)
+    INPUT #1, line
+
+   ! Determine scope based on keywords [1]
+    IF INSTR(line, "MODULE") THEN
+      currentProc := "MODULE"
+    ELSE IF INSTR(line, "PROCEDURE") THEN
+      currentProc := MIDS(line, INSTR(line, "PROCEDURE") + 10, 10)
+    ENDIF
+
+   ! Parse TYPE definition [1]
+    IF INSTR(line, "TYPE") AND INSTR(line, "TYPE") = 1 THEN
+     !... parsing logic
+    ENDIF
+
+   ! Parse CONST definition [1]
+    IF INSTR(line, "CONST") AND INSTR(line, "CONST") = 1 THEN
+     !... parsing logic
+    ENDIF
+
+   ! Parse VAR definition [1]
+    IF INSTR(line, "VAR") AND INSTR(line, "VAR") = 1 THEN
+     !... parsing logic
+    ENDIF
+
+   ! Parse ENUM definition (procedure scope only) [1]
+    IF INSTR(line, "ENUM") AND INSTR(line, "ENUM") = 1 AND isGlobal = FALSE THEN
+      enumName := MIDS(line, INSTR(line, "ENUM") + 5, INSTR(line, "=") - (INSTR(line, "ENUM") + 5))
+      enumPairs := MIDS(line, INSTR(line, "") - (INSTR(line, "[") + 1))
+      pairList := enumPairs
+
+     ! Create storage lines for each member [1]
+      enumDefLines[enumCount] := ""
+      DO WHILE INSTR(pairList, ",") > 0
+        memberName := MIDS(pairList, 1, INSTR(pairList, "=") - 1)
+        memberVal := VAL(MIDS(pairList, INSTR(pairList, "=") + 1, INSTR(pairList, ",") - (INSTR(pairList, "=") + 1)))
+        
+        enumDefLines[enumCount] := enumDefLines[enumCount] + "DIM " + memberName + ":INTEGER" + CHR(10)
+        enumDefLines[enumCount] := enumDefLines[enumCount] + memberName + " := " + STR(memberVal) + CHR(10)
+        
+        enumMap[enumCount].name := enumName + "." + memberName
+        enumMap[enumCount].typ := memberName
+        enumCount := enumCount + 1
+
+        pairList := MIDS(pairList, INSTR(pairList, ",") + 1, LEN(pairList))
+      ENDDO
+
+      memberName := MIDS(pairList, 1, INSTR(pairList, "=") - 1)
+      memberVal := VAL(MIDS(pairList, INSTR(pairList, "=") + 1, LEN(pairList)))
+
+      enumDefLines[enumCount] := enumDefLines[enumCount] + "DIM " + memberName + ":INTEGER" + CHR(10)
+      enumDefLines[enumCount] := enumDefLines[enumCount] + memberName + " := " + STR(memberVal) + CHR(10)
+      
+      enumMap[enumCount].name := enumName + "." + memberName
+      enumMap[enumCount].typ := memberName
+      enumCount := enumCount + 1
+    ENDIF
+
+   ! Parse GOTO/GOSUB label definitions [1]
+    IF RIGHT$(line, 1) = ":" AND INSTR(line, "PROCEDURE") = 0 THEN
+      labelName := LEFT$(line, LEN(line)-1)
+      labelMap[labelCount].name := labelName
+      labelMap[labelCount].valNum := lineNumCounter
+      lineNumCounter := lineNumCounter + 100
+      labelCount := labelCount + 1
+    ENDIF
+  LOOP
+  CLOSE #1
+
+  RETURN
+
+ProcessFileError:
+  CLOSE #1
+  PRINT "ERROR in ProcessFile: "; ERR
+  ERROR(ERR)
+END
+
+! *****************************************************************************
+! Procedure: TranspileSource (Pass 2)
+! *****************************************************************************
+! Reads source file and writes transpiled code to target file [1]
+PROCEDURE TranspileSource(sourceFile:STRING, targetFile:STRING)
+  PARAM sourceFile:STRING
+  PARAM targetFile:STRING
+  DIM fileIn, fileOut:BYTE
+  DIM line:STRING
+  DIM outputLine:STRING
+  DIM inProcedure:BOOLEAN
+  DIM inSelect:INTEGER
+  DIM selectVar:STRING
+  DIM selectCaseCount:INTEGER
+  DIM i, j:INTEGER
+  DIM enumIdx:INTEGER
+  DIM labelIdx:INTEGER
+  DIM labelList:STRING
+  DIM numList:STRING
+
+  ON ERROR GOTO TranspilerError
+
+  inProcedure := FALSE
+  inSelect := 0
+  selectCaseCount := 0
+
+  OPEN sourceFile AS #1, "I"
+  OPEN targetFile AS #2, "O"
+
+  DO WHILE NOT EOF(#1)
+    INPUT #1, line
+
+   ! State machine: Skip lines outside procedures [1]
+    IF INSTR(line, "PROCEDURE") THEN
+      inProcedure := TRUE
+      PRINT #2, line
+      GOTO NextLine
+    ELSE IF INSTR(line, "ENDMODULE") THEN
+      inProcedure := FALSE
+      PRINT #2, line
+      GOTO NextLine
+    ENDIF
+
+    IF inProcedure = FALSE THEN GOTO NextLine
+
+    outputLine := line
+
+   ! --- Pre-transformation Substitutions --- [1]
+   ! Replace ENUM members (e.g., Color.Red -> Red)
+    FOR enumIdx := 0 TO enumCount - 1
+      outputLine := MIDS(outputLine, 1, INSTR(outputLine, enumMap[enumIdx].name) - 1) + enumMap[enumIdx].typ + MIDS(outputLine, INSTR(outputLine, enumMap[enumIdx].name) + LEN(enumMap[enumIdx].name), LEN(outputLine))
+    ENDFOR
+
+   ! --- Main Transformation Logic ---
+   ! SELECT CASE block replacement [1, 1]
+    IF INSTR(outputLine, "SELECT") THEN
+      inSelect := 1
+      selectVar := MIDS(outputLine, INSTR(outputLine, "SELECT") + 7, LEN(outputLine))
+      selectCaseCount := 0
+      GOTO NextLine
+    ENDIF
+
+    IF inSelect > 0 THEN
+      IF INSTR(outputLine, "CASE DEFAULT") THEN
+        PRINT #2, "ELSE"
+        GOTO NextLine
+      ELSE IF INSTR(outputLine, "CASE") THEN
+        selectCaseCount := selectCaseCount + 1
+        DIM caseVals:STRING
+        DIM condition:STRING
+        DIM currentVal:STRING
+        DIM val:STRING
+        caseVals := MIDS(outputLine, INSTR(outputLine, "CASE") + 5, LEN(outputLine))
+
+       ! Build OR condition
+        condition := ""
+        DO WHILE INSTR(caseVals, ",") > 0
+          currentVal := LEFT$(caseVals, INSTR(caseVals, ",")-1)
+          condition := condition + selectVar + "=" + currentVal + " OR "
+          caseVals := MIDS(caseVals, INSTR(caseVals, ",") + 1, LEN(caseVals))
+        ENDDO
+        condition := condition + selectVar + "=" + caseVals
+
+        IF selectCaseCount = 1 THEN
+          PRINT #2, "IF " + condition + " THEN"
+        ELSE
+          PRINT #2, "ELSE IF " + condition + " THEN"
+        ENDIF
+        GOTO NextLine
+      ELSE IF INSTR(outputLine, "ENDSELECT") THEN
+        inSelect := 0
+        DIM endifLine:STRING
+        endifLine := ""
+        FOR i := 1 TO selectCaseCount
+          endifLine := endifLine + "ENDIF"
+          IF i < selectCaseCount THEN endifLine := endifLine + " / "
+        ENDFOR
+        PRINT #2, endifLine
+        GOTO NextLine
+      ENDIF
+    ENDIF
+
+   ! GOTO/GOSUB/Label replacement [1, 1]
+    IF INSTR(outputLine, "ON ") AND (INSTR(outputLine, "GOTO") OR INSTR(outputLine, "GOSUB")) THEN
+      labelList := MIDS(outputLine, INSTR(outputLine, "GOTO") + 5, LEN(outputLine))
+      IF INSTR(outputLine, "GOSUB") THEN labelList := MIDS(outputLine, INSTR(outputLine, "GOSUB") + 6, LEN(outputLine))
+      
+      numList := ""
+      DIM singleLabel:STRING
+      DO WHILE INSTR(labelList, ",") > 0
+        singleLabel := LEFT$(labelList, INSTR(labelList, ",") - 1)
+        FOR i := 0 TO labelCount - 1
+          IF labelMap[i].name = singleLabel THEN
+            numList := numList + STR(labelMap[i].valNum) + ", "
+          ENDIF
+        ENDFOR
+        labelList := MIDS(labelList, INSTR(labelList, ",") + 1, LEN(labelList))
+      ENDDO
+      
+      singleLabel := labelList
+      FOR i := 0 TO labelCount - 1
+        IF labelMap[i].name = singleLabel THEN
+          numList := numList + STR(labelMap[i].valNum)
+        ENDIF
+      ENDFOR
+
+      outputLine := MIDS(outputLine, 1, INSTR(outputLine, "GOTO") + 4) + " " + numList + " \\! " + MIDS(outputLine, INSTR(outputLine, "GOTO") + 5, LEN(outputLine))
+      IF INSTR(outputLine, "GOSUB") THEN
+        outputLine := MIDS(outputLine, 1, INSTR(outputLine, "GOSUB") + 5) + " " + numList + " \\! " + MIDS(outputLine, INSTR(outputLine, "GOSUB") + 6, LEN(outputLine))
+      ENDIF
+      
+      PRINT #2, outputLine
+      GOTO NextLine
+    ELSE IF INSTR(outputLine, ":") AND NOT INSTR(outputLine, "PROCEDURE") THEN
+      DIM labelFind:STRING
+      labelFind := LEFT$(outputLine, INSTR(outputLine, ":")-1)
+      FOR i := 0 TO labelCount-1
+        IF labelMap[i].name = labelFind THEN
+          outputLine := STR(labelMap[i].valNum) + ": \\! " + labelMap[i].name
+        ENDIF
+      ENDFOR
+      PRINT #2, outputLine
+      GOTO NextLine
+    ENDIF
+
+   ! Default action: print the line as-is
+    PRINT #2, outputLine
+
+NextLine:
+  LOOP
+
+  CLOSE #1
+  CLOSE #2
+  RETURN
+
+TranspilerError:
+  CLOSE #1
+  CLOSE #2
+  PRINT "ERROR in TranspileSource: "; ERR
+  ERROR(ERR)
+END
