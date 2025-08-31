@@ -1,0 +1,646 @@
+PROCEDURE TRANSPILE
+! TRANSPILE - Main procedure for the two-pass transpilation process.
+! It orchestrates the analysis (Pass 1) and code generation (Pass 2)
+! to convert an extended Basic09 dialect to a pure Basic09 program.
+
+! Parameters:
+PARAM sourceFilePath$:STRING
+PARAM targetFilePath$:STRING
+PARAM globalFilePath$:STRING
+
+! Data Structures and Constants
+CONST MAX_SYMBOLS:INTEGER := 100
+CONST MAX_LABELS:INTEGER := 50
+
+TYPE SymbolEntry = name$:STRING, declarationLine$:STRING, literalValue$:STRING,
+  scope:BYTE, declarationType:BYTE
+
+TYPE LabelEntry = labelName$:STRING, lineNumber:INTEGER
+
+! Scopes: 1=Global, 2=Module, 3=Procedure
+! Declaration Types: 0=TYPE, 1=CONST, 2=VAR, 3=ENUM, 4=ENUM_MEMBER
+
+! --- Variable Declarations ---
+DIM globalSymbols(MAX_SYMBOLS):SymbolEntry
+DIM moduleSymbols(MAX_SYMBOLS):SymbolEntry
+DIM procedureSymbols(MAX_SYMBOLS):SymbolEntry
+DIM labelMap(MAX_LABELS):LabelEntry
+
+DIM globalSymbolCount, moduleSymbolCount, procedureSymbolCount, labelCount:INTEGER
+DIM errCode:INTEGER
+DIM sourceFileOpen, targetFileOpen:BOOLEAN
+DIM logVerbose:BOOLEAN
+
+! Initialize flags and counters
+sourceFileOpen := FALSE
+targetFileOpen := FALSE
+logVerbose := TRUE
+errCode := 0
+globalSymbolCount := 0
+moduleSymbolCount := 0
+procedureSymbolCount := 0
+labelCount := 0
+
+! --- Error Handling Setup ---
+ON ERROR GOTO 900! Global error handler for the procedure
+
+! --- Parameter Validation ---
+errCode := 101
+IF LEN(sourceFilePath$) = 0 THEN
+  PRINT "Error: Source file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 102
+IF LEN(targetFilePath$) = 0 THEN
+  PRINT "Error: Target file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 103
+IF LEN(globalFilePath$) = 0 THEN
+  PRINT "Error: Global file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 0! Reset code after checks
+
+! --- Main Orchestration ---
+
+! Pass 1: Analysis and Symbol Table Construction
+IF logVerbose THEN PRINT "Initiating Pass 1: Analysis and Symbol Table Construction"
+RUN ProcessPass1(globalFilePath$, sourceFilePath$, globalSymbols, globalSymbolCount,
+  moduleSymbols, moduleSymbolCount, procedureSymbols, procedureSymbolCount,
+  labelMap, labelCount)
+
+! Pass 2: Transformation and Code Generation
+IF logVerbose THEN PRINT "Initiating Pass 2: Transformation and Code Generation"
+RUN ProcessPass2(sourceFilePath$, targetFilePath$, globalSymbols, globalSymbolCount,
+  moduleSymbols, moduleSymbolCount, procedureSymbols, procedureSymbolCount,
+  labelMap, labelCount)
+
+! --- Close Files and Exit ---
+CLOSE #sourceFileHandle
+sourceFileOpen := FALSE
+CLOSE #targetFileHandle
+targetFileOpen := FALSE
+IF logVerbose THEN
+  PRINT "< Closing Source and Target Files"
+ENDIF
+
+PRINT "Transpilation completed successfully: '"; sourceFilePath$; "' -> '"; targetFilePath$; "'"
+END
+
+! --- Helper Procedures ---
+
+PROCEDURE ProcessPass1
+! Scans the source file to build symbol tables and a label map.
+PARAM globalFilePath$:STRING
+PARAM sourceFilePath$:STRING
+PARAM globalSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM globalSymbolCount:INTEGER
+PARAM moduleSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM moduleSymbolCount:INTEGER
+PARAM procedureSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM procedureSymbolCount:INTEGER
+PARAM labelMap(MAX_LABELS):LabelEntry
+PARAM labelCount:INTEGER
+
+DIM fileHandle:BYTE
+DIM fileOpen:BOOLEAN
+DIM sourceLine$:STRING
+DIM lineCounter:INTEGER
+DIM inProcedure:BOOLEAN
+DIM linePrefix$:STRING
+DIM declarationType:BYTE
+
+fileOpen := FALSE
+inProcedure := FALSE
+lineCounter := 1
+labelCount := 0
+
+! Open global file
+ON ERROR GOTO 100
+OPEN #fileHandle, globalFilePath$:READ
+fileOpen := TRUE
+
+WHILE NOT(EOF(#fileHandle)) DO
+  READ #fileHandle, sourceLine$
+  linePrefix$ := "TYPE "
+  IF SUBSTR(linePrefix$, sourceLine$) = 1 THEN
+    declarationType := 0
+  ELSE
+    linePrefix$ := "CONST "
+    IF SUBSTR(linePrefix$, sourceLine$) = 1 THEN
+      declarationType := 1
+    ELSE
+      linePrefix$ := "VAR "
+      IF SUBSTR(linePrefix$, sourceLine$) = 1 THEN
+        declarationType := 2
+      ELSE
+        linePrefix$ := ""
+      ENDIF
+    ENDIF
+  ENDIF
+  IF LEN(linePrefix$) > 0 THEN
+    RUN ExtractSymbol(sourceLine$, linePrefix$, declarationType, 1, globalSymbols, globalSymbolCount)
+  ENDIF
+END WHILE
+
+CLOSE #fileHandle
+fileOpen := FALSE
+
+! Open source file for analysis
+ON ERROR GOTO 200
+OPEN #fileHandle, sourceFilePath$:READ
+fileOpen := TRUE
+
+WHILE NOT(EOF(#fileHandle)) DO
+  READ #fileHandle, sourceLine$
+  DIM trimmedLine$:STRING
+  DIM i:INTEGER
+
+  i := 1
+  WHILE i <= LEN(sourceLine$) AND MID$(sourceLine$, i, 1) = " " DO
+    i := i + 1
+  ENDWHILE
+  trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - i + 1)
+
+  IF SUBSTR("PROCEDURE", trimmedLine$) = 1 THEN
+    inProcedure := TRUE
+    lineCounter := 100
+    moduleSymbolCount := 0! Reset module symbols for new module
+    procedureSymbolCount := 0! Reset procedure symbols for new procedure
+  ELSE IF SUBSTR("ENDMODULE", trimmedLine$) = 1 THEN
+    inProcedure := FALSE
+  ELSE IF SUBSTR("END", trimmedLine$) = 1 AND inProcedure THEN
+    inProcedure := FALSE
+  ELSE IF SUBSTR("MODULE", trimmedLine$) = 1 THEN
+    moduleSymbolCount := 0! Reset module symbols
+  ENDIF
+
+ ! Check for module-level declarations
+  IF SUBSTR("MODULE", trimmedLine$) = 1 THEN
+    WHILE NOT(EOF(#fileHandle)) DO
+      READ #fileHandle, sourceLine$
+      DIM trimmedLine2$:STRING
+      i := 1
+      WHILE i <= LEN(sourceLine$) AND MID$(sourceLine$, i, 1) = " " DO
+        i := i + 1
+      ENDWHILE
+      trimmedLine2$ := RIGHT$(sourceLine$, LEN(sourceLine$) - i + 1)
+      IF SUBSTR("PROCEDURE", trimmedLine2$) = 1 THEN
+       ! End of module declarations
+        GOTO 150
+      ENDIF
+
+      linePrefix$ := "TYPE "
+      IF SUBSTR(linePrefix$, trimmedLine2$) = 1 THEN
+        declarationType := 0
+      ELSE
+        linePrefix$ := "CONST "
+        IF SUBSTR(linePrefix$, trimmedLine2$) = 1 THEN
+          declarationType := 1
+        ELSE
+          linePrefix$ := "VAR "
+          IF SUBSTR(linePrefix$, trimmedLine2$) = 1 THEN
+            declarationType := 2
+          ELSE
+            linePrefix$ := ""
+          ENDIF
+        ENDIF
+      ENDIF
+      IF LEN(linePrefix$) > 0 THEN
+        RUN ExtractSymbol(sourceLine$, linePrefix$, declarationType, 2, moduleSymbols, moduleSymbolCount)
+      ENDIF
+    END WHILE
+  ENDIF
+
+150:
+ ! Check for procedure-level declarations, ENUMs, and labels
+  IF inProcedure THEN
+    IF SUBSTR("ENUM", trimmedLine$) = 1 THEN
+      linePrefix$ := "ENUM "
+      declarationType := 3
+      RUN ExtractEnum(sourceLine$, linePrefix$, declarationType, 3, procedureSymbols, procedureSymbolCount)
+    ELSE
+      linePrefix$ := "TYPE "
+      IF SUBSTR(linePrefix$, trimmedLine$) = 1 THEN
+        declarationType := 0
+      ELSE
+        linePrefix$ := "CONST "
+        IF SUBSTR(linePrefix$, trimmedLine$) = 1 THEN
+          declarationType := 1
+        ELSE
+          linePrefix$ := "VAR "
+          IF SUBSTR(linePrefix$, trimmedLine$) = 1 THEN
+            declarationType := 2
+          ELSE
+            linePrefix$ := ""
+          ENDIF
+        ENDIF
+      ENDIF
+      IF LEN(linePrefix$) > 0 THEN
+        RUN ExtractSymbol(sourceLine$, linePrefix$, declarationType, 3, procedureSymbols, procedureSymbolCount)
+      ENDIF
+    ENDIF
+
+   ! Check for labels
+    IF RIGHT$(trimmedLine$, 1) = ":" THEN
+      labelCount := labelCount + 1
+      IF labelCount <= MAX_LABELS THEN
+        labelMap(labelCount).labelName$ := LEFT$(trimmedLine$, LEN(trimmedLine$)-1)
+        labelMap(labelCount).lineNumber := lineCounter
+      ELSE
+        PRINT "Warning: Exceeded MAX_LABELS. Some labels may not be resolved."
+      ENDIF
+      lineCounter := lineCounter + 100
+    ENDIF
+  ENDIF
+END WHILE
+
+CLOSE #fileHandle
+fileOpen := FALSE
+END
+
+PROCEDURE ProcessPass2
+! Transforms and generates the final code.
+PARAM sourceFilePath$:STRING
+PARAM targetFilePath$:STRING
+PARAM globalSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM globalSymbolCount:INTEGER
+PARAM moduleSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM moduleSymbolCount:INTEGER
+PARAM procedureSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM procedureSymbolCount:INTEGER
+PARAM labelMap(MAX_LABELS):LabelEntry
+PARAM labelCount:INTEGER
+
+DIM sourceFileHandle, targetFileHandle:BYTE
+DIM sourceFileOpen, targetFileOpen:BOOLEAN
+DIM sourceLine$:STRING
+DIM lineCounter:INTEGER
+DIM inProcedure:BOOLEAN
+DIM inSelectCase:BOOLEAN
+DIM selectCaseCounter:INTEGER
+DIM endIfCounter:INTEGER
+DIM trimmedLine$:STRING
+DIM replacementLine$:STRING
+DIM i, j, k:INTEGER
+DIM leadingWhitespace$:STRING
+DIM token$:STRING
+DIM name$:STRING
+DIM tokenFound:BOOLEAN
+
+sourceFileOpen := FALSE
+targetFileOpen := FALSE
+inProcedure := FALSE
+inSelectCase := FALSE
+selectCaseCounter := 0
+endIfCounter := 0
+
+ON ERROR GOTO 900! Master error handler
+
+! We have to delete the existing file
+ON ERROR GOTO 140
+DELETE targetFilePath$
+GOTO 149
+140 \! Local error for target file delete
+  IF ERR <> 210 THEN PRINT "System Error ("; ERR; ") deleting "; targetFilePath$; "."
+149 \! Continue after target file delete
+
+CREATE #targetFileHandle, targetFilePath$:WRITE
+targetFileOpen := TRUE
+
+OPEN #sourceFileHandle, sourceFilePath$:READ
+sourceFileOpen := TRUE
+
+WHILE NOT(EOF(#sourceFileHandle)) DO
+  READ #sourceFileHandle, sourceLine$
+  replacementLine$ := sourceLine$
+  
+ ! Extract leading whitespace
+  leadingWhitespace$ := ""
+  i := 1
+  WHILE i <= LEN(sourceLine$) AND (MID$(sourceLine$, i, 1) = " " OR MID$(sourceLine$, i, 1) = CHR$(9)) DO
+    leadingWhitespace$ := leadingWhitespace$ + MID$(sourceLine$, i, 1)
+    i := i + 1
+  ENDWHILE
+  
+ ! Trim leading whitespace for token/name parsing
+  trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
+
+  IF SUBSTR("MODULE", trimmedLine$) = 1 THEN
+   ! MODULE and ENDMODULE lines are not written to output
+   ! This is a simplified approach that assumes single module file per project
+    replacementLine$ := ""
+  ELSE IF SUBSTR("ENDMODULE", trimmedLine$) = 1 THEN
+    replacementLine$ := ""
+  ENDIF
+
+ ! Check for procedure boundaries
+  IF SUBSTR("PROCEDURE", trimmedLine$) = 1 THEN
+    inProcedure := TRUE
+    lineCounter := 100
+   ! Replace @@ tokens at the start of the procedure
+    replacementLine$ := ""
+    FOR i := 1 TO procedureSymbolCount
+      replacementLine$ := replacementLine$ + "  " + procedureSymbols(i).declarationLine$ + CHR$(13)
+      IF procedureSymbols(i).declarationType = 1 THEN
+        replacementLine$ := replacementLine$ + "  " + procedureSymbols(i).name$ + " := " + procedureSymbols(i).literalValue$ + CHR$(13)
+      ENDIF
+    NEXT i
+    FOR i := 1 TO moduleSymbolCount
+      replacementLine$ := replacementLine$ + "  " + moduleSymbols(i).declarationLine$ + CHR$(13)
+      IF moduleSymbols(i).declarationType = 1 THEN
+        replacementLine$ := replacementLine$ + "  " + moduleSymbols(i).name$ + " := " + moduleSymbols(i).literalValue$ + CHR$(13)
+      ENDIF
+    NEXT i
+    FOR i := 1 TO globalSymbolCount
+      replacementLine$ := replacementLine$ + "  " + globalSymbols(i).declarationLine$ + CHR$(13)
+      IF globalSymbols(i).declarationType = 1 THEN
+        replacementLine$ := replacementLine$ + "  " + globalSymbols(i).name$ + " := " + globalSymbols(i).literalValue$ + CHR$(13)
+      ENDIF
+    NEXT i
+    replacementLine$ := replacementLine$ + "PROCEDURE " + RIGHT$(trimmedLine$, LEN(trimmedLine$) - 10)
+  ELSE IF SUBSTR("END", trimmedLine$) = 1 AND inProcedure THEN
+    inProcedure := FALSE
+  ENDIF
+
+  IF inProcedure THEN
+   ! Look for constants in DIM statements
+    DIM pos, endpos:INTEGER
+    pos := SUBSTR("", sourceLine$)
+      IF endpos > pos THEN
+        DIM constantName$:STRING
+        constantName$ := MID$(sourceLine$, pos+1, endpos-pos-1)
+        DIM constantValue$:STRING
+        RUN ResolveSymbol(constantName$, constantValue$, globalSymbols, globalSymbolCount, moduleSymbols, moduleSymbolCount, procedureSymbols, procedureSymbolCount)
+        IF LEN(constantValue$) > 0 THEN
+          replacementLine$ := LEFT$(sourceLine$, pos) + constantValue$ + RIGHT$(sourceLine$, LEN(sourceLine$)-endpos+1)
+        ENDIF
+      ENDIF
+    ENDIF
+
+   ! Look for ENUMs
+    IF SUBSTR("ENUM", trimmedLine$) = 1 THEN
+      replacementLine$ := ""
+    ELSE
+      FOR i := 1 TO procedureSymbolCount
+        IF procedureSymbols(i).declarationType = 4 THEN
+          DIM enumNameWithMember$:STRING
+          enumNameWithMember$ := procedureSymbols(i).declarationLine$ + "." + procedureSymbols(i).name$
+          replacementLine$ := REPLACE(replacementLine$, enumNameWithMember$, procedureSymbols(i).name$)
+        ENDIF
+      NEXT i
+    ENDIF
+
+   ! SELECT CASE Conversion
+    IF SUBSTR("SELECT", trimmedLine$) = 1 THEN
+      inSelectCase := TRUE
+      selectCaseCounter := 0
+      endIfCounter := 0
+      replacementLine$ := ""
+    ELSE IF SUBSTR("CASE", trimmedLine$) = 1 THEN
+      DIM caseString$:STRING
+      caseString$ := RIGHT$(trimmedLine$, LEN(trimmedLine$)-5)
+      IF selectCaseCounter = 0 THEN
+        replacementLine$ := leadingWhitespace$ + "IF " + ConvertCaseToCondition(caseString$) + " THEN"
+        selectCaseCounter := 1
+        endIfCounter := endIfCounter + 1
+      ELSE
+        replacementLine$ := leadingWhitespace$ + "ELSE IF " + ConvertCaseToCondition(caseString$) + " THEN"
+        endIfCounter := endIfCounter + 1
+      ENDIF
+    ELSE IF SUBSTR("CASE DEFAULT", trimmedLine$) = 1 THEN
+      replacementLine$ := leadingWhitespace$ + "ELSE"
+    ELSE IF SUBSTR("ENDSELECT", trimmedLine$) = 1 THEN
+      inSelectCase := FALSE
+      replacementLine$ := ""
+      FOR i := 1 TO endIfCounter DO
+        replacementLine$ := replacementLine$ + "ENDIF"
+        IF i < endIfCounter THEN
+          replacementLine$ := replacementLine$ + " / "
+        ENDIF
+      END FOR
+      endIfCounter := 0
+    ELSE IF inSelectCase THEN
+     ! Inside a SELECT block, just add the line with its whitespace
+      replacementLine$ := sourceLine$
+    ENDIF
+
+   ! Look for labels or ON...GOTO/GOSUB
+    IF RIGHT$(trimmedLine$, 1) = ":" THEN
+      replacementLine$ := ""
+      FOR i := 1 TO labelCount
+        IF labelMap(i).labelName$ = LEFT$(trimmedLine$, LEN(trimmedLine$)-1) THEN
+          replacementLine$ := leadingWhitespace$ + STR$(labelMap(i).lineNumber) + ": \\! " + labelMap(i).labelName$
+          GOTO 200
+        ENDIF
+      NEXT i
+    ENDIF
+    
+    token$ := "ON ERROR GOTO "
+    IF SUBSTR(token$, trimmedLine$) = 1 THEN
+      DIM labelName$:STRING
+      labelName$ := RIGHT$(trimmedLine$, LEN(trimmedLine$)-LEN(token$))
+      FOR i := 1 TO labelCount
+        IF labelMap(i).labelName$ = labelName$ THEN
+          replacementLine$ := leadingWhitespace$ + token$ + STR$(labelMap(i).lineNumber) + " \\! " + labelName$
+          GOTO 200
+        ENDIF
+      NEXT i
+    ENDIF
+
+    token$ := "ON value GOSUB "
+    IF SUBSTR(token$, trimmedLine$) = 1 THEN
+      DIM labelsString$:STRING
+      labelsString$ := RIGHT$(trimmedLine$, LEN(trimmedLine$)-LEN(token$))
+      DIM label1$, label2$:STRING
+      DIM commaPos:INTEGER
+      commaPos := SUBSTR(",", labelsString$)
+      IF commaPos > 0 THEN
+        label1$ := LEFT$(labelsString$, commaPos-1)
+        label2$ := RIGHT$(labelsString$, LEN(labelsString$)-commaPos)
+      ENDIF
+      DIM label1Num, label2Num:INTEGER
+      FOR i := 1 TO labelCount
+        IF labelMap(i).labelName$ = label1$ THEN
+          label1Num := labelMap(i).lineNumber
+        ENDIF
+        IF labelMap(i).labelName$ = label2$ THEN
+          label2Num := labelMap(i).lineNumber
+        ENDIF
+      NEXT i
+      replacementLine$ := leadingWhitespace$ + token$ + STR$(label1Num) + ", " + STR$(label2Num) + " \\! " + label1$ + ", " + label2$
+      GOTO 200
+    ENDIF
+
+   ! Look for @@ tokens
+    tokenFound := FALSE
+    token$ := "@@"
+    IF SUBSTR(token$, trimmedLine$) = 1 THEN
+      tokenFound := TRUE
+      DIM symbolType:BYTE
+      IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN symbolType := 0
+      ELSE IF SUBSTR("@@CONST", trimmedLine$) = 1 THEN symbolType := 1
+      ELSE IF SUBSTR("@@VAR", trimmedLine$) = 2 THEN symbolType := 2
+      ENDIF
+      
+      DIM searchName$:STRING
+      searchName$ := RIGHT$(trimmedLine$, LEN(trimmedLine$) - LEN(token$) - 3)
+      DIM resolvedDeclaration$:STRING
+
+      RUN ResolveSymbol(searchName$, resolvedDeclaration$, globalSymbols, globalSymbolCount,
+        moduleSymbols, moduleSymbolCount, procedureSymbols, procedureSymbolCount)
+
+      IF LEN(resolvedDeclaration$) > 0 THEN
+        replacementLine$ := leadingWhitespace$ + resolvedDeclaration$
+      ELSE
+        PRINT "Warning: Definition for '"; searchName$; "' not found."
+      ENDIF
+    ENDIF
+
+200:
+   ! Write the processed line to the target file
+    IF LEN(replacementLine$) > 0 THEN
+      WRITE #targetFileHandle, replacementLine$
+    ENDIF
+  ENDIF
+
+END WHILE
+END
+
+PROCEDURE ResolveSymbol
+PARAM searchName$:STRING
+PARAM resolvedLine$:STRING
+PARAM globalSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM globalSymbolCount:INTEGER
+PARAM moduleSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM moduleSymbolCount:INTEGER
+PARAM procedureSymbols(MAX_SYMBOLS):SymbolEntry
+PARAM procedureSymbolCount:INTEGER
+
+DIM i:INTEGER
+resolvedLine$ := ""
+
+! Precedence: Procedure > Module > Global
+FOR i := 1 TO procedureSymbolCount
+  IF procedureSymbols(i).name$ = searchName$ THEN
+    resolvedLine$ := procedureSymbols(i).declarationLine$
+    resolvedLine$ := resolvedLine$ + CHR$(13) + "  " + procedureSymbols(i).name$ + " := " + procedureSymbols(i).literalValue$
+    GOTO 100
+  ENDIF
+NEXT i
+FOR i := 1 TO moduleSymbolCount
+  IF moduleSymbols(i).name$ = searchName$ THEN
+    resolvedLine$ := moduleSymbols(i).declarationLine$
+    GOTO 100
+  ENDIF
+NEXT i
+FOR i := 1 TO globalSymbolCount
+  IF globalSymbols(i).name$ = searchName$ THEN
+    resolvedLine$ := globalSymbols(i).declarationLine$
+    GOTO 100
+  ENDIF
+NEXT i
+
+100:
+END
+
+PROCEDURE ExtractSymbol
+PARAM sourceLine$:STRING
+PARAM linePrefix$:STRING
+PARAM declarationType:BYTE
+PARAM scope:BYTE
+PARAM definitions(MAX_SYMBOLS):SymbolEntry
+PARAM defCount:INTEGER
+
+DIM trimmedLine$:STRING
+DIM i, j, k:INTEGER
+DIM name$:STRING
+DIM literalValue$:STRING
+
+defCount := defCount + 1
+IF defCount > MAX_SYMBOLS THEN
+  PRINT "Warning: Exceeded max symbols."
+  defCount := defCount - 1
+  END
+ENDIF
+
+i := SUBSTR(linePrefix$, sourceLine$)
+j := i + LEN(linePrefix$) - 1
+WHILE j <= LEN(sourceLine$) AND MID$(sourceLine$, j, 1) = " " DO
+  j := j + 1
+ENDWHILE
+
+! Extract the name
+k := j
+WHILE k <= LEN(sourceLine$) AND MID$(sourceLine$, k, 1) <> " " AND MID$(sourceLine$, k, 1) <> ":" DO
+  k := k + 1
+END WHILE
+name$ := MID$(sourceLine$, j, k-j)
+
+! Extract literal value for CONST
+IF declarationType = 1 THEN
+  i := SUBSTR(" := ", sourceLine$)
+  literalValue$ := RIGHT$(sourceLine$, LEN(sourceLine$) - i - 3)
+ENDIF
+
+definitions(defCount).name$ := name$
+definitions(defCount).declarationLine$ := sourceLine$
+definitions(defCount).literalValue$ := literalValue$
+definitions(defCount).scope := scope
+definitions(defCount).declarationType := declarationType
+END
+
+PROCEDURE ExtractEnum
+PARAM sourceLine$:STRING
+PARAM linePrefix$:STRING
+PARAM declarationType:BYTE
+PARAM scope:BYTE
+PARAM definitions(MAX_SYMBOLS):SymbolEntry
+PARAM defCount:INTEGER
+
+DIM i, j, k, l:INTEGER
+DIM enumName$, enumMembers$:STRING
+DIM memberName$, memberValue$:STRING
+
+i := SUBSTR("ENUM ", sourceLine$)
+j := SUBSTR(" =
+PARAM result$:STRING
+DIM commaPos:INTEGER
+
+result$ := ""
+commaPos := SUBSTR(",", caseString$)
+IF commaPos = 0 THEN
+  result$ := "selectedColor=" + caseString$
+ELSE
+  result$ := "selectedColor=" + LEFT$(caseString$, commaPos-1) + " OR selectedColor=" + RIGHT$(caseString$, LEN(caseString$)-commaPos)
+ENDIF
+END
+
+! --- Global Error Handler ---
+900 \! Global error handler for TRANSPILE
+  PRINT "Runtime Error (Code "; errCode; "): "; ERR
+  
+ ! Provide usage message for specific parameter errors
+  IF errCode >= 101 AND errCode <= 103 THEN
+    PRINT ""
+    PRINT "Usage: RUN TRANSPILE(sourceFilePath$, targetFilePath$, globalFilePath$)"
+    PRINT "  sourceFilePath$: Path to the input source file (required)."
+    PRINT "  targetFilePath$: Path to the output target file (required)."
+    PRINT "  globalFilePath$: Path to the file containing global types, constants, and variables."
+  ENDIF
+
+ ! Close any open files
+  IF sourceFileOpen THEN
+    CLOSE #sourceFileHandle
+  ENDIF 
+  IF targetFileOpen THEN
+    CLOSE #targetFileHandle
+  ENDIF 
+ ! Add other file handles as needed
+  
+ ! Terminate procedure on error
+  END
