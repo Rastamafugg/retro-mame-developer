@@ -1,0 +1,457 @@
+PROCEDURE TRANSPILE
+! TRANSPILE - Replaces custom tokens and unsupported language features in a source file
+! with compliant Basic09 code.
+
+! Parameters:
+!   sourceFilePath$: STRING - Path to the input source file.
+!   targetFilePath$: STRING - Path to the output target file.
+!   globalFilePath$: STRING - Path to the global definitions file (global.b09).
+
+! --- Type and Variable Declarations ---
+TYPE Template = tokenType:BYTE; typeName$:STRING; typeContent$:STRING; constVal:INTEGER
+TYPE Label = name$:STRING; lineNumber:INTEGER
+
+! File handles
+DIM sourceFileHandle, targetFileHandle:BYTE
+
+! Error code flags
+DIM errCode:INTEGER
+
+! File status flags
+DIM sourceFileOpen, targetFileOpen:BOOLEAN
+
+! Line buffers and parsing variables
+DIM sourceLine$:STRING
+DIM lineBuffer(500):STRING
+DIM lineCount:INTEGER
+DIM trimmedLine$:STRING
+DIM leadingWhitespace$:STRING
+DIM replacementLine$:STRING
+DIM i,j,k,lineNum,labelNum:INTEGER
+DIM charCode:BYTE
+DIM isValidChar, inProcBlock:BOOLEAN
+DIM name$:STRING
+DIM exitLoop:BOOLEAN
+
+! Data structures for in-memory definitions
+DIM definitions(100):Template
+DIM defCount:INTEGER
+
+! Data structures for in-memory labels
+DIM labelMap(20):Label
+DIM labelCount:INTEGER
+
+! Initialize flags and counters
+sourceFileOpen := FALSE
+targetFileOpen := FALSE
+inProcBlock := FALSE
+defCount := 0
+labelCount := 0
+lineCount := 0
+errCode := 0
+
+! --- Error Handling Setup ---
+ON ERROR GOTO 900 \! Global error handler for the procedure
+
+! --- Parameter Validation ---
+errCode := 101
+IF LEN(sourceFilePath$) = 0 THEN
+  PRINT "Error: Source file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 102
+IF LEN(targetFilePath$) = 0 THEN
+  PRINT "Error: Target file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 103
+IF LEN(globalFilePath$) = 0 THEN
+  PRINT "Error: Global file path cannot be empty."
+  GOTO 900
+ENDIF
+
+errCode := 0 \! Reset error code
+
+! --- Load Global Definition File into Memory ---
+PRINT "> Loading Global Definitions from: "; globalFilePath$
+RUN LoadGlobalDefinitions(globalFilePath$, definitions, defCount)
+PRINT "< Finished Loading Global Definitions"
+
+! --- Main File Processing (Pass 1 & 2) ---
+! Pass 1: Read source file into memory and collect labels and module-level defs.
+PRINT "> First Pass: Reading source file and collecting labels."
+ON ERROR GOTO 140
+OPEN #sourceFileHandle, sourceFilePath$:READ
+sourceFileOpen := TRUE
+
+WHILE NOT(EOF(#sourceFileHandle)) DO
+  READ #sourceFileHandle, sourceLine$
+  lineCount := lineCount + 1
+  lineBuffer(lineCount) := sourceLine$
+ENDWHILE
+
+CLOSE #sourceFileHandle
+sourceFileOpen := FALSE
+PRINT "< First Pass Completed."
+
+! Pass 2: Process line buffer and write to target file.
+PRINT "> Second Pass: Transpiling code and writing to target file."
+
+ON ERROR GOTO 150
+DELETE targetFilePath$
+GOTO 159 \! Skip local error handler for delete
+
+150 \! Local error for target file delete
+ ! Expected if the file doesn't exist
+  PRINT "Warning: System Error ("; ERR; ") deleting "; targetFilePath$; "."
+
+159 \! Continue after target file delete
+
+CREATE #targetFileHandle, targetFilePath$:WRITE
+targetFileOpen := TRUE
+
+ON ERROR GOTO 900 \! Reset global error handler
+
+FOR i := 1 TO lineCount
+  sourceLine$ := lineBuffer(i)
+  
+ ! Check for MODULE / ENDMODULE
+  trimmedLine$ := LTRIM$(sourceLine$)
+  IF SUBSTR("MODULE", trimmedLine$) = 1 THEN
+   ! Write out module-level definitions first
+    FOR k := 1 TO defCount
+      IF definitions(k).tokenType < 3 THEN
+        WRITE #targetFileHandle, definitions(k).typeContent$
+        IF definitions(k).tokenType = 1 THEN
+         ! Also add the assignment for CONST
+          WRITE #targetFileHandle, definitions(k).typeName$; " := "; definitions(k).constVal
+        ENDIF
+      ENDIF
+    NEXT k
+    GOTO 199
+  ENDIF
+
+  IF SUBSTR("ENDMODULE", trimmedLine$) = 1 THEN
+    GOTO 199
+  ENDIF
+
+ ! Check for PROCEDURE block and reset label map
+  IF SUBSTR("PROCEDURE", trimmedLine$) = 1 THEN
+    inProcBlock := TRUE
+    lineNum := 100 \! Start line numbers at 100 for each procedure
+    labelCount := 0
+   ! Collect labels for this procedure in a second mini-pass on the buffer
+    FOR j := i TO lineCount
+      trimmedLine$ := LTRIM$(lineBuffer(j))
+      IF SUBSTR("PROCEDURE", trimmedLine$) = 1 AND j > i THEN
+        GOTO 190 \! found next procedure, stop collecting
+      ENDIF
+      IF SUBSTR("END", trimmedLine$) = 1 AND j > i THEN
+        GOTO 190 \! found end of procedure, stop collecting
+      ENDIF
+      IF SUBSTR(":", trimmedLine$) = LEN(trimmedLine$) THEN
+        labelCount := labelCount + 1
+        labelMap(labelCount).name$ := LEFT$(trimmedLine$, LEN(trimmedLine$) - 1)
+        labelMap(labelCount).lineNumber := lineNum
+        lineNum := lineNum + 100
+      ENDIF
+    NEXT j
+
+190 \! End of label collection loop
+    WRITE #targetFileHandle, sourceLine$
+    GOTO 199 \! Continue to next line
+  ENDIF
+
+ ! Check for END of procedure, reset flag
+  IF SUBSTR("END", trimmedLine$) = 1 THEN
+    inProcBlock := FALSE
+  ENDIF
+
+ ! Initialize for this line
+  replacementLine$ := sourceLine$
+
+ ! --- Find and Replace Directives and Keywords ---
+ ! Extract leading whitespace
+  leadingWhitespace$ := ""
+  j := 1
+  WHILE j <= LEN(sourceLine$) AND (MID$(sourceLine$, j, 1) = " " OR MID$(sourceLine$, j, 1) = CHR$(9)) DO
+    leadingWhitespace$ := leadingWhitespace$ + MID$(sourceLine$, j, 1)
+    j := j + 1
+  ENDWHILE
+  trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
+
+ ! ENUM and ENDENUM
+  IF SUBSTR("ENUM", trimmedLine$) = 1 THEN
+    name$ := LTRIM$(RIGHT$(trimmedLine$, LEN(trimmedLine$) - 4))
+    FOR j := 1 TO defCount
+      IF definitions(j).typeName$ = name$ THEN
+        WRITE #targetFileHandle, "! Transpiled ENUM block"
+        FOR k := j+1 TO defCount
+          IF definitions(k).tokenType <> 3 THEN
+            GOTO 198 \! Reached end of enum members
+          ENDIF
+          replacementLine$ := leadingWhitespace$ + "DIM "; definitions(k).typeName$; ":INTEGER"
+          WRITE #targetFileHandle, replacementLine$
+          replacementLine$ := leadingWhitespace$ + definitions(k).typeName$; " := "; definitions(k).constVal
+          WRITE #targetFileHandle, replacementLine$
+        NEXT k
+198 \! End of inner loop
+        GOTO 199 \! Skip writing this line
+      ENDIF
+    NEXT j
+  ENDIF
+
+  IF SUBSTR("ENDENUM", trimmedLine$) = 1 THEN
+    WRITE #targetFileHandle, leadingWhitespace$; "! End of ENUM block"
+    GOTO 199 \! Skip writing this line
+  ENDIF
+
+ ! @@ directives
+  IF SUBSTR("@@", trimmedLine$) = 1 THEN
+    tokenFound := FALSE
+    IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@TYPE"
+    IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@CONST"
+    IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@VAR"
+
+    IF tokenFound THEN
+      name$ := LTRIM$(RIGHT$(trimmedLine$, LEN(token$)))
+      FOR j := 1 TO defCount
+        IF definitions(j).typeName$ = name$ THEN
+          IF definitions(j).tokenType = 0 THEN
+            replacementLine$ := leadingWhitespace$ + definitions(j).typeContent$
+          ELSE IF definitions(j).tokenType = 1 THEN
+            replacementLine$ := leadingWhitespace$ + "DIM "; definitions(j).typeName$; ":INTEGER"
+            WRITE #targetFileHandle, replacementLine$
+            replacementLine$ := leadingWhitespace$ + definitions(j).typeName$; " := "; definitions(j).constVal
+          ELSE IF definitions(j).tokenType = 2 THEN
+            replacementLine$ := leadingWhitespace$ + "DIM "; definitions(j).typeName$; ":INTEGER"
+          ENDIF
+          GOTO 199 \! Found and replaced
+        ENDIF
+      NEXT j
+    ENDIF
+  ENDIF
+
+ ! SELECT CASE
+  IF SUBSTR("SELECT", trimmedLine$) = 1 THEN
+    PRINT "Warning: SELECT CASE transpilation is not fully implemented in this example."
+    PRINT "The provided code will not be transpiled correctly."
+  ENDIF
+
+ ! GOTO/GOSUB labels
+  IF SUBSTR("GOTO", trimmedLine$) = 1 OR SUBSTR("GOSUB", trimmedLine$) = 1 THEN
+    exitLoop := FALSE
+    FOR j := 1 TO labelCount
+      IF SUBSTR(labelMap(j).name$, trimmedLine$) > 0 AND NOT exitLoop THEN
+        replacementLine$ := leadingWhitespace$; "ON value GOSUB "; labelMap(j).lineNumber; " \! "; labelMap(j).name$
+        WRITE #targetFileHandle, replacementLine$
+        exitLoop := TRUE
+        GOTO 199
+      ENDIF
+    NEXT j
+  ENDIF
+
+ ! Line labels
+  IF SUBSTR(":", sourceLine$) > 0 THEN
+    name$ := LEFT$(LTRIM$(sourceLine$), SUBSTR(":", LTRIM$(sourceLine$)) - 1)
+    FOR j := 1 TO labelCount
+      IF labelMap(j).name$ = name$ THEN
+        replacementLine$ := leadingWhitespace$; labelMap(j).lineNumber; ": \! "; name$
+        WRITE #targetFileHandle, replacementLine$
+        GOTO 199
+      ENDIF
+    NEXT j
+  ENDIF
+
+ ! Write line to target file
+199 \! Continue after processing
+  WRITE #targetFileHandle, replacementLine$
+
+NEXT i
+
+! --- Close Files and Exit ---
+CLOSE #targetFileHandle
+targetFileOpen := FALSE
+PRINT "File processing completed successfully: '"; sourceFilePath$; "' -> '"; targetFilePath$; "'"
+END
+
+! --- Global Error Handler ---
+900 \! Global error handler for TRANSPILE
+  PRINT "Runtime Error (Code "; errCode; "): "; ERR
+  
+ ! Provide usage message for specific parameter errors
+  IF errCode = 101 OR errCode = 102 OR errCode = 103 THEN
+    PRINT ""
+    PRINT "Usage: RUN TRANSPILE(sourceFilePath$, targetFilePath$, globalFilePath$)"
+    PRINT "  sourceFilePath$: Path to the input source file (required)."
+    PRINT "  targetFilePath$: Path to the output target file (required)."
+    PRINT "  globalFilePath$: Path to the global.b09 file (required)."
+  ENDIF
+
+ ! Close any open files
+  IF sourceFileOpen THEN CLOSE #sourceFileHandle
+  IF targetFileOpen THEN CLOSE #targetFileHandle
+  
+ ! Terminate procedure on error
+  END 
+
+PROCEDURE LoadGlobalDefinitions
+ ! LoadGlobalDefinitions - Loads definitions from a single global.b09 file.
+  TYPE Template = tokenType:BYTE; typeName$:STRING; typeContent$:STRING; constVal:INTEGER
+  
+  PARAM filePath$:STRING
+  PARAM definitions(100):Template
+  PARAM defCount:INTEGER
+  
+  DIM fileHandle:BYTE
+  DIM fileOpen:BOOLEAN
+  DIM sourceLine$:STRING
+  DIM name$:STRING
+  DIM j, k:INTEGER
+  DIM charCode:BYTE
+  DIM isValidChar:BOOLEAN
+  DIM exitNameLoop:BOOLEAN
+  DIM valStr$:STRING
+
+  fileOpen := FALSE
+  ON ERROR GOTO 100
+  
+  OPEN #fileHandle, filePath$:READ
+  fileOpen := TRUE
+  
+  WHILE NOT(EOF(#fileHandle)) DO
+    IF defCount < 100 THEN
+      READ #fileHandle, sourceLine$
+      
+     ! Trim leading whitespace
+      sourceLine$ := LTRIM$(sourceLine$)
+      
+     ! Check for TYPE
+      IF SUBSTR("TYPE", sourceLine$) = 1 THEN
+        defCount := defCount + 1
+        definitions(defCount).tokenType := 0
+        j := 5 \! Position after "TYPE "
+        k := j
+        name$ := ""
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        definitions(defCount).typeName$ := name$
+        definitions(defCount).typeContent$ := sourceLine$
+      ENDIF
+      
+     ! Check for CONST
+      IF SUBSTR("CONST", sourceLine$) = 1 THEN
+        defCount := defCount + 1
+        definitions(defCount).tokenType := 1
+        j := 6
+        k := j
+        name$ := ""
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        definitions(defCount).typeName$ := name$
+        definitions(defCount).typeContent$ := sourceLine$
+        j := SUBSTR(":=", sourceLine$)
+        valStr$ := LTRIM$(RIGHT$(sourceLine$, LEN(sourceLine$) - (j + 2)))
+        definitions(defCount).constVal := VAL(valStr$)
+      ENDIF
+
+     ! Check for VAR
+      IF SUBSTR("VAR", sourceLine$) = 1 THEN
+        defCount := defCount + 1
+        definitions(defCount).tokenType := 2
+        j := 4
+        k := j
+        name$ := ""
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        definitions(defCount).typeName$ := name$
+        definitions(defCount).typeContent$ := sourceLine$
+      ENDIF
+
+     ! Check for ENUM
+      IF SUBSTR("ENUM", sourceLine$) = 1 THEN
+        defCount := defCount + 1
+        definitions(defCount).tokenType := 3
+        j := 5
+        k := j
+        name$ := ""
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_")) OR (charCode=ASC("["))
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        definitions(defCount).typeName$ := name$
+        definitions(defCount).typeContent$ := sourceLine$
+        
+        DIM enumCounter:INTEGER
+        enumCounter := 0
+        WHILE NOT(EOF(#fileHandle)) DO
+          READ #fileHandle, sourceLine$
+          trimmedLine$ := LTRIM$(sourceLine$)
+          IF SUBSTR("ENDENUM", trimmedLine$) = 1 THEN
+            GOTO 110 \! Exit enum member loop
+          ENDIF
+          defCount := defCount + 1
+          definitions(defCount).tokenType := 3
+          definitions(defCount).typeName$ := trimmedLine$
+          definitions(defCount).constVal := enumCounter
+          enumCounter := enumCounter + 1
+        ENDWHILE
+      ENDIF
+110 \! End of enum member loop
+    ENDIF
+  ENDWHILE
+  
+  CLOSE #fileHandle
+  fileOpen := FALSE
+END
+  
+100 \! LoadDefError
+  IF ERR = 210 THEN
+    PRINT "Error: Definition file not found at '"; filePath$; "'"
+  ELSE
+    PRINT "System Error ("; ERR; ") opening '"; filePath$; "'"
+  ENDIF
+  IF fileOpen THEN CLOSE #fileHandle
+  END
+
+PROCEDURE BOOTSTRAP
+  PRINT "Transpile >"
+  RUN TRANSPILE("/d1/sourceModule.b09", "/d1/build/sourceModule.b09", "/d1/global.b09")
+  PRINT "Transpile <"
+END
