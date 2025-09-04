@@ -127,12 +127,15 @@ BEGIN {
     }
     
     # Find GOTO/GOSUB label definitions (e.g., "ErrorHandler:")
-    if (match($0, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):[[:space:]]*(!.*)?$/)) {
-        label_name = substr($0, RSTART, RLENGTH)
-        gsub(/^[[:space:]]+|[[:space:]]*:.*$/, "", label_name)
-        if (!(label_name in labels)) {
-            labels[label_name] = line_number_counter
-            line_number_counter += 100
+    # NOTE: Make sure it's not an assignment by checking it's NOT followed by '='
+    if (match($0, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):[[:space:]]*([^=]|$)/, m)) {
+        # Additional check: if the line contains ':=' anywhere, it's an assignment, not a label
+        if (index($0, ":=") == 0) {
+            label_name = m[1]
+            if (!(label_name in labels)) {
+                labels[label_name] = line_number_counter
+                line_number_counter += 100
+            }
         }
     }
 }
@@ -231,7 +234,6 @@ END {
             }
         
         # 3. GOTO/GOSUB/Label Replacement
-# 3. GOTO/GOSUB/Label Replacement
         } else if (match(line, /^[[:space:]]*ON[[:space:]]+.*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_,[:space:]]+)/, m)) {
             labels_str = m[2]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", labels_str)
             split(labels_str, label_arr, ","); new_list = ""
@@ -266,10 +268,17 @@ END {
                 # It's an unknown text label.
                 print indent_str "REM ERROR: Label not found: " target
             }
-        } else if (match(line, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):/, m)) {
-            label = m[1]
-            if (label in labels) print indent_str labels[label] ": \\ ! " label
-            else print line " \ ! ERROR: Unindexed Label"
+        # Check for label definitions - ensure it's not an assignment
+        } else if (match(line, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):[[:space:]]*([^=]|$)/, m)) {
+            # Additional check: if the line contains ':=' anywhere, it's an assignment, not a label
+            if (index(line, ":=") == 0) {
+                label = m[1]
+                if (label in labels) print indent_str labels[label] " \\ ! " label
+                else print line " \\ ! ERROR: Unindexed Label"
+            } else {
+                # It's an assignment statement, not a label, so print it as-is
+                print line
+            }
 
         # 4. SELECT CASE Block Replacement
         } else if (match(line, /^[[:space:]]*SELECT[[:space:]]+(.*)/, m)) {
