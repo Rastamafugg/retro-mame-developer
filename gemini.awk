@@ -231,24 +231,46 @@ END {
             }
         
         # 3. GOTO/GOSUB/Label Replacement
+# 3. GOTO/GOSUB/Label Replacement
         } else if (match(line, /^[[:space:]]*ON[[:space:]]+.*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_,[:space:]]+)/, m)) {
             labels_str = m[2]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", labels_str)
             split(labels_str, label_arr, ","); new_list = ""
             for (l in label_arr) {
                 lbl = label_arr[l]; gsub(/^[[:space:]]+|[[:space:]]+$/, "", lbl)
-                new_list = new_list (new_list == "" ? "" : ", ") (lbl in labels ? labels[lbl] : "INVALID_LABEL")
+                
+                # Check if the target is a number or a text label
+                if (lbl ~ /^[0-9]+$/) {
+                    # It's a number, so use it directly.
+                    new_list = new_list (new_list == "" ? "" : ", ") lbl
+                } else if (lbl in labels) {
+                    # It's a known text label, replace it with its number.
+                    new_list = new_list (new_list == "" ? "" : ", ") labels[lbl]
+                } else {
+                    # It's an unknown text label.
+                    new_list = new_list (new_list == "" ? "" : ", ") "INVALID_LABEL"
+                }
             }
             sub(labels_str, new_list, line)
             print line " \\ ! " labels_str
         } else if (match(line, /^[[:space:]]*(GOTO|GOSUB)[[:space:]]+([a-zA-Z0-9_]+)/, m)) {
-            op = m[1]; label = m[2]
-            if (label in labels) print indent_str op " " labels[label] " \\ ! " label
-            else print indent_str "REM ERROR: Label not found: " label
+            op = m[1]; target = m[2]
+            
+            # Check if the target is a number or a text label
+            if (target ~ /^[0-9]+$/) {
+                # It's already a line number, so print the original line.
+                print line
+            } else if (target in labels) {
+                # It's a text label, so replace it with its number.
+                print indent_str op " " labels[target] " \\ ! " target
+            } else {
+                # It's an unknown text label.
+                print indent_str "REM ERROR: Label not found: " target
+            }
         } else if (match(line, /^[[:space:]]*([a-zA-Z][a-zA-Z0-9_]*):/, m)) {
             label = m[1]
             if (label in labels) print indent_str labels[label] ": \\ ! " label
-            else print line " ! ERROR: Unindexed Label"
-        
+            else print line " \ ! ERROR: Unindexed Label"
+
         # 4. SELECT CASE Block Replacement
         } else if (match(line, /^[[:space:]]*SELECT[[:space:]]+(.*)/, m)) {
             in_select = 1; select_var = m[1]; select_endif_count = 0; is_first_case = 1
