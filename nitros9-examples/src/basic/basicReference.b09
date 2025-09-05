@@ -550,7 +550,7 @@ PROCEDURE deleteFile
   END
 
   900 \ ! Error for target file when it does not exist
-    IF ERR = 216 THEN
+    IF ERR = 216 THEN \ ! File not found error code
       PRINT "File not found: '"; targetFilePath$; "'."
     ELSE
       PRINT "System Error ("; ERR; ") deleting '"; targetFilePath$; "'."
