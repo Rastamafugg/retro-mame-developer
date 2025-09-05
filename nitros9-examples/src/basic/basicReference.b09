@@ -540,7 +540,7 @@ PRINT
 PRINT "--- Test Complete ---"
 END
 
-PROCEDURE DeleteFile
+PROCEDURE deleteFile
   PARAM targetFilePath$:STRING
 
   ON ERROR GOTO 900 \ ! Error handler for target file exists check
@@ -553,5 +553,5 @@ PROCEDURE DeleteFile
     IF ERR = 216 THEN
       PRINT "File not found: '"; targetFilePath$; "'."
     ELSE
-      PRINT "System Error ("; ERR; ") deleting "; targetFilePath$; "."
+      PRINT "System Error ("; ERR; ") deleting '"; targetFilePath$; "'."
     ENDIF
