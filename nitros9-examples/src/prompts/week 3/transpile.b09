@@ -1,0 +1,417 @@
+PROCEDURE LoadDefinitions
+  TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
+
+  PARAM filePath$:STRING[80]
+  PARAM targetType:BYTE
+  PARAM linePrefix$:STRING[8]
+  PARAM definitions(50):Template
+  PARAM defCount:INTEGER
+  PARAM verboseLogging:BOOLEAN
+  
+  DIM fileHandle:BYTE
+  DIM fileOpen:BOOLEAN
+  DIM sourceLine$:STRING[128]
+  DIM name$:STRING[64]
+  DIM j, k:INTEGER
+  DIM charCode:BYTE
+  DIM isValidChar:BOOLEAN
+  DIM exitNameLoop, exitLoadLoop:BOOLEAN
+  
+  fileOpen := FALSE
+  ON ERROR GOTO 100
+  
+  OPEN #fileHandle, filePath$:READ
+  fileOpen := TRUE
+  exitLoadLoop := FALSE
+  
+  WHILE NOT(EOF(#fileHandle)) AND NOT exitLoadLoop DO
+    IF defCount < 50 THEN
+      READ #fileHandle, sourceLine$
+      j := SUBSTR(linePrefix$, sourceLine$)
+      
+      IF j > 0 THEN
+        j := j + LEN(linePrefix$) - 1
+        WHILE j <= LEN(sourceLine$) AND MID$(sourceLine$, j, 1) = " " DO
+          j := j + 1
+        ENDWHILE
+        
+        name$ := ""
+        k := j
+        exitNameLoop := FALSE
+        WHILE k <= LEN(sourceLine$) AND NOT exitNameLoop DO
+          charCode := ASC(MID$(sourceLine$, k, 1))
+          isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+          
+          IF (targetType = 1 OR targetType = 2) AND charCode = ASC("$") THEN
+            isValidChar := TRUE
+          ENDIF
+          
+          IF isValidChar THEN
+            name$ := name$ + MID$(sourceLine$, k, 1)
+            k := k + 1
+          ELSE
+            exitNameLoop := TRUE
+          ENDIF
+        ENDWHILE
+        
+        IF LEN(name$) > 0 THEN
+          defCount := defCount + 1
+          definitions(defCount).tokenType := targetType
+          definitions(defCount).typeName$ := name$
+          definitions(defCount).typeContent$ := sourceLine$
+          IF verboseLogging THEN
+            PRINT "Loaded: '"; name$; "' := '"; sourceLine$; "'"
+          ENDIF
+        ENDIF
+      ENDIF
+    ELSE
+      PRINT "Warning: Exceeded MAX_DEFINITIONS. Some definitions not loaded."
+      exitLoadLoop := TRUE
+    ENDIF
+  ENDWHILE
+  
+  CLOSE #fileHandle
+  fileOpen := FALSE
+END
+  
+100 \ ! LoadDefError
+  IF ERR = 210 THEN
+    PRINT "Error: Definition file not found at '"; filePath$; "'"
+  ELSE
+    PRINT "System Error ("; ERR; ") opening '"; filePath$; "'"
+  ENDIF
+  IF fileOpen THEN
+    CLOSE #fileHandle
+  ENDIF
+  ERROR(ERR)
+END
+
+PROCEDURE TRANSPILE
+! TRANSPILE - Replaces custom tokens in a source file
+! with definitions from external files (types, constants, variables).
+
+! Parameters:
+!   sourceFilePath$: STRING - Path to the input source file.
+!   targetFilePath$: STRING - Path to the output target file.
+!   folderPath$: STRING - (Optional) Path to the folder containing definition files.
+!                         If omitted, assumes current data directory.
+
+TYPE Template = tokenType:BYTE; typeName$:STRING[64]; typeContent$:STRING[128]
+
+PARAM sourceFilePath$:STRING[80]
+PARAM targetFilePath$:STRING[80]
+PARAM folderPath$:STRING[80]
+
+! --- Variable Declarations ---
+! File handles
+DIM sourceFileHandle,targetFileHandle:BYTE
+DIM typesFileHandle,constsFileHandle,varsFileHandle:BYTE
+
+! Error code flags
+DIM errCode:INTEGER
+
+! File status flags
+DIM sourceFileOpen,targetFileOpen:BOOLEAN
+DIM typesFileOpen,constsFileOpen,varsFileOpen:BOOLEAN
+
+! Paths for definition files
+DIM actualFolderPath$:STRING[80]
+DIM typesDefPath$,constsDefPath$,varsDefPath$:STRING[80]
+
+! Line buffers and parsing variables
+DIM sourceLine$:STRING[128]
+DIM trimmedLine$:STRING[128]
+DIM leadingWhitespace$:STRING[128]
+DIM tokenFound:BOOLEAN
+DIM token$:STRING[8] \ ! Max length for @@VAR
+DIM targetType:BYTE \ ! 0=TYPE, 1=CONST, 2=VAR
+DIM name$:STRING[64] \ ! Max length for a type/const/var name
+DIM replacementLine$:STRING[128]
+DIM i,j,k:INTEGER
+DIM charCode:BYTE \ ! character code
+DIM isValidChar:BOOLEAN
+DIM exitNameLoop:BOOLEAN \ ! Flag to simulate BREAK for name extraction loops
+DIM exitLoadLoop:BOOLEAN \ ! Flag to simulate BREAK for definition loading loops
+DIM verboseLogging:BOOLEAN \ ! Flag to allow more verbose logging
+
+! Data structures for in-memory definitions
+! Using fixed-size arrays for simplicity. Adjust MAX_DEFINITIONS if needed.
+DIM MAX_DEFINITIONS
+MAX_DEFINITIONS := 10 \ ! Maximum number of definitions per file
+
+DIM definitions(50):Template
+
+DIM typesfileName$,constantsFileName$,variablesFileName$:STRING
+DIM defCount:INTEGER
+
+! Initialize constants
+typesFileName$ := "types.b09"
+constantsFileName$ := "constants.b09"
+variablesFileName$ := "variables.b09"
+
+! Initialize flags and counters
+sourceFileOpen := FALSE
+targetFileOpen := FALSE
+typesFileOpen := FALSE
+constsFileOpen := FALSE
+varsFileOpen := FALSE
+tokenFound := FALSE
+verboseLogging := TRUE
+errCode := 0
+defCount := 0
+
+! --- Error Handling Setup ---
+ON ERROR GOTO 900 \ ! Global error handler for the procedure
+
+! --- Parameter Validation ---
+errCode := 101 \ ! Set code in advance of LEN check, as error will be thrown
+IF LEN(sourceFilePath$) = 0 THEN
+  PRINT "Error: Source file path cannot be empty."
+  errCode := 101 \ ! Custom error: Source path omitted
+  GOTO 900
+ENDIF
+
+errCode := 102 \ ! Set code in advance of LEN check, as error will be thrown
+IF LEN(targetFilePath$) = 0 THEN
+  PRINT "Error: Target file path cannot be empty."
+  errCode := 102 \ ! Custom error: Target path omitted
+  GOTO 900
+ENDIF
+
+errCode := 0 \ ! Reset code after LEN checks
+
+! Determine actual folder path for definition files
+IF LEN(folderPath$) = 0 THEN
+  actualFolderPath$ := "" \ ! Assume current directory
+ELSE
+  actualFolderPath$ := folderPath$
+  ! Ensure folderPath$ ends with a slash if not empty
+  IF RIGHT$(actualFolderPath$, 1) <> "/" THEN
+    actualFolderPath$ := actualFolderPath$ + "/"
+  ENDIF
+ENDIF
+
+! --- Load Definition Files into Memory ---
+
+! Load types.b09
+IF verboseLogging THEN
+  PRINT "> Loading Type Definitions"
+ENDIF
+typesDefPath$ := actualFolderPath$ + typesFileName$
+RUN LoadDefinitions(typesDefPath$, 0, "TYPE ", definitions, defCount, verboseLogging)
+IF verboseLogging THEN
+  PRINT "< Loading Type Definitions"
+ENDIF
+
+! Load constants.b09
+IF verboseLogging THEN
+  PRINT "> Loading Constant Definitions"
+ENDIF
+constsDefPath$ := actualFolderPath$ + constantsFileName$
+RUN LoadDefinitions(constsDefPath$, 1, "CONST ", definitions, defCount, verboseLogging)
+IF verboseLogging THEN
+  PRINT "< Loading Constant Definitions"
+ENDIF
+
+! Load variables.b09
+IF verboseLogging THEN
+  PRINT "> Loading Variable Definitions"
+ENDIF
+varsDefPath$ := actualFolderPath$ + variablesFileName$
+RUN LoadDefinitions(varsDefPath$, 2, "DIM ", definitions, defCount, verboseLogging)
+IF verboseLogging THEN
+  PRINT "< Loading Variable Definitions"
+ENDIF
+
+! --- Main File Processing Loop ---
+
+! Open source and target files
+IF verboseLogging THEN
+  PRINT "> Opening Source and Target Files"
+ENDIF
+OPEN #sourceFileHandle, sourceFilePath$:READ
+sourceFileOpen := TRUE
+
+ON ERROR GOTO 140 \ ! Local error handler for target file exists check
+! We have to delete the existing file, as replacing it with a smaller file will result in garbage at the end of file
+DELETE targetFilePath$
+
+GOTO 149 \ ! Skip consts error handler
+
+140 \ ! Local error for target file open
+  ! Expected if the file doesn't exist
+  PRINT "System Error ("; ERR; ") deleting "; targetFilePath$; "."
+
+149 \ ! Continue after target file delete
+
+CREATE #targetFileHandle, targetFilePath$:WRITE
+
+! Reset global error handler for main processing
+ON ERROR GOTO 900
+
+targetFileOpen := TRUE
+
+WHILE NOT(EOF(#sourceFileHandle)) DO
+  READ #sourceFileHandle, sourceLine$
+  IF verboseLogging THEN
+    PRINT "> Read Source Line: "; sourceLine$
+  ENDIF
+
+  ! Initialize for this line
+  tokenFound := FALSE
+  leadingWhitespace$ := ""
+  name$ := ""
+  replacementLine$ := sourceLine$ \ ! Default to original line
+
+  ! Extract leading whitespace
+  i := 1
+  WHILE i <= LEN(sourceLine$) AND (MID$(sourceLine$, i, 1) = " " OR MID$(sourceLine$, i, 1) = CHR$(9)) DO
+    leadingWhitespace$ := leadingWhitespace$ + MID$(sourceLine$, i, 1)
+    i := i + 1
+  ENDWHILE
+
+  ! Trim leading whitespace for token/name parsing
+  trimmedLine$ := RIGHT$(sourceLine$, LEN(sourceLine$) - LEN(leadingWhitespace$))
+
+  token$ := "@@" \ ! Default value
+  ! Check for tokens
+  IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
+    token$ := "@@TYPE"
+    targetType := 0
+    tokenFound := TRUE
+  ENDIF
+  IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
+    token$ := "@@CONST"
+    targetType := 1
+    tokenFound := TRUE
+  ENDIF
+  IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
+    token$ := "@@VAR"
+    targetType := 2
+    tokenFound := TRUE
+  ENDIF
+
+  IF tokenFound THEN
+    ! Position after the token
+    j := LEN(token$) + 1
+    
+    ! Skip whitespace after token
+    WHILE j <= LEN(trimmedLine$) AND (MID$(trimmedLine$, j, 1) = " " OR MID$(trimmedLine$, j, 1) = CHR$(9)) DO
+      j := j + 1
+    ENDWHILE
+
+    ! Extract the name (alphabetic, _, $) until non-valid char or end of line
+    name$ := ""
+    k := j
+    exitNameLoop := FALSE \ ! Reset flag for inner loop
+    WHILE k <= LEN(trimmedLine$) AND NOT(exitNameLoop) DO
+      charCode := ASC(MID$(trimmedLine$, k, 1))
+      isValidChar := (charCode >= 65 AND charCode <= 90) OR (charCode >= 97 AND charCode <= 122) OR (charCode = ASC("_"))
+      IF (targetType = 1 OR targetType = 2) AND charCode = ASC("$") THEN \ ! CONST or VAR
+        isValidChar := TRUE
+      ENDIF
+      
+      IF isValidChar THEN
+        name$ := name$ + MID$(trimmedLine$, k, 1)
+        k := k + 1
+      ELSE
+        exitNameLoop := TRUE \ ! Simulate BREAK
+      ENDIF
+    ENDWHILE
+    
+    ! Check if anything but whitespace follows the name
+    IF k <= LEN(trimmedLine$) THEN
+      ! Check if remaining characters are only whitespace
+      DIM remainingAreWhitespace:BOOLEAN
+      remainingAreWhitespace := TRUE
+      FOR i := k TO LEN(trimmedLine$)
+        IF NOT(MID$(trimmedLine$, i, 1) = " " OR MID$(trimmedLine$, i, 1) = CHR$(9)) THEN
+          remainingAreWhitespace := FALSE
+          i := LEN(trimmedLine$) + 1 \ ! Simulate BREAK by advancing loop counter
+        ENDIF
+      NEXT i
+      
+      IF NOT(remainingAreWhitespace) THEN
+        PRINT "Warning: Trailing characters found after '"; name$; "' on line: "; sourceLine$
+      ENDIF
+    ENDIF
+
+    ! Lookup and replace
+    replacementLine$ := sourceLine$ \ ! Default to original if not found
+    
+    IF verboseLogging THEN
+      PRINT "> Locating "; token$; " : "; name$
+    ENDIF
+    
+    FOR i := 1 TO defCount
+      IF definitions(i).tokenType = targetType AND definitions(i).typeName$ = name$ THEN
+        replacementLine$ := leadingWhitespace$ + definitions(i).typeContent$
+        IF verboseLogging THEN
+          PRINT "> Found replacementLine: "; replacementLine$
+        ENDIF
+        i := defCount + 1 \ ! Simulate BREAK by advancing loop counter
+      ENDIF
+    NEXT i
+
+    IF replacementLine$ = sourceLine$ AND LEN(name$) > 0 THEN
+        PRINT "Warning: Definition for '"; name$; "' ("; token$; ") not found in corresponding file."
+    ENDIF
+  ENDIF
+  
+  ! Write the processed line to the target file
+  WRITE #targetFileHandle, replacementLine$
+
+ENDWHILE
+
+! --- Close Files and Exit ---
+CLOSE #sourceFileHandle
+sourceFileOpen := FALSE
+CLOSE #targetFileHandle
+targetFileOpen := FALSE
+IF verboseLogging THEN
+  PRINT "< Closing Source and Target Files"
+ENDIF
+
+PRINT "File processing completed successfully: '"; sourceFilePath$; "' -> '"; targetFilePath$; "'"
+END
+
+! --- Global Error Handler ---
+900 \ ! Global error handler for TRANSPILE
+  PRINT "Runtime Error (Code "; errCode; "): "; ERR
+  
+  ! Provide usage message for specific parameter errors
+  IF errCode = 101 OR errCode = 102 THEN
+    PRINT ""
+    PRINT "Usage: RUN TRANSPILE(sourceFilePath$, targetFilePath$, folderPath$)"
+    PRINT "  sourceFilePath$: Path to the input source file (required)."
+    PRINT "  targetFilePath$: Path to the output target file (required)."
+    PRINT "  folderPath$:     Path to the folder containing types.b09, constants.b09, variables.b09."
+    PRINT "                   (Optional: if omitted, current directory is assumed)."
+  ENDIF
+
+  ! Close any open files
+  IF sourceFileOpen THEN
+    CLOSE #sourceFileHandle
+  ENDIF 
+  IF targetFileOpen THEN
+    CLOSE #targetFileHandle
+  ENDIF 
+  IF typesFileOpen THEN
+    CLOSE #typesFileHandle
+  ENDIF 
+  IF constsFileOpen THEN
+    CLOSE #constsFileHandle
+  ENDIF 
+  IF varsFileOpen THEN
+    CLOSE #varsFileHandle
+  ENDIF 
+  
+  ! Terminate procedure on error
+  END 
+
+
+PROCEDURE BOOTSTRAP
+PRINT "Transpile >"
+RUN TRANSPILE("/d1/source.b09", "/d1/output.b09", "/d1")
+PRINT "Transpile <"
+END

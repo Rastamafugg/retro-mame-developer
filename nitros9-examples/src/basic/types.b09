@@ -1,8 +1,0 @@
-TYPE DirEntry = fileName:STRING[29]; LSN(3):BYTE
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-TYPE FileRecord = name:STRING; fileSize:INTEGER; date:STRING[8]
-TYPE DataBlock = id:INTEGER; binaryData:STRING[64]; checksum:BYTE
-TYPE CalcResult = value:REAL; errorCode:BYTE; valid:BOOLEAN
-TYPE HistoryEntry = timeStamp:STRING[19]; expression:STRING[80]; result:CalcResult; mode:BYTE
-TYPE CalcState = currentValue,memoryValue,lastResult:REAL; angleMode,displayFormat,decimalPlaces,calcMode,errorState:BYTE; historyCount:INTEGER
-TYPE ConfigData = autoSave,soundEnabled:BOOLEAN; maxHistory,backupInterval:INTEGER; startupMode:BYTE

@@ -9,7 +9,7 @@ PROCEDURE TRANSPILE
 
 ! --- Type and Variable Declarations ---
 TYPE Template = tokenType:BYTE; typeName$:STRING; typeContent$:STRING; constVal:INTEGER
-TYPE Label = name$:STRING; lineNumber:INTEGER
+TYPE Label = labelName$:STRING; lineNumber:INTEGER
 
 ! File handles
 DIM sourceFileHandle, targetFileHandle:BYTE
@@ -109,16 +109,16 @@ GOTO 159 \! Skip local error handler for delete
 
 159 \! Continue after target file delete
 
+ON ERROR GOTO 900 \! Reset global error handler
+
 CREATE #targetFileHandle, targetFilePath$:WRITE
 targetFileOpen := TRUE
-
-ON ERROR GOTO 900 \! Reset global error handler
 
 FOR i := 1 TO lineCount
   sourceLine$ := lineBuffer(i)
   
  ! Check for MODULE / ENDMODULE
-  trimmedLine$ := LTRIM$(sourceLine$)
+  trimmedLine$ := TRIM$(sourceLine$)
   IF SUBSTR("MODULE", trimmedLine$) = 1 THEN
    ! Write out module-level definitions first
     FOR k := 1 TO defCount
@@ -144,7 +144,7 @@ FOR i := 1 TO lineCount
     labelCount := 0
    ! Collect labels for this procedure in a second mini-pass on the buffer
     FOR j := i TO lineCount
-      trimmedLine$ := LTRIM$(lineBuffer(j))
+      trimmedLine$ := TRIM$(lineBuffer(j))
       IF SUBSTR("PROCEDURE", trimmedLine$) = 1 AND j > i THEN
         GOTO 190 \! found next procedure, stop collecting
       ENDIF
@@ -153,7 +153,7 @@ FOR i := 1 TO lineCount
       ENDIF
       IF SUBSTR(":", trimmedLine$) = LEN(trimmedLine$) THEN
         labelCount := labelCount + 1
-        labelMap(labelCount).name$ := LEFT$(trimmedLine$, LEN(trimmedLine$) - 1)
+        labelMap(labelCount).labelName$ := LEFT$(trimmedLine$, LEN(trimmedLine$) - 1)
         labelMap(labelCount).lineNumber := lineNum
         lineNum := lineNum + 100
       ENDIF
@@ -184,7 +184,7 @@ FOR i := 1 TO lineCount
 
  ! ENUM and ENDENUM
   IF SUBSTR("ENUM", trimmedLine$) = 1 THEN
-    name$ := LTRIM$(RIGHT$(trimmedLine$, LEN(trimmedLine$) - 4))
+    name$ := TRIM$(RIGHT$(trimmedLine$, LEN(trimmedLine$) - 4))
     FOR j := 1 TO defCount
       IF definitions(j).typeName$ = name$ THEN
         WRITE #targetFileHandle, "! Transpiled ENUM block"
@@ -192,9 +192,9 @@ FOR i := 1 TO lineCount
           IF definitions(k).tokenType <> 3 THEN
             GOTO 198 \! Reached end of enum members
           ENDIF
-          replacementLine$ := leadingWhitespace$ + "DIM "; definitions(k).typeName$; ":INTEGER"
+          replacementLine$ := leadingWhitespace$ + "DIM " + definitions(k).typeName$ + ":INTEGER"
           WRITE #targetFileHandle, replacementLine$
-          replacementLine$ := leadingWhitespace$ + definitions(k).typeName$; " := "; definitions(k).constVal
+          replacementLine$ := leadingWhitespace$ + definitions(k).typeName$ + " := " + definitions(k).constVal
           WRITE #targetFileHandle, replacementLine$
         NEXT k
 198 \! End of inner loop
@@ -211,22 +211,31 @@ FOR i := 1 TO lineCount
  ! @@ directives
   IF SUBSTR("@@", trimmedLine$) = 1 THEN
     tokenFound := FALSE
-    IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@TYPE"
-    IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@CONST"
-    IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN tokenFound := TRUE; token$ := "@@VAR"
+    IF SUBSTR("@@TYPE", trimmedLine$) = 1 THEN
+      tokenFound := TRUE
+      token$ := "@@TYPE"
+    ENDIF
+    IF NOT(tokenFound) AND SUBSTR("@@CONST", trimmedLine$) = 1 THEN
+      tokenFound := TRUE
+      token$ := "@@CONST"
+    ENDIF
+    IF NOT(tokenFound) AND SUBSTR("@@VAR", trimmedLine$) = 1 THEN
+      tokenFound := TRUE
+      token$ := "@@VAR"
+    ENDIF
 
     IF tokenFound THEN
-      name$ := LTRIM$(RIGHT$(trimmedLine$, LEN(token$)))
+      name$ := TRIM$(RIGHT$(trimmedLine$, LEN(token$)))
       FOR j := 1 TO defCount
         IF definitions(j).typeName$ = name$ THEN
           IF definitions(j).tokenType = 0 THEN
             replacementLine$ := leadingWhitespace$ + definitions(j).typeContent$
           ELSE IF definitions(j).tokenType = 1 THEN
-            replacementLine$ := leadingWhitespace$ + "DIM "; definitions(j).typeName$; ":INTEGER"
+            replacementLine$ := leadingWhitespace$ + "DIM " + definitions(j).typeName$ + ":INTEGER"
             WRITE #targetFileHandle, replacementLine$
-            replacementLine$ := leadingWhitespace$ + definitions(j).typeName$; " := "; definitions(j).constVal
+            replacementLine$ := leadingWhitespace$ + definitions(j).typeName$ + " := " + definitions(j).constVal
           ELSE IF definitions(j).tokenType = 2 THEN
-            replacementLine$ := leadingWhitespace$ + "DIM "; definitions(j).typeName$; ":INTEGER"
+            replacementLine$ := leadingWhitespace$ + "DIM " + definitions(j).typeName$ + ":INTEGER"
           ENDIF
           GOTO 199 \! Found and replaced
         ENDIF
@@ -244,8 +253,8 @@ FOR i := 1 TO lineCount
   IF SUBSTR("GOTO", trimmedLine$) = 1 OR SUBSTR("GOSUB", trimmedLine$) = 1 THEN
     exitLoop := FALSE
     FOR j := 1 TO labelCount
-      IF SUBSTR(labelMap(j).name$, trimmedLine$) > 0 AND NOT exitLoop THEN
-        replacementLine$ := leadingWhitespace$; "ON value GOSUB "; labelMap(j).lineNumber; " \! "; labelMap(j).name$
+      IF SUBSTR(labelMap(j).labelName$, trimmedLine$) > 0 AND NOT exitLoop THEN
+        replacementLine$ := leadingWhitespace$ + "ON value GOSUB " + labelMap(j).lineNumber + " \! " + labelMap(j).labelName$
         WRITE #targetFileHandle, replacementLine$
         exitLoop := TRUE
         GOTO 199
@@ -255,10 +264,10 @@ FOR i := 1 TO lineCount
 
  ! Line labels
   IF SUBSTR(":", sourceLine$) > 0 THEN
-    name$ := LEFT$(LTRIM$(sourceLine$), SUBSTR(":", LTRIM$(sourceLine$)) - 1)
+    name$ := LEFT$(TRIM$(sourceLine$), SUBSTR(":", TRIM$(sourceLine$)) - 1)
     FOR j := 1 TO labelCount
-      IF labelMap(j).name$ = name$ THEN
-        replacementLine$ := leadingWhitespace$; labelMap(j).lineNumber; ": \! "; name$
+      IF labelMap(j).labelName$ = name$ THEN
+        replacementLine$ := leadingWhitespace$ + labelMap(j).lineNumber + ": \! " + name$
         WRITE #targetFileHandle, replacementLine$
         GOTO 199
       ENDIF
@@ -298,7 +307,7 @@ END
   END 
 
 PROCEDURE LoadGlobalDefinitions
- ! LoadGlobalDefinitions - Loads definitions from a single global.b09 file.
+! LoadGlobalDefinitions - Loads definitions from a single global.b09 file.
   TYPE Template = tokenType:BYTE; typeName$:STRING; typeContent$:STRING; constVal:INTEGER
   
   PARAM filePath$:STRING
@@ -316,7 +325,7 @@ PROCEDURE LoadGlobalDefinitions
   DIM valStr$:STRING
 
   fileOpen := FALSE
-  ON ERROR GOTO 100
+  ON ERROR GOTO 900
   
   OPEN #fileHandle, filePath$:READ
   fileOpen := TRUE
@@ -326,7 +335,7 @@ PROCEDURE LoadGlobalDefinitions
       READ #fileHandle, sourceLine$
       
      ! Trim leading whitespace
-      sourceLine$ := LTRIM$(sourceLine$)
+      sourceLine$ := TRIM$(sourceLine$)
       
      ! Check for TYPE
       IF SUBSTR("TYPE", sourceLine$) = 1 THEN
@@ -371,7 +380,7 @@ PROCEDURE LoadGlobalDefinitions
         definitions(defCount).typeName$ := name$
         definitions(defCount).typeContent$ := sourceLine$
         j := SUBSTR(":=", sourceLine$)
-        valStr$ := LTRIM$(RIGHT$(sourceLine$, LEN(sourceLine$) - (j + 2)))
+        valStr$ := TRIM$(RIGHT$(sourceLine$, LEN(sourceLine$) - (j + 2)))
         definitions(defCount).constVal := VAL(valStr$)
       ENDIF
 
@@ -419,39 +428,56 @@ PROCEDURE LoadGlobalDefinitions
         definitions(defCount).typeContent$ := sourceLine$
         
         DIM enumCounter:INTEGER
+        DIM processingEnum:BOOLEAN
         enumCounter := 0
-        WHILE NOT(EOF(#fileHandle)) DO
+        processingEnum := TRUE
+        WHILE NOT(EOF(#fileHandle)) AND processingEnum DO
           READ #fileHandle, sourceLine$
-          trimmedLine$ := LTRIM$(sourceLine$)
+          trimmedLine$ := TRIM$(sourceLine$)
           IF SUBSTR("ENDENUM", trimmedLine$) = 1 THEN
-            GOTO 110 \! Exit enum member loop
+            processingEnum := FALSE
+          ELSE
+            defCount := defCount + 1
+            definitions(defCount).tokenType := 3
+            definitions(defCount).typeName$ := trimmedLine$
+            definitions(defCount).constVal := enumCounter
+            enumCounter := enumCounter + 1
           ENDIF
-          defCount := defCount + 1
-          definitions(defCount).tokenType := 3
-          definitions(defCount).typeName$ := trimmedLine$
-          definitions(defCount).constVal := enumCounter
-          enumCounter := enumCounter + 1
         ENDWHILE
       ENDIF
-110 \! End of enum member loop
     ENDIF
   ENDWHILE
   
   CLOSE #fileHandle
   fileOpen := FALSE
-END
-  
-100 \! LoadDefError
-  IF ERR = 210 THEN
-    PRINT "Error: Definition file not found at '"; filePath$; "'"
-  ELSE
-    PRINT "System Error ("; ERR; ") opening '"; filePath$; "'"
-  ENDIF
-  IF fileOpen THEN CLOSE #fileHandle
   END
+  
+900 ! LoadDefError
+    IF ERR = 210 THEN
+      PRINT "Error: Definition file not found at '"; filePath$; "'"
+    ELSE
+      PRINT "System Error ("; ERR; ") opening '"; filePath$; "'"
+    ENDIF
+    IF fileOpen THEN CLOSE #fileHandle
+    ENDIF
+    END
+
+PROCEDURE BOOTSTRAPLGD
+  TYPE Template = tokenType:BYTE; typeName$:STRING; typeContent$:STRING; constVal:INTEGER
+  
+  PARAM filePath$:STRING
+  PARAM definitions(100):Template
+  PARAM defCount:INTEGER
+
+  filePath$ := "/d1/global.b09"
+  defCount := 0
+  PRINT "LoadGlobalDefinitions >"
+  RUN LoadGlobalDefinitions(filePath$, definitions, defCount)
+  PRINT "LoadGlobalDefinitions <"
+END
 
 PROCEDURE BOOTSTRAP
   PRINT "Transpile >"
-  RUN TRANSPILE("/d1/sourceModule.b09", "/d1/build/sourceModule.b09", "/d1/global.b09")
+  RUN TRANSPILE("/d1/sourceModule.b09", "/d1/outputModule.b09", "/d1/global.b09")
   PRINT "Transpile <"
 END

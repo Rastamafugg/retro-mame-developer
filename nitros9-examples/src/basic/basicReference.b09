@@ -486,3 +486,56 @@ PUT #1, clsChar
 PRINT \! Move cursor to beginning of next line after clearing
 END
 
+PROCEDURE stringFunctions
+(* This procedure demonstrates various string functions in Basic09 *)
+DIM charVal : INTEGER
+DIM test_string, temp_string : STRING
+DIM number_val : REAL
+
+PRINT "--- Basic09 String Function Test ---"
+PRINT
+
+(* 1. Test CHR$() - Convert integer to ASCII character *)
+PRINT "--- Testing CHR$() ---"
+PRINT "Printing characters for ASCII 65 through 70:"
+FOR charVal = 65 TO 70
+  PRINT "CHR$(";charVal;") = "; CHR$(charVal)
+NEXT charVal
+PRINT
+
+(* 2. Test DATE$ - Get current date and time *)
+PRINT "--- Testing DATE$ ---"
+temp_string := DATE$
+PRINT "The current date and time is: "; temp_string
+PRINT
+
+(* 3. Test LEFT$(), RIGHT$(), and MID$() *)
+test_string := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+PRINT "--- Testing LEFT$, RIGHT$, and MID$ ---"
+PRINT "Original string: "; test_string
+temp_string := LEFT$(test_string, 5)
+PRINT "LEFT$(test_string, 5) = "; temp_string
+temp_string := RIGHT$(test_string, 5)
+PRINT "RIGHT$(test_string, 5) = "; temp_string
+temp_string := MID$(test_string, 11, 5)
+PRINT "MID$(test_string, 11, 5) = "; temp_string
+PRINT
+
+(* 4. Test STR$() - Convert a number to a string *)
+PRINT "--- Testing STR$() ---"
+number_val := 123.456
+temp_string := STR$(number_val)
+PRINT "The number is:"; number_val
+PRINT "STR$(number_val) = '"; temp_string; "'"
+PRINT
+
+(* 5. Test TRIM$() - Remove white spaces *)
+PRINT "--- Testing TRIM$() ---"
+test_string := "   This string has extra spaces...   "
+PRINT "Original string with spaces: '"; test_string; "'"
+temp_string := TRIM$(test_string)
+PRINT "TRIM$(test_string) =       '"; temp_string; "'"
+PRINT
+
+PRINT "--- Test Complete ---"
+END
