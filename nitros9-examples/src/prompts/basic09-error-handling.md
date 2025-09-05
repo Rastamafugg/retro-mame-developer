@@ -76,6 +76,6 @@ The following table lists common error codes from the provided documentation and
 
 | Error Code (`ERR`) | Description | Example Context |
 | :--- | :--- | :--- |
-| `210` | "File not found".[1] | Opening a file for reading that does not exist. |
+| `216` | "File not found".[1] | Opening a file for reading that does not exist. |
 | `211` | "End of file".[1] | This is a normal, expected error when reading to the end of a file.[1] |
 | `900` | Generic Runtime Error | A custom error code used by the `TRANSPILE` procedure to flag parameter validation failures.[1] |

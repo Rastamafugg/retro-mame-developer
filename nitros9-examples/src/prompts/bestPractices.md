@@ -81,11 +81,12 @@ PROCEDURE OtherExample
 * **Automatic type conversion:** Basic09 automatically converts numeric data types (`BYTE`, `INTEGER`, or `REAL`) to the largest type necessary to retain accuracy in expressions. However, these conversions take time, so it's more efficient to use expressions where all values are of a single type whenever possible.
 * **Choosing numeric data types:** Use `INTEGER` or `BYTE` whenever possible, as arithmetic operations with these types are much faster and require less storage than `REAL` values. The `REAL` type is the default for undeclared variables.
 * **Variable storage:** All variables are "local" to the procedure where they are defined. Their storage is allocated when the procedure is called and is lost when the procedure is exited.  They can be passed by reference as parameters to other procedures.
-* **Handle File Input/Output with Robustness and Clarity** Any procedure performing file I/O should be designed for robustness. This means:
+* **Handle File Input/Output with Robustness and Clarity** Any procedure performing file I/O should be designed for robustness and clarity. This means:
   - **Pre-Flight Checks:** Always check if a file exists before attempting to open it for reading to avoid unexpected errors.
   - **Explicit State Tracking:** Use boolean flags (e.g., `fileOpen:BOOLEAN`) to track the open/closed status of each file handle. This is critical for ensuring that files are always closed properly, even in the event of a runtime error.
   - **Error Handling:** Implement `ON ERROR GOTO` logic to catch common I/O errors (like `ERR=210` for "File Not Found") and other system errors. The error handler should provide a clear and descriptive message to the user, indicating the specific problem and the file involved.
   - **Resource Management:** Ensure all open files are closed via `CLOSE` statements in a dedicated block of code, typically within the main procedure's error handler. This prevents file handles from being left open, which can lead to system-level issues or data corruption.
+  - **Separate Procedures:** File I/O should be relegated to separate procedures, allowing for error handling specific to I/O.  Procedures calling these helper procedures should anticipate edge cases, allowing the application to fail gracefully when an error occurs.
 * **Logging** Include print statements or a logging mechanism to provide clear progress updates and confirm successful operations to the user. This helps with debugging and gives the user confidence that the program is working as expected.  For example:
 ```basic09
 IF logVerbose THEN

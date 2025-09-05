@@ -539,3 +539,19 @@ PRINT
 
 PRINT "--- Test Complete ---"
 END
+
+PROCEDURE DeleteFile
+  PARAM targetFilePath$:STRING
+
+  ON ERROR GOTO 900 \ ! Error handler for target file exists check
+  ! We have to delete the existing file, as replacing it with a smaller file will result in garbage at the end of file
+  DELETE targetFilePath$
+
+  END
+
+  900 \ ! Error for target file when it does not exist
+    IF ERR = 216 THEN
+      PRINT "File not found: '"; targetFilePath$; "'."
+    ELSE
+      PRINT "System Error ("; ERR; ") deleting "; targetFilePath$; "."
+    ENDIF

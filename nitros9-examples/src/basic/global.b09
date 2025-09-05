@@ -1,3 +1,26 @@
 TYPE Reading=value:REAL,timestamp:STRING[20]
+TYPE DirEntry = fileName:STRING[29]; LSN(3):BYTE
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+TYPE FileRecord = name:STRING; fileSize:INTEGER; date:STRING[8]
+TYPE DataBlock = id:INTEGER; binaryData:STRING[64]; checksum:BYTE
+TYPE CalcResult = value:REAL; errorCode:BYTE; valid:BOOLEAN
+TYPE HistoryEntry = timeStamp:STRING[19]; expression:STRING[80]; result:CalcResult; mode:BYTE
+TYPE CalcState = currentValue,memoryValue,lastResult:REAL; angleMode,displayFormat,decimalPlaces,calcMode,errorState:BYTE; historyCount:INTEGER
+TYPE ConfigData = autoSave,soundEnabled:BOOLEAN; maxHistory,backupInterval:INTEGER; startupMode:BYTE
 CONST MaxReadings:INTEGER := 100
+CONST DeviceId:BYTE := 1
+CONST ErrNone:BYTE := 0
+CONST ErrDivideZero:BYTE := 1
+CONST ErrOverflow:BYTE := 2
+CONST ErrUnderflow:BYTE := 3
+CONST ErrInvalidFunc:BYTE := 4
+CONST ErrDomainError:BYTE := 5
+CONST ErrSyntaxError:BYTE := 6
+CONST ErrFileError:BYTE := 7
+CONST ErrMemoryFull:BYTE := 8
 VAR sessionCount:INTEGER
+VAR history(500):historyEntry     \ (* Calculation history *)
+VAR memoryBanks(10):REAL          \ (* Multiple memory slots *)
+VAR statData(1000):REAL           \ (* Statistical dataset *)
+VAR userConstants(26):REAL        \ (* A-Z user variables *)
+VAR functionKeys(12):STRING[20]   \ (* F1-F12 definitions *)
