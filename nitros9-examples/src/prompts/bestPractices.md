@@ -16,6 +16,16 @@ IF testVal = 0 THEN \ ! Statement comment
   ! Do stuff here
 ENDIF
 ```
+* **Do not put comments or logic outside of PROCEDURE blocks.  Procedure header comments precede TYPE/PARAM/DIM — they must come immediately after PROCEDURE name, before declarations
+```basic09
+PROCEDURE demo
+(* ================================================== *)
+(* PROCEDURE: demo                                    *)
+(* An example procedure with procedure header comment *)
+(* ================================================== *)
+END
+```
+
 * **Do keep line length to 79 characters, if possible** The maximum number of characters on a line is 256 characters, but the general recommendation is to limit lines to 79 characters or less to avoid user interface issues when the code is editing in Basic09's line editor.
 * **Do use proper termination.** All logic blocks must be terminated properly with their corresponding closing statements: `IF`/`THEN` with `ENDIF`, `WHILE`/`DO` with `ENDWHILE`, `FOR` with `NEXT`, `REPEAT` with `UNTIL`, `LOOP` with `ENDLOOP`, and `EXITIF` with `ENDEXIT`.
 * **Do use explicit, nested `ENDIF` statements for `IF`/`ELSE` IF logic.** Each `ELSE` `IF` is translated to a nested `IF` block, requiring a corresponding `ENDIF` for proper termination. This can be written on a single line for brevity, such as `ENDIF \ENDIF`. The total number of `ENDIF` statements must exactly match the total number of `IF` statements in the block. See Switch Logic example, below.
