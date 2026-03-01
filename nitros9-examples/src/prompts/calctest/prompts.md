@@ -3,3 +3,5 @@ Using the nitros9-examples/docs/projects/calculator/specification.md in the proj
 ON ... GOSUB and ON ... GOTO is best used sparingly in Basic09 (error handling, primarily).  Use other branching logic options, where possible.
 
 End of line comments must follow the format: \! comment here
+
+Review the bestPractices.md document in the project's GitHub and adjust your code to better adhere to these best practices

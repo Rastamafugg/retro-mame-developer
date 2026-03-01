@@ -1,20 +1,19 @@
 PROCEDURE calcDisplay
-(* Basic09 Scientific Calculator - Display Module *)
-(* Phase 1 Week 2: Basic Display Foundation      *)
-(* UI: text window only, no GFX2                 *)
+(* ======================================================================= *)
+(* calcDisplay.b09                                                         *)
+(* Basic09 Scientific Calculator - Display Module                          *)
+(* Phase 1 Week 2: Basic Display Foundation                                *)
+(* CoCo 3 / NitrOS-9 Level 2 / UI: text window only, no GFX2             *)
+(* ======================================================================= *)
 
-(* ============================================================================ *)
-(* TYPE DEFINITIONS *)
-(* ============================================================================ *)
-
+(* TYPE declarations first, per procedure header order rules *)
 TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
 
+(* NOTE: TYPE calcState exceeds 79 chars - unavoidable, fields cannot    *)
+(* be split across lines in Basic09 TYPE declarations.                    *)
 TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
 
-(* ============================================================================ *)
-(* GLOBAL DECLARATIONS *)
-(* ============================================================================ *)
-
+(* DIM declarations follow TYPE *)
 DIM currentState: calcState
 DIM inputBuffer: STRING[80]
 DIM lastExpr: STRING[80]
@@ -22,9 +21,9 @@ DIM done: BOOLEAN
 DIM cls: BYTE
 DIM key: STRING[1]
 
-(* ============================================================================ *)
-(* MAIN ENTRY POINT *)
-(* ============================================================================ *)
+(* ======================================================================= *)
+(* Initialization                                                           *)
+(* ======================================================================= *)
 
 cls  := 12
 done := FALSE
@@ -32,10 +31,10 @@ done := FALSE
 currentState.currentValue  := 0.0
 currentState.memoryValue   := 0.0
 currentState.lastResult    := 0.0
-currentState.angleMode     := 0     \! 0=RAD
-currentState.displayFormat := 0     \! 0=NORMAL
+currentState.angleMode     := 0 \! 0=RAD
+currentState.displayFormat := 0 \! 0=NORMAL
 currentState.decimalPlaces := 4
-currentState.calcMode      := 0     \! 0=BASIC
+currentState.calcMode      := 0 \! 0=BASIC
 currentState.errorState    := 0
 currentState.historyCount  := 0
 
@@ -52,25 +51,17 @@ REPEAT
 
   IF inputBuffer = "Q" OR inputBuffer = "q" THEN
     done := TRUE
+  ELSE IF inputBuffer = "M" OR inputBuffer = "m" THEN
+    RUN showMenu(currentState)
+  ELSE IF inputBuffer = "MC" OR inputBuffer = "mc" THEN
+    currentState.memoryValue := 0.0
+  ELSE IF inputBuffer = "MR" OR inputBuffer = "mr" THEN
+    currentState.currentValue := currentState.memoryValue
+  ELSE IF inputBuffer = "MS" OR inputBuffer = "ms" THEN
+    currentState.memoryValue := currentState.currentValue
   ELSE
-    IF inputBuffer = "M" OR inputBuffer = "m" THEN
-      RUN showMenu(currentState)
-    ELSE
-      IF inputBuffer = "MC" OR inputBuffer = "mc" THEN
-        currentState.memoryValue := 0.0
-      ELSE
-        IF inputBuffer = "MR" OR inputBuffer = "mr" THEN
-          currentState.currentValue := currentState.memoryValue
-        ELSE
-          IF inputBuffer = "MS" OR inputBuffer = "ms" THEN
-            currentState.memoryValue := currentState.currentValue
-          ELSE
-            RUN evaluateInput(inputBuffer, currentState, lastExpr)
-          ENDIF
-        ENDIF
-      ENDIF
-    ENDIF
-  ENDIF
+    RUN evaluateInput(inputBuffer, currentState, lastExpr)
+  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
 
 UNTIL done
 
@@ -78,22 +69,26 @@ PUT #1, cls
 PRINT "Basic09 Calculator terminated."
 END
 
-\! ON ERROR GOTO is the correct use of this construct
 900 PRINT "System error: "; ERR
     PRINT "Press any key to continue...";
     GET #0, key
     PRINT
+END
 
-(* ============================================================================ *)
-(* PROCEDURE: displayMainScreen                                                 *)
-(* Renders the full calculator text-window UI.                                  *)
-(* ============================================================================ *)
+(* ======================================================================= *)
+(* PROCEDURE: displayMainScreen                                             *)
+(* Renders the full calculator text-window UI.                              *)
+(* ======================================================================= *)
 
 PROCEDURE displayMainScreen
-PARAM state: calcState; lastExpr: STRING[80]
 
+(* TYPE first *)
 TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
 
+(* PARAM follows TYPE *)
+PARAM state: calcState; lastExpr: STRING[80]
+
+(* DIM follows PARAM *)
 DIM cls: BYTE
 DIM modeStr: STRING[8]
 DIM angleStr: STRING[4]
@@ -105,63 +100,52 @@ DIM memLine: STRING[20]
 cls := 12
 PUT #1, cls
 
-(* Resolve mode label *)
+(* Resolve mode label - 4 branches, 3 IFs, 3 ENDIFs *)
 IF state.calcMode = 0 THEN
   modeStr := "BASIC"
-ELSE
-  IF state.calcMode = 1 THEN
-    modeStr := "SCI  "
-  ELSE
-    IF state.calcMode = 2 THEN
-      modeStr := "STAT "
-    ELSE
-      modeStr := "PROG "
-    ENDIF
-  ENDIF
-ENDIF
+ELSE IF state.calcMode = 1 THEN
+  modeStr := "SCI  "
+ELSE IF state.calcMode = 2 THEN
+  modeStr := "STAT "
+ELSE \! default: PROG
+  modeStr := "PROG "
+ENDIF \ENDIF \ENDIF
 
-(* Resolve angle mode label *)
+(* Resolve angle mode label - 2 branches, 1 IF, 1 ENDIF *)
 IF state.angleMode = 0 THEN
   angleStr := "RAD"
 ELSE
   angleStr := "DEG"
 ENDIF
 
-(* Resolve display format label *)
+(* Resolve display format label - 3 branches, 2 IFs, 2 ENDIFs *)
 IF state.displayFormat = 0 THEN
   fmtStr := "NORMAL"
-ELSE
-  IF state.displayFormat = 1 THEN
-    fmtStr := "SCI   "
-  ELSE
-    fmtStr := "ENG   "
-  ENDIF
-ENDIF
+ELSE IF state.displayFormat = 1 THEN
+  fmtStr := "SCI   "
+ELSE \! default: ENG
+  fmtStr := "ENG   "
+ENDIF \ENDIF
 
-(* Format current value - show error code when error state is set *)
+(* Format current value - 2 branches, 1 IF, 1 ENDIF *)
 IF state.errorState <> 0 THEN
   displayVal := " *** ERROR " + STR$(state.errorState) + " ***"
 ELSE
   displayVal := STR$(state.currentValue)
 ENDIF
 
-(* Build last-expression line, truncating to fit display width *)
+(* Build last-expression line - 3 branches, 2 IFs, 2 ENDIFs *)
 IF lastExpr = "" THEN
   lastLine := "(no previous calculation)"
+ELSE IF LEN(lastExpr) > 38 THEN
+  lastLine := LEFT$(lastExpr, 35) + "..."
 ELSE
-  IF LEN(lastExpr) > 38 THEN
-    lastLine := LEFT$(lastExpr, 35) + "..."
-  ELSE
-    lastLine := lastExpr
-  ENDIF
-ENDIF
+  lastLine := lastExpr
+ENDIF \ENDIF
 
 memLine := STR$(state.memoryValue)
 
-(* ---------------------------------------------------------------- *)
-(* Draw UI - fixed 57-char wide text window                         *)
-(* ---------------------------------------------------------------- *)
-
+(* Draw UI - fixed 57-char wide text window *)
 PRINT "+-------------------------------------------------------+"
 PRINT "| Basic09 Calculator v1.0           [MODE: "; modeStr; "] |"
 PRINT "+-------------------------------------------------------+"
@@ -179,16 +163,20 @@ PRINT
 
 END
 
-(* ============================================================================ *)
-(* PROCEDURE: showMenu                                                          *)
-(* Displays mode/config menu and processes one validated keypress.              *)
-(* ============================================================================ *)
+(* ======================================================================= *)
+(* PROCEDURE: showMenu                                                      *)
+(* Displays mode/config menu and processes one validated keypress.          *)
+(* ======================================================================= *)
 
 PROCEDURE showMenu
-PARAM state: calcState
 
+(* TYPE first *)
 TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
 
+(* PARAM follows TYPE *)
+PARAM state: calcState
+
+(* DIM follows PARAM *)
 DIM cls: BYTE
 DIM key: STRING[1]
 DIM choice: INTEGER
@@ -225,61 +213,50 @@ UNTIL key >= "0" AND key <= "9"
 choice := VAL(key)
 PRINT key
 
+(* Dispatch - 10 branches, 9 IFs, 9 ENDIFs *)
 IF choice = 1 THEN
-  state.calcMode := 0                   \! Basic
-ELSE
-  IF choice = 2 THEN
-    state.calcMode := 1                 \! Scientific
+  state.calcMode := 0 \! Basic
+ELSE IF choice = 2 THEN
+  state.calcMode := 1 \! Scientific
+ELSE IF choice = 3 THEN
+  state.calcMode := 2 \! Statistical
+ELSE IF choice = 4 THEN
+  state.calcMode := 3 \! Programming
+ELSE IF choice = 5 THEN \! Toggle RAD/DEG - 2 branches, 1 IF, 1 ENDIF
+  IF state.angleMode = 0 THEN
+    state.angleMode := 1
   ELSE
-    IF choice = 3 THEN
-      state.calcMode := 2               \! Statistical
-    ELSE
-      IF choice = 4 THEN
-        state.calcMode := 3             \! Programming
-      ELSE
-        IF choice = 5 THEN
-          IF state.angleMode = 0 THEN   \! Toggle RAD/DEG
-            state.angleMode := 1
-          ELSE
-            state.angleMode := 0
-          ENDIF
-        ELSE
-          IF choice = 6 THEN
-            state.displayFormat := 0    \! Normal
-          ELSE
-            IF choice = 7 THEN
-              state.displayFormat := 1  \! Scientific
-            ELSE
-              IF choice = 8 THEN
-                state.displayFormat := 2 \! Engineering
-              ELSE
-                IF choice = 9 THEN
-                  state.errorState := 0  \! Clear error
-                ENDIF
-                \! choice = 0: return, no action needed
-              ENDIF
-            ENDIF
-          ENDIF
-        ENDIF
-      ENDIF
-    ENDIF
+    state.angleMode := 0
   ENDIF
-ENDIF
+ELSE IF choice = 6 THEN
+  state.displayFormat := 0 \! Normal
+ELSE IF choice = 7 THEN
+  state.displayFormat := 1 \! Scientific
+ELSE IF choice = 8 THEN
+  state.displayFormat := 2 \! Engineering
+ELSE IF choice = 9 THEN
+  state.errorState := 0 \! Clear error
+ELSE \! choice = 0: return, no action
+ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
 
 END
 
-(* ============================================================================ *)
-(* PROCEDURE: evaluateInput                                                     *)
-(* Parses and evaluates a simple infix expression: A op B.                      *)
-(* Operator scan skips position 1 to allow leading negative on left operand.    *)
-(* Sets state.currentValue, state.errorState, lastExpr on return.               *)
-(* ============================================================================ *)
+(* ======================================================================= *)
+(* PROCEDURE: evaluateInput                                                 *)
+(* Parses and evaluates a simple infix expression: A op B.                  *)
+(* Operator scan skips pos 1 to allow leading minus on left operand.        *)
+(* Updates state.currentValue, state.errorState, lastExpr on return.        *)
+(* ======================================================================= *)
 
 PROCEDURE evaluateInput
-PARAM expr: STRING[80]; state: calcState; lastExpr: STRING[80]
 
+(* TYPE first *)
 TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
 
+(* PARAM follows TYPE *)
+PARAM expr: STRING[80]; state: calcState; lastExpr: STRING[80]
+
+(* DIM follows PARAM *)
 DIM opPos: INTEGER
 DIM op: STRING[1]
 DIM leftStr: STRING[40]
@@ -293,7 +270,7 @@ opPos      := 0
 result     := 0.0
 validInput := TRUE
 
-(* Locate first operator, skipping position 1 to preserve leading minus *)
+(* Locate first operator, skipping pos 1 to preserve leading minus *)
 opPos := SUBSTR("+", expr)
 IF opPos <= 1 THEN
   opPos := SUBSTR("-", expr)
@@ -308,12 +285,11 @@ IF opPos = 0 THEN
   opPos := SUBSTR("/", expr)
 ENDIF
 
-\! ON ERROR GOTO: correct use - guards VAL() conversion below
-ON ERROR GOTO 800
+ON ERROR GOTO 900 \! Guards VAL() conversion failures below
 
 IF opPos = 0 THEN
 
-  \! No operator found - treat as bare numeric value assignment
+  \! No operator: treat as bare numeric value assignment
   state.currentValue := VAL(expr)
   state.errorState   := 0
   lastExpr           := expr + " = " + STR$(state.currentValue)
@@ -328,33 +304,28 @@ ELSE
   leftVal  := VAL(leftStr)
   rightVal := VAL(rightStr)
 
+  ! Operator dispatch - 5 branches, 4 IFs, 4 ENDIFs
   IF op = "+" THEN
     result := leftVal + rightVal
-  ELSE
-    IF op = "-" THEN
-      result := leftVal - rightVal
+  ELSE IF op = "-" THEN
+    result := leftVal - rightVal
+  ELSE IF op = "*" THEN
+    result := leftVal * rightVal
+  ELSE IF op = "/" THEN
+    IF rightVal = 0.0 THEN \! 2 branches, 1 IF, 1 ENDIF
+      state.errorState   := 1 \! errDivideZero
+      state.currentValue := 0.0
+      lastExpr           := expr + " *** DIV/0 ***"
+      validInput         := FALSE
     ELSE
-      IF op = "*" THEN
-        result := leftVal * rightVal
-      ELSE
-        IF op = "/" THEN
-          IF rightVal = 0.0 THEN
-            state.errorState   := 1       \! errDivideZero
-            state.currentValue := 0.0
-            lastExpr           := expr + " *** DIV/0 ***"
-            validInput         := FALSE
-          ELSE
-            result := leftVal / rightVal
-          ENDIF
-        ELSE
-          state.errorState   := 6         \! errSyntaxError: unrecognised operator
-          state.currentValue := 0.0
-          lastExpr           := expr + " *** SYNTAX ERR ***"
-          validInput         := FALSE
-        ENDIF
-      ENDIF
+      result := leftVal / rightVal
     ENDIF
-  ENDIF
+  ELSE \! unrecognised operator
+    state.errorState   := 6 \! errSyntaxError
+    state.currentValue := 0.0
+    lastExpr           := expr + " *** SYNTAX ERR ***"
+    validInput         := FALSE
+  ENDIF \ENDIF \ENDIF \ENDIF
 
   IF validInput THEN
     state.lastResult   := state.currentValue
@@ -368,8 +339,7 @@ ENDIF
 
 END
 
-\! ON ERROR GOTO target: VAL() conversion failure in evaluateInput
-800 state.errorState   := 6             \! errSyntaxError
+900 state.errorState   := 6 \! errSyntaxError: VAL() conversion failure
     state.currentValue := 0.0
     lastExpr           := expr + " *** SYNTAX ERR ***"
 END
