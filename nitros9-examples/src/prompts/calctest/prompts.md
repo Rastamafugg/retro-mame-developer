@@ -1,2 +1,5 @@
 Using the nitros9-examples/docs/projects/calculator/specification.md in the project's GitHub, and following the nitros9-examples/src/basic folder of code examples as the only source of Basic09 syntax and code style, draft a basic calculator UI, using a text window.
+
 ON ... GOSUB and ON ... GOTO is best used sparingly in Basic09 (error handling, primarily).  Use other branching logic options, where possible.
+
+End of line comments must follow the format: \! comment here

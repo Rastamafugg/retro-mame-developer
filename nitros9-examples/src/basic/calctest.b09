@@ -32,10 +32,10 @@ done := FALSE
 currentState.currentValue  := 0.0
 currentState.memoryValue   := 0.0
 currentState.lastResult    := 0.0
-currentState.angleMode     := 0     (* 0=RAD *)
-currentState.displayFormat := 0     (* 0=NORMAL *)
+currentState.angleMode     := 0     \! 0=RAD
+currentState.displayFormat := 0     \! 0=NORMAL
 currentState.decimalPlaces := 4
-currentState.calcMode      := 0     (* 0=BASIC *)
+currentState.calcMode      := 0     \! 0=BASIC
 currentState.errorState    := 0
 currentState.historyCount  := 0
 
@@ -78,7 +78,7 @@ PUT #1, cls
 PRINT "Basic09 Calculator terminated."
 END
 
-(* ON ERROR GOTO is the correct use of this construct *)
+\! ON ERROR GOTO is the correct use of this construct
 900 PRINT "System error: "; ERR
     PRINT "Press any key to continue...";
     GET #0, key
@@ -226,37 +226,37 @@ choice := VAL(key)
 PRINT key
 
 IF choice = 1 THEN
-  state.calcMode := 0                   (* Basic *)
+  state.calcMode := 0                   \! Basic
 ELSE
   IF choice = 2 THEN
-    state.calcMode := 1                 (* Scientific *)
+    state.calcMode := 1                 \! Scientific
   ELSE
     IF choice = 3 THEN
-      state.calcMode := 2               (* Statistical *)
+      state.calcMode := 2               \! Statistical
     ELSE
       IF choice = 4 THEN
-        state.calcMode := 3             (* Programming *)
+        state.calcMode := 3             \! Programming
       ELSE
         IF choice = 5 THEN
-          IF state.angleMode = 0 THEN   (* Toggle RAD/DEG *)
+          IF state.angleMode = 0 THEN   \! Toggle RAD/DEG
             state.angleMode := 1
           ELSE
             state.angleMode := 0
           ENDIF
         ELSE
           IF choice = 6 THEN
-            state.displayFormat := 0    (* Normal *)
+            state.displayFormat := 0    \! Normal
           ELSE
             IF choice = 7 THEN
-              state.displayFormat := 1  (* Scientific *)
+              state.displayFormat := 1  \! Scientific
             ELSE
               IF choice = 8 THEN
-                state.displayFormat := 2 (* Engineering *)
+                state.displayFormat := 2 \! Engineering
               ELSE
                 IF choice = 9 THEN
-                  state.errorState := 0  (* Clear error *)
+                  state.errorState := 0  \! Clear error
                 ENDIF
-                (* choice = 0: return, no action needed *)
+                \! choice = 0: return, no action needed
               ENDIF
             ENDIF
           ENDIF
@@ -308,12 +308,12 @@ IF opPos = 0 THEN
   opPos := SUBSTR("/", expr)
 ENDIF
 
-(* ON ERROR GOTO: correct use - guards VAL() conversion below *)
+\! ON ERROR GOTO: correct use - guards VAL() conversion below
 ON ERROR GOTO 800
 
 IF opPos = 0 THEN
 
-  (* No operator found - treat as bare numeric value assignment *)
+  \! No operator found - treat as bare numeric value assignment
   state.currentValue := VAL(expr)
   state.errorState   := 0
   lastExpr           := expr + " = " + STR$(state.currentValue)
@@ -339,7 +339,7 @@ ELSE
       ELSE
         IF op = "/" THEN
           IF rightVal = 0.0 THEN
-            state.errorState   := 1       (* errDivideZero *)
+            state.errorState   := 1       \! errDivideZero
             state.currentValue := 0.0
             lastExpr           := expr + " *** DIV/0 ***"
             validInput         := FALSE
@@ -347,7 +347,7 @@ ELSE
             result := leftVal / rightVal
           ENDIF
         ELSE
-          state.errorState   := 6         (* errSyntaxError: unrecognised operator *)
+          state.errorState   := 6         \! errSyntaxError: unrecognised operator
           state.currentValue := 0.0
           lastExpr           := expr + " *** SYNTAX ERR ***"
           validInput         := FALSE
@@ -368,8 +368,8 @@ ENDIF
 
 END
 
-(* ON ERROR GOTO target: VAL() conversion failure in evaluateInput *)
-800 state.errorState   := 6             (* errSyntaxError *)
+\! ON ERROR GOTO target: VAL() conversion failure in evaluateInput
+800 state.errorState   := 6             \! errSyntaxError
     state.currentValue := 0.0
     lastExpr           := expr + " *** SYNTAX ERR ***"
 END
