@@ -1438,7 +1438,7 @@ The following functions return BOOLEAN values:
 
 A Basic09 program can be written as a single procedure, or it may be divided into a number of smaller procedures, each of which is designed to perform a specific function. Single procedure programs may be useful when the program is relatively small. However, large complex programs are generally much easier to develop, test, and maintain when the program is divided into several procedures. Generally, the programmer will create a main routine which will then call other Basic09 procedures to perform specific functions as subroutines. These Basic09 procedures may in turn call other Basic09 procedures in the same manner. These techniques reflect sound structured programming practice.
 
-A procedure consists of any number of program statement lines. Each line can have an optional line number, and more than one program statement can be put on the same line if separated by "\" (<clear></>) characters. For example, the following statements are equivalent:
+A procedure consists of any number of program statement lines. Each line can have an optional line number, and more than one program statement can be put on the same line if separated by "\\" (\<clear></>) characters. For example, the following statements are equivalent:
 
 ```
   GOSUB 550 \ PRINT X,Y \ RETURN 
