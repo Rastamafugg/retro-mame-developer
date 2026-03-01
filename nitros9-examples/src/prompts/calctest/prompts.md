@@ -5,3 +5,5 @@ ON ... GOSUB and ON ... GOTO is best used sparingly in Basic09 (error handling, 
 End of line comments must follow the format: \! comment here
 
 Review the bestPractices.md document in the project's GitHub and adjust your code to better adhere to these best practices
+
+Do not put comments or logic outside of PROCEDURE blocks.  Procedure header comments should be placed immediately after the PROCEDURE declaration.
