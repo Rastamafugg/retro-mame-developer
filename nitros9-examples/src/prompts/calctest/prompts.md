@@ -1,0 +1,1 @@
+Using the nitros9-examples/docs/projects/calculator/specification.md in the project's GitHub, and following the nitros9-examples/src/basic folder of code examples as the only source of Basic09 syntax and code style, draft a basic calculator UI, using a text window.
