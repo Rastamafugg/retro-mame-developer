@@ -251,14 +251,14 @@ Format:
 ### 6.1 Main Display Layout
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Basic09 Scientific Calculator v1.0        [MODE: SCI]  │
+│ Basic09 Scientific Calculator v1.0        [MODE: SCI]   │
 ├─────────────────────────────────────────────────────────┤
 │                                            123,456.789  │
 │                                                         │
-│ Last: SIN(30) = 0.5                                    │
-│ Mem:  42.0                              [RAD] [FIX 3]  │
+│ Last: SIN(30) = 0.5                                     │
+│ Mem:  42.0                              [RAD] [FIX 3]   │
 ├─────────────────────────────────────────────────────────┤
-│ [F1-HELP] [F2-MODE] [F3-MEM] [F4-HIST] [F5-EXPORT]    │
+│ [F1-HELP] [F2-MODE] [F3-MEM] [F4-HIST] [F5-EXPORT]      │
 └─────────────────────────────────────────────────────────┘
 ```
 
