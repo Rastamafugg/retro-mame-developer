@@ -1,14 +1,14 @@
-### Data Types, Variables and Data Structures
+## Data Types, Variables and Data Structures
 
-#### WHY ARE THERE DIFFERENT DATA TYPES?
+### WHY ARE THERE DIFFERENT DATA TYPES?
 
 A computer program's primary function is to process data. The performance of the computer, and even sometimes whether or nota computer can handle a particular problem, depends on how the software stores data in memory and operates on it. Basic09 offers many possibilities for organizing and manipulating data. :
 
 Complicating matters somewhat is the fact that there are many kinds of data. Some data are numbers used for counting or measuring. Another example is textual data composed of letters, punctuation, etc., such as your name. Seldom <can they be mixed (for example multiplication is meaningless to anything but numbers), and they have different storage size reqguirements. Even within the same general kind of data, it is frequently advantageous to have different ways to represent data. For example, Basic09 lets you choose from three different ways to represent numbers - each having its own advantages and disadvantages. The decision to use one depends entirely on the specific program you are writing. In order for you to select the most appropriate way to store data variables, Basic09 provides five different basic data types. Basic09 also lets you create new customized data types based on combinations of the five basic types. A good analogy is to consider the five basic types to be atoms, and the new types you create as molecules. This is why the five basic types are called atomicdata types.
 
-#### DATA STRUCTURES
+### DATA STRUCTURES
 
-A data structure refers to storage for more than one data item under a single name. Data structures are often the most practical and convenient way to organize large amounts of similar data. The simplest kind of- data structure is the array, which is a table of values. The table has a single name, and the storage space for each individual value is numbered. Arrays are created by DIM statements. For example, to create an array having five storage spaces called "AGES", we can use the statement:
+A data structure refers to storage for more than one data item under a single name. Data structures are often the most practical and convenient way to organize large amounts of similar data. The simplest kind of data structure is the array, which is a table of values. The table has a single name, and the storage space for each individual value is numbered. Arrays are created by DIM statements. For example, to create an array having five storage spaces called "AGES", we can use the statement:
 
 ```
   DIR AGES(5): INTEGER
@@ -22,9 +22,9 @@ A data structure refers to storage for more than one data item under a single na
 
 As you shall see, Basic09 lets you create complex arrays and even arrays that have different data types combined.
 
-#### ATOMIC DATA TYPES
+### ATOMIC DATA TYPES
 
-Basic09 includes five atomic data types: BYTE, INTEGER, REAL, STRING, and BOOLEAN. The first three types are used to represent numbers. The STRING type is used to represent character data, and the BOOLEAN type is used to represent the logical values of either TROUE or FALSE. Arrays of any of these data types can be created using one, two, or three dimensions. The table below gives an overview of the character- istics of each type:
+Basic09 includes five atomic data types: BYTE, INTEGER, REAL, STRING, and BOOLEAN. The first three types are used to represent numbers. The STRING type is used to represent character data, and the BOOLEAN type is used to represent the logical values of either TROUE or FALSE. Arrays of any of these data types can be created using one, two, or three dimensions. The table below gives an overview of the characteristics of each type:
 
 *Basic09 ATOMIC DATA TYPE SUMMARY*
 
@@ -46,7 +46,7 @@ BYTE variables hold integer values in the range 0 through 255 (unsigned B-bit da
 
 INTEGER variables consist of two bytes of storace and hold a numeric value in the range -32768 through 32767 as signed l6-bit data. Decimal points are not allowed. INTEGER constants may also be represented as hexadecimal values in the range $0000 through S$FFFF to facilitate address calculations. INTEGER values are printed without a decimal point. INTEGER arithmetic is faster and requires less storage than REAL values.
 
-Arithmetic which results in values outside the INTEGER range does: not <cause run-time errors but instead "wraps around" modulo 65536; i.e., 32767 + 1 yields - 32768. Division of an integer by another integer yields an integer result, and any remainder is discarded. The programmer should be aware that numeric comparisons made on values in the range 32767 through 65535 will actually be dealing with negative numbers, so it may be desirable to limit such comparisons to tests for eguality or non- equality. Additionally, certain functions (LAND, LNOT, LOR, LXOR) use integer values but produce results on a non-numeric bit-by-bit basis.
+Arithmetic which results in values outside the INTEGER range does not cause run-time errors but instead "wraps around" modulo 65536; i.e., 32767 + 1 yields -32768. Division of an integer by another integer yields an integer result, and any remainder is discarded. The programmer should be aware that numeric comparisons made on values in the range 32767 through 65535 will actually be dealing with negative numbers, so it may be desirable to limit such comparisons to tests for eguality or non-equality. Additionally, certain functions (LAND, LNOT, LOR, LXOR) use integer values but produce results on a non-numeric bit-by-bit basis.
 
 *Type REAL*
 
@@ -91,18 +91,18 @@ byte:     +0       +1       +2       +3       +4       +5
 
 *Type BOOLEAN*
 
-A BOOLEAN quantity has only two values: TRUE or FALSE. A variable may be typed BOOLEAN (e.g., DIMM done_flag:BOOLEAN ). BOOLEAN quantities are stored as single byte values, but they may not be used for numeric computation. BOOLEAN values print out as the character strings: "TRUE" and "FALSE", BOOLEAN values result from comparisons (comparing two compatible types), and are appropriate for logical flags and expressions ( result:=a AND b AND  ). Do not confuse BOOLEAN operations ANRD, OR, XOR, and NOT (which operate on the BOOLEAN values TRUE and FALSE) with the logical functions LAND, LOR, LZOR, LROT (which use integer values to produce results on a bit-by-bit basis). Attenpting to store a non- BROOLEAN value to a BOOLEAN variable (or the reverse) will cause a run- time error. .
+A BOOLEAN quantity has only two values: TRUE or FALSE. A variable may be typed BOOLEAN (e.g., DIMM done_flag:BOOLEAN ). BOOLEAN quantities are stored as single byte values, but they may not be used for numeric computation. BOOLEAN values print out as the character strings: "TRUE" and "FALSE", BOOLEAN values result from comparisons (comparing two compatible types), and are appropriate for logical flags and expressions ( result:=a AND b AND  ). Do not confuse BOOLEAN operations ANRD, OR, XOR, and NOT (which operate on the BOOLEAN values TRUE and FALSE) with the logical functions LAND, LOR, LZOR, LROT (which use integer values to produce results on a bit-by-bit basis). Attenpting to store a non-BOOLEAN value to a BOOLEAN variable (or the reverse) will cause a run-time error. .
 
-#### AUTOMATIC TYPE CONVERSION
+### AUTOMATIC TYPE CONVERSION
 Expressions that mix numeric data types (BYTE, INTEGER, or REAL) are automatically and temporarily converted to the largest type necessary to retain accuracy. In addition, certain Basic09 functions also perform automatic type conversions as necessary. Thus, numeric quantities of . mixed types may be used in most cases. Type-mismatch errors happen when an expression includes types that cannot legally be mixed. These errors are reported by the second compiler pass which automatically occurs when you leave EDIT mode. Type conversions can take time so it is advisable to use expressions containing all values of a single type wherever possible.
 
-#### CONSTANTS
+### CONSTANTS
 
-Constants are frequently used in program statements and in expres- cions to assign values to variables. Basic09 has rules that allow you to specify constants that correspond to the five basic data types.
+Constants are frequently used in program statements and in expressions to assign values to variables. Basic09 has rules that allow you to specify constants that correspond to the five basic data types.
 
-#### NUMERIC CONSTANTS
+### NUMERIC CONSTANTS
 
-Numeric constants can be either type REAL or type INTEGER. If a number constant includes a decimal point or uses the "E" format exponential form, it forces Basic09 to store the number in REAL format even if the number could have been stored in INTEGER or BYTE format. Thus if you specifically want to specify a REAL constant, use a decimal point (for example 12.0). This is sometimes done if all other values in an expression are of type REAL so Basic09 does not have to do a time- consuming type conversion at run-time. Numbers that do not have a decimal point but are too large to be represented as integers are also stored in REAL format. Here are some examples of legal real constants:
+Numeric constants can be either type REAL or type INTEGER. If a number constant includes a decimal point or uses the "E" format exponential form, it forces Basic09 to store the number in REAL format even if the number could have been stored in INTEGER or BYTE format. Thus if you specifically want to specify a REAL constant, use a decimal point (for example 12.0). This is sometimes done if all other values in an expression are of type REAL so Basic09 does not have to do a time-consuming type conversion at run-time. Numbers that do not have a decimal point but are too large to be represented as integers are also stored in REAL format. Here are some examples of legal real constants:
 
 |||
 |-|-|
@@ -120,7 +120,7 @@ dollar sign. Here are some examples of integer constants:
 | $20 | $FFFE | $0 |
 | 0 | -12 | -32768 |
 
-#### BOOLEAN CONSTANTS
+### BOOLEAN CONSTANTS
 
 The two legal boolean constants are "TRUE" and "FALSE". Example:
 
@@ -130,7 +130,7 @@ The two legal boolean constants are "TRUE" and "FALSE". Example:
   state := FALSE
 ```
 
-#### STRING CONSTANTS
+### STRING CONSTANTS
 
 String constants consist of a sequence of any characters enclosed in double quote characters. The binary value of each character byte can be 1 to 255, Double quote characters to be included in the string use two characters in a row to represent one double quote. The null string "" is important because it represents a string having no characters. It is analogous to the numeric zero. Here are some examples of string constants:
 
@@ -141,7 +141,7 @@ String constants consist of a sequence of any characters enclosed in double quot
   "An ""older man"" is wiser"
 ```
 
-#### VARIABLES
+### VARIABLES
 
 Each Basic09 variable is "local" to the procedure where it is defined. Local means that it is only known to the program statements within that procedure. You can use the same variable name in several procedures and the variables will be completely independent. If you specifically want other procedures to be able to share a variable, you must use the RUN and PARARM statements to pass the variable when a procedure is calling another procedure,
 
@@ -149,7 +149,7 @@ Storage for variables is allocated from the Basic09 workspace when the procedure
 
 **WARNING!!** Basic09 does not automatically initialize variables. when a procedure is run all variables, arrays and structures will have random values. your program must assign any initial value if needed.
 
-#### PARAMETER VARIABLES
+### PARAMETER VARIABLES
 
 Procedures may pass variables to other procedures. When this occurs, the variables passed to the called procedure are referred to as "parameters, Parameters may be passed either "by reference", allowing values to be returned from the called procedure, or "by value", which protects the values in the calling procedure so that they may not be changed by the procedure which is called.
 
@@ -168,11 +168,11 @@ When parameters are passed by value, a temporary variable is createdwhen the exp
 
 Notice that expressions containing numeric constants will be either of type INTEGER or of type REAL; there is no type BYTE constant. Thus, BYTE-type .VARIABLES may be sent to a procedure as parameters but expressions will be of types INTEGER or REAL. For example, a RUN statement may evaluate an INTEGER as a parameter and send it to the called procedure. If the called procedure is expecting a BYTE-type variable, it will use only the high-order byte of the (two-byte) INTEGER (which, if the value was intended to be in BYTE-range, will probably be zero!).
 
-#### ARRAYS
+### ARRAYS
 
-The DIM statement can be used to create arrays of from 1 to 3 dimensions (a one~dimensional array is often called a "vector", while a 2 or 3 dimensional array is called a "matrix" ). The sizes of eachdimension are defined when the array is typed (e.g., DIM plot(24,80) :BYTE) by including the number of elements in each dimension. Thus, a matrix dimensioned (24,80) has 24 rows (1-24) of 80 columns (1 - 80) when accessed in the default (BASE 1) mode. Programmers may elect to access the elements of an array starting at zero (BASE 0), in which case there are still 24 rows (now 0-23) and 80 columns (now 0-79). Arrays may be composed of atomic data types, complex data types, or other arrays.
+The DIM statement can be used to create arrays of from 1 to 3 dimensions (a one~dimensional array is often called a "vector", while a 2 or 3 dimensional array is called a "matrix" ). The sizes of eachdimension are defined when the array is typed (e.g., DIM plot(24,80) :BYTE) by including the number of elements in each dimension. Thus, a matrix dimensioned (24,80) has 24 rows (1-24) of 80 columns (1-80) when accessed in the default (BASE 1) mode. Programmers may elect to access the elements of an array starting at zero (BASE 0), in which case there are still 24 rows (now 0-23) and 80 columns (now 0-79). Arrays may be composed of atomic data types, complex data types, or other arrays.
 
-#### COMPLEX DATA TYPES
+### COMPLEX DATA TYPES
 
 The TYPE statement can be used to define a new data type as a "vector" (a one-dimensional array) of any atomic or previously-defined types. For example: '
 
@@ -190,9 +190,9 @@ This structure differs from an array in that the various elements may be of mixe
 
 The complex structure gives the programmer the ability to store and manipulate related values that are of many types, to create "new" types in addition to the five atomic data types, or to create data structures of unusual "shape" or size. Additionally, the position of the desired element in complex-type storage is known and defined at "compile time" and need not be calculated at "run time". Therefore, complex structure accesses may be slightly faster than array accesses. The elementsof a complex structure may be copied to another similar structure using a single assignment operator (i.e., ":=" ). An entire structure may be written to or read from mass storage as a single entity (e.g., PUT 2, employee_file ). Arrays or complex structures may be elements of subsequent complex structures or arrays.
 
-### Expressions, Operators and Functions
+## Expressions, Operators and Functions
 
-#### EVALUATION OF EXPRESSIONS
+### EVALUATION OF EXPRESSIONS
 
 Many Basic09 statements evaluate expressions. The result of an evaluation is just a value of some atomic type (e.g. REAL, INTEGER, STRING, or BOOLEAN). The expression itself may consist of values and operators, for example; the expression "5+45" results in an integer with a value of ten.
 
@@ -210,7 +210,7 @@ The "<" operator compares two numeric operands. The result of the comparison is 
 
 Basic09 allows intermixing of the three numeric types because it performs automatic type conversion of operands. If different types areused in an expression, the "result" will be the same type as the operand(s) having the largest representation. As a rule, any numeric tvpe operand may be used in a expression that is expected to produce a result of type REAL. Expressions that must produce byte or integer results must evaluate to a value that is small enough to fit the representation. Basic09 has a complete set of functions that can perform compatible type conversion. Type-mismatch errors are reported by the second compiler pass when leaving Edit mode.
 
-#### OPERATORS
+### OPERATORS
 
 Operators: take two operands (except negation) and cause some operation to be performed producing a result, which is generally the same type as the operands (except comparisons). The table below lists the operators available and the types they accept and produce. "NUMERIC" refers to either BYTE, INTEGER, or REAL types.
 
@@ -238,7 +238,7 @@ Operators: take two operands (except negation) and cause some operation to be pe
 
 * When comparing strings, the ASCII collating segquence is used, so that 0 < 1 ... < 9 < A < B ... < Z < a < b ... < x
 
-#### OPERATOR PRECEDENCE
+### OPERATOR PRECEDENCE
 
 Operators have "precedence" which means they are evaluated in a
 specific order (i.e., multiplications performed before addition).
@@ -273,7 +273,7 @@ In the examples below, Basic09 expressions on the left will be evaluated as indi
 | a:= —(b)**2            | a:= (-b)**2                       |
 | a=b=c                  | a:= (b=c) (returns BOOLEAN value) |
 
-#### FUNCTIONS
+### FUNCTIONS
 
 Functions take one or more arguments enclosed in parentheses, perform some operation, and return a value. They may be used as operands in expressions. Functions expect that the arguments passed to them will be expressions, constants, or variables of a certain type and will return a result of a certain type. Giving a function an argument of an incompatible type will result in an error.
 
@@ -358,11 +358,11 @@ The following functions return BOOLEAN values:
 | FALSE | always returns FALSE |
 | EOF(#\<num>) | End of File test on disk file path \<num>, returns TRUE if end-of-file condition. |
 
-### Program Structure
+## Program Structure
 
-A Basic09 program can be written as a single procedure, or it may be divided into a number of smaller procedures, each of which is designed to- perform a specific function. Single procedure programs may be useful when the program is relatively small. However, large complex programs are generally much easier to develop, test, and maintain when the program is divided into several procedures. Generally, the programmer will create a main routine which will then call other Basic09 procedures to perform specific functions as subroutines. These Basic09 procedures may in turn call other Basic09 procedures in the same manner. These techniques reflect sound structured programming practice.
+A Basic09 program can be written as a single procedure, or it may be divided into a number of smaller procedures, each of which is designed to perform a specific function. Single procedure programs may be useful when the program is relatively small. However, large complex programs are generally much easier to develop, test, and maintain when the program is divided into several procedures. Generally, the programmer will create a main routine which will then call other Basic09 procedures to perform specific functions as subroutines. These Basic09 procedures may in turn call other Basic09 procedures in the same manner. These techniques reflect sound structured programming practice.
 
-A procedure consists of any number of program statement lines. Each line can have an optional line number, and more than one program statement can be put on the same line if separated by "\" (<clear></>) characters. For example, the following statements are equivalent:
+A procedure consists of any number of program statement lines. Each line can have an optional line number, and more than one program statement can be put on the same line if separated by "\\" (\<clear></>) characters. For example, the following statements are equivalent:
 
 ```
   GOSUB 550 \ PRINT X,Y \ RETURN 
@@ -378,11 +378,11 @@ While the above statements are functionally equivalent, the second is generally 
 
 Program readability is improved if all variables are declared with DIM statements at the beginning of the procedure, but this is not mandatory. The program can be terminated with END or STOP statements, which are also optional.
 
-#### LINE NUMBERS
+### LINE NUMBERS
 
 Line numbers are optional. They can be any integer number in the range of 1 to 32767. Line numbers should only be used where absolutely necessary (such as with GOSUB) because they make programs harder to understand, use additional memory space, and increase compile time considerably. Line numbers are local to procedures, i.e., the same line number can be used in different procedures without conflict.
 
-#### ASSIGNMENT STATEMENTS
+### ASSIGNMENT STATEMENTS
 
 Assignment statements are used for computation or initialization of variables,
 
@@ -398,7 +398,7 @@ Syntax:
 
 LET evaluates an expression and stores the result in <var> which may be a simple variable or data structure element. The result of the expression must be of the same or compatible type as <var>. Basic09 will accept either "=" or ":=" as an assignment operator, however, the second form ( := ) is preferred because it distinguishes the assignment operation from a comparison (the test for equality). The ":=" operator is the same as used in PASCAL.
 
-Another usage of the assignment statement is to copy the entire value of an array or complex data structure to another array or complex data structure. The data structures do not have to have the same type or "shape". The only restriction is that the size of the destination structure be the same or larger than the source structure. In fact this type of assignment can be used to perform unusual type conversions. For example, a string variable of 80 characters can be copied to a one- dimensiocnal array of 80 bytes.
+Another usage of the assignment statement is to copy the entire value of an array or complex data structure to another array or complex data structure. The data structures do not have to have the same type or "shape". The only restriction is that the size of the destination structure be the same or larger than the source structure. In fact this type of assignment can be used to perform unusual type conversions. For example, a string variable of 80 characters can be copied to a one-dimensiocnal array of 80 bytes.
 
 Examples:
 
@@ -468,7 +468,7 @@ Examples:
   POKE ADDR(alphabet$)+26,$FF
 ```
 
-#### CONTROL STATEMENTS
+### CONTROL STATEMENTS
 
 Control statements affect the (usually) sequential execution of program statements, They are used to construct loops or make decisions that alter program flow. Basic09 provides a selection of looping statement forms that allow any kind of loop to be constructed using sound structured programming style.
 
@@ -658,7 +658,7 @@ Syntax:
 
 These related types of statements can be used to construct loops with tests located any place in the body of the loop. The LOOP and ENDLOOP statements define the body of the loop. EXITIF clauses can be inserted anywhere inside the loop to leave the loop if the result of its test is true. Note that if there is no EXITIF clause you will create a loop that never ends.
 
-The EXITIF clause evaluates an expression to a boolean result. 1If the result is false, the statement following the ENDEXIT is executed next. Otherwise, the statement(s) between the EXITIF and ENDEXIT are executed, then control is transferred to the statement following the bodyof the loop. This exit clause is often used to perform some specific function upon termination of the loop which depends on where the loop terminated.
+The EXITIF clause evaluates an expression to a boolean result. If the result is false, the statement following the ENDEXIT is executed next. Otherwise, the statement(s) between the EXITIF and ENDEXIT are executed, then control is transferred to the statement following the bodyof the loop. This exit clause is often used to perform some specific function upon termination of the loop which depends on where the loop terminated.
 
 EXITIF statements are almost always used when LOOP...ENDLOOP is used, but they can also be useful in ANY type of Basic09 loop construct (e.g., FOR/NEXT, REPEAT... UNTIL, etc.). Examples:
 
@@ -726,7 +726,7 @@ Syntax:
   RETURN
 ```
 
-The GOSUB statement transfers program execution to a subroutine starting at the specified line number. The subroutine is executed until a RETORN statement is encountered which causes execution to resume at the statement following the calling GOSUB. Subroutines may be "nested" to any depth.
+The GOSUB statement transfers program execution to a subroutine starting at the specified line number. The subroutine is executed until a RETURN statement is encountered which causes execution to resume at the statement following the calling GOSUB. Subroutines may be "nested" to any depth.
 
 Example:
 
@@ -946,7 +946,7 @@ Syntax:
 
 The CHAIN statement performs an OS-9 "chain" operation on the SHELL, passing the specified string as an argument. CBAIN causes Basic09 to be exited, unlinked, and its memory to be returnedto OS-9. The string should evaluate to the name of an executable module (such as Basic09), passing parameters if appropriate.
 
-CHAIN can begin execution of any module, not just Basic09. It executes the module indirectly through the Shell in order to take advantage of Shell's parameter processing, which has the side-effectof leaving an extra "incarnation" of the Shell active. Programs that repeatedly chain to each other will eventually find all of memory filled with waiting Shells. This can be prevented by using the "ex" option of Shell. Consult the OOS-9 User's Guide for more details on the capabilities of the Shell.
+CHAIN can begin execution of any module, not just Basic09. It executes the module indirectly through the Shell in order to take advantage of Shell's parameter processing, which has the side-effectof leaving an extra "incarnation" of the Shell active. Programs that repeatedly chain to each other will eventually find all of memory filled with waiting Shells. This can be prevented by using the "ex" option of Shell. Consult the OS-9 User's Guide for more details on the capabilities of the Shell.
 
 Files that are open when a CHAIN occurs are not closed. However, the OS-9 Fork call will only pass the standard 1/0 paths (0,1,2) to a child process. Therefore, if it is necessary to pass an open path to another program segment, the "ex" option of Shell must be used.
 
@@ -1115,7 +1115,7 @@ Examples:
   (* This is another kind of comment
 ```
 
-#### DECLARATIVE STATEMENTS
+### DECLARATIVE STATEMENTS
 
 The DIM, PARAM, and TYPE statements are called declarative Statements because they are used to define and/or declare variables, arrays, and complex data structures. The DIM and PARAM statements are almost identical, the difference being that DIM statements are used to declare storage used exclusively within the procedure, and the PARAM statement is used to declare variables received from another calling procedure.
 
@@ -1126,7 +1126,7 @@ When do you need to use the DIM statement? You don't need to for simple variable
 3. Arrays of any type.
 4. Complex data structures of any type.
 
-The TYPE statement does not really create variable storage. 1Its purpose is to describe a pew data structure type that can be used in DIM or PARAM statements in addition to the five atomic data types built-in to Basic09, Therefore, the TYPE statement is only used in programs that utilize complex data structures.
+The TYPE statement does not really create variable storage. Its purpose is to describe a pew data structure type that can be used in DIM or PARAM statements in addition to the five atomic data types built-in to Basic09, Therefore, the TYPE statement is only used in programs that utilize complex data structures.
 
 *DIM Statement*
 
@@ -1145,7 +1145,7 @@ The DIM statement is used to declare simple variables, arrays, or complex data s
 
 *Declaring Simple Variables*
 
-Simple variables are declared by using the variable name in a DIM statement without a subscript. 1If variables are not explicitly declared, they are automatically made type REAL or type STRING([32] if the name ends with a "$" character. Therefore all simple variables of other types must be explicitly declared. For example:
+Simple variables are declared by using the variable name in a DIM statement without a subscript. If variables are not explicitly declared, they are automatically made type REAL or type STRING([32] if the name ends with a "$" character. Therefore all simple variables of other types must be explicitly declared. For example:
 
 ```
   DIM logical :BOOLEAN
@@ -1163,7 +1163,7 @@ In addition, several different types can be declared in a single DIM statement b
   DIM a,b,c:INTEGER; n,m:decimal; x,y,z:BOOLEAN
 ```
 
-In this example a, b, and c are type INTEGER, n and m are type "decimal" (a user-defined type), and x, y, and z are type BOOLEAN. String variables are declared the same way except that an optional maximum string length can be specified. 1If a length is not explicitly given, 32 characters are assumed:
+In this example a, b, and c are type INTEGER, n and m are type "decimal" (a user-defined type), and x, y, and z are type BOOLEAN. String variables are declared the same way except that an optional maximum string length can be specified. If a length is not explicitly given, 32 characters are assumed:
 
 ```
   DIM name:STRING[40]; address,city:STRING; zip:REAL
@@ -1179,9 +1179,9 @@ Arrays can have one, two or three dimensions. The DIM statement format (includin
   DIM a(10),b(20,30),c:INTEGER; x(5,5,5):STRING[12]
 ```
 
-In the example above, "a" is an array of 10 integers, "b" is a 20 by 30 matrix of integers, "c" is a simple integer variable, and "x" is a three- dimensional array of 12-character strings.
+In the example above, "a" is an array of 10 integers, "b" is a 20 by 30 matrix of integers, "c" is a simple integer variable, and "x" is a three-dimensional array of 12-character strings.
 
-Arrays can be any atomic or user-defined type. By declaring arrays of wuser-defined types, structures of arbitrary complexity and shape can be generated. Here's an example declaration that generates a doubly- linked list of character strings. Each element of the array consists of the string containing the data and two integer "pointers".
+Arrays can be any atomic or user-defined type. By declaring arrays of wuser-defined types, structures of arbitrary complexity and shape can be generated. Here's an example declaration that generates a doubly-linked list of character strings. Each element of the array consists of the string containing the data and two integer "pointers".
 
 ```
   TYPE link_pointers = fwd,back: INTEGER
@@ -1263,21 +1263,21 @@ To access elements of the array in assignment statements, the field name is used
 
 The complex structure allows creation of data types appropriate to the job at hand by providing more natural organization and association of data. Additionally, the position of the desired element is known and defined at compilation time and need not be calculated at run time, unlike arrays, and can therefore be accessed faster than arrays.
 
-### Input and Output Statements
+## Input and Output Statements
 
-#### FILES AND UNIFIED INPUT/OUTPUT
+### FILES AND UNIFIED INPUT/OUTPUT
 
-A file is a logical concept for a sequence of data which is named for convenience in use and storage. File data may be pure binary data, textual data (ASCII characters), or any other useful information. Hardware input/output ("I/O") devices used by OS-9 also work like files, so you can generally use any 1/0 facility regardless of whether you are working with disk files or I1/0 devices such as printers. This single interface standard for any device and simple communication facilities allow any device to be used with any other device; this concept is known as "unified I/0". Note that unified I/O can benefit routine programming. For example: file operations can be debugged by communicating with a terminal or printer instead of a storage device, and procedures which normally communicate with a terminal can be tested with data coming from and sent to a storage device.
+A file is a logical concept for a sequence of data which is named for convenience in use and storage. File data may be pure binary data, textual data (ASCII characters), or any other useful information. Hardware input/output ("I/O") devices used by OS-9 also work like files, so you can generally use any 1/0 facility regardless of whether you are working with disk files or 1/0 devices such as printers. This single interface standard for any device and simple communication facilities allow any device to be used with any other device; this concept is known as "unified I/0". Note that unified I/O can benefit routine programming. For example: file operations can be debugged by communicating with a terminal or printer instead of a storage device, and procedures which normally communicate with a terminal can be tested with data coming from and sent to a storage device.
 
 Basic09 normally works with two types of files: sequential files and random-access files.
 
 A sequential file sends or receives (WRITE/READ) textual data only in order. t is not generally possible to start over at the beginning of a seguential file once a number of bytes have been accessed (many I/0 devices such as printers are necessarily sequential). A seguential file contains only valid ASCII characters; the READ and WRITE commands perform format conversion similar to that done automatically in INPUT and PRINT conmands. A sequential file contains record-delimiter characters (carriage return) which separate the data created by different WRITE operations. Each WRITE command will send a complete sequential-file record, which is an arbitrary number of characters terminated by a carriage return. Each READ will also read all characters up to the next carriage return.
 
-A random-access file sends and receives (PUT/GET) data in binary form exactly as it is internally represented in BASIC09 which minimizes both the time involved in converting the data to and from ASCII representation as well as reducing the file space required to store the data. It is possible to PUT and GET individual bytes or a substructure of many bytes (in a complex structure). The GET of a structure merely recovers the number of bytes associated with that type of structure. It is possible to move to a particular byte in a random-access file (using SEEK) and to begin to PUT or GET seguentially from that point (in general, "SEEK #path,0" is egquivalent to the REWIND whichis used in some forms of BASIC). Since the random-access file contains no record- separators to indicate the size of particular elements of the file, the programmer should use the SIZE function to determine the size of a single element, then use SEEK to move to the desired element within the file.
+A random-access file sends and receives (PUT/GET) data in binary form exactly as it is internally represented in BASIC09 which minimizes both the time involved in converting the data to and from ASCII representation as well as reducing the file space required to store the data. It is possible to PUT and GET individual bytes or a substructure of many bytes (in a complex structure). The GET of a structure merely recovers the number of bytes associated with that type of structure. It is possible to move to a particular byte in a random-access file (using SEEK) and to begin to PUT or GET seguentially from that point (in general, "SEEK #path,0" is egquivalent to the REWIND whichis used in some forms of BASIC). Since the random-access file contains no record-separators to indicate the size of particular elements of the file, the programmer should use the SIZE function to determine the size of a single element, then use SEEK to move to the desired element within the file.
 
 A new file is created on a storage device by executing CREATE. Once a file exists, the OPEN command is used to notify the operating system to set up a channel to the desired device and return that path number to the Basic09 program. This channel number is then used in file-access cperations (e.g., RERD, WRITE, GET, PUT, SEEK, etc.). When the programmer is finished with the file, it should be terminated by CLOSE to assure that the file system has updated all data back onto magnetic media.
 
-#### I/0 PATHS
+### I/0 PATHS
 
 A "path" is a description of a "channel" through which data flows from a given program outward, or from some device inward. In order for data to flow to or from a device, there must be in OS-9 an associated device driver - see the OS-9 Users Manual. When a path is created, OS-9 returns a unique number to identify the path in subsequent file operations. This "path number is used by the I/O statements to specify the file to be used, Three path numbers have special meanings because they are "standard I/0 paths" representing Basic09's interactive input/output (your terminal). These are automatically "opened" for you and should not be closed except in very special circumstances. The standard I/0 path numbers are: :
 
@@ -1357,7 +1357,7 @@ PRINT outputs the values of the items given in the output list to the standard o
 
 The output list consists of one or more items separated by comma or semicolon characters. Each item can be a constant, variable, or expression of any atomic type. The PRINT statement evaluates each item and converts the result to corresponding ASCII characters which are then displayed. If the separator character following the item is a semicolon,the next item will be displayed without any spacing in between. If a comma is used, spaces will be output so the next item starts at the next "tab"" zone, The tab zones are 16 characters long starting at the beginning of the line. If the line is terminated by a semicolon, the usual carriage return following the output line is inhibited.
 
-The "TAB(expr)" function can be used as an item in the output list, which outputs the correct number of spaces to cause the next item to start in the print column specified by the result of the expression. 1If the output line is already past the desired tab position, the TAB is ignored. A related function, "POS", can be used in the program to determine the output position at any given time. The output columns are numbered from one to a maximum of 255, The size of Basic09's output buffer varies according to stack size at the moment. A practical value is at least 512 characters. '
+The "TAB(expr)" function can be used as an item in the output list, which outputs the correct number of spaces to cause the next item to start in the print column specified by the result of the expression. If the output line is already past the desired tab position, the TAB is ignored. A related function, "POS", can be used in the program to determine the output position at any given time. The output columns are numbered from one to a maximum of 255, The size of Basic09's output buffer varies according to stack size at the moment. A practical value is at least 512 characters. '
 
 The PRINT USING form of this statement is described at the end of this chapter.
 
@@ -1392,7 +1392,7 @@ Syntax:
 
 OPEN issues a reguest to OS-9 to open an I/O path to an existingfile or device. The STRING expression is evaluated and passed to 0S~9 as the descriptive pathlist. The variable name specified must be DIMensioned as type INTEGER or BYTE and is used to "receive" the "path number assigned to the path by 08-9. The path number is used to reference the specific file/device in subsequent input/output statements.
 
-The OPEN statement may also specify the path's desired "access mode" which can be READ, WRITE, UPDATE, EXEC, or DIR. The access mode defines which direction 1I/0 transfers will occur. If no access mode is specified, UPDATE is assumed and both reading and writing are permitted.The DIR mode allows OS-9 directory type files to be accessed but should NOT be used in combination with with WRITE or UPDATE modes. The EXEC mode causes the current execution directory to be used instead of the current data directory. Refer to the "0S~9 User's Manual" for more information on how files access modes.
+The OPEN statement may also specify the path's desired "access mode" which can be READ, WRITE, UPDATE, EXEC, or DIR. The access mode defines which direction I/0 transfers will occur. If no access mode is specified, UPDATE is assumed and both reading and writing are permitted.The DIR mode allows OS-9 directory type files to be accessed but should NOT be used in combination with with WRITE or UPDATE modes. The EXEC mode causes the current execution directory to be used instead of the current data directory. Refer to the "0S~9 User's Manual" for more information on how files access modes.
 
 Examples:
 
@@ -1521,7 +1521,7 @@ The WRITE statement writes data in ASCII character format on a file/device. The 
 
 The output list consists of one or more expressions separated by commas. Each expression can evaluate to any expression type. The result is then 'converted to an ASCII character string and written on the specified path beginning at the present file pointer which is updated as data is written.
 
-If the output list has more than one item, ASCII null characters (S00) are written between each output string. The last item is followed by a carriage return character, ‘ Note that this statement creates variable-length ASCII records..
+If the output list has more than one item, ASCII null characters (S00) are written between each output string. The last item is followed by a carriage return character. Note that this statement creates variable-length ASCII records..
 
 Examples:
 
@@ -1567,11 +1567,11 @@ Syntax:
 
 The GET and PUT statements read and write fixed-size binary data records to files or devices. These are the primary I/0 statements used for random access input and output.
 
-The first expression is evaluated and used as the number of the I/0O path which must have previously been opened by an OPEN or CREATE statement, Paths used by PUT statements must have been opened in WRITE or UPDATE access modes, and paths used by GET statements must be in READ or UPDATE mode.
+The first expression is evaluated and used as the number of the I/O path which must have previously been opened by an OPEN or CREATE statement, Paths used by PUT statements must have been opened in WRITE or UPDATE access modes, and paths used by GET statements must be in READ or UPDATE mode.
 
 The statement wuses exactly one name which can be the name of a variable, array or complex data structure. Data is written from, or read into, the variable or structure named. The data is transferred in Basic09's internal binary format without conversion which affords very high throughput compared to READ and WRITE statements. Data is transferred beginning at the current position of the path's file pointer (see SEEK statement) which is automatically updated.
 
-OS-9's file system does not inherently impose record structures on random-access files, All files are considered to be continuous sequences of addressable binary bytes. A byte or group of bytes located anywhere in the file can be read or written in any order. Therefore the prooremmer is:- free to use the basic file access system to create any record structure desired.
+OS-9's file system does not inherently impose record structures on random-access files, All files are considered to be continuous sequences of addressable binary bytes. A byte or group of bytes located anywhere in the file can be read or written in any order. Therefore the programmer is free to use the basic file access system to create any record structure desired.
 
 Record I/O in Basic09 is associated with data structures defined by DIM and TYPE statements. The GET and PUT statements write entire data structures -or parts of data structures. A PUT statement, for example, can write a simple variable, an entire array, or a complex data structure in one operation. To illustrate how this works, here is an example based on a simple inventory system that requires a random access file having 100 records. Each record must include the following information: the name of the item (a 25-byte character string), the item's list price and cost (both real numbers), and the quantity on hand (an integer).
 
@@ -1654,7 +1654,7 @@ The above example is a very simple case, but it illustrates the combined power o
 
 These advantages are possible because a single GET or PUT statement can move any amount of data, organized any way you want.
 
-#### INTERNAL DATA STATEMENTS
+### INTERNAL DATA STATEMENTS
 
 *DATA Statement*
 
@@ -1697,7 +1697,7 @@ Examples:
       READ A,B,C,D
 ```
 
-#### FORMATTED OUTPUT: THE PRINT USING STATEMENT
+### FORMATTED OUTPUT: THE PRINT USING STATEMENT
 
 Basic09 has a powerful output editing capability useful for report generation and other applications where formatted output is required. The output editing uses the PRINT USING statement which has the following syntax:
 
@@ -1707,7 +1707,7 @@ Basic09 has a powerful output editing capability useful for report generation an
 
 The optional path number expression can be used to specify the path number of any output file or device. If it is omitted, the output is written to the standard output path (usually the terminal).
 
-The string expression is evaluated and used as a "format specifi- cation" which contains specific formatting directives for each item in the "output list". The items in the output list can be constants, variables, or expressions of any atomic type. BLANKS ARE NOT ALLOWED IN FORMAT STRINGS! As each output item is processed, it is matched up with a specification in the format list. The type of each expression result must be compatible with the corresponding format specification. If there are fewer format specifications than items in the output list, the format specification list is repeated again from its beginning as many times as necessary.
+The string expression is evaluated and used as a "format specification" which contains specific formatting directives for each item in the "output list". The items in the output list can be constants, variables, or expressions of any atomic type. BLANKS ARE NOT ALLOWED IN FORMAT STRINGS! As each output item is processed, it is matched up with a specification in the format list. The type of each expression result must be compatible with the corresponding format specification. If there are fewer format specifications than items in the output list, the format specification list is repeated again from its beginning as many times as necessary.
 
 A format string has one or more format specifications which are separated by commas. There are two kinds of specifications: ones that control output editing of an item from the output list and ones that cause an output function by themselves (such as tabbing and spacing). There are six basic output editing directives. Each has a corresponding one-letter identifier:
 
@@ -1730,7 +1730,7 @@ The abbreviations and symbols used in the syntax specifications are:
 | f          | Fraction field: 1 <= w <= 9                           |
 | j          | OPTIONAL justification: < (left) > (right) ^ (center) |
 
-#### REAL FORMAT
+### REAL FORMAT
 
 Syntax: 
 
@@ -1898,9 +1898,9 @@ Many times, identical sequences of specifications are repeated in format specifi
   "2(I2,2(X1,S4))" is the same as "I2,X1,S4,X1,S4,I2,X1,S4,X1,S4"
 ```
 
-### Program Optimization
+## Program Optimization
 
-#### GENERAL EXECUTION PERFORMANCE OF BASIC09
+### GENERAL EXECUTION PERFORMANCE OF BASIC09
 
 The Basic09 multipass compiler produces a compressed and optimized low-level "I-code"" for execution. Compared to other BASIC languages, program storage is greatly decreased and execution speed is increased.
 
@@ -1908,7 +1908,7 @@ High-level language interpreters have a general reputation for slowness which is
 
 Because the Basic09 I-code is interpreted, a variety of entry-time and run-time tests and development aids are available to help in program development: aids not available on most compilers. The editor reports errors immediately when they are entered, the debugger allows debugging using the original program source statements and names, and the I-code interpreter performs run time error checking of things such as array bound errors, subroutine nesting, arithmetic errors, and other errors that are not detected (and usually crash) native-compiler-generated code. 
 
-#### OPTIMUM USE OF NUMERIC DATA TYPES
+### OPTIMUM USE OF NUMERIC DATA TYPES
 
 Because Basic09 includes several different numeric representations (i.e., REAL, INTEGER, and BYTE) and does "automatic type conversions between them, it is easy to write expressions or loops that take at least ten times longer to execute than is necessary. Some particular BASIC09 numeric operators (+, -, *, /) and control structures (FOR..NEXT) include versions both for REAL and INTEGER values. The INTEGER versions, of course, are much faster, and may have slightly different properties (e.g., INTEGER divides discard any remainder). Type conversions take time, so expressions whose operands and operators are of the same type are more efficient.
 
@@ -1916,7 +1916,7 @@ Basic09's REAL (floating-point) math package provides excellent performance, A s
 
 Nonetheless, INTEGER operations are faster because they generally have corresponding 6809 machine-language instructions. Overall program speed will increase and storage requirements will decrease if INTEGERSs are used whenever possible. INTEGER arithmetic operations use the same symbols as REAL but Basic09 automatically selects the INTEGER operations when working with an integer-value result. Only if all operands of an expression are of types BYTE or INTEGER will the result also be INTEGER.
 
-Sometimes, similar or identical results can be obtained in a number of different ways at wvarious execution speeds. For example, if the variable "value"" is an integer, then "value*2" will be a fast integer operation, However, if the expression is "value*2,.0" the value "2.0" will be represented as a REAL number, and the multiplication will be a REAL multiplication which will also reguire that the variable "value" will have to be transformed into a REAL value, and finally the result of the expression will have to be transformed back to an INTEGER value if it is to be assigned to a variable of that type. Thus a single decimal point will slow this particular operation down by about ten times!
+Sometimes, similar or identical results can be obtained in a number of different ways at wvarious execution speeds. For example, if the variable "value"" is an integer, then "value*2" will be a fast integer operation, However, if the expression is "value*2.0" the value "2.0" will be represented as a REAL number, and the multiplication will be a REAL multiplication which will also reguire that the variable "value" will have to be transformed into a REAL value, and finally the result of the expression will have to be transformed back to an INTEGER value if it is to be assigned to a variable of that type. Thus a single decimal point will slow this particular operation down by about ten times!
 
 *ARITHMETIC FUNCTIORS RANKED BY SPEED*
 
@@ -1938,11 +1938,11 @@ This table can be used to deduce some interesting points, For example, "value*2"
 
 *LOOPING QUICKLY*
 
-When Basic09 identifies a FOR..NEXT loop structure with an INTEGER loop counter variable, it uses a special integer version of the FOR,.NEXT loop. This is much faster than the REAL-type version and is generally preferable, ther kinds of loops will also run faster if INTEGER type variables are used for loop counters.
+When Basic09 identifies a FOR..NEXT loop structure with an INTEGER loop counter variable, it uses a special integer version of the FOR..NEXT loop. This is much faster than the REAL-type version and is generally preferable, ther kinds of loops will also run faster if INTEGER type variables are used for loop counters.
 
 When writing program loops, remember that statements INSIDE the loop may be executed many times for each single execution OUTSIDE the loob. Thus, any value which can be computed before entering a loop will increase program speed,
 
-#### OPTIMUM USE OF ARRAYS AND DATA STRUCTURES
+### OPTIMUM USE OF ARRAYS AND DATA STRUCTURES
 
 Basic09 internally uses INTEGER numbers to index arrays and complex data structures. If the program uses subscripts that are REAL type variables or expressions, Basic09 has to convert them to INTEGERs before they can be used. This takes additional time, so use INTEGER expressions for subscripts whenever you can.
 
@@ -1952,7 +1952,7 @@ Note that the assignment statement (LET) can copy identically sized data structu
 
 The PACK command produces a compressed version of a Basic09 procedure. Depending on the number of comments, line numbers, etc., programs will execute from 10% to 30% faster after being PACKed. Minimizing use of line numbers will even speed up procedures that are unPACKed.
 
-#### ELIMINATING CONSTANT EXPRESSIONS AND SUBEXPRESSIONS
+### ELIMINATING CONSTANT EXPRESSIONS AND SUBEXPRESSIONS
 
 Consider the expression:
 
@@ -1968,18 +1968,18 @@ It is exactly the same as the expression:
 
 The subexpression "SQRT(100)/2" consists of constants only, so its result will not vary regardless of the rest of the program. But every time the program is run, the computer must evaluate it. This time can be significant, especially if the statement is within a loop. Constantexpressions or subexpressions should be calculated by the programmer while writing the program (using DEBUG mode or a pocket calculator).
 
-#### FAST INPUT AND OUTPUT FUNCTIONS
+### FAST INPUT AND OUTPUT FUNCTIONS
 
 Reading or writing data a line or record at a time is much faster than one character at a time. Also, the GET and PUT statements are much faster than READ and WRITE statements when dealing with disk files. This is because GET and POUT use the exact binary format used internally by Basic09. READ, WRITE, PRINT, and INPUT must perform binary-to-ASCII or ASCII-to-binary conversions which take time.
 
-#### PROFESSIONAL PROGRAMMING TECHNIQUES
+### PROFESSIONAL PROGRAMMING TECHNIQUES
 
 One sure way to make a program faster is to use the most efficient algorithms possible. There are many good programming "cookbooks" that explain useful algorithms with examples in BASIC or PASCAL. Thanks to Basic09's rich vocabulary you can use algorithms written in either language with little or no adaptation.
 
-Basic09 also eliminates any possible excuse for not using goodstructured programming style that produces efficient, reliable, readable, and maintainable software. Basic09 generates optimized code to be executed by the 6809 which is the most powerful 8-bit processor in existence at the time of this writing. But a computer can only execute what it is told to execute, and no language implementation can make upfor an inefficient program. An inefficient program is evidence of a lack of understanding of the problem. ‘The result is likely to be hard to understand and hard to update if program specifications change (they always do). The identification of efficient algorithms and their clear, structured expression is indicative of professionalism in software design and is a goal in itself.
+Basic09 also eliminates any possible excuse for not using goodstructured programming style that produces efficient, reliable, readable, and maintainable software. Basic09 generates optimized code to be executed by the 6809 which is the most powerful 8-bit processor in existence at the time of this writing. But a computer can only execute what it is told to execute, and no language implementation can make upfor an inefficient program. An inefficient program is evidence of a lack of understanding of the problem. The result is likely to be hard to understand and hard to update if program specifications change (they always do). The identification of efficient algorithms and their clear, structured expression is indicative of professionalism in software design and is a goal in itself.
 
 
-### Appendix A - Sample Programs
+## Appendix A - Sample Programs
 
 ```
 PROCEDURE fibonacci
@@ -2316,7 +2316,7 @@ PROCEDURE qsortl
     ENDIF
   ENDIF
 
-  IF bot<n-l1 THEN
+  IF bot<n-1 THEN
     RUN qsortl (bot,n-1,d)
   ENDIF
   IF n+l<top THEN
@@ -2693,9 +2693,9 @@ D 000A            Length2  rmb   2          size
   005E            InKeyEnd equ   *
 ```
 
-### Appendix B - Basic09 Quick Reference
+## Appendix B - Basic09 Quick Reference
 
-#### System Mode Commands
+### System Mode Commands
 
 - $
 - BYE
@@ -2712,7 +2712,7 @@ D 000A            Length2  rmb   2          size
 - RUN
 - SAVE
 
-#### Edit Mode Commands
+### Edit Mode Commands
 
 - \+
 - +*
@@ -2733,7 +2733,7 @@ D 000A            Length2  rmb   2          size
 - s
 - s*
 
-#### Debug Mode Commands
+### Debug Mode Commands
 
 - $
 - BREAK
@@ -2751,7 +2751,7 @@ D 000A            Length2  rmb   2          size
 - TROFF
 - TRON
 
-#### Program Reserved Words
+### Program Reserved Words
 
 - ABS
 - ACS
@@ -2867,7 +2867,7 @@ D 000A            Length2  rmb   2          size
 - WRITE
 - XOR
 
-#### Basic09 Statements
+### Basic09 Statements
 
 - BASE 0
 - BASE 1
@@ -2925,7 +2925,7 @@ D 000A            Length2  rmb   2          size
 - WHILE/DO
 - WRITE
 
-#### Transcendental Functions
+### Transcendental Functions
 
 - ACN(x)
 - ASN(x)
@@ -2938,7 +2938,7 @@ D 000A            Length2  rmb   2          size
 - SIN(x)
 - TAN(x)
 
-#### Numeric Functions
+### Numeric Functions
 
 - ABS(x)
 - FIX(x)
@@ -2955,7 +2955,7 @@ D 000A            Length2  rmb   2          size
 - SQR(x)
 - SQRT(x)
 
-#### String Functions
+### String Functions
 
 - ASC(char$)
 - CHR$(m)
@@ -2969,7 +2969,7 @@ D 000A            Length2  rmb   2          size
 - TRIM$(str$)
 - VAL(str$)
 
-#### Miscellaneous Functions
+### Miscellaneous Functions
 
 - ADDR(var)
 - EOF(#path)
@@ -2981,7 +2981,7 @@ D 000A            Length2  rmb   2          size
 - TAB(m)
 - TRUE
 
-#### Operator Precedence
+### Operator Precedence
 
 ```
     highest -> NOT   -(neg)
@@ -2993,7 +2993,7 @@ D 000A            Length2  rmb   2          size
     lowest ->  OR    XOR
 ```
 
-### Appendix C - Basic09 Error Codes
+## Appendix C - Basic09 Error Codes
 
 It seems there might be a slight misunderstanding in your request. The first image you provided, "Basic09 Quick Reference.jpg", is actually the "Quick Reference" appendix, not the "Error Codes" appendix. It contains system commands, edit mode commands, debug mode commands, program reserved words, BASIC09 statements, transcendental functions, numeric functions, string functions, miscellaneous functions, and operator precedence.
 
