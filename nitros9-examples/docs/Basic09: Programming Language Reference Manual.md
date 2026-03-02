@@ -1,10002 +1,8585 @@
-# BASIC
+# BasicO9 Programming Language Reference Manual
 
-# Programming
-
-# Language
-
-# Reference
-
-
-**BASIC09: Programming Language Reference Manual**
-Copyright © 1983 by Dragon Data Ltd. and Microware Systems Corporation. All Rights
-Reserved.
-Basic09 is a trademark of Microware Systems Corporation and Motorola Inc.
-**Revision History**
-Revision F February 1983
-
-**BASIC09: Programming Language Reference Manual**
 Copyright 1980, 1984 Microware Systems Corporation. All Rights Reserved
-Basic09 is a trademark of Microware Systems Corporation and Motorola Inc.
-**Revision History**
+
+This document and the software it describes are copyrighted products of Microware Systems Corporation. Reproduction by any means is strictly prohibited except by prior written permission from Microware Systems Corporation.
+
+The information contained herein is believed to be accurate as of the date of publication, however Microware will not be liable for any damages, including indirect or consequential, resulting from reliance upon the software or this documentation.
+
 Revision H, January 1984
 
-**BASIC09: Programming Language Reference Manual**
-Copyright © 1983 Microware Systems Corporation. All Rights Reserved.
-Basic09 is a trademark of Microware Systems Corporation and Motorola Inc.
-**Revision History**
-Revision A March 2003
-Updated for OS-9 Level One Version 02.01.
-Revision by Boisy Pitre
-
-**BASIC09: Programming Language Reference**
-Section of the OS-9 Level II Operating System Manual
-**Revision History**
-Printed March, 1988 by Radio Shack/Tandy Corporation
-
-**This BASIC09 Programming Language Reference**
-Built from all the above by L. Curtis Boyle and Wayne Campbell
-**Revision History**
-Revision B July, 2018, Revision C, August, 2024
-Updated for NitrOS-9 Level One and Two
-
-
-## Contents
-
-## Chapter 1 Looking at The Basics 1-
-
-### Using BASIC09 1-
-
-## Chapter 2 Sample Session 2-
-
-### Creating a Procedure 2-
-
-### Commands and Procedure Lines 2-
-
-## Chapter 3 The System Mode 3-
-
-### Renaming Procedures 3-
-
-### Listing Procedure Names 3-
-
-## Chapter 4 The Edit Mode 4-
-
-### Edit Commands 4-
-
-### Using the Editor 4-
-
-
-#### The Byte Data Type 6-
-
-#### The Integer Data Type 6-
-
-#### The Real Data Type 6-
-
-#### Type Conversion 7-
-
-### Operators 7-
-
-#### BASIC09 Expression Operators 7-
-
-#### Arithmetic Operators 7-
-
-
-#### Changing Data in a Sequential File 8-
-
-#### Low-Resolution Graphics Characters 9-
-
-
-
-- Chapter 1 Looking at The Basics 1-
-   - Using BASIC09 1-
-   - Requesting More Memory 1-
-   - Writing Procedures 1-
-   - Modules of Other Languages 1-
-   - Executing Procedures 1-
-   - Leaving BASIC09 1-
-   - The Keyboard and BASIC09 1-
-- Chapter 2 Sample Session 2-
-   - Creating a Procedure 2-
-   - Commands and Procedure Lines 2-
-   - Executing a Procedure 2-
-- Chapter 3 The System Mode 3-
-   - Renaming Procedures 3-
-   - Listing Procedure Names 3-
-   - Listing Procedures 3-
-      - Listing Procedures to a File 3-
-      - Listing Procedures to a Printer 3-
-      - Using a Wildcard 3-
-   - Saving Procedures 3-
-   - Loading Procedures 3-
-   - Deleting Procedures from the Workspace 3-
-   - Changing Directories 3-
-   - Executing NitrOS-9 Commands 3-
-   - Auto-Execute Procedures 3-
-- Chapter 4 The Edit Mode 4-
-   - Edit Commands 4-
-   - Using the Editor 4-
-      - Searching Through a Procedure 4-
-      - Using [ENTER] 4-
-      - Using the Plus Sign to Move Forward 4-
-      - Accessing a Line Using the Line Number 4-
-      - Using the Minus Sign to Move Backward 4-
-      - The Global Symbol 4-
-      - Using LIST 4-
-         - Contents |
-      - Deleting Lines 4- Basic09 Reference
-      - Changing Text 4-
-      - Searching for Text 4-
-      - Renumbering Lines 4-
-      - Adding Lines 4-
-   - The Next Step 4-
-- Chapter 5 The Debug Mode 5-
-   - Entering the Debug Mode 5-
-   - When Things Go Wrong 5-
-      - Using the Trace Function 5-
-      - What About Loops? 5-
-      - In Multiple Procedures 5-
-- Chapter 6 Data and Variables 6-
-   - Data Types 6-
-      - The Byte Data Type 6-
-      - The Integer Data Type 6-
-      - The Real Data Type 6-
-      - The String Data Type 6-
-      - The Boolean Type 6-
-   - Automatic Type Conversion 6-
-   - Constants 6-
-      - String Constants 6-
-   - Variables 6-
-      - Passing Variables 6-
-         - Passing by Reference 6-
-         - Passing by Value 6-
-   - Arrays 6-
-   - Complex Data Types 6-
-- Chapter 7 Expressions, Operators, and Functions 7-
-   - Manipulating Data 7-
-      - Expressions 7-
-      - Type Conversion 7-
-   - Operators 7-
-      - BASIC09 Expression Operators 7-
-      - Arithmetic Operators 7-
-      - Hierarchy of Operators 7-
-      - Relational Operators 7-
-      - String Operators 7-
-      - Logical Operators 7-
-   - Functions 7-
-- Contents |
-- Chapter 8 Disk Files 8- Contents
-   - Types of Access for Files 8-
-   - Sequential Files 8-
-      - Sequential File Creation, Storage, and Retrieval 8-
-      - Changing Data in a Sequential File 8-
-      - INPUT and Sequential Files 8-
-   - Random Access Files 8-
-      - Creating Random Access Files 8-
-      - Using Arrays with Random Access Files 8-
-      - Using Complex Data Structures 8-
-- Chapter 9 Displaying Text and Graphics 9-
-   - ASCII Codes 9-
-      - Low-Resolution Graphics Characters 9-
-      - Special Characters in High-Resolution 9-
-   - GFX - Medium Resolution Graphics 9-
-      - Formats and Colors 9-
-      - The Draw Pointer 9-
-      - ALPHA - Select Alphanumeric Screen 9-
-      - CIRCLE - Draw a Circle 9-
-      - CLEAR - Clear the Screen 9-
-      - COLOR - Change the Foreground Color 9-
-      - FILL - Flood Current Foreground Color 9-
-      - GCOLR - Read the Color of a Pixel 9-
-      - GLOC - Find the Graphics Screen Location 9-
-      - JOYSTK - Get Joystick Status 9-
-      - LINE - Draw a Line 9-
-      - MODE - Switch to Graphics Screen 9-
-      - MOVE - Move Graphics Cursor 9-
-      - POINT - Set point to Specified Color 9-
-      - QUIT - Deallocate Graphics Screen 9-
-   - GFX2 - High-Resolution Graphics 9-
-   - Establishing a Hardware Window 9-
-      - Defining Windows 9-
-      - The Palette 9-
-   - Establishing a Graphics Window 9-
-      - Starting a Shell in a Window 9-
-   - Using High-Level Graphics with 128K 9-
-   - Creating Windows from BASIC09 9-
-      - Creating Overlay Windows 9-
-   - The Graphics Cursor and the Draw Pointer 9-
-   - High-Resolution Text 9-
-         - Contents |
-      - Using Fonts 9- Basic09 Reference
-   - High-Resolution Quick Reference 9-
-      - Window Functions 9-
-         - CWAREA - Change Working Area 9-
-         - DWEND - Device Window End 9-
-         - DWPROTSW - Device Window Protect Switch 9-
-         - DWSET - Device Window Set 9-
-         - GETSEL - Returns Menu Selection 9-
-         - MENU - Set Window Menus 9-
-            - ITEM - Set Pulldown Items 9-
-         - OWEND - Overlay Window End 9-
-         - OWSET - Establish an Overlay Window 9-
-         - SBAR - Update Scroll Bars 9-
-         - SELECT - Select Next Window 9-
-         - TITLE - Set Window Title 9-
-         - UMBAR - Update Menu Bar 9-
-         - WINFO - Returns Window Information 9-
-         - WNSET - Set High Level Window Type 9-
-      - Drawing Functions 9-
-         - ARC - Draw an Arc 9-
-         - BAR - Fill a Rectangle 9-
-         - BOX - Draw a Rectangle 9-
-         - CIRCLE - Draw a Circle 9-
-         - DRAW - Draw Polyline Figure 9-
-         - ELLIPSE - Draw an Ellipse 9-
-         - FCIRCLE - Draw a Filled Circle 9-
-         - FELLIPSE - Draw a Filled Ellipse 9-
-         - FILL - Fill (Paint) Window 9-
-         - LINE - Draw a Line 9-
-         - POINT - Mark a Point 9-
-      - Configuring Functions 9-
-         - BORDER - Set Border Color 9-
-         - COLOR - Set Screen Colors 9-
-         - DEFCOL - Set Default Colors 9-
-         - GCSET - Set Graphics Cursor 9-
-         - LOGIC - Perform Logic Function 9-
-         - PALETTE - Set Color Palette Registers 9-
-         - PATTERN - Select Pattern Buffer 9-
-         - PUTGC - Put a Graphics Cursor 9-
-         - SCALESW - Enable/Disable Scaling 9-
-         - SETDPTR - Set Draw Pointer 9-
-      - Get/Put Functions 9-
-- Contents |
-      - DEFBUFF - Define GET/PUT Buffer 9- Contents
-      - GET - Get Block from the Window 9-
-      - GPLOAD - Load Data into GET/PUT Buffer 9-
-      - KILLBUFF - Deallocate GET/PUT Buffer 9-
-      - PUT - Put a Saved Data Block on the Window 9-
-   - Text/Cursor Handling Functions 9-
-      - BELL - Ring the Terminal Bell 9-
-      - CLEAR - Homes the Cursor and Clears the Screen 9-
-      - CRRTN - Carriage Return 9-
-      - CURDWN - Cursor Down 9-
-      - CURHOME - Cursor Home 9-
-      - CURLFT - Move Cursor Left 9-
-      - CUROFF - Turn Cursor Off 9-
-      - CURON - Turn Cursor On 9-
-      - CURRGT - Move Cursor Right 9-
-      - CURUP - Move Cursor Up 9-
-      - CURXY - Set Cursor Position 9-
-      - DELLIN - Delete Current Line of Text 9-
-      - EREOLINE - Erase to End of Line 9-
-      - EREOWNDW - Erase to End of Window 9-
-      - ERLINE - Delete Current Line of Text 9-
-      - INSLIN - Insert Line 9-
-   - Font Handling Functions 9-
-      - BLNKOFF - Character Blink Off 9-
-      - BLNKON - Character Blink On 9-
-      - BOLDSW - Switch Bold Character On or Off 9-
-      - FONT - Define Font Buffer 9-
-      - PROPSW - Proportional Space Switch 9-
-      - REVOFF - Reverse Video Off 9-
-      - REVON - Reverse Video On 9-
-      - TCHARSW - Selects or Deselects Transparent Characters 9-
-      - UNDLNOFF - Underline Characters Off 9-
-      - UNDLNON - Underline Characters On 9-
-   - Mouse Handling Functions 9-
-      - MOUSE - Return Mouse Information 9-
-      - ONMOUSE - Set Mouse Clicked/Key Pressed Signal 9-
-      - SETMOUSE - Set Mouse Parameters 9-
-   - Music/Miscellaneous Functions 9-
-      - ID - Return Process ID 9-
-      - TONE - Play a Tone 9-
-- Chapter 10 BASIC09 Quick Reference 10-
-         - Contents |
-
-
-**_Basic09 Reference_**
-
-```
-Statements and Functions 10-
-Commands by Type 10-
-Statements 10-
-Transcendental Functions 10-
-Numeric Functions 10-
-String Functions 10-
-Miscellaneous Functions 10-
-Data Types 10-
-Types of Access for Files 10-
-Command Mode 10-
-Edit Commands 10-
-Debug Commands 10-
-```
-## Chapter 10 BASIC09 Quick Reference 10-
-
-```
-Keyword Format
-The Syntax Line
-Sample Programs
-```
-**Chapter 12 Program Optimization**
-Optimum Use of Numeric Data Types
-Arithmetic Functions Ranked by Speed
-Quicker Loops
-Arrays and Data Structures
-The PACK Command
-Minimizing Constant Expressions and Subexpressions
-Input and Output
-
-**Appendix A Error Codes**
-Signal Errors
-BASIC09 Error Codes
-Windowing and System Errors
-
-**Appendix B The Inkey Program**
-Assembly Language Listing of Inkey
-
-**Index**
-
-**Contents | 6**
-
-
-**Chapter 1**
-
-**Looking at the Basics**
-
-BASIC09 is a computer language created for use with the NitrOS-9 operating
-system. Along with standard BASIC language statements and functions, it includes
-the most useful elements of the PASCAL computer language.
-
-In brief, BASIC09’s advantages are:
-
-```
-Fast execution speed BASIC09 compiles procedure lines as you enter them.
-When you finish a procedure, you can compile it further.
-The result? Procedures that execute nearly as fast as
-machine language.
-```
-```
-Full feature editing The text editor features automatic line formatting,
-search, search and change, global search, global search
-and change, line renumbering, and much more. You can
-move in and out of the editor quickly and easily.
-```
-```
-Modular programming
-functions
-```
-```
-You can write small, easy-to-under-stand procedures,
-then chain them to create sophisticated programs. You
-can call one procedure from another, regardless of
-whether the called procedure is in memory or on disk.
-BASIC09/RUNB will handle a maximum of 128
-procedures in its process space at once. (You can have
-more than 128 if you LOAD/KILL them as needed.)
-```
-```
-Interfacing to
-NitrOS-
-```
-```
-Both you and your procedures can take advantage of
-almost any NitrOS-9 function from within BASIC09,
-including the execution of disk management commands
-and application programs.
-```
-```
-Structured
-programming
-```
-```
-You can structure procedures more efficiently and
-clearly by taking advantage of a variety of loop
-commands, optional line numbering, and BASIC09’s
-ability to call modules written in other computer
-languages.
-```
-```
-Memory saving Strings can be any length. For each operation, you can
-select the most efficient of five available data types.
-```
-
-**_Basic09 Reference_**
-
-```
-features Compiled procedures use less space. You can save
-several procedures into one file. String variables have a
-maximum length of 32,767 bytes.
-```
-```
-Complex data
-structures
-```
-```
-Combine any type of data into a single dimensioned data
-structure that you can move, store, and assign easily and
-quickly.
-```
-```
-Sophisticated graphics BASIC09 has three levels of graphics. The high-
-resolution graphics and text capabilities feature more
-than seventy functions.
-```
-```
-High speed, precision
-math
-```
-```
-BASIC09 has a full range of fast and accurate math and
-transcendental capabilities including powers, roots,
-trigonometry, logic, and boolean functions.
-```
-```
-Simple and fast
-debugging
-```
-```
-BASIC09 provides superior debugging functions. It
-checks syntax as you enter lines. It points to the location
-of your errors and tells you what they are. You can stop
-programs, enter the debugger, then continue execution.
-Execution errors automatically put you in a debugging
-mode where you can examine values, and step and trace
-your way through faulty procedures.
-```
-**Using BASIC**
-
-The Ease-Of-Use (EOU) NitrOS-9 hard drive images include all the Basic09-
-related modules in the CMDS directory. It is a good idea to make sure you have a
-copy of this disk image as a backup before you make any changes. (e.g. adding,
-deleting, or modifying files, creating/deleting directories, etc.)
-
-To use BASIC09, from any command line prompt type:
-
-```
-basic09[ENTER]
-```
-After a short pause, during which NitrOS-9 loads BASIC09 from the drive, the
-screen displays the copyright notice and a new _prompt_ , like this:
-
-**1 - 2**
-
-##### BASIC
-
-##### 6309 VERSION 01.01.
-
-##### COPYRIGHT 1980 BY MOTOROLA INC.
-
-##### AND MICROWARE SYSTEMS CORP.
-
-##### REPRODUCED UNDER LICENSE
-
-##### TO TANDY CORP.
-
-##### ALL RIGHTS RESERVED.
-
-
-```
-Looking at the Basics | 1
-```
-The B: indicates that your computer is in the BASIC09 _command mode_. From the
-command mode, you can issue instructions to the system executive to manipulate
-procedures (programs). If you are using the 6809 version of NitrOS-9, the
-copyright notice will reflect 6809. Note that running the 6809 version on a 6309
-native mode system (like EOU/6309) can cause some errors. So make sure you are
-using the one that came with your EOU image (don't worry, any programs you
-write will run fine on both with no changes; it's only BASIC09 and RUNB
-themselves that need to be the proper version).
-
-**Requesting More Memory**
-
-Unless you specify otherwise, BASIC09 automatically sets aside 8192 bytes of
-memory (4096 bytes under Level One) as a workspace into which you can type or
-load procedures. BASIC09 reserves approximately 1200 bytes (~1.2K) of the
-workspace for internal use, leaving you with 6992 bytes for workspace (2896 bytes
-under Level One).
-
-There are two ways to set aside more memory for BASIC09 operations:
-
-```
- You can reserve extra memory when you first enter BASIC09 by using the
-NitrOS-9 memory size option. For instance, to reserve 18,176 bytes, enter
-this command to initialize BASIC09:
-```
-```
-basic09 #18k[ENTER]
- You can also request additional memory after loading BASIC09. At the
-command prompt, B:, type:
-```
-```
-mem 18000[ENTER]
-```
-```
-This tells BASIC09 to set aside a total of 18,000 bytes of memory, if they
-are available. (Level One will not have this much available memory.)
-```
-In both cases, because BASIC09 rounds the amount you request to the next
-multiple of 256, the actual reserved memory is 18176 bytes.
-
-```
-Note: If your system does not have enough free memory to reserve the
-amount you specify, the workspace size does not change.
-```
-You can also use the MEM command to reduce memory. However, BASIC09 does
-not reduce the size of the workspace if doing so destroys resident procedures.
-
-**Note:** BASIC09 allows a maximum of 40K in its workspace under Level Two (and
-RUNB allows a maximum of 48K, assuming no external library/procedures are
-being called as well that at least that aren't pre-merged). Under Level One it will
-
-##### BASIC
-
-##### 6309 VERSION 01.01.
-
-##### COPYRIGHT 1980 BY MOTOROLA INC.
-
-##### AND MICROWARE SYSTEMS CORP.
-
-##### REPRODUCED UNDER LICENSE
-
-##### TO TANDY CORP.
-
-##### ALL RIGHTS RESERVED.
-
-
-**_Basic09 Reference_**
-
-depend on the size of the OS9Boot file since it shares 64K with the system (unlike
-Level Two which keeps each process in its own 63.5K workspace).
-
-**Writing Procedures**
-
-BASIC09 is a _modular_ programming language. Several procedures can occupy
-memory at the same time. Each procedure performs a particular function but can
-also interact with others to form a sophisticated program.
-
-To create or change procedures, enter the edit mode by typing either
-edit[ENTER] or [E][ENTER] at the B: prompt. From now on, when directing
-you to enter the edit mode, this manual uses the easier to type [E] command.
-
-Each time you type a procedure line and press [ENTER], the editor checks for
-common errors. This automatic checking lets you catch mistakes before you run
-the program, saving you testing and rewriting time. You can even let the automatic
-checking help you learn the rules of BASIC09. If you are not sure about a syntax,
-go ahead and type it the way you think is correct. If you guess wrong, BASIC
-shows where the error is and displays a message to tell what is wrong.
-
-BASIC09’s use of modules lets you divide large and complex projects into smaller,
-easily manageable sections. Not only are the smaller procedures easier to write and
-understand, they are also easier to test. As well, because BASIC09 lets you _call_
-procedures that are outside the _workspace_ (the computer’s memory where you
-write and edit procedures), you can accumulate libraries of procedures to
-incorporate into future programs.
-
-
-```
-Looking at the Basics | 1
-```
-You can work on a program’s procedures either individually or as a group. For
-example, to work on the procedures as a group, save your workspace procedures
-into a single disk file. When you subsequently load the file, BASIC
-automatically loads all of the procedures.
-
-**Modules of Other Languages**
-
-BASIC09 can incorporate procedures from other languages, such as Pascal, C, or
-assembly language. Several users can then share the procedures.
-
-**Executing Procedures**
-
-You execute or _run_ procedures from the command mode. When you enter a
-procedure, BASIC09 compiles it. This means that a procedure is ready for
-execution as soon as you exit the edit mode. For instance, if you create a procedure
-named Greeting, you can execute it by typing from the command mode:
-
-```
-run greeting[ENTER]
-```
-**Leaving BASIC**
-
-There are two ways you can exit from BASIC09:
-
-```
- At the B: prompt, type:
-```
-```
-bye[ENTER]
- Or, at the B: prompt, press [CTRL][BREAK].
-```
-When you use either method, the NitrOS-9 prompt appears immediately indicating
-that the operating system is waiting for a command.
-
-```
-Note: When you exit BASIC09, you lose all procedures residing in the
-workspace. Be sure to save them on disk before leaving BASIC09.
-```
-**The Keyboard and BASIC**
-
-You can use some keys and _key sequences_ to produce special characters and to
-accomplish special BASIC09 functions. You initiate a key sequence by pressing
-one key and holding it down while pressing a second key. The following list
-summarizes your keyboard’s special functions:
-
-```
-[ALT] Produces graphic characters. Press [ALT] char where
-char is a keyboard character.
-```
-```
-[CTRL] A control key that you use with other keys. (See
-```
-
-**_Basic09 Reference_**
-
-```
-below.)
-```
-```
-[BREAK] or
-[CTRL][E]
-```
-```
-Stops the current program execution and returns to the
-B: prompt in BASIC09’s command mode.
-```
-```
-[LEFT ARROW] or
-[CTRL][H]
-```
-```
-Moves the cursor back one space.
-```
-```
-[RIGHT ARROW] Moves the cursor right one space.
-```
-```
-[CTRL][_] or
-[CTRL][-]
-```
-```
-Produces an underscore character.
-```
-```
-[CTRL][,] Produces a left brace ({).
-```
-```
-[CTRL][.] Produces a right brace (}).
-```
-```
-[CTRL][#] Produces a tilde (~).
-```
-```
-[CTRL][/] Produces a backslash (\).
-```
-```
-[CTRL][BREAK] Performs an ESCAPE function and sends an end-of-
-file message to a program receiving keyboard input.
-To be recognized, [CTRL][BREAK] must be the first
-thing typed on a line.
-```
-```
-[SHIFT][BREAK] Stops execution of a program and causes BASIC09 to
-enter the Debug mode.
-```
-```
-[CLEAR] Displays the next window.
-```
-```
-[SHIFT][CLEAR] Displays the previous window.
-```
-```
-[CTRL][0] Activates or deactivates the shift lock function.
-```
-```
-[CTRL][1] Produces a vertical bar (|).
-```
-```
-[CTRL][7] Produces an up arrow or caret (^).
-[CTRL][8] Produces a left bracket ([).
-```
-```
-[CTRL][9] Produces a right bracket (]).
-```
-
-```
-Looking at the Basics | 1
-```
-**[SHIFT][RIGHT ARROW]** Redisplays the last line typed, and positions the cursor
-at the end of the line, but does not process the line.
-Press [ENTER] to process the line, or edit the line by
-backspacing. If you edit, press [SHIFT][RIGHT
-ARROW] again to display the edited line.
-
-**[SHIFT][LEFT ARROW]**
-or **[CTRL][X]**
-
-```
-Move to beginning of line.
-```
-**[CTRL][RIGHT ARROW]** Insert character under cursor.
-
-**[CTRL][LEFT ARROW]** Delete character under cursor.
-
-**[SHIFT][RIGHT ARROW]** Redisplays the current command line.
-
-**[CTRL][W]** Temporarily halts video output. Press the spacebar to
-
-```
-resume output.
-```
-**[ENTER]** Performs a carriage return or executes the current
-
-```
-command line.
-```
-
-**Chapter 2**
-
-**Sample Session**
-
-Although BASIC09 has several functions or modes, they all work together to make
-programming as simple as possible. The easiest way to learn how BASIC09 and its
-functions operate is to write and run a program. This chapter provides sample
-statements and instructions to help you learn how to use BASIC09.
-
-To create and execute a program:
-
-1. Load BASIC09 and enter the edit mode.
-2. Type the BASIC program.
-3. Enter the system mode and test the program’s execution.
-4. Debug the program. (Correct any programming errors.)
-5. Save the completed program on disk.
-6. Load the program into memory and use it.
-
-To begin the program, execute BASIC09. To be sure you have enough room in
-which to work, reserve a workspace of 10,000 bytes by typing:
-
-basic09 #10k[ENTER]
-The BASIC09 system mode prompt, B:, appears after the copyright message. In
-the system mode, you can do such things as save and load procedures, change
-workspace size, and rename and delete procedures.
-
-**Creating a Procedure**
-
-To write procedures, you must be in the edit mode. You get there by typing:
-
-e[ENTER]
-This causes the screen prompt to change to E:, and the screen displays:
-
-PROCEDURE Program
-Because you didn’t give a program name when you entered e, BASIC09 selects the
-name Program for you. Now, you must write the code to make Program do
-something.
-
-
-**_Basic09 Reference_**
-
-**Commands and Statements**
-
-There are two responses you can give at the edit mode prompt. You can type an
-edit command, or you can type a _statement_. A statement is a text version of an
-instruction that BASIC09 will execute. It consists of a _keyword_ , an _expression_ , or a
-combination of _keywords_ and _expressions_. If you type a statement, **you must type
-a space as the first character of the line.** If you type an edit command, do **not**
-precede it with a space. To make listings easier to read, this manual uses the
-symbol c to indicate spaces before every statement. It also uses the c symbol in
-some statements to indicate the correct number of spaces needed. Whenever you
-see a space or a c symbol in a procedure you are typing, press the spacebar.
-
-**NOTE:** You may want to edit your source code files using one of the text editors
-found on the NitrOS-9 EOU hard disk. You can run the editor in a different
-window, editing your source as needed, then save the changes, followed by
-reloading the source file into BASIC09.
-
-To type the procedure in this chapter, begin each line at the E: prompt. After typing
-a line, check it for mistakes. If you make a mistake, use [LEFT ARROW] to move
-the cursor back. Correct the mistake. Then, type the remaining portion of the line.
-If there are no mistakes, press [ENTER].
-
-BASIC09 checks each line when you press [ENTER]. If you make a mistake in
-syntax or form, BASIC09 displays an error message. An arrow points to the place
-in the program line where the error occurred, and a message number indicates the
-type of error. Refer to Appendix A for an explanation of the error codes.
-
-If, after you enter a line, you find that you made a mistake, type d[ENTER] to
-delete the line. Then, retype the line. Later, the manual tells you how to change text
-in existing lines.
-
-The following program helps you do a bit of arithmetic. To get a feel for
-BASIC09, type and execute the program as directed. Remember, when you see a
-space or c, press the spacebar.
-
-```
-cDIM NUMBER1, NUMBER2:INTEGER
-cINPUT "Type a number... "; NUMBER
-cINPUT "Type another... "; NUMBER
-cPRINT "The sum of the numbers is ... ";
-cPRINT NUMBER1 + NUMBER
-cEND
-```
-
-```
-Sample Session | 2
-```
-**Executing a Procedure**
-
-To execute the procedure, quit edit mode by typing q [ENTER]. The compiler
-further processes your procedure, and the B: prompt reappears. To execute the
-procedure type:
-
-```
-run[ENTER]
-```
-Type in numbers when asked, and the procedure produces their sum. If you want to
-save the program on disk, the next chapter tells you how. Chapter 4 introduces
-several other edit mode commands to search, display, insert, and change statements
-and text.
-
-
-**Chapter 3**
-
-**The System Mode**
-
-At the B: prompt, you can enter system commands in either upper- or lowercase
-letters. Some commands operate on the procedures in the workspace. Others
-provide functions independent of any procedures. Following is a list of all system
-commands and their purposes.
-
-**Command Function**
-
-```
-$ Calls the shell command interpreter to execute a NitrOS-
-command.
-```
-```
-BYE or
-[CTRL]
-[BREAK]
-```
-```
-Returns you to the NitrOS-9 system or to the program that
-called BASIC09. NOTE: Any procedures that you have edited
-will be abandoned. If you wish to save your work, make sure to
-SAVE your procedures first!
-```
-```
-CHD Changes the current NitrOS-9 data directory.
-```
-```
-CHX Changes the current NitrOS-9 execution directory.
-```
-```
-[ENTER] or
-DIR
-```
-```
-Displays the name, size, and variable storage requirement of
-each procedure in the workspace.
-```
-```
-EDIT or E Enters the procedure editor-compiler mode.
-```
-```
-KILL Erases one or more procedures from the workspace.
-```
-```
-LIST Displays a formatted listing of one or more procedures.
-```
-```
-LOAD Loads all procedures from a disk file into the workspace.
-```
-```
-MEM Displays in bytes the current workspace size, or reserves a
-specified amount of memory for the workspace.
-```
-```
-PACK Condenses (compiles) one or more procedures. NOTE: Unless
-you SAVE the procedures before PACKing, you will lose the
-changes you made (or the entire source if you haven't saved it
-before)!
-```
-```
-RENAME Changes a procedure’s name.
-```
-
-**_Basic09 Reference_**
-
-```
-RUN Causes a procedure in the workspace to execute.
-```
-```
-SAVE Writes one or more procedures to disk.
-```
-**Renaming Procedures**
-
-BASIC09’s RENAME function is important for two reasons: First, it lets you load
-into the workspace procedures that have the same name. After you rename the
-workspace procedure you can load the second file. Second, if you let BASIC09 use
-the default procedure name, "Program", you can rename the procedure before
-saving it to disk. By doing this you avoid writing over—and destroying—an
-existing procedure file. When naming procedures, do not use extension names (e.g.
-_.prog_ ) as BASIC09 will strip it off if you try to LOAD a procedure with a "." in
-the module name. Using extension names in the files you save (such as _.b09_ ) are
-acceptable.
-
-To change the name of the procedure you created in the previous program from
-"Program" to "add", type:
-
-```
-rename program add[ENTER]
-```
-**Listing Procedure Names**
-
-You can use the DIR command to see if RENAME worked properly. DIR list the
-names and sizes of all procedures in memory. Because programmers use this
-command frequently, the system recognizes a shorthand call. Instead of typing
-dir[ENTER] you only need to press [ENTER]. This displays a table of the
-procedures in the following format:
-
-```
-Name Proc-Size Data-Size
-*add 182 32
-add1 217 42
-add2 218 42
-2198 free
-```
-_Proc-Size_ refers to the number of memory bytes required for the procedure. _Data-
-Size_ refers to the number of memory bytes required for the procedure’s variables
-and data structures. The asterisk indicates the current procedure. System
-commands act on the current procedure unless you indicate otherwise.
-
-The last line of the DIR display tells you how many free bytes of memory remain
-in the BASIC09 workspace.
-
-
-```
-The System Mode | 3
-```
-**Listing Procedures**
-
-You can use the LIST command to view procedure lines. To display the current
-procedure, type:
-
-```
-list[ENTER]
-```
-For example, this is a listing for a procedure named Alpha:
-
-```
-PROCEDURE Alpha
-0000 DIM A:STRING
-0007 DIM T:INTEGER
-000E
-000F PRINT "Here is the alphabet backwards:"
-0032 PRINT
-0034 FOR T=90 TO 65 STEP -1
-004A PRINT CHR$(T);
-0051 PRINT " ";
-0057 NEXT T
-0062 PRINT
-0064 PRINT
-0066 END
-```
-You can list multiple procedures to the screen using the following methods:
-
-```
-list*[ENTER] Lists all procedures in the workspace to the screen
-list proc1,proc2,proc3[ENTER] Lists proc1, proc2, and
-proc3 to the screen
-```
-Each procedure line is known as an instruction. When you list a BASIC09
-procedure, the system precedes each instruction with a _relative storage address_.
-The relative address of the first instruction is always 0, and this marks the
-beginning of the procedure. In the original BASIC09 reference, the memory
-allocation definition for each instruction is _storage units_. One storage unit in
-BASIC09 is a _byte_. In the previous example, the second instruction begins 8 bytes
-from the beginning, and the first instruction is 7 bytes long (00-06 hexadecimal).
-The third instruction begins 15 bytes from the beginning and shows the second
-instruction is also 7 bytes long (07-0D hexadecimal). Upon entering an instruction,
-BASIC09 compiles it, and the length of the source text does not reflect the size of
-the instruction.
-
-When an error occurs, these addresses provide a way for the compiler to let you
-know where the error occurred. They are known as I-Code, or Intermediate Code,
-addresses.
-
-
-**_Basic09 Reference_**
-
-Because BASIC09 compiles programs into I-Code, it must _disassemble_ them
-before it can display them on the screen. This means the lines might not look
-exactly as typed. For instance, BASIC09 converts lowercase _keywords_ (command
-names) to uppercase. BASIC09 also eliminates some spaces. If your program uses
-control statements, such as IF/THEN, FOR/NEXT or LOOP/ENDLOOP, the lines
-in these decision making or looping structures are indented as shown in the Alpha
-example. Regardless of the appearance of your listed procedures, they execute
-correctly if you type their commands correctly.
-
-**Listing Procedures to a File**
-
-There might be times when you want to send a formatted procedure listing,
-including I-Code addresses, directly to a file. You can do this using NitrOS-9’s
-redirection symbol, >. To save the Alpha procedure to a file named Alpha.list in
-the current data directory, type:
-
-```
-list alpha >alpha.list[ENTER]
-```
-If you have several procedures in the workspace and want to list more than one to a
-disk file, separate the procedure names with commas, like this:
-
-```
-list alpha_one,alpha_two,alpha_three >
-alpha.all[ENTER]
-```
-In both of the preceding cases, the system creates the Alpha.list and Alpha.all files
-and stores the specified listings in them. If you use a filename that already exists,
-BASIC09 displays the prompt:
-
-```
-Rewrite?:
-```
-If you press [Y], the system destroys the original file and overwrites it with the
-new listing. If you press [N] the LIST process terminates.
-
-If you wish to list a procedure, or a group of procedures, to a file that is not in the
-current data directory, be sure to specify the complete pathlist, such as:
-
-```
-list alpha > /d1/programs/alpha.rev[ENTER]
-```
-**Listing Procedures to a Printer**
-
-In the same manner as you list procedures to a disk file, you can list one or more
-procedures to your printer. Make certain your printer is connected and turned on,
-then again use the redirection symbol, but this time specify the printer device, like
-this:
-
-```
-list alpha > /p[ENTER]
-```
-
-```
-The System Mode | 3
-```
-Or:
-
-```
-list alpha_one,alpha_two,alpha_three > /p[ENTER]
-```
-**Using a Wildcard**
-
-Using the NitrOS-9 wildcard, *, you can list all procedures in the workspace. For
-instance, if the procedures Alpha_one, Alpha_two, and Alpha_three exist, list them
-to the screen by typing:
-
-```
-list*[ENTER]
-```
-Send the list to a file by typing:
-
-```
-list* alpha.all[ENTER]
-```
-Or send the list to your printer by typing:
-
-```
-list* /p[ENTER]
-Note: When you use the wildcard, the name of the file or device to
-receive the listing immediately follows the LIST* command. Do not
-use the redirection symbol.
-```
-**Saving Procedures**
-
-You can save one or more procedures to disk using the SAVE command. Unlike
-LIST, SAVE does not include relative addresses. However, the syntaxes for the
-LIST and SAVE commands are identical. To save the procedure Alpha to the
-current data directory, type:
-
-```
-save alpha alpha.bak[ENTER]
-```
-If Alpha is the current procedure, you can save it in a file named Alpha by typing
-save[ENTER].
-
-To save all of the procedures in the workspace to a file named All.programs in the
-current data directory, type:
-
-```
-save* All.programs[ENTER]
-```
-As with LIST, to save one or more procedures in a file that is not in the current
-data directory, make sure you specify a complete pathlist.
-
-To save all of the files in the workspace to a disk file with the same name as the
-current procedure, type save*[ENTER].
-
-If the disk file you specify does not exist, BASIC09 creates it. If it does exist, the
-system displays the prompt:
-
-```
-Rewrite?:
-```
-
-**_Basic09 Reference_**
-
-Press [Y] to write over the old file with the specified file. The old file is
-destroyed.
-
-Press [N] to terminate the SAVE operation.
-
-**Loading Procedures**
-
-To load a saved procedure back into BASIC09’s workspace, use the LOAD
-command and specify the appropriate pathlist. For instance, if your current
-directory is still the directory containing Alpha.bak, load the procedure by typing:
-
-```
-load alpha.bak[ENTER]
-```
-To load Alpha.bak from the PROGRAMS directory on Drive /D1, type:
-
-```
-load /d1/programs/alpha.bak[ENTER]
-```
-You can run and edit a loaded procedure in exactly the same manner as you would
-a procedure you created.
-
-You can load any number of procedures into the workspace (up to a maximum of
-128) as long as your computer has sufficient memory. However, be careful that
-you do not load a procedure with the same name as a procedure already existing in
-the workspace. If you do, the new procedure overwrites (destroys) the original
-procedure. You can rename workspace procedures to avoid this problem.
-
-**Deleting Procedures from the Workspace**
-
-You can clear the workspace of one or more procedures using the KILL command.
-For instance, to remove Alpha from the workspace, type:
-
-```
-kill alpha[ENTER]
-```
-To remove more than one procedure from the workspace, separate the procedure
-names with commas. To delete Alpha_1 and Alpha_2, type:
-
-```
-kill alpha_1,alpha_2[ENTER]
-```
-To clear the entire workspace, regardless of the number of procedures it contains,
-use the BASIC09 wildcard, *. Type:
-
-```
-kill*[ENTER]
-```
-**Changing Directories**
-
-You change working directories in BASIC09 and NitrOS-9 in the same manner, by
-using the CHD and CHX commands. CHD changes the working directory and
-CHX changes the execution directory.
-
-
-```
-The System Mode | 3
-```
-BASIC09 saves files in, or loads files from, the data directory, unless you specify
-differently in the command pathlist. It stores PACKed procedures in, or loads
-PACKed procedures from, the execution directory, unless you specify differently
-in the command pathlist.
-
-Also, if you want to access NitrOS-9 commands from BASIC09, the system first
-looks for the commands in memory. If they are not there, it looks for them in the
-execution directory, unless you specify differently.
-
-If your data directory is the ROOT directory, and you wish to change to a directory
-named PROGRAMS that is a subdirectory of the ROOT directory, type the
-following command from the command mode B: prompt:
-
-```
-chd programs[ENTER]
-```
-If your current execution directory is the system’s CMDS directory, and you want
-to change to a CMDS directory in the subdirectory BASIC, type:
-
-```
-chx basic/cmds[ENTER]
-```
-Whenever you change to a directory other than an immediate subdirectory, specify
-a complete pathlist.
-
-**Executing NitrOS-9 Commands**
-
-BASIC09 lets you use NitrOS-9 commands at any time from the system mode. To
-do so, precede the command with a dollar sign ($). For instance, to look at the
-current data directory, type:
-
-```
-$dir[ENTER]
-```
-To view the current execution directory, type:
-
-```
-$dir -x[ENTER]
-```
-All NitrOS-9 commands are available, and you can copy files, format diskettes, list
-files, or use any other functions from the system mode. The only restriction is that
-your computer must have enough free memory to handle the command you call. If
-you find that there is not enough memory, try using the MEM command to reduce
-reserved memory. Then, try the command again.
-
-If you plan on executing multiple NitrOS-9 commands in a row, you can type '$' by
-itself to spawn a child shell, where you can run whichever commands you need to.
-To return to BASIC09, type 'ex' at the Shell prompt.
-
-
-**_Basic09 Reference_**
-
-**CAUTION:** Take care when using NitrOS9 commands run from BASIC09. Some
-commands will change the screen mode, colors, etc. that may make BASIC09
-unreadable when the called command exits. Generic command line style
-commands should be fine.
-
-**Auto-Execute Procedures**
-
-The BASIC09 compiler makes two passes through the procedures you write. When
-you edit the procedure, the compiler performs an initial compilation, checking for
-any syntax errors. When you leave the edit mode, the system compiles the
-procedure a second time and checks for any programming errors (such as
-incomplete loop structures, etc.). With the PACK command, you can further
-compile your procedures so that they are smaller and execute even faster.
-
-```
-NOTE: Redirection does not work when using pack* (packing all
-procedures).
-```
-PACK causes an extra compiler pass that removes names, line numbers, and non-
-executable statements. **Before packing a procedure, be sure you save it. Unless
-you do so, you cannot make further changes to the procedure.**
-
-Once you pack a file, you cannot list or edit the packed version. However, if you
-save the procedure to disk before packing, you can still list and edit the original
-file, then pack it again.
-
-When you save a packed procedure on disk, BASIC09 does not normally store it in
-the data directory. Because the procedure is now _executable_ , the system stores it in
-the current execution directory.
-
-For instance, to convert Alpha to a packed procedure in the execution directory,
-type:
-
-```
-pack Alpha[ENTER]
-```
-If you want to save a packed procedure under a different filename, use the NitrOS-
-9 redirection symbol:
-
-```
-pack Alpha > backwards[ENTER]
-```
-After packing a procedure, you can delete it from the workspace. If you then run it,
-BASIC09 automatically loads the file from disk and executes it.
-
-
-```
-The System Mode | 3
-```
-The following is a sequence of commands that demonstrate packing and executing
-a procedure named Alpha.
-
-```
-pack Alpha[ENTER] packs the procedure and stores it in the
-execution directory.
-kill Alpha[ENTER] deletes the procedure from the workspace.
-run Alpha[ENTER] loads the file into memory outside the
-workspace and executes it.
-kill Alpha[ENTER] deletes the module from memory.
-```
-You do not need to kill the file immediately after execution, but until you do, the
-file reduces available memory.
-
-
-**Chapter 4**
-
-**The Edit Mode**
-
-You briefly used the BASIC09 built-in editor to create the Add procedure in
-Chapter 2. In addition to the features you learned there, the editor has other
-important functions.
-
-Although you can use any text editor or word processor to write BASIC09
-procedures, the BASIC09 editor offers two handy features:
-
-```
- It is both string and line number oriented. You can search for strings of
-characters, and replace them, and you can reference text with optional line
-numbers.
- It interfaces with the compiler and decompiler. This feature lets BASIC09
-check continuously for syntax errors and enables you to use procedures that
-conserve memory.
-```
-**Edit Commands**
-
-```
-Command Function
-```
-```
-[ENTER] Moves the edit pointer to the next line. Causes a command to
-execute.
-```
-```
-+ number Moves the edit pointer ahead number lines.
-```
-```
-+ * Moves the edit pointer to the last line.
-```
-**-** **_number_** Moves the edit pointer back **_number_** lines.
-**-** **_*_** Moves the edit pointer to the first line.
-
-```
-text Inserts an unnumbered text line before the current line.
-```
-```
-ntext Inserts a line numbered n in its correct numbered position.
-```
-```
-n Moves the edit pointer to the line numbered n.
-```
-```
-Command Function
-```
-
-```
-The Edit Mode | 4
-c/str1/str2 Changes the next occurrence of str1 to str2 from the current
-line.
-```
-```
-c*/str1/str2 Changes all occurrences of str1 to str2 in the current
-procedure from the current line until the end of the
-procedure. To change all occurrences in the procedure, use -
-* to move the edit pointer to the top of the procedure.
-```
-```
-d Deletes the current line.
-```
-```
-d* Deletes all the lines in the procedure.
-```
-```
-l Lists the current procedure line.
-```
-```
-l n List n lines from the current position.
-```
-```
-l* Lists all the procedure lines.
-```
-```
-q Terminates the edit session.
-r Renumbers lines beginning at the current line in increments
-of 10.
-```
-```
-r* Renumbers all lines in increments of 10.
-```
-```
-r n Renumbers lines beginning at line n in increments of 10
-```
-```
-r n1 n2 Renumbers lines beginning at line n1 in increments of n2.
-```
-```
-s/string/ Searches for the next occurrence of string from the current
-line.
-```
-```
-s*/string/ Searches for all occurrences of string in the current
-procedure from the current line until the end of the
-procedure. To search all occurrences in the procedure, use -
-* to move the edit pointer to the top of the procedure.
-```
-**Using the Editor**
-
-The easiest way to understand the edit commands is to use them. The following
-sections show you the functions of BASIC09 edit mode.
-
-
-**_Basic09 Reference_**
-
-The manual uses line numbers in the following procedure to acquaint you with all
-of the functions of the editor. Remember, however, that line numbers are not
-required with BASIC09. Procedures and programs without line numbers are
-shorter, faster and easier to read.
-
-First, you need a procedure to work with. Position yourself in the system mode.
-Then, type this line:
-
-```
-e Prose[ENTER]
-```
-Now, type the following. (Remember, the c represents a space.)
-
-```
-c100 DIM PHRASES(30):STRING
-c120 FOR T=1 TO 30
-c130 READ PHRASES(T)
-c140 NEXT T
-c160 PRINT
-c170 FIRST=RND(10)
-c180 SECOND=RND(9)+11
-c190 THIRD=RND(9)+21
-c200 PRINT PHRASES(FIRST);
-c210 PRINT PHRASES(SECOND);
-c220 PRINT PHRASES(THIRD);
-c240 PRINT
-c300 DATA "Lovec","An orangec","Humanityc","A
-kissc"
-c310 DATA "A dark cloudc","A goose featherc","A
-popsiclec"
-c320 DATA "Home cookingc","Cold pizzac","Rock n’
-Rollc"
-c330 DATA "is charming likec","makes me dream
-ofc"
-c340 DATA "is as sticky asc","can ooze
-likec","smells likec"
-c350 DATA "can be as tough to forget asc","can
-hurt likec"
-c360 DATA "can be as cynical asc","makes a mockery
-ofc"
-c370 DATA "drives me as crazy asc"
-c380 DATA "a sticky lollipop.","a web of
-intrigue."
-```
-
-```
-The Edit Mode | 4
-c390 DATA "castor oil.","a chocolate bath.","a
-broken toe."
-c400 DATA "honey and things.","personal
-defeat.","a wet diaper."
-c410 DATA "strange happenings.","a pennyless
-purse."
-```
-When you finish typing the procedure, type q[ENTER] to return to the system
-mode. Now you can test the program by typing either:
-
-run[ENTER]
+Microware System Corporation
+P.O. Box 4865
+Des Moines, Iowa 50304 U.S.A.
+
+## Basic09 REFERENCE MANUAL TABLE OF CONTENTS
+### Introduction
+#### Basic09 Features
+#### History of BasicO9
+### Introduction to Basic09 Programming
+#### What is a Program?
+#### A Simple Basic Program
+#### Basic Programming Techniques: Loops and Arithmetic
+#### Listing Procedure Names
+#### Requesting More Memory
+#### Storing and Recalling Programs
+#### How to Print Program Listings
+#### Basic09's Four Modes
+#### More About the Workspace
+### System Mode
+#### System Mode Commands
+### Edit Mode
+#### Overview of Edit Commands
+#### How the Editor Works
+#### Line-Number Oriented Editing
+#### String Oriented Editing
+#### Detailed Edit Commands
+### Execution Mode
+#### Running Programs
+#### Execution Mode: Technically Speaking
+### Debug Mode
+#### Overview of Debug Mode
+#### Debug Mode Commands
+#### Debugging Techniques
+#### Debug Mode as a Desk Calculator
+### Data Types, Variables, and Data Structures
+#### Why Are There Different Data Types
+#### Data Structures
+#### Atomic Data Types
+#### Constants
+#### Variables
+#### Parameters
+#### Arrays
+#### Complex Data Types
+### Expressions, Operators, and Functions
+#### Expressions
+#### Operators
+#### Functions
+### Program Statements and Structure
+#### Program Structure
+#### Line Numbers
+#### Assignment Statements
+#### Control Statements
+#### Parameter Passing
+#### Calling External Procedures
+#### Declarations
+### Input and Output Functions
+### Program Optimization
+### Appendix A - Sample Programs
+### Appendix B - Quick Reference Summary
+### Appendix C - Basic09 Error Codes
+### Appendix D - Runb
+### Appendix E - Index
+
+### Introduction
+
+Basic09 is an enhanced and structured BASIC language programming system specially created for the 6809 Advanced Microprocessor. In addition to the standard BASIC language statements and functions, BASICO9 includes many of the most useful elements of the PASCAL programming language so that programs can be modular, well-structured and use sophisticated data structures. It also permits full access to almost all of the 0S-9 Operating System commands and functions so it can be used as a systems programming language. These features make Basic09 an ideal language for many applications: scientific, business, industrial control, education, and more.
+
+Basic09 is unusual in that it is an Interactive Compiler that has the best of both kinds of language system: it gives the fast execution speed typical of compiler languages plus the ease of use and memory space efficiency typical of interpreter languages. Basic09 is truly a complete PROGRAMMING SYSTEM that includes a powerful text editor, multipass compiler, run-time interpreter, high-level interactive debugger, and a system executive. Each of these components was carefully integrated so the user "sees" a friendly, highly interactive programming resource that provides all the tools and helpful "extra" facilities needed for fast, accurate creation and testing of structured programs.
+
+#### Basic09 Features
+
+*Structured Recursive BASIC with PASCAL-type Enhancements*
+- Allows Multlple, Independent, Named, Procedures
+- Procedure Call by Name with Parameters
+- Multi-character, upper or lower case identifiers
+- Variables and Line Numbers Local to Procedures.
+- Line Numbers Optional
+- Automatic Linkage to ROM or RAM "Library" Procedures
+- PACK Compiler Command Compacts Program and Provides Security
+- PRINT USING with FORTRAN-like Format Specifications
+
+*Extended Data Structures*
+- 5 Basic Data Types: BYTE, INTEGER, REAL, BOOLEAN and STRING.
+- One, Two, or Three-Dimensional Arrays
+- User-Defined Complex Structures and Data Types
+
+*Extended Control Structures (with Unique Closure Elements):*
+- IF...THEN...[ ELSE...] ENDIF
+- FOR...TO...[ STEP ]...NEXT
+- REPEAT...UNTIL...
+- WHILE...DO...ENDWHILE
+- LOOP...ENDLOOP
+- EXITIF...THEN...ENDEXIT
+
+*Powerful Interactive Debugging and Editing Features*
+- Integral Full-Feature Text Editor
+- Syntax Error Check upon Line Entry and Procedure Compile
+- Trace Mode Reproduces Original Source Statements
+- Renumber Command for Line Numbered Procedures
+
+*High-Speed, High-Accuracy Math*
+- 9-Decimal-Digit 40-Bit-Binary Floating Point
+- Full Set of Transcendentals (SIN, ASN, ACS, LOG, etc.)
+
+#### The History Of Basic09
+
+Basic09 was conceived in 1978 as a high-performance programming language to demonstrate the capabilities of the 6809 microprocessor to efficiently run high-level languages. Basic09 was developed at the same time as the 6809 under the auspices of the architects of the 6809. The development project covered almost two years, and incorporated the results of research in such areas as interactive compilation, fast floating point arithmetic algorithms, storage management, high-level symbolic debugging and structured languade design. These innovations give Basic09 its speed, power and unique flavor.
+
+Basic09 was commissioned by Motorola, Inc., Austin, Texas, and developed by Microware Systems Corporation, Des Moines, Iowa. Principal designers of Basic09 were Larry Crane, Robert Doggett, Ken Kaplan, and Terry Ritter. The first release was in February, 1980.
+
+Excellent feedback, thoughtful suggestions, and carefully documented bug reports from Basic09 users all over the world have been invaluable to the designers in their efforts to achieve the degree of sophistication and reliability Basic09 has today.
+
+### Introduction to Basic09 Programming
+
+### An Introduction To BasicO9
+
+This section is intended for persons who have not previously written computer programs. If you are familiar with programming in general or BASIC programming specifically, this section can give you a "feel" for the Basic09 interactive environment.
+
+#### What Is A Program?
+
+A computer works something like a pocket-calculator. With a calculator, you push a button, some calculation occurs, and the result is displayed. On some calculators you can write a program which is just a list of the buttons you want pushed, in the order you want them pushed, which is very similar to a computer program, but most computer languages use command names instead of buttons.
+
+To get results from a computer, you must first put into the computer the list of commands you want executed in the order you want them executed. Each command will mean "do this thing" or "do that thing", but the computer only has certain commands which it will understand. A computer can do things like "add" or "save the result into a memory”. Typing "get me a taco" to a computer won't get it; similarly, on a calculator you can't push buttons which aren't there. After you have stored a list of commands into the computer, you can tell it to perform those operations. This is like actually pushing the buttons on a hand calculator. Then, if you remembered to have the computer display your results, you get to see them. Generally, a computer does not automatically display results like a hand calculator. More calculations occur in a computer than in a «calculator, and displaying all these results would simply be overwhelming.
+
+You enter a program into a computer by using the computer itself as a "text editor" to store the commands you type in. Some editors allow you to enter any text you want. Other editors will only store valid computer commands. Even if the computer does store all the text you type in, it can only execute those commands it knows. If, during program execution, Basic09 finds a word which does not correspond to a command, it will probably stop and print out an "error message". Other editors check each command as you enter it (usually after the carriage-return ending each line) and print error messages immediately for invalid commands. After typing in your list of commands, there are ways to display that list, to modify the commands you have typed in, and to insert others. But simply entering a computer program does not get results any more than thinking which buttons to push will get results on a calculator. You store your program by typing it into a computer, but no results are available until after you start the program running.
+
+Even though programming is conceptually simple, it is easy to misspell commands which Basic09 will not interpret correctly. Unlike humans, Basic09 does not infer anything: Every command must be perfectly spelled and punctuated or it is wrong. Even after spelling errors are eliminated, it is likely that the sequence of commands you have entered will not do the job you wanted it to do. The meaning of the program to Basic09 is often guite different than was intended by the programmer, but good intentions just don't push the right buttons. After you get the program to run without obvious error, you must test the program with ‘sample input and see that it produces results which are known to be correct. If the results are incorrect, the program must be modified and tested until it does produce correct results. This process is known as testing and debugging. Computer malfunctions are rare, and if the computer works to store the program, it is probably working perfectly. If the program does not work, you need to puzzle out how the computer is doing something which you didn't realize that you told it to do. Programming can be frustrating, but if you enter the right commands, the computer will do the right things for you.
+
+#### A Simple Basic09 Program
+
+Probably the easiest way to explain programming is by example. This
+simple program sometimes keeps kids happy for hours. First, the program
+asks the wuser for his name. Then the computer types out "Hi", then the
+name, then “"see you later®TM. This may not seem like much, but it is great
+fun to type in things which are not your name, and see if they will be
+printed out. They will, of course.
+When you turn on the Basic09 computer it will print some heading
+information. If the prompt is "0S9: ", enter "basic09" (and a carriage-
+return) to get to the prompt "B:". When you have the prompt "B:", it
+means that the
+system
+is
+in the
+Basic09 "command mode", While
+in
+the
+command mode, you can do several things like: list, kill, or create
+programs
+(called
+"procedures"
+in
+Basic09). Basic09 lets you keep several
+different programs in memory at the same time, Each program is
+identified by a name you give it when you create the procedure.
+To <create a new procedure you command the system to enter the "edit
+mode”TM by typing a simple "e" (in upper or lower case) and a carriage-
+return (the ENTER or RETOURN key). The Editor lets you enter or change
+programs and actually checks for many common errors as you type in your
+program. Automatic checking feature is one of the nicest things about
+Basic09. Because it's always "looking over your shoulder"TM to catch
+mistakes, it saves a 1lot of debugging time! If you're not 100% sure
+about how something works, you can go ahead and try it instead of digging
+though this manual,. If you guess wrong, Basic09 will usually show you
+wnhere
+and why.
+Because you did not specify a particular procedure name, BASICO9
+will auvtomatically select the name "PROGRAM" for you and will respond by
+printing out "PRCCEDURE PROGRAM"; this means that you will be editing a
+procedure which is named PROGRAM. Later you will see that you can enter
+many different procedures and give them different names (just type the
+Page 2-2
+Basic09 REFERERCE
+MANUAL
+Introduction to BASICO0S Programming
+name you want to use for the program after the "e"). A procedure name may
+be any combination of alphanumeric characters beginning with a letter.
+The computer output so far is as follows:
+0S9: basic09
+BASICO9
+READY
+B:e
+PROCEDURE PROGRAM
+*
+E:
+The asterisk (*) indicates the "current edit line" in the procedure
+being edited. 1In this case, the current line is empty since you have not
+yet entered anything. The asterisk is handy, since you will be moving
+back and forth between different lines to edit them. Later, you will be
+"opening” existing procedures for modification, and the first line will
+be displayed automatically, helping identify that you are editing the
+correct program,
+When Basic09 responds with the edit prompt "E:", it is in the edit
+mode. Now you can enter "edit commands” which help enter the computerprogram, While
+in
+edit mode,
+Basic09
+ALWAYS TAKES THE FIRST CHARACTER
+OF
+EVERY LINE AS AN EDIT COMMAND. Some of the basic edit commands are:
+<space> <program statement> <cr> insert a line
++ <cr> go to next line down (just <cr> also does the same)
+- <cr> move back to previous line
+L <cr> list current line
+d <cr> delete current line
+You must type an edit command
+at the
+start
+of each line. If
+you forget
+to
+type
+an
+edit command, Basic09 will respond with
+"WHAT?". The
+mostimportant edit
+command
+is
+the (invisible)
+space character;
+it
+means "save
+the
+following line of text". The "space” command
+is
+the
+way most text
+is
+entered into the system.
+If a
+line
+is
+to be entered, you must type
+a
+space before the rest of the line. Another useful edit command is "L*"
+(or
+"1*",
+since the editor accepts either upper
 or
-run prose[ENTER]
-
-After trying the procedure, return to the edit mode by typing e[ENTER].
-
-After displaying the procedure’s name, the editor displays line 100 preceded by an
-asterisk. The asterisk lets you know which line is the _current line_ (or the line at
-which the edit pointer is located.)
-
-**Searching Through a Procedure**
-
-You can examine a procedure in three ways:
-
-```
- Press [ENTER] to display the procedure one line at a time.
- Skip through the procedure to a particular line.
- List part or all of the procedure to the screen.
-```
-When you use either of the first two methods, the line you select to display
-becomes your current line. When you use the third method, the current line does
-not change.
-
-**Using [ENTER]**
-
-If you are still positioned at line 100, but want to examine the first line of data, line
-300, press [ENTER] 12 times to move down.
-
-**Using the Plus Sign to Move Forward**
-
-Another method of moving to a specific line is to type a plus sign followed by the
-number of lines you need to advance to get there. Positioned at line 100, you can
-type:
-
-```
-+12[ENTER]
-```
-
-**_Basic09 Reference_**
-
-Whether you press [ENTER] or use the plus sign, the last line displayed is now
-your current line.
-
-**Accessing a Line Using the Line Number**
-
-The third way to move to a particular line is to type the line number, followed by
-[ENTER]. For instance, to jump back to line 100, type:
-
-```
-100[ENTER]
-```
-The editor displays line 100 and makes it your current line.
-
-**Using the Minus Sign to Move Backward**
-
-In the same manner that you move forward in the procedure using the plus sign,
-you can move backward using the minus sign, or hyphen.
-
-Type 300[ENTER] to return to line 300. To display line 240 and make it your
-current line, type:
-
-```
--[ENTER]
-```
-To display line 190 and make it your current line, type:
-
-```
--4[ENTER]
-```
-**The Global Symbol**
-
-The BASIC09 editor also makes use of the asterisk as a global symbol. For
-instance, following a command with an asterisk causes that command to affect the
-entire procedure.
-
-This feature allows you to move quickly to the beginning and end of the procedure.
-To return to line l00, the first line, type:
-
-```
--*[ENTER]
-```
-To move to the end of the procedure, past all the numbered lines, type:
-
-```
-+*[ENTER]
-```
-**Using List**
-
-The LIST command lets you select one or more lines for display on your screen.
-To see this, make the first line your current line, then type:
-
-```
-l[ENTER]
-```
-To list one or more lines, type the LIST command followed by the number of lines
-you want displayed. For instance, typing l5[ENTER] causes the current line and
-
-
-```
-The Edit Mode | 4
-```
-four others to appear on the screen, as shown in the following sequence of
-commands and the resulting display:
-
-```
--*[ENTER]
-l5[ENTER]
-0000 100 DIM PHRASES(30):STRING
-000F 120 FOR T=1 TO 30
-0024 130 READ PHRASES(T)
-0031 140 NEXT T
-003F 160 PRINT
-```
-You can also use LIST with the BASIC09 global symbol, *. Typing an asterisk
-after the LIST command produces a listing of the entire procedure.
-
-**Deleting Lines**
-
-Earlier, the manual showed that you can delete the current line by typing
-d[ENTER]. Because this is such a simple process, be sure you don’t do it by
-accident. Removing the wrong line, or too many lines, is very frustrating in a
-complex procedure.
-
-You can also remove a group of lines from a procedure by typing d, followed by
-the number of lines you want to delete. This command deletes the current line and
-specified following lines. Again, be careful.
-
-You can remove all of the lines in a procedure by using the global symbol, *.
-Typing d*[ENTER] erases all procedure text. However, the procedure name still
-resides in the workspace. To delete an entire procedure, including the name, use
-the KILL command from the system mode.
-
-If you decide you don’t like the nouns used in the DATA lines of the Prose
-procedure, erase all the DATA lines containing nouns (lines 300-320) and replace
-them. To do so, make line 300 your current line by typing:
-
-```
-300[ENTER]
-```
-Then type:
-
-```
-d[ENTER]
-```
-Line 300 disappears and line 310 takes its place as the current line. To finish
-deleting lines 310 and 320, simply type d[ENTER] two more times.
-
-
-**_Basic09 Reference_**
-
-Alternatively, another method of deleting the DATA lines 300-320 uses only one
-command. To delete lines 300 through 320, follow the DELETE command with
-the number of lines you want to remove—in this case, three:
-
-```
-d3[ENTER]
-```
-Lines 300, 310, and 320 disappear. Line 330 becomes the current line. Move back
-a line to make sure the deletions worked. The line numbers now skip from 240 to
-330.
-
-Now you need new nouns for the procedure. Type them in the same style as the old
-lines, such as:
-
-```
-c300 DATA "A telephonec","A ticklec","A girlc","A boyc"
-c310 DATA "Bad luckc","Moneyc","A bad betc","A lumpy
-bedc"
-c320 DATA "A deep thoughtc","Sunlightc"
-```
-Save a copy of your procedure to disk by exiting the editor and using the SAVE
-command. Then return to the edit mode and try the global delete by typing:
-
-```
-d*[ENTER]
-```
-**Changing Text**
-
-Using CHANGE tells the editor to search for existing text and replace it with new
-text. CHANGE, like DELETE, can easily cause unwanted results if you are not
-careful. CHANGE will change the desired text from the current instruction.
-CHANGE-all will change from the current instruction to the end of the procedure
-being edited.
-
-The CHANGE command requires that you use _delimiters_ to separate the command
-from the search text, and to separate the search text from the new text. You can
-select from any of the following characters for a delimiter, as long as it does not
-appear in either the search text or the new text:
-
-```
-!#%^&()-+={}[]"‘<>,.?/\|
-```
-Do not use the global symbol (*) for search and replace operations. This manual
-uses a (/) as the CHANGE delimiter.
-
-The following steps outline the correct use of CHANGE:
-
-1. Position the editor either before or on the line in which you want to make a
-    change.
-2. Type c (for CHANGE). Do not use a preceding space.
-
-
-```
-The Edit Mode | 4
-```
-3. Type a delimiter character, such as /.
-4. Type the characters to be changed, following them with the delimiter.
-5. Type the new text, followed by the delimiter, closing delimiter optional. (Do
-    not confuse this with the NitrOS-9 edit command, where the closing
-    delimiter is required.)
-6. Press [ENTER].
-
-```
-Note: It is a good idea to turn on NitrOS-9’s upper- and lowercase function
-before attempting change or search operations. If you do not, you cannot tell
-whether the text you want to find is upper- or lowercase, or some combination
-of the two. If you type the wrong case, the change or search fails.
-```
-In case you didn’t notice when typing the procedure, line 410 contains an
-incorrectly spelled word, pennyless. To correct this error, type the following:
-
-```
-c/pennyless/penniless/[ENTER]
-```
-Immediately, the editor displays line 410, with pennyless changed to penniless.
-
-Suppose you decide to change the number of sentence combinations available in
-Prose. The procedure now has 30 data entries. If you add five subjects, five verb
-phrases, and five objects, the procedure also needs other changes (for instance, the
-DIM statement in line 100, the loop size in line 120, and the RND statements in
-lines 170 through 190).
-
-A quick way to change the number 30 in lines 100 and 120 is to use CHANGE’s
-global function. To change all occurrences of 30 to 45, position the editor at line
-100, and type:
-
-```
-C*/30/45/[ENTER]
-```
-Use the CHANGE and global CHANGE functions to adjust the RND statements in
-lines 170, 180, and 190.
-
-As well as making changes, you can use the CHANGE command to quickly delete
-portions of text within a line. To do this, type delimiters without new text, in this
-fashion:
-
-```
-C/cfeather//[ENTER]
-```
-This command changes the text "A goose feather" in line 310 to "A
-goose". The closing delimiter in this instance is not optional.
-
-
-**_Basic09 Reference_**
-
-**Searching for Text**
-
-The editor’s SEARCH command, S, works in the same manner as the CHANGE
-command. However, SEARCH only requires you specify a block of text to find.
-SEARCH will search for the desired text from the current instruction. SEARCH-all
-will search from the current instruction to the end of the procedure being edited.
-
-With SEARCH, you use delimiters to enclose the text to find. To test the function,
-position the editor at the beginning of text by typing:
-
-```
--*[ENTER]
-```
-Now, search for the word phrases, by typing:
-
-```
-s/phrases/[ENTER] (closing delimiter optional)
-```
-The screen displays:
-
-```
-*0000 100 DIM phrases(30):STRING
-```
-To find all occurrences of phrases throughout the procedure, use the global
-symbol. Type:
-
-```
-s*/phrases/[ENTER]
-```
-**Renumbering Lines**
-
-The RENUMBER command, R, renumbers all numbered lines and all references to
-numbered lines. You can give RENUMBER either one or two parameters. The first
-is the beginning line number. The second is the increment you want. The default
-increment is 10.
-
-For instance, the Prose procedure line numbers skip from line 100 to line 120. You
-can renumber the entire procedure by moving the editor to line 100, and then
-typing:
-
-```
-r 10[ENTER]
-```
-To change the numbering to increments of 5, beginning at line 100, type:
-
-```
-r 100,5[ENTER]
-```
-You can also change line numbering in portions of the procedure. To do this move
-the editor to the line where you want the new numbering to begin. Then, type in
-the new parameters. To renumber line 100 as line 200 and continue with
-increments of 10, position the editor at line 100. Then type:
-
-```
-r 200,10[ENTER]
-```
-
-```
-The Edit Mode | 4
-```
-If you are not positioned at the first line of the a procedure, but you wish to
-renumber all lines, you can use the global symbol to do the job. From anywhere in
-the procedure, type:
-
-```
-r* 100,10[ENTER]
-```
-This renumbers the entire procedure and increments of 10.
-
-**Adding Lines**
-
-There are two ways to add new lines to a procedure. You can:
-
-```
- Position the editor one line below the position for the new line. Then type
-the new line and press [ENTER]. When inserting lines without numbers, Be
-sure to type a space as the first character of the line tell the editor that the
-following text is a new procedure line.
- Type a new line, giving it a line number that falls between two existing line
-numbers.
-```
-The following procedure adds more choices to the Prose program. It also adds a
-new feature that lets you press [ENTER] for additional output, rather than having
-to rerun the procedure. Use the information presented in this section to help you
-insert the new lines into your program. Because you must change some lines, as
-well as add lines, the following listing includes the entire procedure.
-
-Referring to the original Prose listing, the lines to change are: 100, 120, 170, 180,
-and 190.
-
-The lines to add are: 110, 150, 230, 250, 260, 270, 305, 325, 372, 374, 376, 420,
-430.
-
-```
-PROCEDURE Prose
-100 DIM PHRASES(45):STRING
-110 DIM RESPONSE:STRING
-120 FOR T=1 TO 45
-130 READ PHRASES(T)
-140 NEXT T
-150 REPEAT
-160 PRINT
-170 FIRST=RND(15)
-180 SECOND=RND(14)+16
-190 THIRD=RND(14)+31
-200 PRINT PHRASES(FIRST);
-210 PRINT PHRASES(SECOND);
-```
-
-**_Basic09 Reference_**
-
-```
-220 PRINT PHRASES(THIRD);
-230 PRINT
-240 PRINT
-250 PRINT "ccccccccccPress ENTER for another
-witticism..."
-260 INPUT "ccccccccccOr press the SPACEBAR
-and press ENTER to end...",RESPONSE
-270 UNTIL RESPONSE>""
-300 DATA "Lovec","An orangec","Humanityc","A
-kissc"
-305 DATA "A computerc","A bookc","Miseryc"
-310 DATA "A dark cloudc","A goose featherc","A
-popsiclec"
-320 DATA "Home cookingc","Cold pizzac","Rock n’
-Rollc"
-325 DATA "Snow in Junec","A glass housec"
-330 DATA "is charming likec","makes me dream ofc"
-340 DATA "is as sticky asc","can ooze
-likec","smells likec"
-350 DATA "can be as tough to forget asc","can hurt
-likec"
-360 DATA "can be as cynical asc","makes a mockery
-ofc"
-370 DATA "drives me as crazy asc"
-372 DATA "can bother me likec","blackens my hopes
-likec"
-374 DATA "can tickle me likec","can be as funny
-asc"
-376 DATA "has the effect ofc"
-380 DATA "a sticky lollipop.","a web of intrigue."
-390 DATA "castor oil.","a chocolate bath.","a
-broken toe."
-400 DATA "honey and things.","personal defeat.","a
-wet diaper."
-410 DATA "strange happenings.","a penniless purse."
-420 DATA "a slimy snake.","personal defeat.","a bad
-habit."
-430 DATA "a bad memory chip.","a good fight.","a
-silly friend."
-```
-
-```
-The Edit Mode | 4
-```
-**The Next Step**
-
-Even the best programmers make mistakes—a lot of them. BASIC09 provides a
-way to catch programming mistakes quickly and correct them. The next chapter
-tells you about BASIC09’s powerful debugging functions.
-
-
-**Chapter 5**
-
-**The Debug Mode**
-
-The term _debug_ refers to the process of finding programming errors and correcting
-them. BASIC09’s debugging features include _symbolic_ debugging capabilities that
-let you examine variable values and test and manipulate procedures.
-
-With debug you can:
-
-```
- Examine and change variables.
- Trace procedure execution. Debug lets you execute procedures and watch
-them run in slow motion.
- Pause procedure execution.
- Resume procedure execution.
- Set procedure breakpoints that automatically switch to the debug mode.
- Select and use degrees or radians for trigonometric functions.
- Perform calculations.
- Call NitrOS-9 system commands.
-```
-**Entering the Debug Mode**
-
-You enter Debug:
-
-```
- Automatically, whenever an error occurs during the execution of a procedure
-(unless you have included an ON ERROR GOTO statement to handle the
-error).
- Automatically, when a procedure executes a PAUSE statement.
- When you press [CTRL][C] during the execution of a procedure.
-```
-You can tell when BASIC09 enters the Debug mode by the appearance of the D:
-prompt. When you see D:, followed by the cursor, Debug is waiting for your
-command.
-
-The following is a reference of all of the Debug commands and what they
-accomplish:
-
-
-**_Basic09 Reference_**
-
-```
-Command Function
-```
-```
-$ Calls NitrOS-9’s command shell interpreter to run a program
-or an NitrOS-9 command. From the Debug prompt, type $,
-followed by the name of the program or command you want
-to execute.
-```
-```
-Example: $list procedure_one[ENTER]
-```
-```
-BREAK Sets a breakpoint immediately before the specified
-procedure. Use this command to re-enter Debug when one
-procedure calls another.
-```
-```
-If you have three procedures that call each other—Proc1,
-Proc2, and Proc3—and Proc3 doesn’t seem to pass the
-correct values to Proc2 when it returns, set a breakpoint at
-Proc2. This causes BASIC09 to enter Debug before re-
-entering Proc2. You can then check your variable values.
-```
-```
-You use one breakpoint for each active procedure. Debug
-removes breakpoints immediately after encountering them.
-```
-```
-A procedure must run before you can set a breakpoint in it.
-Use BREAK to stop execution when a called procedure
-returns to a procedure previously executed.
-```
-```
-Example: break proc2[ENTER]
-```
-```
-CONT Causes procedure execution to continue.
-```
-```
-Example: cont[ENTER]
-```
-```
-DEG/RAD Selects either degrees or radians as the unit of measurement
-for trigonometric functions. DEG and RAD affect only the
-current procedure.
-```
-```
-Examples: deg[ENTER]
-rad[ENTER]
-```
-
-```
-The Debug Mode | 5
-```
-**Command Function**
-
-**DIR** Displays the name, size, and variable storage requirements
-for each procedure in the workspace. The current working
-procedure has an asterisk before its name. All packed
-procedures have a dash before their names. DIR also shows
-the available memory in the workspace.
-
-```
-If you provide a pathlist, DIR sends its data to the specified
-file.
-```
-```
-Examples: dir[ENTER]
-dir procedures[ENTER]
-```
-**Q** Terminates execution of the procedure, closes any open
-paths, and exits to the System mode.
-
-```
-Example: q[ENTER]
-```
-**LET** Assigns a new value to a variable. You must specify variable
-names that are already initialized by your program. In the
-Debug mode, You cannot use LET to copy one array to
-another array as you can in BASIC procedures.
-
-```
-Examples: let a := 0[ENTER]
-let fruit := "oranges"[ENTER]
-```
-**LIST** Displays a source listing of the suspended procedure. The
-display is formatted and contains I-code addresses. An
-asterisk appears to the left of the last executed statement.
-
-```
-Example: list[ENTER]
-```
-**PRINT** Displays the values of variables used in the suspended
-procedure. You cannot introduce new variable names in the
-Debug mode, and you cannot display array or complex
-structures (although you can display individual array
-elements). The question mark short form of PRINT does not
-work; the whole word must be typed.
-
-
-**_Basic09 Reference_**
-
-```
-Command Function
-```
-```
-You can print multiple variables at once in a single PRINT
-by separating them by commas (spaces them apart by 16
-characters) or semi-colons (runs them together with no
-spaces).
-```
-```
-Example: print fruit[ENTER]
-```
-```
-STATE Lists the nesting order of active procedures. STATE displays
-the highest-level procedure at the bottom of the calling list.
-The lowest-level procedure is the suspended procedure.
-```
-```
-Example: state[ENTER]
-```
-```
-STEP Causes execution of the suspended procedure in specified
-increments. For example, typing step 5[ENTER] execute
-the equivalent of the next five statements. If you enter STEP
-without a increment value, the step rate is 1.
-```
-```
-Using step with the trace function lets you observe the source
-lines as they execute.
-```
-```
-Because compiled I-Code contains actual statement memory
-addresses, the top or bottom statements of loop structures
-execute only once. For example, in FOR/NEXT loops, FOR
-executes once, and the statement following FOR appears to
-be the top of the loop.
-```
-```
-TRON/TROFF Turns on or turns off the trace function. Trace on (TRON)
-causes the system to reconstruct the compiled code of each
-statement line into source code. Debug displays the source
-code before the statement is executed. If the statement causes
-the evaluation of one or more expressions, Debug displays
-each result following the statement. The result is preceded by
-an equal sign.
-```
-```
-The trace function is local to the current procedure. If the
-suspended procedure calls another procedure, Debug
-suspends the trace function until control returns to the
-original procedure. However, once you turn on trace for a
-procedure, it continues in effect until you turn it off. This
-means that if you turn trace on in a called procedure, and
-```
-
-```
-The Debug Mode | 5
-```
-```
-another procedure subsequently calls it, trace continues to
-display the called procedure’s operations.
-```
-```
-Examples: tron[ENTER]
-troff[ENTER]
-```
-**When Things Go Wrong**
-
-Programming errors show up in two ways. Either your procedure produces
-incorrect results, or it terminates prematurely.
-
-In the first instance, you can stop your procedure and enter Debug by pressing
-[CTRL][C].
-
-However, sometimes your program executes too quickly to allow you to stop it at
-the appropriate place. In this case, you can use the Edit mode to insert a PAUSE
-command where you wish the procedure to stop. PAUSE causes the procedure to
-halt execution and enter the Debug mode.
-
-Once in Debug, you can use the PRINT command to examine the procedure
-variables. You can use LET to manipulate the variable values to determine where
-the error or errors occurred. Perhaps you forgot to initialize a variable or forgot to
-increase a loop counter.
-
-**Using the Trace Function**
-
-Sometimes, errors are more difficult to discover. If so, the next step is to use the
-trace function. To do this, type:
-
-```
-tron[ENTER]
-```
-Now press [ENTER]. Each time you press [ENTER], Debug executes one line of
-the procedure. You can see the original source statement, and if an expression is
-evaluated, Debug prints the result of the expression, preceded by an equal sign.
-
-In this manner, you can step through the entire procedure, or any part of it,
-examining variable values as you go.
-
-**What About Loops?**
-
-The STEP command is helpful if you find yourself tracing the operation of a loop.
-Once you determine that the loop works correctly, you can avoid tedious, step-by-
-step repetitions by turning trace off in using STEP to quickly run through the loop.
-Then, turn trace back on and resume single-step debugging. For instance, type:
-
-```
-troff[ENTER]
-```
-
-**_Basic09 Reference_**
-
-```
-step 200[ENTER]
-tron[ENTER]
-```
-**In Multiple Procedures**
-
-Although the trace function is local to a procedure, you can pause and turn on the
-trace function in as many procedures as you wish. Trace continues to operate in
-each procedure until you turn it off using TROFF.
-
-To cause a procedure to halt execution when it is called by another procedure, use
-the BREAK command.
-
-
-**Chapter 6**
-
-**Data and Variables**
-
-**Data Types**
-
-_Data_ is information on which a computer performs its operations. Data is always
-numeric but, depending on your computer application, it can represent values,
-symbols, or alphabetic characters. This means that the same items of _physical_ data
-can have very different _logical_ meanings, depending on how a program interprets
+lower
+case)
+which will
+cisplay
+the
+whole procedure. This
+&allows
+you
+to
+watch
+the procedure
+develop
+as
+lines are entered.You use the
+"space®TM
+command
+to
+enter the following line:
+E:
+PRINT "type your name"
+%*
+When
+Basic09
+executes procedure PROGRAM, this line will tell it to
+print
+on the screen all of the characters between the quotes.
+Page 2-3
+BASIC(09 REFERENCE MANUAL
+Introduction to Basic09 Programming
+As mentioned before, BASIC0% checks for errors at the end of each
+line and again when the edit is finished. These errors are, in general,
+anything Basic09 cannot identify or things that don't conform to the
+rules of the 1language. An error could be a bad character, mismatched
+parenthesis, or one of many other things. Basic09 will print out an
+"error code" to identify the error and print an up arrow character under
+the place in the line where it detected the error. The error codes are
+listed at the end of this manual. If the error was detected at the end
+of the edit session, the 1I-code 1location of the error will also be
+printed. Cryptic information is all Basic09 knows about the problem.
+Hopefully, it will help you to find and fix the error.
+In the same way that you entered the first line, enter the following
+lines, Remember that the first character entered must be a space to get
+Basic09 to save the rest of the line. Example:
+E:
+IRPUT name$
+*
+ PRIRT "Bi ";name$;", see you later."
+*9%o
+:
+ERD
+The second line ("input name$"), when executed, commands Basic09 to wait
+for a line of text to come in from the keyboard (this will happen after
+the wuser reads the message printed out in the first line). Basic09 will
+accumulate text from the keyboard character-by-character until a
+carriage-return ends the line. This text is placed in the memory area
+corresponding to the variable "name$". The dollar-sign ($) on the end of
+the variable tells Basic09 that you want to store a sequence of
+characters
+as
+opposed
+to
+a
+number.
+The third line of procedure PROGRAM (print "Hi ";name$;", see you
+later."), starts out like the first line. The command "print" causes
+Basic09 to print out the various values which come after it. When this
+line is executed, the characters H, i, and "spaceTM are printed out since
+they are enclosed in double-guotes. Next, without additional spaces,
+Basic09 prints out the line which was typed in by the user and saved in
+the memory corresponding to "name$" and prints out " see you later",
+When a PRINT statement contains multiple values, it will print them out
+one after the other. If the separator is a comma, Basic09 will move to
+the next 16-column "tab stop" before printing the next value. However,
+if the separator between print values is a semicolon, absolutely no space
+will separate the values. The last line of the procedure (“"END") tells
+Basic09 to stop executing the programn and to return to the command mode
+(B:). You have not yet EXECUTED the procedure, you are just EDITING. 1If
+you type in 1*, the whole program will be listed as follows:
+E:l1*
+Page 2-4
+Basic09 REFERENCE MANUAL
+Introduction
+to
+Basic09
+Programming
+PROCEDURE PROGRAM
+0000 PRINT "type your name"
+0012 IRPUT name$
+0017 PRINT "Hi "; name$; ", see you later."
+0035 ERD
+%
+E:
+Notice that the editor has added some information which you did not type
+in. You can use this listing to see exactly what to type in to run this
+program, but the editor only wants the relevant information.
+The numbers to the 1left are "I-code addressesTM. These are the
+actual memory locations where each line begins relative to the start of
+the procedure. These number may look strange because they are in
+hexadecimal (base 16). These values are important, since the compiler
+may find errors at some I-code 1location and will try to convey what
+information it has to the programmer. I-code addresses are supplied
+automatically by BASICO0S. v :
+The space between the "I-code addresses” and the beginning of the
+program line is reserved for "line numbers". Line numbers are required
+in many versions of BASIC (although not in Basic09). Notice that
+although the program was typed in lower case some words are printed in
+upper case. Basic09 identifies valid command "keywords" and converts
+them to upper case automatically.
+~ Now let's run it. First type "g" to gquit the editor. We are now
+back in "command modeTM ( B:). Now type "run". BASIC0S remembers the
+last procedure edited (PROGRAM) and starts to execute it.
+E:qg
+READY
+B:ROKN
+type your name
+?
+tex
+Hi tex, see you later.
+READY
+B:
+The question mark (?) is the normal input prompt to tell the user that
+the program is waiting for input.
+This program is extremely simple, but younger kids can get great fun
+from it, 1Its action is especially amusing to young people who are
+learning a computer language for the first time because a machine is
+"respondingTM to them, and because the machine is too easily "fooled" if
+you do not type in a real name,
+BASIC0S
+REFERENCE MANUAL
+Introduction
+to
+Basic09
+Programming
+BASIC
+PROGRAMMIRG
+TECHNIQUES: LCOPS AND
+ARITHMETIC
+Another simple program
+that
+most
+of us
+can
+identify with
+is
+a
+program
+to
+print
+out
+multiplication
+tables.
+‘
+PROCEDURE multable
+FPOR
+i=1
+TO
+9
+FOR
+j=1
+TO
+9
+:
+PRINT
+i*j; TAB(5*3j);
+REXT
+j
+PRIRTREZT
+i
+First, open the editor by typing
+"e
+multable"
+as
+follows:
+B:
+e
+multable
+PROCEDURE multable
+*
+E:
+Next,
+type
+in
+the
+program
+line-by-line
+starting with
+"FOR i=1
+TO
+9"
+(lower-case
+is
+perfectly
+fine).
+If
+you loose your
+way, type
+"L*" to
+see
+where
+you are,
+The entire procedure will
+be
+displayed
+and an
+asterisk
+placed at the left of the current line. If you make a mistake, use "+"
+or "-" to
+move
+to that line, use
+"d"
+to
+delete
+the line, and use the
+space command
+to
+enter
+the
+line over.
+Make sure that there are no
+errors
+and then type "gq". When you have the program running, try adding a
+statement before "POR i=1 TO 9" as follows: "DIM i,j:IRTEGER".
+The POR i=1] TO 9 and REXT i constitute the start and end of a
+control structure
+or
+"loop®. A control structure
+is
+used
+to
+cause
+repeated or conditional execution of the statement(s) it surrounds. A
+control structure usually has one entry
+at the top and one exit at the
+bottom. In this way, the entire structure takes on the properties of a
+single statement. The beginning statement
+of the
+FOR...REXT structure
+(POR...) provides "loop initialization", places the wvalue 1 in the
+storage called "i", and sets up the operation of the following NEXT
+(every POR must have a REXT). When "NEXT i" is executed, the value in
+"i" is increased by 1l (which is the default STEP size) and compared to
+the wvalue 9 (which is the ending value for this loop). If the resulting
+"i" is less than or equal to 9, the statement(s) following that POR... is
+(are)
+executed.
+Loops can be "nested" to execute the enclosed statements even moretimes. For example, the PRINT statement in "multable"
+is
+executed
+81
+times; once for each of
+9
+values of "j", and this number
+(9
+times) for
+each of
+9
+values of "i". The ability to
+tremendously increase the numberof times some code
+is
+executed is at the heart of both computer
+Page 2-6
+Basic09 REFERENCE HMANUAL
+Introduction to Basic09 Programming
+programming and programming errors. It means that a very small portion
+of a program can often be made to do the vast majority of the work. But
+a few remaining special cases may require individual handling and may
+consume more programming and code than that which "usually”TM works.
+Unfortunately, "usually” is not sufficient. A special case which occurs
+once in a thousand times may occur once a second, and if the error stops
+the program, further processing of normal values also stops. Experience
+has indicated that the programmer should know what is happening in the
+first and second pass, and the next-to-the-last and last pass through
+each loop in the program.
+LISTING PROCEDURE RAMES
+The "DIR" command causes Basic09 to display the names and sizes of
+all procedures in memory. This command is used so frequently that there
+is a quick shorthand for DIR: a simple <cr> when in command mode does the
+same thing. You will see a table of all procedure names with two numbers
+next to each name. The first column, "proc size", is the size of the'
+corresponding procedure. The "data size"TM column shows the number of
+memory bytes that the procedure requires for its variables. On the last
+line, this ~command shows the amount of free bytes of workspace memory
+remaining. You can use this information to estimate how much memory your
+program needs to run. You must have at least as much free memory as the
+size of the procedure(s) to be run. If a data size number is
+followed by a question mark, this means you definitely need more memory.
+REQUESTIRG MORE MEMORY
+Basic09 automatically gets 4K bytes of workspace memory from OS-9
+when it starts up. There is almost always more than this available, but
+Basic09 does not grab it all so other tasks running on your computer can
+have memory too. If you are not multitasking and need more memory, the
+MEM command can get it if available. Just type MEM and the amount of
+memory you want. Depending on your computer and how it is configured,
+you can usually get at least 24K in 0S-9 Level One Systems or 40K in 0S-9
+Level Two systems. For example:
+MEHX 20000
+requests 20,000
+(20K)
+bytes
+of
+memory. Basic09 will always round the
+amount you request up to the next highest multiple of 256 bytes. If MEMresponds with "WHAT?", the requested amount
+of
+memory
+is
+not available.
+There is another convenient way to request more memory when you first
+call up Basic09 £rom O0S-9,. 0S-9 has a "#" nmemoryv size option on the
+command line that lets you specify how much memory to give the program.To call Basic09
+with 16K of
+memory
+to start with, you can type:
+0S9: basic09 %16K
+Basic09 REFEREKRCE MHARUAL
+Introduction to Basic09 Programming
+STORIKG AND
+RECALLING PROGRAMS
+Nobody wants
+to
+retype
+a
+whole program every
+time
+it is
+to
+be
+run.
+Two commands,
+SAVE
+and LOAD, are
+used
+to
+store
+programs
+and recall
+previously "SAVEAQ" programs to or from 0S-9 disk files, The simplest way
+to use SAVE is by itself. It will store the procedure last edited or run
+on a disk file having the same name. For example: '
+B:
+SAVE
+If our procedure name is the default name "PROGRAM", Basic09 will create
+a
+file called "PROGRAM"
+to
+hold
 it.
-
-For instance, 65 can represent:
-
-```
- A numeric value to be used in a calculation.
- The location of a memory address.
- The offset of a memory location.
- The two character symbols 6 and 5.
- The character A in the ASCII table. ASCII is the abbreviation for the
-American Standard Code for Information Interchange.
-```
-Because of the differences in how BASIC09 uses data, the system lets you define
-five types of data. For instance, there are three ways to represent numbers. Each
-has its own advantages and disadvantages. The decision to use one way or another
-depends on the specific program you are developing. The five BASIC09 data types
-are byte, integer, real, string, and boolean.
-
-In addition to the preceding data types, there are _complex data types_ (also known
-as _record_ types) that you can define. The manual discusses complex data structures
-at the end of this chapter.
-
-The _byte_ , _integer_ , and _real_ data types represent numbers.
-
-The _string_ data type represents character data (alphabet, punctuation, numeric
-characters, and other symbols). The default length of strings is 32 characters. Using
-the DIM statement, you can specify strings varying in length from 0, a _null_ string,
-to 32,767 characters (or until you reach the capacity of memory available to
-BASIC09, whichever occurs first).
-
-The _boolean_ data type represents the logical value, TRUE or FALSE.
-
-
-**_Basic09 Reference_**
-
-You can create arrays (lists) of these data types with one, two, or three dimensions.
-The following table shows the data types and their characteristics:
-
-```
-Type Allowable Values Memory Requirements
-BYTE Whole numbers
-(0 to 255)
-```
-```
+0S-9
+won't
+let you have two files
+of
+the same name, because unigue names are necessary to identify the
+specific file you want. Therefore, if a file called "PROGRAM" already
+exists, Basic09 will ask you:
+Overwrite?
+If you respond "Y" for YES, it will replace the program previously stored
+in that file with the program to be saved, which is ORK if what you want
+to
+save
+is
+a
+newer
+version
+of
+the same program,
+if
+not,
+you will
+permanently erase another program
+you may have
+wanted
+to keep.
+If
+this
+is the «case, answer "N" for NO, Fortunately, there is a simple way to
+store
+the
+new procedure
+in
+a
+file using
+a
+different
+name: just type
+SAVE, a ">", and a different file name of your choice. The file name can
+consist of any combination of up to thirty-one letters, numbers, periods,
+or underscores ("_"). The only restriction is that the name must start
+with
+a
+letter A-Z
+or a-z. For
+example:
+SAVE >newprogramb
+will save the program in a file called "newprogram5". There are several
+useful variations
+of
+the SAVE command that
+1let
+you save various
+combinations of programs in the same file. See the SAVE command
+description
+for
+more information. You should also read Chapter
+2
+of
+the
+"0S-9 Users Manual” to learn about the 0S5-9 commands that deal with disk
+files.
+If you exit from BASIC0%, it WILL NOT automatically save your
+programs. You must make sure to save them before you quit or they will
+be lost, unless they were saved at some time before!
+The LOAD command, as its name implies, reads in a previously saved
+program from a disk file. You must give the name of the file with the
+command. For example:
+LOAD program
+If you just started Basic09 and have not created any new procedures, this
+command
+is
+very straightforward. As the procedures stored in the file
+are loaded, BASICO0S
+displays their names as they are brought
+in.
+Once
+Page 2-8 e
+BASICO0S REPERERCE MANUAL
+Introduction
+to
+Basic09 Programming
+the program is 1loaded, you can edit and/or run it. But if you have a
+procedure in Basic09 that has the same name as a procedure stored in the
+file, Basic09 will replace it with the version loaded from the file. If
+this kind of conflict exists you could lose your original procedure,so
+be sure to save or RENAME it before loading another one (remember that
+Basic09 can keep several procedures in memory at the same time as long as
+they have different names). If you want to permanently erase all other
+procedures before loading new ones, you can type:
+B: KILL*
+This tells Basic09 to "kill" all procedures in memory and has the same
+effect as completely resetting Basic09. 4
+BOW TO PRINT PROGRAM LISTIRGS
+If your computer is equipped with a printer, you will want to make
+hard-copy listings of your programs. This is easy to do - just type:
+B:
+LIST* /p
+This tells Basic09 to LIST all procedures in memory to the output device
+"/p" which is the printer device name in most 0S-9 systems. Like the
+SAVE command, ‘LIST has several useful variations. If you want to list
+just one procedure (and there is more than one in memory) you can type:
+B: LIST procedurename >/P
+If you want, you <can list multiple procedures by replacing the single
+procedure name with a list of procedure names. Separate each procedure
+name from the next with a "space®". An example is:
+B: LIST procedurenamel procedurename2 procedurename3 >/P
+Notice that if you omit the "/p" or ">/p" from the commands above, the
+program will be listed on your display instead of the printer. This is
+the same as the "L*" command in Edit Mode.- You will also notice that the
+listing will be automatically "pretty-printed”, e.g., program levels
+within loops are indented for easy reading.
+FPage 2-9
+Basic09 REFERERCE MARUAL
+Introduction
+to
+Basic09
+Programming
+BASICO0S8'S FOUR MODES
+At any given time, Basic09 is in one of four modes:
+SYSTEM
+MODE:
+executes system-oriented commands
+EDIT MODE: creates or changes procedures
+EXECUTION MODE: runs programs
+DEBUG MODE: used to test and verify programs
+So far, you have been exposed to System Mode (SAVE, LOAD, etc.), Edit
+Mode (the editor), and Execution Mode (RUN). A section of this manual is
+devoted to each mode. The chart below shows how various commands in each
+mode will cause a change to another mode.
+Basic09 MODE CHANGE POSSIBILITIES
+05-9 SYSTEM MODE EDIT MODE
+I | I | + I
+| | $ I | - I
+|
+(m==——4-=<e0f>
+|
+|
+<er>
+I
+| <=—=—v +=-=-BYE | | <line#> |
+| | CHD | | <space> |
+I | CHX I |  |
+! | DIR [ | @ |
+| | EDIT--——to—e=——- > 11 I
+| | RILL | (==——mm- +-q |
+! | LIST | |  I e
+Basic09—+-———- > | LOAD | | 8 I | TROR I
+I | MEM I e | TROFF |
+| | PACK | < - ———————————————— + END or Q |
+| | RERAME | | DEG/RAD |
+I | ROR-——-—- S > —— | STATE I
+| |
+SAVE
+I
++-ERD
+| |
+§
+I
+| | | (emmmmee +=<CTRL Q> | | BREAK |
+| ———————— e+-STOP | <===mo +-CORT |
+BASICO9 | | PAUSE~--——4—=——- > | DIR |
+AUTORUN=+4===—m e e> | ERROR-==—4-——= > | LET |
+| | <CTRL C>—+4-———- > | LIST I
+I—+~BYE | | PRINT |
+| | PROGRAK | <----- +-STEP I
+EXECUTION MODE DEBUG MODE
+Page 2-10
+Basic09 REFERERCE HARUAL
+Introduction to Basic09 Programming
+MORE ABOUT THE WORKSPACE...
+The workspace concept is important because Basic09 and 0S-9 are both
+highly modular systems, and the workspace is a way to logically group a
+set of procedures (i.e. modules) which are applicable to a particular
+line of study or development. Modular software development lets the
+programmer divide a large and complex project into smaller, more
+manageable, and individually testable sections. Modularity also lets
+programmers accumulate.and use libraries of commonly used routines.
+As the software is written and debugged, Basic09 makes it easy to
+deal with the ©procedures that comprise "an overall project, either
+individually or as a group. For example, you can save all procedures in
+the workspace to a single mass storage file or load a file containing
+multiple procedures. Usually all procedures associated with a project
+exist inside the workspace, However, you can also call library
+procedures which are "outsideTM the workspace in 05-9 memory module
+format. The library procedures can be written in Basic09 or machine
+language, can be in RAM or ROM memory, and can even be shared by several
+users.
+Basic09 always reserves approximately 1.2K bytes of the workspace
+for internal use. All remaining space is used for storage of procedures
+and for procedure variable storage during execution. Basic09 will not
+run a procedure if there is not enough space for variables. If you run
+out of workspace area, you can use the MEH command to enlarge the
+workspace or you can kill procedures in the workspace that are not
+needed. The "MEM" command can be used at any time to change the size of
+the workspace. The size of the workspace can be increased (subject to
+availability of free memory) or decreased (but not below the minimal
+amount needed to store the present contests of the workspace).
+WEERE TO GO FROM HERE?
+A good way to learn Basic09 is to use it! Try typing in and running
+some of the example programs in the back of the book. Look up and study
+the function
+of
+each program statement. Read
+the
+chapters
+on the
+EDIT
+and DEBUG modes and experiment with more advanced commands. Since
+Basic09 and the 0S-9 Operating System are so
+intimately connected,
+a
+basic wunderstanding of 05-9 is necessary. See Chapter 2 of the "0S-9
+OPERATING SYSTEM USER'S MANUAL.
+Page 2-11
+Basic09
+REPERENCE MANUAL
+Introduction
+to
+Basic09
+Programming
+This Page Intentionally
+Blank
+Page 2-12
+Basic09 REFERENCE MANUAL
+System Mode '
+SYSTEM MODE COMMARDS
+System Mode includes commands to save, load, examine procedures;
+commands to interact with 08-9; and other commands to control the
+workspace environment. A complete list of system commands is given
+below.
+| System Mode Commands
+$ CEX EDIT LOAD RENAME
+BYE DIR KILL . MEHM RON
+CED E LIST BACK SAVE
+The system commands are processed by the Basic09 "command
+interpreterTM which always identifies itself with the "B:" prompt. It is
+entered automatically when Basic09 is started up and whenever you exit
+any other mode. Commands can be entered in either upper or lower-case
+letters. Commands such as DIR, MEM, "$" and BYE don't operate on
+specific procedures but may have optional or required parameters. Other
+commands (such as SAVE, LOAD, PACK, KILL and LIST) can be made to operate
+on a specific procedure or on ALL procedures within the workspace. If
+the command is used with a specific procedure name, the command is
+applied to only that procedure. For example:
+LIST pete
+will display the procedure named "pete". The asterisk is a special name
+that means "all procedures in the workspace". Therefore, if the ccmmand
+is given followed by an asterisk it is applied to all procedures. For
+example: ' '
+LIST*
+will display all of the procedures in the workspace.
+If
+the
+command
+is
+given without any name at all, the "current
+working procedure" is used, which means the name of the procedure last
+given
+in
+another command. The DIR command prints
+an
+asterisk before the
+current procedure's name
+so it can be found
+at
+any time. If
+you have not
+vet given a name in any command, the name "PROGRAM" is automaticallyused. Some commands that require
+a
+file name
+as
+well
+as (one or
+more)
+procedure names require that
+a ">"
+precede the file name
+so it is
+not
+mistaken
+for
+a
+procedure
+name. If
+you omit the file name, the name of
+the (first)
+procedure
+is
+used instead. In this manual, the phrase "file
+rname"
+means an
+O0S-9
+‘"pathlist"
+which can describe either
+a
+file or
+device.
+Page 3-1
+Basic09 REFERENCE MARUAL
+System Mode
+Here
+are
+some
+examples:
+SAVE tom,bill >myfile
+SAVE*
+big_file
+or
+SAVE
+tic,tac,toewhich
+is
+exactly equivalent
+to
+SAVE tic,tac,toe >tic
+Another class of commands uses only one procedure name, or the
+current working name if a name is omitted. These commands change the
+mode
+of
+Basic09
+by
+exiting
+the
+command mode
+and
+entering another
+mode.
+These commands
+are:
+ROR which enters Execution Mode to run a procedure
+EDIT which enters Edit Mode to create or change a procedure
+The one
+other mode,
+Debug
+Mode, cannot
+be
+entered directly from
+the
+system mode
+-~
+more
+on
+this later.
+SYRTAX ROTATIOR USED
+IR
+DESCRIPTIONS OF SYSTEH COMMANDS
+Individual descriptions of each system command follow. 1In order to
+precisely describe their formats, the syntax notation shown below is
+used.
+things in brackets are optional.
+{ } things in braces can be optionally repeated
+<procname> means
+a
+procedure name
+<pathlist>
+"is
+an 0S-9 file name
+<number> is a decimal or hex number
+Page 3-2
+Basic09 REFEREKRCE MANUAL
+System Mode
+$ [<text>] ("Shell" Command)
+This command calls the 0S-9 Shell command interpreter to process an 0S-9
+command or to run another program. Running the 05-9 command does not
+cause Basic09 or its workspace to be disturbed.
+If the - "$" is followed by text, the Shell is called to process the text
+as a single 05-9 command line. After the command is executed, Basic09 is
+immediately reentered. ' '
+If no text is given, Basic09 is suspended and the 0S-9 Shell is called to
+process multiple command lines individually entered from the keyboard.
+Control is returned to Basic09 when an end-of-file character (usually
+ESCAPE) is entered. The contents of the Basic09 workspace is not
+affected. This is a convenient way to temporarily leave Basic09 to
+manipulate files or perform other "housekeeping”.
+This command is the "gateway" to 0S-9 from inside Basic09. It allows
+access to any O08S-9 command or to other programs. It also permits
+creation of concurrent processes and other real-time functions.
+Examples:
+B: Scopy filel file2 calls the 0S-9 "copy" command
+B: Sasm sourcefiles& calls the assembler as a backaround task
+B: $basic09 fourier(20)& starts another concurrent Basic09
+program
+BYE (or ESCAPE character)
+BYE exits Basic09 and returns to 0S-9 or the program that called BASICO9.
+Any procedures in the workspace are lost if not previously saved. The
+escape key (technically speaking, an end-of-file condition on Basic09's
+standard input path) does the same thing.
+CHD <pathlist> or CHX <pathlist>
+CED changes the current 0S-9 user Data
+or
+Execution Directory
+to
+the
+specified pathlist which must be a directory file. Basic09 uses the Data
+Directory to LOAD or SAVE procedures. The Execution Directory is used to
+PACK or auto-load packed modules. An example follows.
+Basic09
+REFERERCE MARUAL
+System Mode
+Example:
+CED
+/dl1/joe/games
+DIR [<pathlist>]
+DIR displays the name, size, and variable storage requirement of each.
+procedure presently
+in
+the
+workspace. The current working procedure
+has
+an
+asterisk before
+its
+name.
+BAll
+PACKed procedures
+have
+a
+dash
+before
+their name
+(see PACK).
+The
+available
+free
+memory within
+the
+workspace
+is
+also given,
+If
+a
+pathlist
+is
+given,
+output
+is
+directed
+to
+that
+file
+or
+device.
+A
+gquestion
+mark next
+to
+a
+data storage size means
+the
+workspace
+does
+not
+have
+enough
+free
+memory
+to
+run that
+procedure.Note:
+This command should
+not be
+confused with
+the
+0S-9
+"DIR" command.They have
+completely different functions.
+EDIT [<procname>]
+E
+[<procname>]
+EDIT
+(E)
+exits command mode
+and enters the text editor/compiler
+moée.
+If
+the
+procedure named does not exist,
+a
+new one
+is
+created.
+See Chapter
+4
+for
+a
+complete discussion
+of
+how edit mode works.
+Examples:E
+newprogEDIT printreport
+EILL
+([<procname>
+{,<procname>}]
+KILL*
+KILL erases the procedure(s) specified. KILL* clears the entire work-
+space. The
+process may take some time
+if
+there are
+many procedures
+in the
+workspace.
+Examples:
+KILL formulas
+RKILL
+progl,prog3,prog?
+Page 3-4
+Basic09
+REFERENRCE
+MANUAL
+System
+Mode
+LIST [<procname> {,<procname>}] [> <pathlist>]
+LIST* [<pathlist>]:
+LIST prints a formatted "pretty printed" listing of one or nmore
+procedures. The listing includes the relative I-code storage addresses
+in hexadecimal numbers in the first column. The second column is
+reserved for program line numbers (if line numbers are used).
+If a pathlist |is given, the listing is output to that file or device.
+This option is commonly used to print hard-copy listings of programs.
+The LIST, SAVE, and PACK commands all have identical syntax, except that
+LIST prints on the 0S-9 Standard Error Path (#2) if no pathlist is given.
+The files produced are formatted differently, but the £function is
+similar.
+IMPORTANT NOTE: If an "*" is used with LIST, SAVE, or PACK, the file
+name follows immediately WITHOUT a ">" before it!
+Examples:
+LIST* /p
+LIST prog2,prog3 >/p
+LIST prog5 >temp
+LOAD <pathlist>
+LOAD 1loads all procedures from the file specified into the workspace. As
+procedures are loaded, their names are displayed. If any of the
+procedures being loaded have the same name as a procedure already in the
+vorkspace, the existing procedures are erased and replaced with the
+procedure being loaded.
+If the workspace fills up before the 1last procedure in the file is
+loaded, an error (%#32) is given. 1In this case, not all procedures may
+have been loaded, and the one being loaded when the workspace became full
+may not be completely loaded. The user should KILL the last procedure,
+use the MEM command to get more memory or KILL unnecessary procedure(s)
+to free up space, then LOAD the file again.
+Example:
+LOAD quadratics
+Page 3-5
+BASIC(09 REFERERCE MARUAL
+System Mode
+MEM
+MEM <number>
+MEM used without a number displays the present total workspace size in
+(decimal)
+bytes.
+If
+a
+number
+is
+given,
+Basic09
+asks 05-9
+to
+expand
+the
+workspace
+to
+that
+size.
+A hex
+value
+can be
+used
+if
+preceded
+by
+a
+dollar
+sign. If MEM responds with "WHAT?", you either asked for more memory
+than
+is
+available, tried
+to
+give back
+too
+much memory
+(there has to
+be.
+enough to store all procedures in the workspace), or gave an invalid
+number.
+Example:
+MEM 18000
+PACK [<procname> {,<procname>}] [> <pathlist>]
+PACK* [<pathlist>]
+PACK causes an extra compiler pass on the procedure(s) specified which
+removes names, line numbers, non-executable statements, etc. The result
+is a smaller, faster procedure(s) that CANNOT be edited or debugged but
+can
+be
+executed
+by
+Basic09
+or
+by the
+Basic09 run-time-only program called
+"RunB".
+If
+a
+pathlist
+is
+not
+given, the
+name
+of
+the
+first procedure
+in
+the list will
+be
+used
+as
+a
+default
+pathname. The
+procedure
+is
+written
+to
+the file/device specified in 0S-9 memory module format suitable for
+loading
+in
+ROM
+or
+RAM OUTSIDE
+the
+workspace. THE RESULTING FILE CANNOT
+BE
+LOADED
+INTO THE
+WORKSPACE LATER
+ON,
+so
+you should always perform
+a
+regular SAVE before PACKing
+a
+procedure!
+Basic09 will automatically load the éacked procedure when you try to
+run
+it
+later
+on.
+Here
+is an
+example sequence
+that
+demonstrates packing
+a
+procedure:
+PACK sort packs procedure "sort" and creates a file
+RILL sort kills procedure inside the workspace
+RON sort run (sort will be loaded outside workspace)
+KILL sort done; we delete "sort" from outside memory.
+Tne
+1last
+step
+(kill)
+dées not have
+to be done immediately
+if
+you will
+be
+using the procedure again later, but you should kill it whenever you are
+done
+so its
+memory can be used
+for other purposes. Examples follow.
+Page 3-6
+Basic09 REFERENCE MARNUAL
+System Mode
+Examples:
+PACK procl,proc2 >packed.programs
+PACK* packedfile
+RERAME <procname>,<new procname>
+RERAME changes' the name of a procedure. Can be used to allow two copies
+of the same procedure in the workspace under different names.
+Example:
+RERAME thisproc thatproc
+RUN [<procname> [ ( <expr> , {<expr>} ) 1]
+RUN executes the procedure specified. Technically speaking, BASICO0S then
+leaves System Mode and enters Execution Mode. A
+A parameter list can be used to pass expected parameters to the procedure
+in the same way a RON statement inside a procedure calls another
+procedure except for the restriction that all parameters must be
+constants or expressions without variables. See the PARAM statement
+description. Assembly language procedures cannot be run from System
+Mode.
+The procedure called can be normal‘or "packed". 1If the procedure is not
+found inside Basic09's workspace, Basic09 will call OS-9 to attempt to
+LIRK to an external (outside the workspace) module. If this fails,
+Basic09 attempts to LOAD the procedure from a file of the same name.
+Examples:
+ROKR getdata
+RUN invert("the string to be inverted")
+ROR power(12,354.06)
+ROR power ($32, sin(pi/2))
+Page 3-7
+BASIC0S REFERERCE MANUAL
+System Mode
+SAVE [<procname> {,<procname>} [> <pathlist>]]
+SAVE* [<pathlist>]
+Writes the procedure(s) (or all procedures) to an output file or device
+in source format. This command is similar to the LIST command except the
+output is not formatted and 1I-code addresses are not included. If a
+pathlist is not specified, it will default to the name of the first
+procedure listed. -
+If a file of the same name already exists, SAVE will prompt with:
+rewrite?
+You may answer
+"Y"
+for
+yes
+which
+causes
+the
+existing file
+to
+be
+rewrltten
+with the new procedure(s); or "N" to cancel the SAVE command.
+Examples:
+SAVE proc2,pr6c3,proc4 >monday.work
+SAVE* newprogram
+SAVE
+SAVE >testprogram
+Page 3-8
+Basic09 REFERENCE MANUAL
+Edit Mode
+Edit Mode (also called "The Editor") is used to enter or modify
+Basic09 procedures. It 1is entered from System Mode by the EDIT (or E)
+commangd. As soon as Edit Mode is entered, prompts change from "B:" to
+"E:". If you have used a text editor before, you will find the Basic09
+editor similar to many others except for these two differences:
+1. The editor is both "string" and "line number" oriented.The
+use of line numbersis optional and text can be corrected
+without re-typing the entire line.
+2. The editor is interfaced to the Basic09 compiler and "decom-
+piler" which lets Basic09 do continuous syntax error checking
+and permits programs to be stored in memory in more compact
+compiled
+form.
+OVERVIEW OF EDIT COMMANDS
+The Editor includes the following commands. Each command is
+described in detail later in this chapter. ‘
+EDIT MODE COMMANDS
+<cr> move edit pointer forward one line
++[<number>] move edit pointer forward
++* move edit pointer to end of text
+- [<number>] move edit pointer backward
+-* move edit pointer to beginning of text
+{space> <text> insert unnumbered line
+<line#> <text> insert or replace numbered line
+<line%#> <cr> find numbered line
+c change string
+c* ' change all occurrences of string
+d delete line
+a* delete all lines
+1 list line(s)
+1* , list all lines
+q guit editing
+r renumber line
+r* renumber all lines
+s search for string.
+s* search for all occurrences of string
+BASIC(09
+REFERERCE
+MANUALEdit
+Hode
+BOW THE
+EDITOR WORKS
+In order to understand how the editor works it is helpful to have a
+general idea of what goes on inside Basic09 while you are editing
+procedures. Basic09 programs are always stored in memory in a compiled
+form called "I-code" (short for "Intermediate Code"). I-code is a
+complex binary coding system for programs that lies in between youroriginal "source" program and
+the
+computers native "machine language".
+I-code is relatively compact, can be executed rapidly, and most
+importantly,
+can be
+reconstructed almost exactly
+back to
+the
+original
+source program. The Editor is closely connected to the "compilerTM and
+"decompiler" systems within Basic09 that translate source code to I-Code
+and vice-versa. It is this innovative system that gives Basic09 its most
+powerful and unusual abilities.
+Whenever you enter (or change) a program line and hit "return", the
+compiler instantly translates
+this text to the
+internal "I-code" form.
+Whenever Basic09 needs to display program lines back, it uses the
+decompiler
+to
+translate
+the
+I-code back
+to the
+original "source" format.
+These processes are completely automatic and do not require any special
+action
+on
+your
+part.
+This technigue has several advantages. First, it allows the text
+editor
+to
+report many
+(syntax)
+errors immediately
+so
+you can
+correct them
+instantly. Secondly, the 1I-code representation of a program is more
+compact
+(by
+about
+30%)
+than
+its
+original form
+so
+you can have larger
+programs in any given amount of available memory.
+When programs
+are
+listed
+by
+Basic09, it is
+possible
+that they will
+have a slightly different appearance than the way they were originallytyped
+in,
+but they will
+always
+be
+functionally identical
+to the original
+form. A different appearance can happen if the original program had
+extraneous spaces between keywords, unnecessary parentheses in
+expressions, etc. Basic09 keywords are always automatically capitalized.
+When you have finished editing the procedure, use the "g" (for
+"quitTM) command to exit the Edit Mode and return to the System Mode.
+When you give the "q" command, the compiler performs another "pass" over
+the entire procedure. At this time, syntax that extends over multiple
+lines 1is checked and errors reported. Examples of these kinds of errors
+are: GOTO or GOSUB to a non-existent line, missing variable or arraydeclarations, improperly constructed
+loops, etc.
+These errors are
+reported using an error code and the hexadecimal I-code address of the
+error. For example:
+01FC ERR #043
+This message means that error number 43 was detected in the line that
+included I-code address 01FC (hexadecimal). The LIST command gives the
+I-code addresses so you can locate lines with errors reported during the
+compiler's second pass.
+Page 4-2
+Basic09 REFERERCE MANUAL
+Edit Mode
+LINE-NUMBER ORIERTED EDITIRG
+As mentioned previously, the editor has the capability to work on
+programs with or without line numbers (or both). Line numbers must be
+positive whole numbers in the range of 1 to 32767. ' ’
+If you have experience with another version of the BASIC language,
+this is the kind of editing you probably used. However, well structured
+programs seldom really need line numbers. 1If you don't have to use line
+numgers, don't, Your programs will be shorter, faster, and easier to
+read.
+The line number oriented commands are:
+<line#> <text> insert or replace numbered line
+<line#> <cr> £find numbered line
+d delete line
+r renumber line
+r* . renumber all lines
+To enter or replace a numbered line, simply type in the line number
+and statement. Numbered lines can be entered in any order but will be
+automatically stored in ascending sequence. To move to a numbered line,
+type the line number followed by a carriage return. The editor will move
+to that line (or the one with the next higher number if not found) and
+print it. The line may be deleted using the "d" command.
+The "r®" renumber command will uniformly resequence all numbered
+lines and lines that refer to numbered lines. Its formats are:
+r [ <beg line #> ] [,<incr> ] <CR>
+r*[ <beg line #> ] [,<incr> ] <CR>
+The first format renumbers the program starting at the current line
+forward. Lines are renumbered using <beg line#> as an initial line
+number, and each <incr> is added to the previous line number for the next
+line's number. For exanmple,
+r
+200,5
+will give the first line number 200, the second 205, the third 210, etc.
+If <beg line#> and/or <incr> are not specified, the values 100 and 10,
+respectively, - are assumed. The second form of the command is identical
+except it renumbers all lines in the procedure.
+Page 4-3
+Basic09
+REFERERCE
+HARUDAL
+Edit
+Mode
+STRIRG-ORIENTED EDITIRG
+Most editor commands are string-oriented, which means that you can
+enter
+or
+change
+whole
+or
+partial lines
+without using
+line
+numbers
+at
+all.
+You will £ind that
+string-oriented editing
+is
+generally
+faster and
+more
+convenient.
+. Because line numbers are not used, there has to be another way to
+tell Basic09 what place in the program to work on. To do this, the
+editor maintains an "edit pointer"TM that indicates which line is the
+present working location within the procedure, and commands start working
+at this point. The editor shows you the location of the edit pointer by
+displaying
+an
+"*"
+at the
+left side
+of
+the
+program
+line where
+the editpointer
+is
+presently
+located.
+BOVIRG THE EDIT POIRTER
+The
+"+"
+and
+"-"
+commands
+are used
+to
+reposition
+the edit pointer:
+- moves backward one line
+- <number> moves backward n lines
+~%* moves to the beginningof the procedure
++
+moves forward
+one
+line
++
+<number> moves forward
+N
+lined
++* moves to the end of procedure
+The number indicates
+how
+many lines
+to
+move.
+Backward means towards
+the
+first line of the procedure. 1If the number is omitted, a count of one is
+used (this is true of most edit commands). A line consisting of a
+carriage return only also moves the pointer forward one line, which makes
+it easy to “"step" through a program a line at a time. Therefore, the
+following commands all do the same thing:
+<CR>
++
+<CR>
++1 <CR>
+INSERTIRG LIRESThe Insert Line function consists
+of the "space" character followedby
+a
+Basic09 statement
+line. The statement
+is
+inserted just ahead
+of the
+ecdit pointer position (the space itself is not inserted).
+Page 4-4
+BASIC0Y9 REPERENCE MARUAL
+Edit Mode
+DELETING LINES
+The "d" command is used to delete one or more lines. Its format is:
+d [<number>] <CR>
+d*
+The first form deletes <number> lines starting at the current edit
+pointer 1location. The second form deletes ALL lines in the procedure
+(caution!). The editor accepts "+*" and "-*" to mean to the end, or to
+the beginning of the procedure respectively. If the number is negative,
+that many lines BEFORE the current line are deleted. If a line number is
+omitted, only the current line is deleted.
+LISTING LIRES
+The "1® command is used to display one or more lines. It also has
+the forms: -
+1. [<number>] <CR>
+1*
+The first form will display <number> lines starting at the current edit
+pointer position. If the number is NEGATIVE, previous lines will be
+listed. The second form displays the entire procedure. Neither changes
+the edit pointer's position. The line that is the present position of
+the edit pointer is displayed with a leading asterisk.
+SEARCH: FIRDING STRINGS
+wWhat's a string? A string is a seqguence of one, two, Or more
+characters that can include letters, numbers, or punctuation in any
+combination. Strings are very useful because they allow you to change or
+locate just part of a statement without having to type the whole thing.
+In the Editor, strings must be surrounded by two matching punctuation
+characters (called delimiters) so the editor knows where the string
+begins and ends. - The characters used for delimiters are not considered
+part of the string and cannot also appear within the string. Strings
+used by the Editor should not be confused with Basic09's data type which
+is also called STRIRG - they are different creatures.
+The "s" command may be used to locate the next occurrence or all
+occurrences of a string. The format for this command is:
+g <delim> <match str> [<delim>] <Kcr>
+s*<delim> <match str> [<Kdelim>] <cr>
+The first format searches for the <match str> starting on the current
+edit pointer line onward. If any line at or following the edit pointer
+Page 4-5
+BASIC0S REFERENCE MARUAL
+Edit Hode
+includes
+a
+sequence
+of
+characters
+that
+match
+the
+search
+string,
+the
+edit
+pointer
+"is
+moved
+to
+that
+line and the
+line
+is
+displayed.
+If
+the
+string
+cannot
+be
+located,
+the
+message:
+CAN'T
+FIND:
+"<match
+str>"
+will be displayed and the edit pointer will remain at its original
+position. The "s*" variation searches for all occurrences of the string.
+in the procedure starting at the present edit pointer and displays all
+lines in which it is found. The edit pointer ends up at the last line
+where
+the
+string
+occurred.
+Here are some
+examples:
+E: s/counter/ looks for: counter
+E: 8.1/2. looks for: 1/2
+E: s?three blind mice? 1looks for: three blind mice
+CHARGE: STRIKG SUBSTITUTIOR
+The "c" change string function is a very handy tool that can
+eliminate a tremendous amount of typing. It allows strings within lines
+to be located, removed, and replaced by another string. This command is
+very commonly used for things like: fixing lines with errors without
+having to retype the entire line, changing a variable name throughout a
+program,
+etc.
+1Its
+formats
+are:
+ <delim> <match str> <delim> <repl str> [<delim>] <CR>
+c*<delim> <match
+str> <delim> <repl str> [<delim>] <CR>
+In
+the first form, the editor looks for the
+first occurrence
+of the
+match
+string starting at the present edit pointer position. If found, the
+match stringis removed from the line and the replacement string inserted
+in its place. The second form works the same way but changes ALL
+occurrences of the match string in the procedure starting at the present
+edit pointer position.
+The "c*" command will stop anytime it finds or causes a line with an
+error. It cannot be used to find or change line numbers.
+A wcrd of warning: sometimes you can inadvertently change a line
+you didn't intend to change because the match string is imbedded in a
+longer string. For example, if you attempt to change "no"TM to "yesTM and
+the word "normal" occurs before the "no" you are looking for, "normal"
+will change to ®"vesrmal”! Examples follow.
+Page 4-6
+Basic09 REPERENCE MANUAL
+Edit Mode
+'
+Examples:
+c/xval/yval/ and c*,GOSUB 5300,GOSUB 5500
+Page 4-7
+Basic09
+REFPERENCE
+MANUAL
+Edit Mode
+This Page
+Intentionally Blank
+Page 4-8
+Basic09 REFERENCE MANUAL
+Execution Mode
+RUNNING PROGRAMS
+To run a Basic09 procedure, enter:
+RON <procname>
+If the procedure you want to run was the last procedure edited, listed,
+saved, etc,, you can type RON without giving a procedure name at all (the
+"*" shown in the DIR command identifies this procedure).
+If the procedure expects parameters (see Chapter 7), they can be
+given on the same command line, however they must all be constant numbers
+or strings, as appropriate, and must be given in the correct order. For
+example: s
+ROUN
+add(4,7)
+is used to call a program that expects parameters, such as
+PROCEDURE add
+PARAMETER a,b a,b will receive the values 4,7
+PRINT a+b
+ERD
+The ability to pass parameters to a program allows vou to specifically
+initialize program variables. Sometimes certain procedures are parts of
+a larger software system and are designed to be called from other
+procedures. You can use this feature to individually test such
+procedures by passing them test values as parameters,
+The RON statement causes BASIC(09 to enter Execution Mode, causing
+the procedure to run until one of these things happen:
+1. An ERD or STOP statement is executed.
+2. You type CONTROL-Q
+3. A run-time error occurs
+4. You type CONTROL-C (<SEIFT><BREAK>)
+In cases 1 and 2, you will return to System HMode. 1In cases 3 and 4 you
+will enter Debug Mode.
+EXZECUTION HODE: TECENICALLY SPEAKIHNG
+The RON statement is simple and normally you don't need to know what
+is happening inside Basic09 when vou use it. The technical description
+of Execution Mode that follows is given for the benefit of advanced
+Basic09 programmers,
+Page 5-1
+Basic09 REFERENCE MANUAL
+Execution
+Mode
+Execution mode
+is
+Basic09's
+state
+when any
+procedure
+is
+being
+run.
+It
+involves execution
+of
+the
+I-code
+of
+one
+or
+more
+procedures
+inside
+or
+outside
+the
+workspace. Many procedures
+can be
+in
+use
+because
+they are
+able
+to
+«call
+each
+other
+(or
+themselves) and "nest" exactly
+like
+subroutines
+do.
+Execution Mode
+can be
+entered
+in
+a
+number
+of
+ways:
+l.
+By
+means
+of
+the
+RUN system
+command.
+2.
+By
+Basic09's auto-run
+feature.
+The
+Auto-run feature allows BASIC0S
+to
+get the
+name
+of
+a
+file
+to
+load and run
+from
+the
+same
+command line used
+to
+call
+Basic09. The file
+loaded
+and
+run can be
+either
+a
+SAVED
+file
+(in
+the
+data directory),
+or
+a
+PACKED file
+(in
+the
+execution directory). The file
+may contain severalprocedures;
+the one
+executed
+is
+the one
+with
+the
+same
+name
+as
+the
+file.
+Parameters may
+be
+passed
+following
+the
+pathname specified.
+For example,
+the
+following
+0S-9
+command lines
+use this feature:
+0S9: Basic09 printreport("Past Due Accounts")
+0S9:
+Basic09 evaluate(COS(7.8814)/12.075,-22.5,129.055)
+Page 5-2
+Basic09
+REFERENRCE
+MANUAL
+Debug Mode
+OVERVIEW
+OF
+DEBUG MODE
+One
+of
+Basic09's outstanding features
+is
+its set
+of
+powerful
+svmbolic debugging
+commands. What
+is
+Symbolic Debugglng7
+Simply
+stated,
+it 1is testing and manipulation of programs using the actual names and
+program statements
+used
+in the
+program.
+In
+this
+chapter you
+will
+learn
+how Debug Mode can let you watch your program run in slow motion so you
+can
+observe
+each
+statement
+as it is
+executed. As
+a
+bonus,
+you
+will
+also
+learn how to use Debug Mode as a powerful calculator.
+Debug Mode is entered from Execution Mode in one of three ways:
+l. When an error occurs during execution of a procedure (that is not
+intercepted by an ON ERROR GOTO statement within the program).
+2. When a procedure executes a PAUSE statement.
+3. When a keyboard interrupt (CONTROL-C) occurs.
+When any of the above happen, Debug Mode announces itself by
+displaying the suspended procedure name like this:
+BREAK:
+PROCEDURE test5
+D:
+Notice that Debug Mode displays a "D:TM prompt when it is awaiting a
+command. Any Debug Mode commands can then be used to examine or change
+variables, turn trace mode on/off, etc. Depending on which commands are
+used, execution of the program can be terminated, resumed, or executed
+one source line at a time.
+Page 6-1
+Basic09
+REFERENCE
+MARUAL
+Debug Mode
+DEBUG MODE
+COMMARDS
+$ <text> (Shell Command)
+Calls 05-9's
+Shell
+command interpreter
+to
+run
+a
+program
+or
+0S-9 command.
+Exactly the same as System Mode "$" command.
+BREAK
+<proc
+name>
+BREAR sets up a "breakpointTM at the procedure named. This command is
+used when procedures call each other and provides a way to re-enter Debug
+Mode when returning to a specific procedure. To illustrate how BREAK
+works, suppose
+there are
+three
+procedures
+in
+the
+workspace:
+PROC1l,
+PROC2,
+and PROC3.
+Assume
+that PROC1 calls PROC2
+which
+in
+turn calls PROC3.
+While ©PROC3 1is executing, you type CORTROL-C to enter debug mode. You
+can now enter: ‘
+~
+D:
+BREAK
+procl
+ok
+D:
+Notice that BREAK responds with "okTM if the procedure was found on the
+current RUN
+stack.
+If
+you
+wish
+you can use the
+STATE command
+to
+verify
+that the
+three procedures
+are
+indeed "nested" as expected.
+Now,
+you can
+resume execution
+of
+PROC3 by typing
+CONT.
+After PROC3 terminates,
+control passes back to PROC2, which eventually returns to PROCl. As soon
+as
+this happens,
+the
+breakpoint you set
+is
+encountered, PROCl
+is
+suspended, and Debug Mode
+is
+reentered.
+There
+are
+three characteristics
+of
+BREAK you should
+note:
+l. The bteakpoint is removed as soon as it occurs.
+2. You can use one breakpoint for each active procedure.
+3. You can't éut a breakpoint on a procedure unless it has been
+called but not yet returned
+to.
+Hence, BREAR cannot
+be used on
+procedures that have not yet been run.
+conT
+Causes program execution
+to
+continue at the next statement. It
+may
+be
+used to resume programs suspended by CORTROL-C, PAUSE statements, BREAK
+command breakpoints,
+or after non-fatal run-time errors,
+Page 6-2
+Basic09 REFERENCE MARUAL
+Debug Mode
+DEG
+RAD
+Select either degrees or radians as the angle unit measure used by trig-
+onometric functions. These commands only affect the procedure currently
+being debugged
+or run.
+DIR [<pathname>]
+DIR displays workspace procedure directory in exactly the same way as the
+System Mode DIR command.
+Q
+Q terminates execution of all procedures and exits Debug Mode by
+returning to System Mode. Any open paths are closed at this point.
+LET <var> := <expr>
+Essentially the same as the Basic09 LET program statement, which allows
+the value of a procedure variable to be set to a new value using the
+result of evaluation of the expression. The variable names used in this
+command must be the same as in the original "source" program, otherwise
+an error 1is generated. LET does not work on user-defined data
+structures.
+LIST
+LIST displaysa formatted source listing of the suspended procedure with
+I-code addresses. An asterisk is printed to the left of the statement
+where the procedure is suspended. Only the current procedure may be
+listed.
+PRINT [#<expr>,] [USIRG <expr>,] <expr list>
+PRINT can be used to examine the present value of variables in the
+suspended program, All variable names must be the same as in the
+original program, and no new variable names can be used. User-defined
+data structures can not be printed.
+Page 6-3
+Basic09 REFERENCE MANUALDebug Mode
+STATE
+STATE
+lists
+the
+calling
+("nesting")
+order
+of
+all
+active procedures.
+The
+highest~-level
+procedure
+will always
+be
+shown
+at the
+bottom
+of
+the
+calling
+list,
+and the
+lowest-level procedure will always
+be the
+suspended
+procedure. An example:
+D:state
+PROCEDURE DELTA
+CALLED BY BETA
+CALLED BY ALPHA
+CALLED BY PROGRAM
+STEP
+[<number>] or
+<CR>
+STEP allows the
+suspended procedure
+to
+be
+executed
+one
+or
+more source
+statements at
+a
+time, For
+example, "STEP
+5"
+would
+execute
+the
+equivalent
+of
+the next
+5
+source statements.
+A debug command line which
+is
+just
+a
+carriage
+return
+is
+considered
+the same
+as
+"STEP
+1".
+The STEP
+command
+is
+most commonly
+used
+with
+the
+trace mode
+on, so
+the
+original
+source lines can be seen
+as
+they
+are
+executed.
+Note:
+because compiled I-code contains
+actuwal
+statement memory
+addresses, the "top"
+or
+"bottom"
+statements
+of.
+loop structures
+are
+usually executed
+3just
+once. For example,
+in
+FOR...REXT
+loops the
+FORstatement
+is
+executed
+once,
+so
+the
+statement that appears
+to be the "top"
+of
+the
+loop will actually
+be the one
+following
+the "POR" statement.
+TRON
+TROFPThese commands turn
+the
+suspended procedure's trace mode
+on and off. In
+trace mode, the compiled code
+of
+each
+eqguivalent
+statement line
+is
+reconstructed to source statements and displayed before the statement is
+executed.
+If
+the statement causes the
+evaluation
+of
+one
+or
+more
+expressions, an equal sign and the expression result(s) are displayed onthe
+following line(s).
+Trace mode is 1local to a procedure. If the suspended procedure calls
+another, no
+tracing occurs until control returns (unless
+of
+course, other
+called procedures have trace mode on).
+Page 6-4
+Basic09 REFERENCE MANUAL
+Debug
+Mode
+DEBUGGING TECERIQUES
+If your program doesn't do what you expect it to, it is bound to
+show one of two symptoms: incorrect results, or premature termination
+due to an error. The second case will automatically send you into Debug
+Mode. In the first case, you have to force the program into Debug Mode
+either by hitting CORTROL-C (assuming you have time to do so), or by
+using Edit Mode to put one or more PAUSE statements in the program.~ Once
+you're in Debug Mode you can bring its powerful commandsto bear on the
+problem.
+Usually the first step after an error stops the program is to use
+the PRIRT command to look at the present values of crucial program
+variables. Bad values are usually quite apparent. Perhaps you forgot to
+initialize a variable or forgot to increment a loop counter.
+If examining variables is not fruitful, the next step is to place a
+PAUSE statement at the beginning of the suspect procedure or at a place
+within it where you think things begin to go amiss, and then you rerun
+the program. When the program hits the PAUSE statementand enters DEBUG
+mode, it is time to turn the trace mode on and actually watch your
+program run. To do so, just type:
+D: TROR
+After you have done this, you hit the carriage return key once for every
+statement. You will see the original source statement, and if
+expressions are evaluated by the statement, Debug Mode will print an
+equal sign and the result of the expression. Notice that some statements
+such as POR and PRINT may cause more than one expression to be evaluated.
+Using this technique you can watch your program run one step at a time
+until you see where it goes wrong. But what if in the process of doing
+so you encounter a loop that works OK but executes 200 statements
+repetitively? = That's a lot of carriage returns. In this case, you may
+turn the trace off and use the STEP command to guickly run through the
+loop. Then turn trace mode back on and resume single-step debugging.
+The command sequence for this example is:
+D: TROFF
+D:
+STEP
+200
+D: TRON
+Don't forget that trace mode is ®"local"TM to one procedure only. If
+the procedure under test returns to another procedure you will need to
+use the BREAK command or a put a PAUSE statement in the procedure to
+enter Debug Mode. If you call ancther procedure from the procedure being
+debugged, tracing will stop wher it is called until it returns. If you
+want to trace the called procedure as well, it will need its own PAUSE
+statement.
+Page 6-5
+Basic09
+REFERERCE MANUAL
+Debug Mode
+DEBUG
+MODE AS A DESK CALCULATOR
+The simple program listed below turns Debug Mode into a powerfuldesk
+calculator.
+It's
+function
+is
+simple:
+it
+declares
+26
+working
+variables then goes into Debug Mode so you can use interactive PRIRT and
+LET
+statements.
+PROCEDURE Calculator
+DIM a,b,c,d,e,f,g,h,i,3,k,1,m
+DIRK n,0,p,q9,r,s,t,u,v,w,%x,¥,2
+PAUSE
+ERD
+Recall that
+while
+in
+Debug Mode you can't create new variables,
+hence the DIM statements that pre-define26 working variables for you.
+If you wish you can use more or fewer variables. The PAUSE statement
+causes Debug Mode
+to
+be entered. Here's
+a
+sample session:
+B: run calculator
+BREAK: PROCEDURE Calculator
+D:let x=12.5
+D:print sin(pi/2)
+.707106781
+D:let y=exp(4+0.5)
+D:print x,y
+12.5
+90.0171313
+D:Q
+B:
+Don't forget that the Debug Mode PRINT command can use PRIRT USIRG
+to
+produce formatted output (including hexadecimal).
+By adding less than a dozen statements to the program, you can make
+it store its variables on a disk file so they're remembered from session
+to session. There are also many other enhancement possibilities.
+Page 6-6
+Basic09
+REFERERCE MANUAL
+Data Types, Variables and Data Structures
+WEY ARE THERE DIPPERENT DATA TYPES?
+A computer program's primary function is to process data. The
+performance of the computer, and even sometimes whether or nota computer
+can handle a particular problem, depends on how the software stores data
+in memory and operates on it. Basic09 offers many possibilities for
+organizing and manipulating data. :
+Complicating matters somewhat is the fact that there are many kinds
+of data. Some data are numbers used for counting or measuring. Another
+example is textual data composed of letters, punctuation, etc., such as
+your name. Seldom <can they be mixed (for example multiplication is
+meaningless to anything but numbers), and they have different storage
+size reqguirements. Even within the same general kind of data, it is
+frequently advantageous to have different ways to represent data. For
+example, Basic09 1lets you choose from three different ways to represent
+numbers - each having its own advantages and disadvantages. The decision
+to use one depends entirely on the specific program you are writing. 1In
+order for you to select the most appropriate way to store data variables,
+Basic09 provides five different basic data types. Basic09 also lets you
+create new customized data types based on combinations of the five basic
+types. A good analogy is to consider the five basic types to be atoms,
+and the new types you create as molecules. This is why the five basic
+types are called atomicdata types.
+DATA STRUCTURES
+A data structure refers to storage for more than one data item under
+a single name. Data structures are often the most practical and
+convenient way to organize large amounts of similar data. The simplest
+kind of- data structure is the array, which is a table of values. The
+table has a single name, and the storage space for each individual value
+is numbered. Arrays are created by DIM statements. For example, to
+create an array having five storage spaces called "AGES", we can use the
+statement:
+DIR AGES(5): IRTEGER
+*(5)" tells Basic09 how many spaces to reserve. The ":IRTEGER"TM part
+indicates the array's data type. To assign a value of 22 to the third
+storage space in the array we can use the statement:
+LET AGES(3)=22
+As you shall see, Basic09 lets you create complex arrays and even
+arrays that have different data types combined.
+Page 7-1
+Basic09
+REFPEREKRCE
+MARUAL
+Data
+Types,
+Variables
+and Data Structures
+ATOMIC
+DATA TYPES
+BASIC0S includes five atomic
+data types: BYTE, INTEGER,
+REAL,
+STRING, and BOOLEAN. The first three types
+are
+used
+to
+represent
+numbers.
+The
+STRING
+type
+is
+used
+to
+represent character
+data, and
+the
+BOOLEAR
+type
+1is
+used
+to
+represent
+the
+logical values
+of
+either
+TROUE
+or
+FALSE.
+Arrays
+of
+any
+of
+these data types
+can
+be
+created using
+one, two,
+or
+three
+dimensions.
+The
+table below
+gives
+an
+overview
+of
+the
+character-
+istics
+of
+each
+type:
+'
+Basic09 ATOMIC DATA TYPE SUMMARY
+Type Allowable Values Memory RequirementBYTE Whole Numbers
+0
+to 255.
 One byte
-```
-```
-INTEGER Whole numbers
-(-32768 to 32767)
-```
-```
+IRTEGER Whole Numbers -32768
+to 32767
 Two bytes
-```
-```
-REAL Floating point
-(±1*10^ ±38)
-```
-```
-Five bytes
-```
-```
-STRING Letters, digits,
+REAL Floating Point +/- 1*10738 Five BytesSTRIRG Letters, digits,
 punctuation
-```
-```
-One byte per character
-```
-```
-BOOLEAN True or false One byte
-```
-Real numbers appear to be the most versatile. They have the greatest range and are
-floating point. However, arithmetic operations involving real numbers execute
-much more slowly than those involving integer or byte values. Real numbers also
-take up considerably more memory storage space than the other two numeric data
-types.
-
-Arithmetic involving byte values is not appreciably faster than arithmetic involving
-integers, but byte data conserves memory.
-
-**If you do not specify the type of variable (a symbolic name for a value) in a
-DIM statement, BASIC09 assumes the variable is real.**
-
-**The Byte Data Type**
-
-Byte variables hold unsigned eight-bit data (integers in the range of 0 through
-255). Using byte values in computations, BASIC09 converts the byte values to 16-
-bit integer values. If you store an integer value that is too large for the byte range,
-BASIC09 stores only the least-significant eight bits (a value of 255 or less), and
-does not return an error.
-
-**The Integer Data Type**
-
-Integer variables require two bytes (16 bits) of storage. They can fall in the range -
-32768 to 32767. If a calculation involves both integer values and real values,
-BASIC09 presents the result of the calculation as a real number.
-
-You can use hexadecimal values in integer data. To do so, precede the value with
-the dollar sign ($). For instance, to represent the decimal value 199 as
-hexadecimal, type $C7. The hexadecimal value range is $0000 through $FFFF.
-
-
-```
-Data and Variables | 6
-```
-If you give an integer variable a value that is outside the integer range (greater than
-32767 or less than -32768), BASIC09 does not produce an error. Instead, it _wraps
-around_ the value range. For instance, the calculation 32767 +1 produces a result of
--32768.
-
-This means that numeric comparisons made on values in the range 32768 through
-65535 deal with negative numbers. You should limit such comparisons to tests for
-equality or non-equality. Functions such as LAND, LNOT, LOR and LXOR use
-integer values but produce results on a non-numeric, bit-by-bit, basis.
-
-Division of an integer by another integer results in an integer. BASIC09 discards
-any remainder.
-
-**The Real Data Type**
-
-If you do not assign a data type to a variable, BASIC09 assumes the variable is
-real. However, programs are easier to understand if you define all variable types.
-
-BASIC09 stores as real values any constants that have decimal points. If a constant
-does not have a decimal point, BASIC09 stores it as an integer, except in the case
-where the constant value exceeds the range of an integer. Then, it is converted to a
-real value and is displayed with a decimal point.
-
-BASIC09 requires five consecutive bytes to store real numbers. The first byte is
-the exponent, in binary two’s complement. The next four bytes are the binary sign
-and magnitude of the mantissa. The mantissa is in the first 31 bits; the sign of the
-mantissa is in the last (least significant) bit of the last byte. The following
-illustration shows the memory storage of a real number:
-
-Internal Representation of Real Numbers
-
-```
-byte: 0 1 2 3 4
-```
-The exponent covers the range 2.938735877x10-39 (2-128) through
-1.701411835x10^38 (2^127 ) as powers of 2. Operations that result in values out of the
-representation range cause an overflow or underflow error. You can handle such
-errors using the ON ERROR command.
-
-The mantissa covers the range 0.5 through .9999999995 In steps of 2-31. This
-means that real numbers can represent values .0000000005 apart. BASIC09 rounds
-operation values that fall between these points to the nearest point.
-
-
-**_Basic09 Reference_**
-
-Because floating point arithmetic is inherently inexact, a sequence of operations
-can produce a cumulative error. Proper rounding, as implemented in BASIC09,
-reduces the effect of this problem, but cannot eliminate it. When using real
-quantities in comparisons, be sure your computations can produce the exact value
-you desire.
-
-**The String Data Type**
-
-A string is a variable-length sequence of ASCII values. The length can vary from
-0, a _null_ string, to 32,767 characters (or until you reach the capacity of memory
-available to BASIC09, whichever occurs first).
-
-You can define a string variable either explicitly, using the DIM statement, or
-implicitly by appending the dollar sign ($) to the variable identifier (variable
-name). For example, title$ implicitly identifies a string variable.
-
-Unless you specify otherwise, BASIC09 assigns a maximum string length of 32
-characters. Using the DIM statement, you can specify a maximum length either
-less than or greater than 32. To conserve memory, use DIM to assign only the
-maximum length you need for any string variable.
-
-The beginning of a string is always character 1. The BASE statement, which sets
-numeric variable base numbers as either 0 or 1, does not affect string variables.
-
-If an operation results in a string too long to fit in the assigned maximum storage
-space, the system truncates the string on the right. It does not produce an error.
-
-Storing storage is fixed at the dimensioned length. The sequence of actual string
-byte values is terminated by the value of $FF ( 255 ), or by the maximum length
-allotted to the string. Any unused storage after the termination byte allows the
-stored string to expand and contract within its assigned length.
-
-The following example shows the internal storage of a variable dimensioned as
-string[6] and assigned the value "SAM". Note that byte 4 contains the string
-terminator $FF. The string does not use bytes following $FF.
-
-```
-byte: 1 2 3 4 5 6
-```
-If you assign the value "ROBERT" to the variable, BASIC09 does not need to
-terminate the string with $FF because the string is full:
-
-
-```
-Data and Variables | 6
-```
-```
-byte: 1 2 3 4 5 6
-```
-The way BASIC09 handles string storage is important when you write programs. If
-you do not specify a length for strings you define, the system uses the default
-length 32. As you can see, this wastes computer memory if you store strings of
-only four or five characters.
-
-**The Boolean Data Type**
-
-A boolean operation always returns the character string "TRUE" or "FALSE". You
-cannot use the boolean data type for numeric computation—only for comparison
-logic. NOTE: TRUE is stored internally as a byte value of 255 and FALSE as 0.
-This can come in handy if you call a procedure where you receive data as
-BOOLEAN (even if sent as BYTE or STRING), or if you use
-PEEK(ADDR(boolean variable)). If BYTE values are received by a BASIC09
-procedure as BOOLEAN, BASIC09 will consider a byte value of 0 as FALSE and
-all others as TRUE.
-
-Do not confuse the boolean operations AND, OR, XOR, and NOT (which operate
-on the boolean values TRUE and FALSE) with the logical functions LAND, LOR,
-LXOR and LNOT (which use integer values to produce numeric results on a bit-
-by-bit basis). An attempt to store a non-boolean value In a boolean variable, causes
-an error.
-
-**Automatic Type Conversion**
-
-When an operation mixes numeric data types (byte, integer, or real values),
-BASIC09 automatically and temporarily converts the values to the type necessary
-to retain accuracy. This conversion lets you use numeric quantities of mixed types
-in most calculations.
-
-The system returns a type-mismatch error when an expression includes types that
-cannot legally mix. These errors are reported by the second compiler pass, which
-occurs automatically when you exit the edit mode.
-
-Because type conversion takes additional execution time, you can speed
-calculations by using values of a single type.
-
-
-**_Basic09 Reference_**
-
-**Constants**
-
-_Constants_ are values in a program that do not change. They can use any of the five
-data types. The following are examples of constants in a procedure:
-
-```
-HOME$="Fort Worth"
-VALUE$="25,000"
-VALUE=25
-PAYMENT=99.99
-ANSWER="TRUE"
-MEMORY=$0CFF
-PRINT "The End"
-```
-Numeric constants are either integers or real numbers. If a numeric constant
-includes a decimal point or uses the "E format" exponential form, it causes
-BASIC09 to store the number in the real format, even if it could store the number
-in integer or byte format.
-
-You can use this feature to _force_ a real format. For instance, to make the number
-12 a real number, type it as 12.0. You might want to force real values in this way
-when all other values in an expression are real so that BASIC09 does not have to
-do a time-consuming type conversion at run time.
-
-BASIC09 also stores as real numbers any numbers that do not have decimal points
-but that are too large to store as integers. Here are some examples of legal real
+One byte
+per char.
+BOOLEAN True or False One byte
+Why are there three different ways to represent numbers? Although
+REAL numbers appear
+to
+be the
+most versatile because they have the
+greatest range and are floating-point, arithmetic operations involving
+them are
+relatively slow
+(by a
+factor
+of
+about
+four)
+compared
+to
+the
+INTEGER or BYTE types. Thus using INTEGER values for loop counters,indexing arrays,
+etc.,
+can
+significantly
+speed up your programs. The BYTE
+type 1is not appreciably faster than IRTEGER, but it conserves memory
+space
+in
+some cases and
+is
+very useful
+as
+a
+building block
+for
+complex
+data types in other cases. If you neglect to specify the type of a
+variable, Basic09 will automatically use the REAL type.
+Type BYTE
+BYTE variables hold integer wvalues in the range 0 through 255
+(unsigned B-bit data) which are stored as a single byte. BYTE values are
+always converted to another type (16-bit integer values and/or real
+values) for computation, thus they have no speed advantage over other
+numeric types. However, BYTE variables require only half the storage
+used by integers, and 1/5 that used by reals.
+Attempting
+to
+store an
+integer value outside the BYTE range
+to a
+BYTE variable will result in
+storage
+of the
+least-significant 8-bits
+(the
+value modulo
+256)
+without
+error.
+Page 7-2
+Basic09 REFERENCE MANUAL
+Data Types, Variables and Data Structures
+Type INTEGER
+INTEGER variables consist of two bytes of storace and hold a numeric
+value in the range -32768 through 32767 as signed l6-bit data. Decimal
+points are not allowed. INTEGER constants may also be represented as
+hexadecimal values in the range $0000 through S$FFFF to facilitate address
+calculations. INTEGER values are printed without a decimal point.
+INTEGER arithmetic is faster and requires less storage than REAL values.
+Arithmetic which results in values outside the IRTEGER range does:
+not <cause run-time errors but instead "wraps aroundTM modulo 65536; i.e.,
+32767 + 1 yields - 32768. Division of an integer by another integer
+yields an integer result, and any remainder is discarded. The programmer
+should be aware that numeric comparisons made on values in the range
+32767 through 65535 will actually be dealing with negative numbers, so it
+may be desirable to limit such comparisons to tests for eguality or non-
+equality. Additionally, certain functions (LARD, LNOT, LOR, LXOR) use
+integer values but produce results on a non-numeric bit-by-bit basis.
+Type REAL
+The REAL type is the default type for undeclared variables. However,
+a variable may be explicitly typed REAL (e.g., twopi:REAL) to improve a
+program's internal documentation. REAL~-type values are always printed
+with a decimal point, and only those constants which include a decimal
+point are actually stored as REAL values.
+REAL numbers are stored in 5 consecutive memory bytes. The first
+byte is the (8-bit) exponent in binary two's-complement representation.
+The next four bytes are the binary sign-and-magnitude representation of
+the mantissa; the mantissa in the first 31 bits, and the sign of the
+mantissa in the last (least-significant) bit of the last byte of the real
+quantity. '
+INTERNAL REPRESENTATION OF REAL KNUMBERS
+Fmm e ——— tmm—————— tm——————— tmmm+
+|exponent | mantissa [S| <- mant. sign
+tomm————— tom—m————— tom—mm———— Rtom +
+byte: +0 +1 +2 +3 +4
+The exponent .covers the range 2.938735877 * 10°-39 (2°-128) through
+1.701411835 * 10738 (27127) as powers of 2, Operations which result in
+values out of the representation range cause overflow or underflow errors
+(which may be handled automatically by the OR ERROR command). The
+mantissa covers the range from 0.5 through .9999999995 in steps of 27-31.
+This means that REAL numbers can represent values on the number line
+about .0000000005 apart. Operations which cause results between the
+Page 7-3
+Basic09
+REFERENCE
+MAKRUAL
+Data Types, Variables and Data Structures
+directly representable points are rounded to the nearest exactly
+representable
+number.
+Floating point arithmetic
+is
+inherently
+inexact, thus
+a
+sequence
+of
+operations
+can
+produce
+a
+cumulative
+error.
+Proper rounding
+(as
+implemented in Basic09) reduces this effect but cannot eliminate it.
+Programmers
+using comparisons
+on
+REAL quantities should
+use
+caution with
+strict
+comparisons
+(i.e.,
+=,
+or <>),
+since
+the
+exact desired value may
+not occur
+during program
+execution.
+Type STRING
+A STRIRG 1is a variable-length sequence of characters or nil (an
+empty STRIRG). A variable may be defined as a STRIRG either explicitly
+(e.g., DIM title:STRIRG ) or implicitly by appending the dollar-sign
+character to the identifier (e.g., title$ := "My First Program." ). The
+default maximum length allocated to each string is 32 characters, but
+each
+string may
+be
+dimensioned
+less
+(e.g.,
+DIM A:STRIRG
+[4]
+)
+for
+memorysavings
+or
+more
+(e.g.,
+DIN long:STRING
+[2880]
+)
+to
+allow long
+strings.
+Notice that strings
+are
+inherently variable-length
+entities, and
+dimensioning: the storage for a string only defines the maximum length
+string
+which
+can be
+stored there.
+When
+a
+STRIKG value
+is
+assigned
+to
+a
+STRIRG variable, the bytes composing the string are copied into the
+variable storage byte-by-byte.
+The
+beginning
+of
+a
+string
+is
+always
+character number one, and this is NOT affected by the BASEDO or BASEl
+statements. Operations which result
+in
+strings
+too
+long
+to
+fit
+in
+the
+dimensioned storage truncate the string on the right and no error is
+generated.
+Normally the internal representation of the string is hidden from
+the user. A string is stored in a fixed-size storage area and is
+represented by a sequence of bytes terminated by the value zero or by the
+maximum length allotted to that STRIRG variable. Any remaining "unused"”
+storage after the zero byte allows the stored string to expand and
+contract during execution. The example below shows the internal storage
+of a wvariable dimensioned as STRING[6] and assigned a valueof "SAM".
+Notice the byte at +3 contains the zero string terminator, and the two
+following bytes are
+not-
+used.
+Page 7-4
+Basic09 REPERENCE MANUAL
+Data Types, Variables and Data Structures
+If the wvalue "ROBERT" is assigned to the wvariable. the zero byte
+terminator is not needed because the STRING f£fills the storage exactly:
+Type BOOLEAR
+A BOOLEAN quantity has only two values: TRUE or FALSE. A variable
+may be typed BOOLEAN (e.g., DIHM done_flag:BOOLEAR ). BOOLEAN quantities
+are stored as single byte values, but they may not be used for numeric
+computation. BOOLEAN values print out as the character strings: "TRUE"
+and "FALSE", BOOLEAN values result from comparisons (comparing two
+compatible types), and are appropriate for logical flags and expressions
+( result:=a ARD b ARD  ). Do not confuse BOOLEAN operations ANRD, OR,
+XOR, and ROT (which operate on the BOOLEAN values TRUE and FALSE) with
+the logical functions LARD, LOR, LZOR, LROT (which use integer values to
+produce results on a bit-by-bit basis). Attenpting to store a non-
+BROOLEAN value to a BOOLEAN variable (or the reverse) will cause a run-
+time error. .
+AUTOMATIC TYPE CONVERSION
+Expressions that mix numeric data types (BYTE, INTEGER, or REAL) are
+automatically and temporarily converted to the largest type necessary to
+retain accuracy. In addition, certain Basic09 functions also perform
+automatic type conversions as necessary. Thus, numeric quantities of
+. mixed types may be used in most cases. Type-mismatch errors happen when
+an expression includes types that cannot legally be mixed. These errors
+are reported by the second compiler pass which automatically occurs when
+you leave EDIT mode. Type conversions can take time so it is advisable
+to use expressions containing all values of a single type wherever
+possible. '
+CORSTARTS
+Constants are frequently used in program statements and in expres-
+cions to assign values to variables. Basic09 has rules that allow you to
+specify constants that correspond to the five basic data types.
+RUMERIC CORSTARTS
+Numeric constants can be either type REAL or type INTEGER. If a
+number constant includes
+a
+decimal point
+or uses the "E
+format”
+Basic09
+REFERENCE MARUAL
+Data Types, Variables and Data Structures
+exponential
+form,
+it
+forces Basic09
+to
+store
+the
+number in REAL format
+even
+if
+the
+number
+could
+have been stored
+in
+IRTEGER
+or
+BYTE
+format.
+Thus
+if
+you specifically want
+to
+specify
+a
+REAL constant,
+use
+a
+decimal
+point
+(for
+example
+12.0).
+This
+is
+sometimes
+done
+if all
+other
+values
+in
+an
+expression
+are
+of
+type
+REAL
+so
+Basic09
+does
+not have
+to do
+a
+time-
+consuming
+type
+conversion
+at
+run-time.
+Numbers
+that
+do
+not have
+a
+decimalpoint but are too
+large
+to
+be
+represented
+as
+integers
+are
+also stored
+in
+REAL format. Here are some examples of legal real constants: :
+1.0 9.8433218
+-.01 -999.000099
+100000000 5655.34532
+1.95E+12 . =99999,.9E-33
+Numbers that do not have a decimal point and are in the range of -
+32768 to +32767 are treated as IRTEGER numbers. Basic09 will also accept
+integer constants as unsigned decimal numbers in the range 0 to 65535 or
+in
+hexadecimal
+in the
+range
+0
+to SFFFF. Hex
+numbers must
+have
+a
+leading
+dollar sign. BHere are some examples of integer constants:
+12
+~3000 64000
+$20 SFFFE §0
+0
+-12 -32768
+BOOLEAR
+CONRSTARTS
+The two legal boolean constants are
+"TRUE"TM
+and
+"FALSE". Example:
+DIM flag, state: BOOLEAN
+flag := TRUE
+state
+:=
+FALSE
+STRIKG CORSTANTS
+String constants consist of a sequence of any characters enclosed in
+double quote characters. The binary value of each character byte can be 1
+to 255, Double quote characters to be included in the string use two
+characters in a row to represent one double quote. The null string "" is
+important because it represents a string having no characters. It is
+analogous to the numeric zero. Here are some examples of string
 constants:
-
-```
-1.0 9.8433218 -.01
--999.000099 100000000 5644.34532
-1.95E+12 -99999.9E-33
-```
-BASIC09 treats numbers that do not have a decimal point and are in the range -
-32768 through +32767 as integers. You must always precede hexadecimal
-numbers with a dollar sign.
-
-Following are examples of legal integer constants:
-
-```
-12 -3000 55
-$20 $FF $09
-0 -12 -32768
-```
-**String Constants**
-
-A string constant consists of a sequence of characters enclosed in double quotation
-marks, such as:
-
-
-```
-Data and Variables | 6
-"The End"
-```
-To place a string constant into a string type variable, use the = symbol in this
-manner:
-
-```
-TITLE$ = "Masters Of Magic"
-```
-To include double quotation marks within a string, use two sets of double
-quotation marks, like this:
-
-```
-"An ""older man"" is wiser."
-```
-A string can contain characters that have ASCII values in the range 0 through 255.
-
-**Variables**
-
-In BASIC09, a variable is _local_ to the procedure in which it is defined. A variable
-defined in one procedure has no meaning in another procedure unless you use the
-RUN and PARAM statements to pass the variable when you call the other
-procedure.
-
-The local nature of variables lets you use the same variable name in more than one
-procedure and, unless you specify otherwise, have the variables operate
-independently of each other.
-
-You can assign variables using either the LET statement with the assignment
-operator (=), or by using the assignment operator alone. Alternately, you can also
-use the := assignment operator. For instance, both of the following command lines
-are legal:
-
-```
-LET PAYMENT=44.50
-PAYMENT:=44.50
-```
-When you call a procedure, BASIC09 allocates storage for the procedure's
-variables. It is not possible to force a variable to occupy an absolute address in
-memory. When you exit a procedure, the system returns the storage allocated for
-the variables, and you lose the stored values.
-
-If you write a procedure to call itself (a _recursive_ procedure), the call creates
-separate storage space for variables.
-
-```
-Note: Unlike other BASICs, BASIC09 does not automatically
-initialized variables by setting them to zero. When you execute a
-procedure, all variables, arrays, and structures have random values.
-Your procedure must initialize the variables you specify to the
-values you require.
-```
-
-**_Basic09 Reference_**
-
-**Passing Variables**
-
-When one procedure passes variable values to another procedure, BASIC09 refers
-to the passed variables as _parameters_. You can pass variables either by _reference_
-or by _value_.
-
-**Passing By Reference**
-
-BASIC09 **does not** protect variables passed by reference. Therefore, the called
-procedure can change the values and return the new values.
-
-To pass parameters by reference:
-
-```
-RUN ADDCOLUMN(x) pass by reference
-```
-The system evaluates the storage address of each passed variable, and sends the
-variable to the called procedure. The called procedure associates the storage
-addresses with the names in its local PARAM statement. It then uses the storage
-area as though it had created it locally. This means that it can change the value of
-the parameter before returning it to the calling procedure.
-
-**Passing By Value**
-BASIC09 **does** protect variables passed by value, so, the called procedure cannot
-change them.
-
-To pass parameters by value, write the value to be passed as an expression.
-BASIC09 evaluates the expression at the time of the call. To use a variable in an
-expression without changing its value, use null constants, such as 0 for a number or
-"" for a string, in this manner:
-
-```
-RUN ADDCOLUMN(x+0) passes the value of x by value
-RUN TRANSLATE(w$+"") passes the contents of w$ by value
-```
-To pass parameters by value, BASIC09 creates a temporary variable. It places the
-result of the expression in the temporary variable and sends the address to the
-called procedure. This means that the value given to the called procedure is a _copy_
-of the result of the expression, and the called procedure cannot change the original
-value.
-
-The results of expressions containing numeric constants are either integer or real
-values; there are no byte constants. To send byte-type variables to a procedure,
-pass the values by reference. Therefore, if a RUN statement evaluates an integer as
-a perimeter and sends it to a byte-type variable, the byte Variable uses only the
-high-order byte of the two-byte integer.
-
-
-```
-Data and Variables | 6
-```
-**Arrays**
-
-An _array_ is a group of related data values stored consecutively in memory. The
-system knows the entire group by a variable name. Each data value is an _element_.
-You use a _subscript_ to refer to any element of the array. For example, an array
-named Graf might contain five elements referred to as:
-
-```
-Graf(1) Graf(2) Graf(3) Graf(4) Graf(5)
-```
-You can use each of these elements to store a different value, such as:
-
-```
-Graf(1) = 25
-Graf(2) = 47
-Graf(3) = 39
-Graf(4) = 18
-Graf(5) = 50
-Note: Normally, array elements start with 1 in BASIC09. However,
-you can use the BASE statement to cause array elements to begin at
-0.
-```
-The previous example illustrates a single-dimensioned array. The elements are
-arranged in one row and only one subscript is used for each element.
-
-The following procedure lets you type values for a GRAF array and displays the
-results in a simple graph.
-
-```
-PROCEDURE GRAF
-cDIM GRAF(5):REAL
-cPRINT CHR$(12)
-cFOR T=1 TO 5
-cPRINT "Value for Item #"; T; "c";
-cINPUT GRAF(T)
-cNEXT T
-cPRINT
-cPRINT
-cPRINT "This is how your graph stacks up..."
-cPRINT
-cFOR T=1 TO 5
-cPRINT "Item #"; T; "c";
-cFOR U=1 TO GRAF(T)
-cPRINT CHR$(79);
-cNEXT U
-cPRINT
-```
-
-**_Basic09 Reference_**
-
-```
-cNEXT T
-cPRINT
-cEND
-```
-This procedure uses a single dimension array—in effect, a list.
-
-You can also create arrays with more than one dimension — more than one
-element for each row. You might use a two-dimensioned array in a procedure to
-store names and addresses. Instead of creating separate arrays for the name,
-address, and zip code, you could set up one array with two dimensions.
-
-The following procedure, used to enter the names of a company's employees,
-shows how this might be done. See the second line for the DIM syntax. When you
-run the procedure, it asks you for a name, address, and zip code for each of 10
-employees. After you type the information for all the entries, the procedure
-displays the information on the screen.
-
-```
-PROCEDURE Names
-cDIM NAME(10,3):STRING
-cPRINT CHR$(12)
-cBASE 0
-cFOR T=0 TO 9
-cPRINT "Type Employee Name No."; T; ": ";
-cINPUT NAME(T,0)
-cPRINT "Type Employee Address No."; T; ": ";
-cINPUT NAME(T,1)
-cPRINT "Type Employee Zip Code No."; T; ": ";
-cINPUT NAME(T,2)
-cNEXT T
-cPRINT CHR$(12)
-cPRINT "And the names are..."
-cPRINT
-cFOR T=0 TO 9
-cPRINT NAME(T,0); "c"; NAME(T,1); "c"; NAME(T,2)
-cNEXT T
-cEND
-```
-The DIM statement reserves space in memory for a string array named NAME
-with two dimensions. As you enter data, the Name field is stored in NAME(0,0),
-NAME(1,0), NAME(2,0), and so on. The Address field is stored in NAME(0,1),
-NAME(1,1), NAME(2,1), and so on. The Zip Code field is stored in NAME(0,2),
-
-
-```
-Data and Variables | 6
-```
-NAME(1,2), NAME(2,2), and so on. This continues until you fill the _grid_ , 10
-entries with three items each.
-
-You can also create the arrays with three dimensions. The following procedure
-adds one more dimension that keeps track of each employee's company. It
-dimensions Name$ as Name$(2,10,3). The first dimension contains either 0 or 1 to
-indicate which company the employee works for.
-
-```
-PROCEDURE Names2
-cDIM NAME$(2,10,3):STRING
-cPRINT CHR$(12)
-cBASE 0
-cFOR X=0 TO 1
-cPRINT
-cPRINT
-cFOR T=0 TO 9
-cPRINT
-cIF X=0 THEN
-cPRINT "Type a Wiggleworth Company Employee Name"
-cELSE
-cPRINT "Type a Putforth Company Employee Name"
-cENDIF
-cPRINT "Type Name No."; T; ": ";
-cINPUT NAME$(X,T,0)
-cPRINT "Type Address No."; T; ": ";
-cINPUT NAME$(X,T,1)
-cPRINT "Type Zip Code No."; T; ": ";
-cINPUT NAME$(X,T,2)
-cNEXT T
-cNEXT X
-cPRINT CHR$(12)
-cPRINT "The Wiggleworth employees are..."
-cPRINT
-cX=0
-cFOR T=0 TO 9
-cPRINT NAME$(X,T,0); "c"; NAME$(X,T,1); "c";
-NAME$(X,T,2)
-cNEXT T
-cPRINT
-cPRINT "The Putforth employees are..."
-```
-
-**_Basic09 Reference_**
-
-```
-cPRINT
-cX=1
-cFOR T=0 TO 9
-cPRINT NAME$(X,T,0); "c"; NAME$(X,T,1); "c";
-NAME$(X,T,2)
-cNEXT T
-cEND
-```
-The easiest way to understand three dimensional arrays is to consider the first
-dimension as a _page_. In other words if the first dimension in the string is 0, the
-employee is on the Wiggleworth Company's page. If the first dimension in the
-string is 1, the employee is on the Putforth Company's page.
-
-**Complex Data Types**
-
-In addition to the five standard data types, you can create your own data types.
-Using the TYPE statement, you can define a new data type as a _vector_ (a single-
-dimensioned array) of any previously defined type.
-
-For example, in the previous procedure, the NAME variable can only contain one
-data type, the string type. However, using the TYPE statement you can create a
-variable that accepts several data types. Suppose you create an employee list
-procedure that uses the following variables, of the following size and types:
-
-```
-Name Length Contents Type
-Name 25 employee name string
-Street 20 street address string
-City 10 city of address string
-Zip Code — address zip code integer
-Sex — false = male, true = female boolean
-Age — employee age byte
-```
-You can combine all these variables into one complex data type. To do so,
-dimension the variables within a TYPE statement like this:
-
-```
-TYPE EMPLOYEE=NAME:STRING[25]; STREET:STRING[20];
-CITY:STRING[10]; ZIP:REAL; SEX:BOOLEAN; AGE:BYTE
-```
-This creates a new BASIC09 type, called EMPLOYEE. EMPLOYEE requires its
-variables to have six fields of the name, size, and type shown in the previous chart.
-
-Once you create the new data type, you can define variables to use it. For instance,
-the following source instruction defines WORKER as type EMPLOYEE with 10
-elements in the array:
-
-
-```
-Data and Variables | 6
-DIM WORKER(10):EMPLOYEE
-```
-To put the EMPLOYEE data type to work, collect your data with INPUT
-commands. Then, store the data into the new WORKER array. The following
-procedure demonstrates how you might do this:
-
-```
-PROCEDURE worker
-cREM cccccccccDimension variables for input
-cDIM NM:STRING[25]
-cDIM ST:STRING[20]
-cDIM CTY:STRING[10]
-cDIM ZP:REAL
-cDIM SX:BOOLEAN
-cDIM AG:BYTE
-cREM Create new type and array using new type
-cTYPE EMPLOYEE=NAME:STRING[25]; STREET:STRING[20];
-CITY:STRING[10]; ZIP:REAL; SEX:BOOLEAN; AGE:BYTE
-cDIM WORKER(10):EMPLOYEE
-cREM
-cFOR T=1 TO 10
-cINPUT "Name:c",NM
-cINPUT "Street:c",ST
-cINPUT "City:c",CTY
-cINPUT "Zip:c",ZP
-cINPUT "Sex:c",SX
-cINPUT "Age:c",AG
-cREM cccccccStore input ln the Worker array
-using field names
-cWORKER(T).NAME=NM
-cWORKER(T).STREET=ST
-cWORKER(T).CITY=CTY
-cWORKER(T).ZIP=ZP
-cWORKER(T).SEX=SX
-cWORKER(T).AGE=AG
-cPRINT
-cPRINT "* * * * * * * * * * * * * * * * * * * *"
-cPRINT
-cNEXT T
-cPRINT CHR$(12);
-cPRINT "The names in your files now are..."
-```
-
-**_Basic09 Reference_**
-
-```
-cPRINT
-cFOR T=1 TO 10
-cPRINT WORKER(T).NAME
-cPRINT WORKER(T).STREET
-cPRINT WORKER(T).CITY
-cPRINT WORKER(T).ZIP
-cIF WORKER(T).SEX=TRUE THEN
-cPRINT "Female"
-cELSE
-cPRINT "Male"
-cENDIF
-cPRINT WORKER(T).AGE
-cPRINT
-cPRINT "* * * * * * * * * * * * * * * * * * * *"
-cPRINT
-cNEXT T
-```
-Note that the SEX field is defined as BOOLEAN. This means that you can respond
-only in two ways, TRUE or FALSE. The method of input requires only one byte of
-storage. To use this data you need to handle it So TRUE and FALSE indicate male
-and female.
-
-Complex data types can contain more than one field. Each field can be of any data
-type. You referenced the fields of a complex data type by typing the variable name,
-its array index, a period (.), and the field name. The following lines, from the
-worker procedure, shows how BASIC09 stores the data from the input lines into
-the WORKER variable:
-
-WORKER(T).HAME=NM
-WORKER(T).STREET=ST
-WORKER(T).CITY=CTY
-WORKER(T).ZIP=ZP
-WORKER(T).SEX=SX
-WORKER(T).AGE=AG
-These lines store the values in the variables NM, ST, , CTY, ZP, SX and AG into
-the NAME, STREET, , CITY, ZIP, SEX and AGE Fields of the WORKER
-variable. This operation is within a FOR/NEXT loop that uses T as a counter. In
-the procedure T can refer to a value in the range 1 to 10.
-
-
-```
-Data and Variables | 6
-```
-The procedure uses the same type of operation to extract the data from the complex
-data type variable:
-
-PRINT WORKER(T).NAME
-PRINT WORKER(T).STREET
-PRINT WORKER(T).CITY
-PRINT WORKER(T).ZIP
-IF WORKER(T).SEX=TRUE THEN
-PRINT "Female"
-ELSE
-PRINT "Male"
-ENDIF
-PRINT WORKER(T).AGE
-Using the same methods, you can create complex data types that combine other
-complex data types and standard data types.
-
-The elements of a complex structure can be copied to another similar structure.
-Using a single assignment operator, you can write an entire structure to, or read an
-entire structure from, mass storage as a single entity. For example:
-
-```
-PUT #2, WORKER(T)
-```
-Because the system defines the elements of complex-type storage during
-compilation, it need not do so during _runtime_. This means that BASIC09 can
-reference complex structures faster than it can reference arrays.
-
-
-**Chapter 7**
-
-**Expressions, Operators, and Functions**
-
-**Manipulating Data**
-
-BASIC09 uses _expressions_ to manipulate data. (Expressions are pieces of data
-connected by operators.)
-
-An _operator_ is a symbol or a word that signifies some action to be performed on
-the specified data. Each data item is a value.
-
-**Expressions**
-
-When an expression is evaluated, the result is a value of some data type (real,
-integer, string, byte, or boolean).
-
-An expression might look like this:
-
-```
-First
-Value
-```
-```
-First
-Operator
-```
-```
-Second
-Value
-```
-```
-Second
-Operato
-r Result
-```
-```
-6 + 5 = 11
-```
-```
-or like this:
-```
-```
-First
-Value
-```
-```
-First
-Operator
-```
-```
-Second
-Value
-```
-```
-Second
-Operato
-r Result
-```
-```
-“Seaside” + “Villa” =
-```
-```
-Seaside
-Villa
-```
-When BASIC09 evaluates an expression, it copies each value onto an expression
-stack. Functions and operators take their input values from this stack and return
-their results to it. Many expressions result in assignments, as do the examples
-shown. Then BASIC09 makes the resulting assignment only after it computes the
-entire expression. This lets you use the variable that is being modified as one of the
-values in the expression, such as in this example:
-
-
-**_Expressions, Operators, and Func,ons_** **|** **_7_**
-X=X+1
-The result of an expression is always one of the five BASIC09 data types.
-However, you can often mix data types within an expression and, in some cases,
-the result of an expression is of a different data type than any of the values in the
-expression. Such is the case if you use the less-than symbol (<), in this manner:
-
-24 < 188
-The less-than operator compares two integer values. The result of the comparison
-is boolean; in this case, the value is TRUE.
-
-**Type Conversion**
-
-Because BASIC09 performs automatic type conversion of values, you can mix any
-of the three numeric data types in an expression. When you mix numeric data
-types, the result is always of the same type as the value having the largest
-representation, in this order: real < integer < byte.
-
-You can use any numeric type in an expression that produces a real number. If you
-want an expression to produce a byte or integer type value, the result must be small
-enough to fit the desired type.
-
-**Operators**
-
-BASIC09 has operators to deal with all types of data. Each operator, except NOT
-and negation (unary -), takes two values or operands, and performs an operation to
-produce a result. NOT can accept only one value. The following table lists the
-operators available and the types of data they accept and produce.
-
-Because the same operators function on the three types of numeric data (byte,
-integer, and real), these types are referred to by the operand type "numeric."
-
-**BASIC09 Expression Operators**
-
-```
-Operator Function
-```
-```
-Operand
-Type
-```
-```
-Result
-Type
-```
-- Negation numeric numeric
-~or ** Exponentiation numeric numeric
-* Multiplication numeric numeric
-/ Division numeric numeric
-+ Addition numeric numeric
-- Subtraction numeric numeric
-
-
-**_Basic09 Reference_**
-
-```
-NOT Logical Negation boolean boolean
-AND Logical AND boolean boolean
-OR Logical OR boolean boolean
-XOR Logical Exclusive OR boolean boolean
-+ Concatenation string string
-= Equal to all types boolean
-<> or >< Not equal to all types boolean
-< Less than numeric, string† boolean
-<= or =< Less than or equal numeric, string† boolean
-> Greater than numeric, string† boolean
->= or => Greater than or equal numeric, string† boolean
-```
-```
-† When comparing strings, BASIC09 uses the ASCII values of characters as the
-basis for comparison. Therefore, 0 < 1, 9 < A, A < B, A < b, b < z and so on.
-```
-**Arithmetic Operators**
-
-_Arithmetic operators_ perform operations on numeric data. Therefore, both
-operands in the expression must be numeric. The following table lists the
-arithmetic operators.
-
-```
-Negation The single dash negates a number’s sign:
--10 is negative 10.
-```
-```
-Exponentiation Use a caret (^) or two asterisks (**) to raise a number to a power:
-2^3 is 8 (2x 2 x 2).
-Similarly, 2**3 is 8.
-```
-```
-Multiplication A single asterisk causes multiplication:
-2*3 is 6.
-```
-```
-Division A slash causes division: 6 / 2 is 3.
-```
-```
-Addition The plus sign causes addition:
-3 + 3 is 6.
-```
-```
-Subtraction A dash causes subtraction: 6 - 3 is 2.
-```
-
-```
-Expressions, Operators, and Func,ons | 7
-```
-**Hierarchy of Operators**
-
-BASIC09 uses the standard hierarchy of operations when calculating expressions
-with multiple operators. This means that BASIC09 has an order in which it
-performs calculations involving more than one operator.
-
-The following BASIC09 operators are listed in order of precedence:
-
-NOT - (negate}
-^ **
+"Basic09 is a new microcomputer language"”
+"AABBCCDD"
+" (a2 null string)
+"An ""older man""
+is
+wiser"
+Page 7-6
+Basic09 REFERENRCE MANUAL .
+Data Types, Variables and Data Structures
+VARIABLES
+Each Basic09 variable 1is "local" to the procedure where it is
+defined. Local means that it is only known to the program statements
+within that procedure. You can use the same variable name in several
+procedures and the variables will be completely independent. If you
+specifically want other procedures to be able to share a variable, you
+must use the RUN and PARARM statements to pass the variable when a
+procedure is calling another procedure,
+Storage for variables is allocated from the Basic09 workspace when
+the procedure is called. It is not possible to force a variable to
+occupy a particular absolute address in memory. When the procedure is
+exited, variable storage is given back and values stored in it are lost.
+Procedures can call themselves (this is referred to as recursion) which
+causes another separate storage space for variables to be allocated.
+WARNIRGI! Basic09 DOES ROT AUTOMATICALLY IRITIALIZE VARIABLES. WHEN A
+PROCEDURE IS RON ALL VARIABLES, ARRAYS ARD STRUCTURES WILL EAVE RANDOM
+VALUES. YOUR PROGRAM MUST ASSIGN ANY INITIAL VALUE IF REEDED. '
+PARAMETER VARIABLES
+Procedures may pass variables to other procedures. When this
+occurs, the variables passed to the called procedure are referred to as
+"parameters”, Parameters may be passed either "by reference", allowing
+values to be returned from the called procedure, or "by value", which
+protects the values in the calling procedure so that they may not be
+changed by the procedure which is called.
+Parameters are usually passed "by reference"; this is done by
+enclosing
+the
+names
+of the
+variables
+to
+be sent
+to
+the called procedure
+in
+parenthesis
+as
+part of the
+ROUN
+statement. The storage address
+of
+each
+parameter variable
+is
+evaluated
+and sent
+to
+the
+called procedure which
+then associates those addresses with names in a local PARAM statement.
+The called procedure uses this storage as if it had been created locally
+(although it may have a new name) and can change the values stored there.
+Parameters passed
+by
+reference allow called procedures
+to
+return values
+to their callers. -
+Parameters may be passed "by value" by writing the value to be
+passed as an expression which is evaluated at the time of the call.
+Useful expression-generators that don't alter values are +0 for numbers
+or +"" for strings. For example:
+ROR inverse
+(x)
+passes
+"x" by reference
+RUR inverse
+(x+0)
+passes
+"x" by value
+RUR translate (word$) passes "word$" by reference
+ROR translate (word$+"") passes
+"words$"
+by value
+Page 7-7
+Basic09
+REFPERENCE
+MANUAL
+Data Types, Variables and Data Structunres
+When
+parameters
+are
+passed
+by
+value,
+a
+temporary variable
+is
+createdwhen
+the
+expression
+is
+evaluated.
+The
+result
+is
+placed
+in
+a
+new
+temporary
+storage.
+The
+address
+of
+this
+temporary
+storage
+is
+sent
+to
+the
+called procedure. Therefore, the value actually given to the called
+procedure is a copvy of the result, and the called procedure can't
+accidentally (or otherwise) change the wvariable(s) in the calling
+program,
+Notice that expressions containing numeric constants will be either
+of type INTEGER or of type REAL; there is no type BYTE constant. Thus,
+BYTE-type .VARIABLES may be sent to a procedure as parameters but
+expressions will be of types INTEGER or REAL. For example, a RON
+statement may evaluate an IRTEGER as a parameter and send it to the
+called procedure. If the called procedure is expecting a BYTE-type
+variable, it will use only the high-order byte of the (two-byte) INTEGER
+(which,
+if
+the
+value was intended
+to be
+in
+BYTE-range,
+will
+probably
+be
+zero!). ‘
+ARRAYS
+The DIM statement can be used to create arrays of from 1 to 3
+dimensions
+(a
+one~dimensional array
+is
+often called
+a
+®"vector®TM,
+while
+a
+2
+or
+3
+dimensional array
+is
+called
+a
+“®matrix"TM
+).
+The sizes
+of
+eachdimension are defined when
+the array
+is
+typed
+(e.g.,
+DIM
+plot(24,80) :BYTE) by including the number of elements in each dimension.
+Thus,
+a
+matrix dimensioned
+(24,80)
+has
+24
+rows
+(1-24) of
+80
+columns
+(1
+-
+80) when accessed in the default (BASE 1) mode. Programmers may elect to
+access
+the
+elements
+of
+an
+array
+starting
+at zero (BASE
+0),
+in
+which case
+there are still 24 rows (now 0-23) and 80 columns (now 0-79). Arrays may
+be composed of atomic data types, complex data types, or other arrays.
+COHPLEX DATA TYPES
+The TYPE statement can be used to define a new data type as a
+"vectorTM (a one-dimensional array) of any atomic or previously-defined
+types. For example: '
+TIPE employee_rec = name:STRIRG; number(2) :IRTEGER; malesex:BOOLEAN
+This structure differs from an
+array
+in
+that the various elements may
+be
+of mixed types, and the elements are accessed by a field name instead of
+an
+array index. For example:
+DIM employee_file(250): employee_rec
+employee_£ile(l)
+.name
+:=
+"Tex"
+employee_file(20) .number (2) := 115
+Page 7-8
+Basic09 REFERERCE MARUAL
+Data
+Types,
+Variables
+and
+Data Structures
+The
+complex structure
+gives
+the
+programmer
+the
+ability
+to
+store
+and
+manipulate related values
+that are
+of
+many
+types,
+to
+create
+"new"
+types
+in addition to the five atomic data types, or to create data structures
+of
+unusual "shape"
+or
+size.
+Additionally,
+the
+position
+of the
+desired
+element in complex-type storage is known and defined at "compile time"
+and need not be
+calculated
+at "run time".
+Therefore, complex structure
+accesses may be slightly faster than array accesses. The elementsof a
+complex structure may
+be
+copied
+to
+another similar structure using
+a
+single assignment operator (i.e., ":=" ). An entire structure may be
+written to or read from mass storage as a single entity (e.g., POT £2,
+employee_file ). Arrays or complex structures may be elements of
+subsequent complex structures or arrays.
+Page 7-9
+BASIC0S
+REFPERENCE
+MANUALData
+Types,
+Variables
+and
+Data Structures
+This Page
+Intentionally Blank
+Page 7-10
+Basic09 REFERENCE MANUAL
+Expressions, Operators and Punctions
+EVALUATION OF EXPRESSIONS
+Many Basic09 statements evaluate expressions. The result of an
+evaluation is just a value of some atomic type (e.g. REAL, INTEGER,
+STRIRG, or BOOLEAN). The expression itself may consist of values and
+operators, for example; the expression "5+45" results in an integer with a
+value
+of ten.
+A "value" can be a constant value (e.g., 5.0 , 5 , "5" , or TRUE), a
+variable name, or a function (e.g., SIN(x) ) which "returns" the result
+as a value. An operator combines values (typically, those adjacent to
+the operator) and also returns a result.
+In the course of evaluating an expression, each value is copied onto
+an “"expression stack"TM where functions and operators take their input
+values and return results. If (as is often the case) the expression is
+to be used in an assignment statement, only when the result of the entire
+expression has been found 1is the assignment made. This allows the
+variable which is being modified (assigned to) to be one of the values in
+the expression. The same principles apply for numeric, string, and
+boolean operators. These principles make assignment statements such as
+"X=X+1" legal in all <cases even though it would not make sense in-a
+mathematical context. :
+Any expression will evaluate to one of the five "atomic" data types,
+i.e., real, integer, byte, boolean, or string. This does not mean,
+however, that all the operators and operands in expressions have to be of
+an identical type. Often types are mixed in expressions because the
+RESULT of some operator or function has a different type than its
+operands. An example is the "less than" operator. Here's an example:
+24 < 100
+The "<" operator compares two numeric operands. The result of the
+comparison is of type BOOLEAN; in this case, the value TRUE.
+Basic09 allows intermixing of the three numeric types because it
+performs automatic type conversion of operands. If different types areused
+in an
+expression, the
+T"resultTM
+will be the same type as the
+operand(s) having the largest representation. As a rule, any numeric
+tvpe operand may be used
+in
+a
+expression that
+is
+expected
+to
+produce
+a
+result of type REAL. Expressions that must produce byte or integer
+results must evaluate to a value that is small enough to fit the
+representation. Basic09 has a complete set of functions that can perform
+compatible type conversion. Type-mismatch errors are reported by the
+second compiler pass when leaving Edit mode.
+CPERATORS
+Operators: take two operands (except negation) and cause some
+operation to be performed producing
+a
+result, which
+is
+generally the same
+Page 8-1
+BASIC0S
+REPERENCE MARUALExpressions,
+Operators
+and Functions
+type
+as
+the
+operands
+(except
+comparisons).
+The table
+below
+lists
+the
+operators available and the types they accept and produce. "NUMERIC"
+refers
+to
+either
+BYTE, IRTEGER,
+or
+REAL
+types.
+Basic09
+EXPRESSION
+OPERATORS
+Operétor Function Operand Type Result Type
+-
+Negation NUMERIC NUMERIC
+© or ** Exponentiation NUMERIC NUMERIC
+* Multiplication NUMERIC NUMERIC
+/ Division NUMERIC NUMERIC
++
+Addition NUMERIC NUMERIC
+- Subtraction NUMERIC NUMERIC
+ROT Logical Negation BOOLEAR BOOLEAN
+AND Logical ARD BOOLEAN BOOLEAR
+OR Logical OR BOOLEAN BOOLEAN
+XOR Logical EXCLUSIVE OR BOOLEAR BOOLEAR+
+Concatenation STRIRG STRIRG
+=
+Equal
+to
+ANY BOOLEAR
+<>
+or X<
+Not
+egqual
+to
+ANY BOOLEAN
+<
+Less than NUMERIC, STRING*
+BOOLEAN
+<= or =<
+Less than
+or
+Equal
+NUMERIC, STRING* BOOLEAN
+>
+Greater than NUMERIC, STRING* BOOLEAR
+>= or =>
+Greater
+than
+or
+Egqual
+NUMERIC, STRIRG* BOOLEAN
+*
+When comparing
+strings, the ASCII collating
+segquence is
+used, so
+that
+0 <1K
+<9 <AKLB eee < Z2 < a<hb
+Page 8-2
+<
+2z
+Basic09 REFERENCE MANUAL
+Expressions, Operators and Functions
+OPERATOR PRECEDENCE
+Operators have "precedence" which means they are evaluated in a
+specific order (i.e., multiplications performed before addition).
+Parentheses can be used to override natural precedence, however,
+extraneous parentheses may be removed by the conmpiler. The legal
+operators are listed below, in precedence order from highest to lowest.
+Highest Precedence
+NOT
+-({negate)
+-
+*
+%
 * /
 + -
-> < <> = >= <=
+> < <> = >= {=
 AND
 OR XOR
-Also, BASIC09:
-
-```
- Performs operations enclosed in parentheses before operations not in
-parentheses.
- Performs the leftmost operations first when two or more operations are of
-equal precedence.
-```
-You can use parentheses to override this standard precedence.
-
-For example:
-
-2 + 1 * 3 = 5
-but
-
-(2 + 1) * 3 = 9
-The following examples show BASIC09 expressions on the left, and the way
-BASIC09 evaluates them on the right. You can enter the expressions in either
-form, but the decompiler generates the simpler form, shown on the left.
-
-```
-BASIC09 Representation Equivalent Form
-a=b+c**2/d a=b+((c**2)/d)
-a=b>c AND d>e OR c=e a=((b>c) AND (d>e)) OR (e=e)
-a=(b+c+d)/e a=((b+c)+d)/e
-a=b**c**d/e a=(b**(c**d))/e
-a=-(b)**2 a=(-b)**2
-```
-
-**_Basic09 Reference_**
-
-**Relational Operators**
-
-_Relational operators_ make logical comparisons of any type of data and return a
-result of either TRUE or FALSE. An explanation of the relational operators
-follows. All relational operators have equal precedence.
-
-```
-= Equal. Returns TRUE if both operands are equal, or FALSE if they are
-not equal.
-```
-```
-< Less than: Returns TRUE if the first operand is less than the second, or
-FALSE if is not.
-```
-```
-> Greater than: Returns TRUE if the first operand is greater than the
-second, or FALSE if it is not.
-```
-```
-<> or
-><
-```
-```
-Unequal: Returns TRUE if the operands are not equal or FALSE if they
-are.
-```
-```
-<= or
-=<
-```
-```
-Less than or equal to: Returns TRUE if the first operand is less than or
-equal to the second operand. Otherwise, the operation returns FALSE.
-```
-```
->= or
-=>
-```
-```
-Greater than or equal to: Returns TRUE if the first operand is greater than
-or equal to the second. Otherwise, the operation returns FALSE.
-```
-You normally use relational operators in IF/THEN statements. For example, if
-your procedure has two numeric variables, Payments and Income, you might
-include command lines like this:
-
-IF PAYMENTS > INCOME THEN
-PRINT "You’re Broke!"
-ENDIF
-When you combine arithmetic and relational operators in the same expression,
-BASIC09 evaluates the arithmetic operations first. For example:
-
-IF X*Y/2 <= 14 THEN
-PRINT "Average Score is "; X*Y/2
-ENDIF
-BASIC09 performs the arithmetic operation x+y/2, then compares the result with
-the value 14.
-
-When you use relational operators with strings, BASIC09 compares the strings
-character by character. When it finds two characters that do not match, it checks to
-see which character has the lower ASCII code value. The string containing the
-character with the lower value comes first.
-
-
-```
-Expressions, Operators, and Func,ons | 7
-```
-Consider this example:
-
-PRINT "hunt" > "hung"
-BASIC09 compares each character in each string. Because the first three characters
-are the same, the result of the operation is based on the comparison of t and g.
-Because t (ASCII value = 116) is "greater than" g (ASCII value = 103), the
-command prints TRUE.
-
-**String Operators**
-
-The string operator is the plus sign (+). This symbol appends one string to another.
-All operands must be strings, and the resulting value is one string. Examine, for
-example, the following line, which appends three strings:
-
-PRINT "My friends are " + "Jack and " + "Jill."
-It prints: My friends are Jack and Jill.
-
-**Logical Operators**
-
-The logical, or boolean, operators make logical comparisons of boolean values.
-The following table describes the results yielded by each logical operator given the
-specified TRUE/FALSE values:
-
-```
-Operator
-```
-```
-Meaning of
-Operation
-```
-```
-First
-Operand
-```
-```
-Second
-Operand Result
-```
-```
-NOT The result is the opposite of the operand. TRUE
-FALSE
-```
-##### FALSE
-
-##### TRUE
-
-```
-AND When both values are TRUE, the result is
-TRUE. Otherwise, the result is FALSE.
-```
-##### TRUE
-
-##### TRUE
-
-##### FALSE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### FALSE
-
-##### FALSE
-
-```
-OR When both values are FALSE, the result is
-FALSE. Otherwise, the result is TRUE.
-```
-##### FALSE
-
-##### TRUE
-
-##### TRUE
-
-##### FALSE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### TRUE
-
-##### TRUE
-
-```
-XOR When only one of the values is TRUE, the
-result is TRUE. Otherwise the result is
-FALSE.
-```
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### FALSE
-
-##### FALSE
-
-##### TRUE
-
-##### TRUE
-
-##### FALSE
-
-##### TRUE
-
-##### TRUE
-
-##### FALSE
-
-##### FALSE
-
-Use logical operators in IF/THEN statements such as:
-
-```
-IF PAYMENTS < INCOME AND INCOME+SAVINGS >
-PAYMENTS THEN
-```
-
-**_Basic09 Reference_**
-
-```
-PRINT "You‘ll have to use your savings to get
-out of this mess."
-ENDIF
-```
-**Functions**
-
-_Functions_ are operation sequences the system performs on data. In a statement,
-BASIC09 performs functions first. Chapter 11, “Command Reference,” describes
-the following functions.
-
-**Functions returning results of type real:
-SIN** Calculates the trigonometric sine of a number.
-**COS** Calculates the trigonometric cosine of a number.
-**TAN** Calculates the trigonometric tangent of a number.
-**ASN** Calculates the trigonometric arcsine of a number.
-**ACS** Calculates the trigonometric arccosine of a number.
-**ATN** Calculates the trigonometric arctangent of a number.
-**LOG** Calculates the natural logarithm (base e) of a number.
-**LOG10** Calculates the logarithm (base 10) of a number.
-**EXP** Calculates e (2.71828183) raised to the specified positive power.
-**FLOAT** Converts byte or integer type numbers to real numbers.
-**INT** Calculates the largest whole number less than or equal to the specified
-number.
-**PI** Represents the constant 3.14159265.
-**SQR** Calculates the square root of a positive number.
-
-```
-SQRT Calculates the square root of a positive number. Its function isidentical to SQR.
-```
-**RND** Returns a random number.
-**Functions returning results of any numeric type:**
-The resulting type depends on the input type.
-**ABS** Calculates the absolute value of a number.
-**SGN** Returns a value to indicate the sign of the specified number (-1 if the
-number is less than 0, 0 if the number is 0, or 1 if the number is
-greater than 0).
-**SQ** Calculates the square of a number.
-**VAL** Converts a string to a numeric value.
-**Functions returning results of type integer or type byte:
-FIX** Rounds a real number and converts it to an integer.
-**MOD** Calculates the modulus (remainder) of two numbers.
-**ADDR** Returns the absolute memory address of a variable, an array, or a
-
-
-```
-Expressions, Operators, and Func,ons | 7
-```
-structure.
-**SIZE** Returns (in bytes) the storage size of a variable, an array, or a
-structure.
-**ERR** Returns the error code of the most recent error.
-**PEEK** Returns the byte value at a specified memory address.
-**POS** Returns the current character position of the print buffer.
-**ASC** Returns the numeric value (ASCII code) of a string character.
-**LEN** Returns the length of a string.
-**SUBSTR** Returns the starting position of the specified substring within a
-string, or returns 0 if it cannot find the substring.
-**Functions performing bit-by-bit logical operations on integer or byte data and
-returning integer results. Do not confuse these functions with boolean type
-operators.
-LAND** Calculates the logical AND of two values.
-**LOR** Calculates the logical OR of two values.
-**LXOR** Calculates the logical EXCLUSIVE OR of two values.
-**LNOT** Calculates the logical NOT of a value.
-**Functions returning a result of type string:
-CHR$** Returns the character having a specified ASCII value.
-**DATE$** Returns the system’s current date and time.
-
-```
-LEFT$ Returns the specified number of characters beginning at the leftmostcharacter of the specified string.
-```
-```
-RIGHT$ Returns the specified number of characters beginning at therightmost character of the specified string and counting backward.
-```
-```
-MID$ Returns the specified number of characters starting at the specifiedposition in a string.
-```
-**STR$** Converts numeric type data to string type.
-**TRIM$** Removes trailing spaces from the specified string.
-**Functions returning results of type boolean:
-TRUE** Always returns TRUE.
-**FALSE** Always returns FALSE.
-**EOF** Tests for the end of a disk file. Returns TRUE when the end of the
-file occurs.
-
-
-**Chapter 8**
-
-**Disk Files**
-
-When you tell NitrOS-9 or BASIC09 to store (save) data on a disk, it stores the
-data in a _logical_ block called a _file_. The term logical means that, although the
-system might store portions of a file's data in several different disk locations, it
-keeps track of every location and treats the scattered data as though it occupied a
-single block. It does this automatically and you never need to worry about how the
-data is stored. File data can be binary data, textual data (ASCII characters), or any
-other useful information.
-
-Because NitrOS-9 handles all hardware input/output devices (disk drives, printers,
-terminals, and so on) in the same manner, you can send data to any of these
-devices in the same way. This means you can send the same information to several
-devices by changing the path the data follows. For example, you can test a
-procedure that communicates with a terminal by transferring data to and from a
-disk drive.
-
-BASIC09 normally works with two types of files—sequential files and random
-access files. The following chart shows file-access options, their purposes, and the
-keywords with which to use them:
-
-**Types of Access for Files**
-
-```
-Access
-Type Function Use with
-```
-```
-DIR Opens a directory file for reading. Use only with READ. OPEN
-```
-```
-EXEC Specifies that the file to open or create is in the execution
-directory, rather than the data directory.
-```
-##### OPEN
-
-##### CREATE
-
-##### READ
-
-```
-Lets you read data from the specified file or device.
-```
-##### OPEN
-
-##### CREATE
-
-##### WRITE
-
-```
-Lets you write data to the specified file or device.
-```
-##### OPEN
-
-##### CREATE
-
-
-```
-Disk Files | 8
-```
-```
-UPDATE Lets you read data from and write data to the specified file
-or device.
-```
-##### OPEN
-
-##### CREATE
-
-**Sequential Files**
-
-Sequential files send or receive (WRITE or READ) textual data in order, the
-second item following the first, and so on. You can access sequential data only in
-the same order as you originally stored it. To read from or write to a particular
-section of a file, you must first read through all the preceding data in the file,
-starting from the beginning.
-
-BASIC09 stores sequential file data as ASCII characters. Each block of data is
-separated by a _delimiter_ consisting of a carriage-return character (ASCII character
-13). Because BASIC09 uses this delimiter to determine the end of a _record_ ,
-sequential files can contain records of varying length.
-
-Use the WRITE and READ commands to store and retrieve data in sequential files.
-A WRITE command causes BASIC09 to transfer specified data to a specified file,
-ending the data with a carriage return. A READ command causes BASIC09 to load
-from the specified file the next block of data, stopping when it reaches a carriage
-return.
-
-**Sequential File Creation, Storage, and Retrieval**
-
-BASIC09 uses the CREATE command to establish both sequential and random
-access files. A CREATE statement contains:
-
-```
- The keyword CREATE.
-```
-```
- A path number variable in which BASIC09 stores the number of the path it
-opens to the new file.
-```
-```
- A comma, followed by the name of the file to create.
- An optional colon, followed by the access mode. If you do not specify an
-access mode, BASIC09 automatically opens the created file in the UPDATE
-mode.
-```
-The following procedure shows how to create a file and write data into it:
-
-
-**_Basic09 Reference_**
-
-```
-PROCEDURE makefile
-DIM PATH:BYTE \ (* establishes a variable
-REM for the path number to the file
-CREATE #PATH,"TEST":WRITE \ (* creates the file TEST
-WRITE #PATH,"This is a test" \ (* writes data to the file
-WRITE #PATH,"of sequential files." \(* writes another line of data
-CLOSE #PATH \ (* closes the path to the file
-SHELL "LIST TEST" \ (* displays the file contents
-END
-```
-The first line of the procedure dimensions a variable (Path) to hold the number of
-the path that CREATE opens. This variable should be of byte or integer type.
-
-When you establish a new file with CREATE, you automatically open a path to the
-file. You do not need to use the OPEN command.
-
-The preceding procedure writes two lines into a file named Test. It then closes the
-path and uses the NitrOS-9 LIST command to display the contents of the newly
-created file. You see that the data is successfully stored on disk.
-
-The next procedure shows how to reopen an existing file for sequential access,
-read the contents of the file, and append data to the end of the file.
-
-The only way to move the file pointer to the end of a sequential file is to read all
-the data already in the file. Once the pointer is at the end of the file, you can add
-data.
-
-```
-PROCEDURE append
-DIM PATH:BYTE \ (* dimension variable to hold the
-REM number of the path to the opened file.
-OPEN #PATH, "TEST":UPDATE \(* open file for reading and writing.
-READ #PATH, line$ \ (* read the first element of the file.
-READ #PATH, 1ine$ \ (* read the next (the last) element.
-WRITE #PATH,"This is a test" \(* write one new line to the file.
-WRITE #PATH,"of appending to a sequential file." \(* write
-another.
-CLOSE #PATH \ (* close the path.
-SHELL "LIST TEST" \ (* display the file with the new lines.
-END
-```
-Because the Test file already exists, this procedure uses OPEN to establish a path
-to the file. It uses the UPDATE mode of file access because it needs to both read
-from and write to the file.
-
-The two READ statements read the file’s contents and, as a result, move the file
-pointer to the end of the file. The WRITE statements then append two new lines.
-After closing the path, the procedure calls on the NitrOS-9 LIST command to
-display the contents of the file, with its appended lines.
-
-
-```
-Disk Files | 8
-```
-**Changing Data in a Sequential File**
-
-You can also change data anywhere in a sequential file. However, if your changes
-are longer than the original data, the operation destroys part of the file. To change
-data in a sequential file, read the data preceding what you want to change, and
-write the new data to the file in this manner:
-
-```
-PROCEDURE replace
-DIM PATH:BYTE
-OPEN #PATH, "TEST":UPDATE
-READ #PATH, Line$
-READ #PATH, Line$
-WRITE #PATH,“Let‘s put new" \ (* write over existing 3rd and
-WRITE #PATH,"words into the old sequential file." \(* 4th lines.
-CLOSE #PATH
-SHELL "LIST TEST"
-END
-```
-Notice that the total amount of data in the two new lines is exactly the same as in
-the two old lines. You can replace an existing line with fewer characters by
-padding the new data with spaces. However, if you try to replace existing lines
-with longer lines, the new lines write over and destroy other data in the file.
-
-The above example procedures use the SHELL statement to execute a NitrOS-9
-command (LIST). Using the SHELL statement is not the best way to perform tasks
-within a BASIC09 procedure. Below is a better alternative for use with the above
-examples.
-
-Replace the SHELL "LIST TEST" statements in the above procedures with:
-
-```
-RUN ListFile("TEST")
-```
-Then add a new procedure to the workspace:
-
-```
-PROCEDURE ListFile
-DIM PATH:BYTE
-PARAM FILENAME$
-OPEN #PATH,FILENAME$:READ
-REPEAT
-READ #PATH,LINE$
-PRINT LINE$
-UNTIL EOF(#PATH)
-CLOSE #PATH
-END
-```
-You will learn more about loops in Chapter 11, BASIC09 Command Reference.
-
-
-**_Basic09 Reference_**
-
-**INPUT and Sequential Files**
-
-Although you can also use the INPUT command with sequential files, doing so
-might put unwanted data into them. When a procedure encounters INPUT, it
-suspends execution and sends a question mark (?) to the screen. This feature makes
-INPUT both an input and output statement. Therefore, if you open a file using the
-UPDATE mode, INPUT writes its prompts to the file, destroying data. If you
-specify text to be displayed with the INPUT command, INPUT writes this text to
-the file also.
-
-**Random Access Files**
-
-Random access files store data in fixed- or equal-length blocks. Because each
-record in a specific file is the same size, you can easily calculate the position of a
-record.
-
-For instance, suppose you have a file with a record length of 50-bytes (or
-characters). To access Record 10, multiply the record number (10) by the record
-length (50} and move the file pointer to the calculated position (500).
-
-A random access file sends and receives data (using PUT and GET) in a binary
-form, exactly as BASICO9 stores it internally. This feature minimizes the time
-involved in converting the data to and from ASCII representation, as well as
-reducing the file space required to store numeric data. You position the random
-access file pointer using SEEK. Compared to sequential file access, random file
-access using GET and PUT is very fast.
-
-Using random access commands, you can store and retrieve individual bytes,
-strings of bytes, individual elements of arrays or total arrays with one PUT or GET
-command. When you GET a structure, you recover the number of bytes associated
-with that type of structure.
-
-This means when you GET one element of byte type data, you read one byte.
-When you GET one element of real type data, you read five bytes. If you GET an
-array, you read all the elements of the array. This potential for reading entire arrays
-at once can greatly speed disk access.
-
-As well as moving the file pointer to the beginning of individual records, you can
-also move it to any position within a record and begin reading or writing one or
-more bytes from that point.
-
-
-```
-Disk Files | 8
-```
-**Creating Random Access Files**
-
-You create and open random access files in the same way you create and open
-sequential files. The only differences are in the commands you use to store and
-retrieve the data and in the manner you keep track of where elements, or records,
-of a file begin and end.
-
-Before you can write data to a random access file, you must either CREATE it or
-open it in the WRITE or UPDATE mode. Once you have a path open to an existing
-file, use PUT to write data into the file. If you open the file in the READ or
-UPDATE mode, you can then use the GET command to retrieve data from the file.
-
-The PUT command can use only one parameter, the name of the data element to
-store. The parameter can be a string, a variable, an array, or a complex data
-structure,
-
-Before storing data, you must devise a method to store it in blocks of equal size.
-Knowing the unit size lets you later retrieve the data in its original form. The
-following procedure shows one way to do this:
-
-```
-PROCEDURE putget
-cREM This procedure creates a file named TEST1,
-cREM reads 10 data lines, PUTs them into the file,
-cREM then closes the file. Next it opens the file
-cREM in READ mode, GETs the stored lines and lists
-cREM them on the display screen.
-```
-```
-cDIM LENGTH:BYTE
-cDIM NULL:STRING[25]
-cDIM LINE: STRING[25]
-cDIM PATH:BYTE
-cLENGTH=25
-cNULL="ccccccccccccccccccccccccc"
-cBASE 0
-cON ERROR GOTO 10
-cDELETE "TEST1" \ (* if the file exists, delete it.
-c10 ON ERROR
-```
-```
-cCREATE #PATH,"TEST1":WRITE \ (* create a file named TEST1.
-cFOR T=0 TO 9
-cSEEK #PATH,LENGTH*T \ (* find beginning of each line.
-cREAD LINE \ (* read a line of data.
-cPUT #PATH,LINE \ (* store the line in the file.
-cNEXT T
-cCLOSE #PATH \ (* close the file.
-```
-
-**_Basic09 Reference_**
-
-```
-cOPEN #PATH,"TEST1":READ \ (* open the file for reading.
-cFOR T=0 TO 9
-cSEEK #PATH,LENGTH*T \ (* find the beginning of each line.
-cGET #PATH,LINE \ (* get a line from the file.
-cPRINT LINE \ (* display the line.
-cNEXT T
-```
-```
-cCLOSE #PATH \ (* close the file.
-cEND
-```
-```
-cDATA "This is test line #1."
-cDATA "This is test line #2."
-cDATA "This is test line #3."
-cDATA "This is fest line #4."
-cDATA "This is test line #5."
-cDATA "This is test line #6."
-cDATA "This is test line #7."
-cDATA "This is test line #8."
-cDATA "This is test line #9."
-cDATA "This is test line #10."
-```
-This procedure creates a file named TESTl. The variable named LENGTH stores
-the length of each line in the file (25 characters). The string variable NULL, is a
-string of 25 space characters. The variable LINE contains the data to store in each
-element (record) in the file. The variable PATH stores the path number of the file.
-
-Next, the procedure contains an ON ERROR routine that deletes the file TESTl, if
-it already exists. Without this routine, the procedure produces an error if you
-execute it more than once.
-
-Next, the routine uses CREATE to open the file TESTl. The line SEEK #PATH,
-LENGTH*T sets the file pointer to the proper location to store the next line.
-Because LENGTH is established as 25, the file lines are stored at 0, 25, 50, 75, and
-so on.
-
-After the routine initializes storage space, it begins to store data by reading the
-procedure data lines one at a time, seeking the proper file location, and putting the
-data into the file. After storing all 10 lines, it closes the file.
-
-The last part of the routine opens the new file, uses the same SEEK routine to
-position the file pointer, and reads the lines back, one at a time, to confirm that the
-store routine is successful.
-
-The next short routine shows how you can use a procedure to read any line you
-select in the file, without reading any preceding lines:
-
-
-```
-Disk Files | 8
-```
-```
-PROCEDURE randomread
-cDIM LENGTH:BYTE
-cDIM LINE:STRING[25]
-cDIM SEEKLINE:BYTE
-cDIM PATH:BYTE
-cLENGTH=25
-cOPEN #PATH,"TEST1":READ \ (* open the file for reading.
-cLOOP
-cINPUT "Line number to display...",SEEKLINE \(* type a line to get.
-cEXITIF SEEKLINE>10 OR SEEKLINE<1 THEN \(* test if record is valid.
-cENDEXIT \ (* exit loop if not.
-cSEEK #PATH, (SEEKLINE-1)*LENGTH \(* find the requested record.
-cGET #PATH,LINE \ (* read the record.
-cPRINT LINE \ (* display the record.
-cPRINT
-cENDLOOP
-cPRINT "That's all ....... " \ (* end session.
-cCLOSE #PATH \ (* close path.
-cEND
-```
-The procedure asks for the record number of the line to display. When you type the
-number (1-10) and press [ENTER], SEEK moves the file pointer to the beginning
-of the record you want, GET reads it into the variable LINE, and PRINT displays
-it. The calculation (SEEKLINE-1)*LENGTH determines the beginning of the
-line you want. If you type a number outside the range of lines contained in the file
-(1-10), the procedure drops down to line 100 and ends.
-
-By changing this procedure slightly, you can replace any line in the procedure with
-another line. The altered procedure below demonstrates this:
-
-```
-PROCEDURE random_replace
-cDIM LENGTH:BYTE
-cDIM LINE:STRING[25]
-cDIM SEEKLINE:BYTE
-cDIM PATH:BYTE
-cLENGTH=25
-cOPEN #PATH,"TEST1":UPDATE \ (* open the file.
-cLOOP
-cINPUT "Line number to display...",SEEKLINE \(* type record to
-find.
-cEXITIF SEEKLINE>10 OR SEEKLINE<1 THEN \(* test if valid number.
-cENDEXIT \ (* exit loop if not.
-cSEEK #PATH,(SEEKLINE-1)*LENGTH \(* find the requested record.
-cGET #PATH,LINE \ (* get the data.
-cPRINT LINE \ (* print the record.
-cPRINT
-```
-
-**_Basic09 Reference_**
-
-```
-cINPUT "Type new Line... ",LINE \(* type a new line.
-cSEEK #PATH, (SEEKLINE-1)*LENGTH \(* find beginning of the record.
-cPUT #PATH,LINE \ (* store the new line.
-cENDLOOP \ (* do it all again.
-cPRINT "That’s all ....... " \ (* terminate procedure.
-cCLOSE #PATH \ (* close path.
-cEND
-```
-This time, the file is opened in the UPDATE mode to allow both reading and
-writing. You type the line you want to display. A prompt then asks you to type a
-new line. The procedure exchanges the new line for the original line, and stores it
-back in the file.
-
-**Using Arrays With Random Access Files**
-
-BASIC09’s random access filing system is even more impressive when used with
-data structures, such as arrays. Instead of using a loop to store the 10 lines of the
-random_replace procedure, you could store them all at once, into one record, using
-an array. The following procedure illustrates this:
-
-```
-PROCEDURE arraywrite
-cDIM LENGTH:BYTE
-cDIM LINE:STRING[25]
-cDIM RECORD(10):STRING[25]
-cDIM PATH:BYTE
-cLENGTH=25
-```
-```
-cON ERROR GOTO 10
-cDELETE "TEST2" \ (* delete TEST2 if it exists.
-c10 ON ERROR
-```
-```
-cCREATE #PATH,"TEST2":WRITE \(* create TEST2.
-cBASE 0
-```
-```
-cFOR T=0 TO 9
-cREAD RECORD(T) \ (* Read data lines into RECORD array.
-cNEXT T
-```
-```
-cSEEK #PATH,0 \ (* set pointer to beginning of file.
-cPUT #PATH,RECORD \ (* store the entire array into the
-file.
-cCLOSE #PATH \ (* close path to the file.
-```
-```
-cOPEN #PATH,"TEST2":READ \ (* open the file to read.
-cFOR T=0 TO 9
-cSEEK #PATH, LENGTH*T \ (* find each element.
-cGET #PATH,LINE \ (* read an element.
-cPRINT LINE \ (* print the element.
-cNEXT T
-```
-
-```
-Disk Files | 8
-```
-```
-cCLOSE #PATH
-cEND
-```
-```
-cDATA "This is test line #1"
-cDATA "This is test line #2"
-cDATA "This is test line #3"
-cDATA "This is test line #4"
-cDATA "This is test line #5"
-cDATA "This is test line #6"
-cDATA "This is test line #7"
-cDATA "This is test line #8"
-cDATA "This is test line #9"
-cDATA "This is test line #10"
-```
-This procedure reads the 10 lines into an array named RECORD. Then it places the
-entire array in the TEST1 file, using one PUT statement. To show that the structure
-of the file is still the same, the original FOR/NEXT loop reads the lines, one at a
-time, and displays them.
-
-Notice that, because you need to write only one element, you can set the file
-pointer to 0 (SEEK #PATH,0). You can rewind a file pointer (set it to 0) at any
-time in this manner.
-
-You could save additional programming space by also reading the 10 lines back
-into memory as an array. The following procedure uses a new array, READLINES,
-to call the file back into memory, and displays the lines.
-
-```
-PROCEDURE arrayread
-cBASE 0
-cDIM READLINES(10):STRING[25]
-cDIM PATH:BYTE
-cOPEN #PATH,"TEST2":READ \ (* open file.
-cGET #PATH,READLINES \ (* read file into array.
-cCLOSE #PATH
-cFOR T=0 TO 9
-cPRINT READLINES(T) \ (* print each element of the array.
-cNEXT T
-cEND
-```
-**Using Complex Data Structures**
-
-In the previous section, you stored and retrieved elements of an array that were all
-the same size, 25 characters. Often you need to store elements of varying sizes,
-such as when you create a data base program with several fields in one record.
-
-
-**_Basic09 Reference_**
-
-The following examples create a simple inventory system that requires a random
-access file having 100 records. Each record includes the name of the item (a 25-
-byte string), the item’s list price and cost (both real numbers), and the quantity on
-hand (an integer).
-
-First, you use the TYPE command to define a new data type that describes such a
-record. For example:
-
-```
-TYPE INV_ITEM=NAME:STRING[25]; L1ST,COST:REAL;
-QTY: INTEGER
-```
-Although this statement describes a new record type called INV_ITEM, it does not
-assign variable storage for the record. The next step is to create two data structures:
-an array of 100 records of type INV_ITEM named INV_ARRAY and a working
-record named WORK_REC. The following lines do this:
-
-```
-DIM INV_ARRAY(188):INV_ITEM
-DIM WORK_REC: INV_ITEM
-```
-To determine the number of bytes assigned for each type, you can use BASIC09’s
-SIZE command. SIZE returns the number of bytes assigned to any variable, array,
-or complex data structure. For example, the instruction SIZE(WORK_REC)
-returns the number 37. The instruction S1ZE(INV_ARRAY) returns the number
-3700.
-
-You can use SIZE with SEEK to position a file pointer to a specific record’s
-address.
-
-The following procedure creates a file called inventory and immediately initializes
-it with zeroes and nulls strings. Five INPUT lines then ask you for a record number
-and the data to store in each field of the record. You can fill any record you choose,
-from 1 through 100,
-
-When one record is complete, the procedure uses PUT to store the record. Then, it
-asks you for a new record number. If you wish to quit, enter a number either larger
-than 100 or smaller than 1.
-
-
-```
-Disk Files | 8
-```
-```
-PROCEDURE inventory
-cREM Create a data type consisting of a 25-character
-cREM name field, a real list price field, a real cost field,
-cREM and an integer quantity field.
-```
-```
-cTYPE INV_ITEM=NAME:STRING[25]; LIST,COST:REAL; QTY: INTEGER
-cDIM INV_ARRAY(100):INV_ITEM \ (* dimension an array using new
-type.
-cDIM WORK_REC:INV_ITEM
-cREM dimension a working variable of the new type.
-cDIM PATH:BYTE
-```
-```
-cON ERROR GOTO 10
-cDELETE "inventory"
-c10 ON ERROR
-```
-```
-cCREATE #PATH,"inventory" \ (* create a file named inventory.
-cWORK_REC.NAME ="" \ (* set all data elements to null or 0.
-cWORK_REC.LIST=0
-cWORK_REC.COST=0
-cWORK_REC.QTY=0
-cFOR N=1 TO 100
-cPUT #PATH,WORK_REC
-cNEXT N
-```
-```
-cLOOP
-cINPUT "Record number? ",RNUM \ (* enter number of record to
-write.
-cIF RNUM<1 OR RNUM>100 THEN \ (* check if number is valid.
-cPRINT
-cPRINT "End of Session" \ (* if not, end session.
-cPRINT
-cCLOSE #PATH
-cEND
-cENDIF
-cINPUT "Item name? ",WORK_REC.NAME \(* type data for record.
-cINPUT "List price? ",WORK_REC.LIST
-cINPUT "Cost price? ",WORK_REC.COST
-cINPUT "Quantity? ",WORK_REC.QTY
-cSEEK #PATH, (RNUM-1)*SIZE(WORK_REC) \ (* find record.
-cPUT #PATH,WORK_REC \ (* write record to file.
-cENDLOOP
-```
-Notice that the INPUT statements reference each field separately, but the PUT
-statement references the record as a whole.
-
-
-**_Basic09 Reference_**
-
-The next procedure lets you read any record in your inventory file, and displays
-that record. If you ask for a record you have not yet filled with meaningful data,
-the display consists of a null string and zeroes.
-
-```
-PROCEDURE readinv
-cTYPE INV_ITEM=NAME:STRING[25]; LIST,COST:REAL; QTY:INTEGER
-cDIM WORK_REC:INV_ITEM
-cDIM PATH:BYTE
-cOPEN #PATH, "inventory":READ
-cLOOP
-cINPUT "Record number to display? ",RNUM
-cIF RNUM<1 OR RNUM>100 THEN
-cPRINT "End of Session"
-cPRINT
-cCLOSE #PATH
-cEND
-cENDIF
-cSEEK #PATH, (RNUM-1)*SIZE(WORK_REC)
-cGET #PATH,WORK_REC
-cPRINT "#","Item","List Price","Cost Price","Quantity"
-cPRINT
-"-------------------------------------------------------------------
---------"
-cPRINT RNUM, WORK_REC.NAME, WORK_REC.LIST, WORK_REC.COST,
-WORK_REC.QTY
-cPRINT
-cENDLOOP
-cEND
-```
-This procedure accesses the file one record at a time. It is not necessary to do so.
-You can read the entire file into memory at once by dimensioning an inventory
-array and getting the whole file into it:
-
-```
-cTYPE INV_ITEM=NAME:STRING[25]; LIST,COST:REAL; QTY:INTEGER
-cDIM INV_ARRAY(100):INV_ITEM
-cSEEK #PATH,0 \ (* rewind the file.
-cGET #PATH, INV_ARRAY
-```
-The examples in this section are simple, yet they illustrate the combined power of
-BASIC09 complex data structures and the random access file statements. They
-show that a single GET or PUT statement can move any amount of data, organized
-in any way you want. Other advantages of using complex data structures are:
-
-```
- The procedures are self-documenting. You can see easily what a procedure
-does because its structures can have descriptive names.
- Execution is extremely fast.
-```
-
-```
-Disk Files | 8
-```
- Procedures are simple and usually require fewer statements to perform IO
-functions than other BASICs.
-
- The procedures are versatile. By creating appropriate data structures, you
-can read or write almost any kind of data from any file, including files
-created by other programs or languages.
-
-
-**Chapter 9**
-
-**Displaying Text and Graphics**
-
-BASIC09 has three levels of graphics capabilities. The first (low resolution) and
-third (high resolution) levels can include both graphics designs and text. The
-second (medium resolution) level can display only graphics designs.
-
-NitrOS-9/EOU introduced new versions of the Inkey, SysCall, GFX and GFX2
-subroutine modules. They replace the first character of the module name with the
-letter **B**. These versions are merged with the BASIC09 module and are intended for
-use during application development. They can be used until your procedure(s)
-reach 32K of workspace. After that, you will have to rename your RUN statements
-for these subroutines back to their original names and begin packing the
-procedures to use with RunB. The originally named subroutines are merged with
-RunB, so when you pack the procedures you can use them with RunB.
-
-**Examples:**
-
-```
-RUN BFX("CLEAR")
-RUN BFX2("GCOLR",xcor,ycor,color)
-RUN BNKEY(key)
-RUN BYSCALL(callCode,regs)
-```
-To change all occurrences of these to their original names:
-
-```
-c*/BFX/GFX/
-c*/BFX2/GFX2/
-c*/BNKEY/INKEY/
-c*/BYSCALL/SYSCALL/
-```
-You _must_ return to the top of the procedure (using the -* command) for each of
-these commands in order to ensure all occurrences of each are properly changed.
-You only need to use the commands for the subroutines you used in a given
-procedure.
-
-
-**_Basic09 Reference_**
-
-**ASCII Codes**
-
-There are some keys which do not exist on a Color Computer keyboard. To remedy
-this, Microware created some special key-mappings. They are listed here for your
-convenience, as some of them ([,], and \) are used in BASIC09.
-
-```
-ASCII Value Keys to Press
-Character DecimalHexadecimal Level One Level Two
-_ 95 5F [CLEAR] [-] [CTRL] [-]
-{ 123 7B [CLEAR] [,] [CTRL] [,]
-} 125 7D [CLEAR] [.] [CTRL] [.]
-\ 92 5C [CLEAR] [/] [CTRL] [/]
-| 124 7C [CLEAR] [1] [CTRL] [1]
-~ 126 7E [CLEAR] [3] [CTRL] [3]
-^ 94 5E [CLEAR] [7] [CTRL] [7]
-[ 91 5B [CLEAR] [8] [CTRL] [8]
-] 93 5D [CLEAR] [9] [CTRL] [9]
-` 96 60 [SHIFT] [@]
-carriage-
-return^13 0D [ENTER] [ENTER]
-backspace 8 08 [ß] [ß]
-cursor right 9 09 [à] [à]
-cursor down 10 0A [â] [â]
-cursor up
-clear screen^12 0C [á] [á]
-```
-The back-tick, [SHIFT][@]. will show as a forward tick on a hardware text screen,
-but properly as a backward tick on fonts that support it (including the standard
-Tandy/Microware Group 200, font 1).
-
-For low-resolution text screens and high-resolution text and graphic screens,
-BASIC09 uses ASCII (American Standard Code for Information Interchange)
-codes to represent the common alphanumeric characters. ASCII is the same code
-that most small computers use.
-
-There are times when you need to know the ASCII value of a printable character.
-A table of the standard codes follows, showing decimal and hexadecimal values for
-the common alphanumeric characters:
-
-
-```
-Displaying Text and Graphics | 9
-```
-**ASCII Value ASCII Value
-CharacterDecimalHexadecimalCharacterDecimalHexadecimal
-Space** 32 20 **K** 75 4B
-**!** 33 21 **L** 76 4C
-**"** 34 22 **M** 77 4D
-**#** 35 23 **N** 78 4E
-**$** 36 24 **0** 79 4F
-**%** 37 25 **P** 80 50
-**&** 38 26 **Q** 81 51
-**'** 39 27 **R** 82 52
-**(** 40 28 **S** 83 53
-**)** 41 29 **T** 84 54
-***** 42 2A **U** 85 55
-**+** 43 2B **V** 86 56
-**,** 44 2C **W** 87 57
-
-**-** 45 2D **X** 88 58
-**.** 46 2E **Y** 89 59
-**/** 47 2F **Z** 90 5A
-**0** 48 30 **a** 97 61
-**1** 49 31 **b** 98 62
-**2** 50 32 **c** 99 63
-**3** 51 33 **d** 100 64
-**4** 52 34 **e** 101 65
-**5** 53 35 **f** 102 66
-**6** 54 36 **g** 103 67
-**7** 55 37 **h** 104 68
-**8** 56 38 **i** 105 69
-**9** 57 39 **j** 106 6A
-**:** 58 3A **k** 107 6B
-**;** 59 3B **1** 108 6C
-**<** 60 3C **m** 109 6D
-**=** 61 3D **n** 110 6E
-**>** 62 3E **o** 111 6F
-**?** 63 3F **p** 112 70
-**@** 64 40 **q** 113 71
-**A** 65 41 **r** 114 72
-**B** 66 42 **s** 115 73
-
-
-**_Basic09 Reference_**
-
-**C** 67 43 **t** 116 74
-**D** 68 44 **u** 117 75
-**E** 69 45 **v** 118 76
-**F** 70 46 **w** 119 77
-**G** 71 47 **x** 120 78
-**H** 72 48 **y** 121 79
-**I** 73 49 **z** 122 7A
-**J** 74 4A
-You can use the CHR$ function with the ASCII values of these characters to
-produce the displayable character.
-
-**Low-Resolution Graphic Characters**
-
-In addition to alphanumeric characters, low-resolution graphics also offers graphic
-characters. Generate these characters by pressing [ALT] at the same time you press
-a keyboard character. The graphics character codes are in the range 128-255.
-
-Pressing [ALT] while pressing another key, causes NitrOS-9 to add 128 to the
-ASCII value of the second key. (For the technically minded, NitrOS-9 sets the high
-bit of the character code.) Therefore, if you press [ALT][A], you produce graphics
-character 193. You can also generate graphics characters from BASIC09 using the
-CHRS$ function, and you can PRINT them in the same manner as other characters.
-
-Low-level graphics characters follow a pattern that repeats every 16 characters.
-Table 9.1 shows the first set of graphic characters, 128-143.
-
-
-```
-Displaying Text and Graphics | 9
-```
-```
-Table 9.1
-Low-Resolution Graphic Character Set
-Character Code Character Code Character Code Character Code
-```
-Subsequent characters produce the same series of configurations but display in
-different colors, as shown in Table 9.2.
-
-```
-Table 9.2
-Low-Resolution Graphic Color Set
-ASCII CodeGraphics Block Color
-128 - 143 Black and Green
-144 - 159 Black and Yellow
-160 - 175 Black and Blue
-176 - 191 Black and Red
-192 - 207 Black and Buff
-208 - 223 Black and Light Blue
-224 - 239 Black and Cyan
-240 - 254 Black and Orange
-255 Green
-```
-
-**_Basic09 Reference_**
-
-Within each color set, you can easily calculate the number for a particular
-character. For instance, suppose you want to print a character that has orange upper
-left and lower right corners. Picture the character divided into four sections,
-numbered as follows:
-
-To calculate a character that has orange at Sections 8 and 1, add the section values
-to the first value in the orange group, 240, like this:
-
-240 + 8 + 1 = 249
-
-Character 249 is what you want.
-
-The following diagram shows how you might block out a large letter O on the
-screen. The shaded portions of the characters are colored. The unshaded portions
-are black. In this case we want the colored portions to be green (the same color as
-the screen). You can do this using the color set 128 - 143.
-
-
-```
-Displaying Text and Graphics | 9
-```
-Because Section 1 in the upper left character is to be colored, add 1 to the initial
-character value of 128. The first character value is 129. Moving right, Sections 2
-and 1 are colored in the second character. Add 3 to 128 to get a second character
-value of 131. Calculate all 15 characters in this manner.
-
-You could create a letter O in a BASIC09 procedure by printing each of the five
-rows of three characters. You could use DATA lines to store the ASCII codes for
-each character, then use loops to read and display the characters they represent.
-
-Although low-level graphics is very rough, it can be useful, and it lets you mix
-graphics with text.
-
-The following procedure not only creates the letter O, it adds the letter S and the
-number 9 to display the name of your operating system.
-
-```
-PROCEDURE os9prog
-cDIM DAT:INTEGER
-cPRINT CHR$(12)
-cPRINT
-cPRINT
-cPRINT
-cFOR Z=1 TO 5
-cPRINT TAB(10);
-cFOR T=1 TO 12
-cREAD DAT
-cPRINT CHR$(DAT);
-cNEXT T
-cPRINT
-cNEXT Z
-cEND
-cDATA 129,131,130,143,129,131,131,143,129,131, 130,143
-cDATA 133,143,138,143,133,143,143,143,132,140, 136,143
-cDATA 133,143,138,143,132,140,140,143,131,131, 130,143
-cDATA 133,143,138,143,131,131,130,143,143,143, 138,143
-cDATA 132,140,136,143,140,140,136,143,143,143, 138,143
-```
-**Special Characters in High-Resolution**
-
-High-resolution graphics does not have graphic characters but it does have other
-international and special characters. These characters are represented by ASCII
-codes 128 through 159 as shown in the following table:
-
-
-**_Basic09 Reference_**
-
-```
-Table 9.3
-```
-#### Special Characters in High-Resolution 9-
-
-```
-Characte
-r
-```
-```
-Hex
-Code
-```
-```
-Decimal
-Code KeypressCharacter
-```
-```
-Hex
-Code
-```
-```
-Decimal
-Code Keypress
-Ç 80 128 [ALT][A] ó 90 144 [ALT][Q]
-ü 81 129 [ALT][B] æ 91 145 [ALT][R]
-é 82 130 [ALT][C] Æ 92 146 [ALT][S]
-å 83 131 [ALT][D] ô 93 147 [ALT][T]
-ä 84 132 [ALT][E] ö 94 148 [ALT][U]
-à 85 133 [ALT][F] ø 95 149 [ALT][V]
-ā 86 134 [ALT][G] û 96 150 [ALT][W]
-ç 87 135 [ALT][H] ù 97 151 [ALT][X]
-ê 88 136 [ALT][I] Ø 98 152 [ALT][Y]
-ë 89 137 [ALT][J] Ŏ 99 153 [ALT][Z]
-è 8A 138 [ALT][K] Ü 9A 154 [ALT][:]
-ï 8B 139 [ALT][L] § 9B 155 [ALT][;]
-î 8C 140 [ALT][M] £ 9C 156 [ALT][,]
-ß 8D 141 [ALT][N] ± 9D 157 [ALT][=]
-Ä 8E 142 [ALT][O] ° 9E 158 [ALT][.]
-Å 8F 143 [ALT][P] ƒ 9F 159 [ALT][/]
-```
-**Medium-Resolution Graphics**
-
-For more sophisticated graphics operations, NitrOS-9 has built-in graphics
-interface modules that provide a convenient way to access the graphics and
-joystick functions of the Color Computer 3. The required module for medium-
-resolution graphics is named GFX. It must be in your execution directory or
-resident in memory when called by BASIC09. The GFX module is for Level One
-functions, and requires running on a VDG style (32x16) window. (JOYSTK is a
-special case in that it will work on any type of window.)
-
-You can either install GFX in memory using the LOAD command, or wait until
-BASIC09 calls it for a graphics function. Once loaded, GFX resides in memory
-until you remove it using the NitrOS-9 UNLINK command or the BASIC09 KILL
-command.
-
-GFX has a number of functions that you pass to it as parameters with the RUN
-statement. For instance, the following statement clears the current graphics screen:
-
-```
-RUN GFX('CLEAR")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-Other tasks need such parameters as position, color, and size. The following is a
-quick reference to all of the GFX functions. Each is explained in detail later:
-
-```
-Function Purpose Parameters
-ALPHA Sets the screen to the alphanumeric mode. None.
-CIRCLE Draws a circle. Radius, optional X- and Y-
-coordinates, and color.
-CLEAR Clears the screen to a color. Optional color for screen.
-```
-#### COLOR - Change the Foreground Color 9-
-
-```
-colors.
-```
-```
-Foreground and
-background colors.
-FILL Fills (paints) foreground color starting at
-current Graphics cursor address. Fills any
-adjacent pixels that are the same color as the
-pixel the Fill starts at.
-```
-```
-None
-```
-```
-GCOLR Reads a pixel’s color. Names of variables in
-which to store optional X-
-and Y-coordinates.
-GLOC Returns a video display address. INTEGER variable that it
-returns the screen address
-in.
-JOYSTK Returns the joystick button and X- and Y-
-coordinate status.
-```
-```
-Names of variables in
-which to return the values.
-LINE Draws a line. Ending X- and Y-
-coordinates, optional
-beginning coordinates,
-optional color.
-MODE Switches the screen between alphanumeric
-and graphics, sets the graphics screen color.
-```
-```
-Format, Color,
-```
-```
-MOVE Positions the invisible graphics cursor. X- and Y-coordinates.
-POINT Moves graphics cursor and sets a point. X- and Y-coordinates and
-optional pixel color.
-QUIT Returns screen to alphanumeric mode.
-Deallocates graphics memory.
-```
-```
-None.
-```
-**Formats and Colors**
-
-In medium-resolution graphics, you have a choice of two formats. Format 0
-provides 256 horizontal points by 192 vertical points. In this format, you can have
-only two colors on the screen at a time.
-
-Format 1 provides a 128 by 192 point screen and a maximum of four colors on the
-screen at a time. NitrOS-9 medium-resolution graphics treats the screen as if it
-
-
-**_Basic09 Reference_**
-
-were a grid, with coordinate 0,0 at the lower left corner as shown in the following
-illustration. All points on the grid are positive.
-
-BASIC09 defines colors with numbers or color codes. Many GFX functions allow
-or require color codes as parameters. BASIC09 also divides the color codes into
-color sets. Specifying a color code outside the current color set automatically
-initializes the new set.
-
-
-```
-Displaying Text and Graphics | 9
-```
-```
-Color
-Set
-```
-```
-Color
-Code
-```
-```
-Format 0 Color
-Code
-```
-```
-Format 1
-Background Foreground Background Foreground
-```
-##### 1
-
-```
-00 Black Black 00 Green Green
-01 Black Green 01 Green Yellow
-02 02 Green Blue
-03 03 Green Red
-```
-##### 2
-
-```
-04 Black Black 04 Buff Buff
-05 Black Buff 05 Buff Cyan
-06 06 Buff Magenta
-07 07 Buff Orange
-```
-##### 3
-
-```
-08 Black Black
-09 Black Dk Green
-10 Black Md Green
-11 Black Lt Green
-```
-##### 4
-
-```
-12 Black Black
-13 Black Green
-14 Black Red
-15 Black Buff
-Table 9.4
-```
-Use the preceding charts to choose colors for those functions that let you specify
-foreground or background colors. For instance, to initialize a Format 1 graphics
-screen with a green background and a red foreground, you type:
-
-```
-run gfx("mode",1,3)
-```
-The following reference section describes all the medium-resolution graphics
-functions, and provides examples and sample programs. To understand the
-organization of the commands reference, see "The Syntax Line" in Chapter 11.
-
-**The Draw Pointer**
-
-Medium-resolution graphics uses a draw pointer, or invisible graphics cursor, to
-determine what area of the screen is affected by graphics operations. When you
-establish a graphics screen, the draw pointer is located at coordinates 0,0. Some
-graphic functions automatically change the pointer location on the screen, For
-instance, the LINE function moves the draw pointer from the beginning
-coordinates to the end coordinates.
-
-
-**_Basic09 Reference_**
-
-Because some functions begin at the draw pointer, you need to keep track of its
-location and make certain it is placed properly. Use the MOVE function to set the
-draw pointer to new locations.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**ALPHA Select alphanumeric screen**
-
-**Syntax: RUN GFX("ALPHA")**
-
-**Function:** Switches from the graphics screen to the alphanumeric (text) screen.
-The current graphics screen remains intact.
-
-**Parameters:**
-
-```
-None
-```
-**Examples:**
-
-```
-RUN GFX("ALPHA")
-```
-**Sample Procedure:**
-
-This procedure lets you choose to draw a circle or rectangle of the size you select.
-Once you choose the shape and size, it uses the MODE function to select a
-graphics screen. When the shape is complete, you press [ENTER] to return to a
-text screen. The procedure uses the ALPHA function to return to the original
-menu.
-
-```
-PROCEDURE alpha
-cDIM CLS:BYTE
-cDIM XCOR,YCOR,SIDE1,SIDE2,RADIUS,T,X,Y,Z:INTEGER
-cDIM RESPONSE:STRING[1]
-cCLS=12
-c10 REPEAT
-cPUT #1,CLS
-cPRINT "Do you want to draw"
-cPRINT "1) A rectangle"
-cPRINT "2) A circle"
-cPRINT "3) Quit"
-cPRINT " -Press 1, 2 or 3...";
-cGET #0,RESPONSE
-cPRINT
-cIF RESPONSE="1" THEN
-cINPUT "Length of Side 1",SIDE1
-cINPUT "Length of Side 2",SIDE2
-cRUN GFX("MODE",0,0)
-cRUN GFX("CLEAR")
-cXCOR=10
-cYCOR=10
-cRUN GFX("LINE",XCOR,YCOR,XCOR+SIDE1,YCOR,1)
-cRUN GFX("LINE",XCOR+SIDE1,YCOR,XCOR+SIDE1,YCOR+SIDE2,1)
-cRUN GFX("LINE",XCOR+SIDE1,YCOR+SIDE2,XCOR,YCOR+SIDE2,1)
-cRUN GFX("LINE",XCOR,YCOR+SIDE2,XCOR,YCOR,1)
-cINPUT RESPONSE
-cELSE
-cIF RESPONSE="2" THEN
-```
-
-**_Basic09 Reference_**
-
-```
-cINPUT "What radius?...",RADIUS
-cRUN GFX("MODE",0,1)
-cRUN GFX("CLEAR")
-cRUN GFX("CIRCLE",128,90,RADIUS)
-cINPUT RESPONSE
-cENDIF
-cENDIF
-cUNTIL RESPONSE<>"1" AND RESPONSE<>"2"
-cRUN GFX("ALPHA")
-cIF RESPONSE<>"3" THEN 10
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**CIRCLE Draw a circle**
-
-**Syntax: RUN GFX("CIRCLE"[,xcor,ycor],radius [,color])**
-
-**Function:** Draws a circle of a given radius. If you do not specify a color, BASIC09
-uses the current foreground color. If you do not specify X- and Y-coordinates,
-CIRCLE uses the current graphics cursor position as the circle’s center.
-
-**Parameters:**
-
-```
-radius The radius of the circle you want to draw.
-color The code of the color you want the circle to be.
-See the chart earlier in this section for color information.
-xcor,ycor The X- and Y-coordinates for the center of the circle.
-Specifying coordinates outside the X-coordinate range of
-0-255 or outside the Y-coordinate range of 0-199 causes an
-error.
-```
-**Examples:**
-
-```
-RUN GFXC"CIRCLE",100)
-RUN GFX("CIRCLE",100,3)
-RUN GFXC"CIRCLE",125,100,100)
-RUN GFX("CIRCLE",125,100,100,2)
-```
-**Sample Procedure:**
-
-This procedure uses CIRCLE to draw and erase a circle. The location of the circle
-changes before each draw/erase operation, causing the circle to move. When it hits
-the edge of the screen, it reverses its direction at a random angle and _bounces_.
-
-```
-PROCEDURE circles
-cDIM RADIUS,XCOR,YCOR:INTEGER
-cDIM XTEMP,YTEMP:INTEGER
-cDIM PATH1,PATH2:INTEGER
-cDIM FLAG:INTEGER
-cFLAG=1
-cXCOR=5
-cYCOR=5
-cPATH1=RND(15)+2
-cPATH2=RND(10)+2
-cXTEMP=249
-cYTEMP=185
-cRUN GFX("MODE",0,1)
-cRUN GFX("CLEAR")
-cFOR T=1 TO 200
-cWHILE XCOR<250 AND XCOR>4 AND YCOR<186 AND YCOR>4
+Lowest precedence
+Operators of equal precedence are shown on the same line, and are
+evaluated left to right in expressions. The only exception to this rule
+is exponentiation, which is evaluated right to left. Raising a negative
+number to a power is not legal in Basic09.
+In the examples below, Basic09 expressions on the left will be
+evaluated as indicated on the right. Either form may be entered, but the
+simpler form on the left will always be generated by the decompiler.
+Basic09 Representation Equivalent form
+a:= b+c**2/4 a:= b+((c**2)/4)
+as= b>c ARD d>e OR c=e a:= ((b>c) AND (d>e)) OR (c=e)
+a:= (b+c+d)/e a:= ((b+c)+d)/e
+a:= b**c**d/e a:= (b**(c**d))/e
+as= —(b)**2 as= (-b)**2 :
+asb=c a:= (b=c) (returns BOOLEAR value)
+Page 8-3
+Basic09
+REFPERENCE
+MANUALExpressions, Operators
+and
+Punctions
+PURCTIONS
+Functions take one or more arguments enclosed in parentheses,
+perform some operation, and return a value. They may be used as operands
+in expressions. Functions expect that the arguments passed to them will
+be
+expressions, constants,
+or
+variables
+of
+a
+certain
+type and will return
+a result of a certain type. Giving a function an argument of an
+incompatible type will result in an error.
+In the descriptions of functions that follow, the following notation
+is used to describe the type required for the parameter expressions:
+<num> means any numeric-result expressions
+{str> means any string-result expression
+<int> means any integer-result expression
+The
+functions below return REAL
+results.
+Accuracy
+of
+transcedental
+functions is 8+ decimal digits. 2Angles can be either degrees or radians
+(see
+DEG/RAD statement descriptions).
+SIR(<num>) trigonometric sine of <num>
+CbS((num>)
+trigonometric cosine
+of <num>.
+TAN (<num>)
+trigonometric tangent
+of
+<num)>
+ASK(<num>)
+trigonometric arcsine
+of
+<num>
+ACS (<num>) trigonometric arcosine of -<num>
+ATN(<num>) trigonometric arctangent
+of
+<num)
+LOG
+(<num>)
+natural logarithm
+(base
+e)
+of
+<num>
+LOG10 (<num>) logarithm (base 10) of <num>
+EXP(<num>)
+e
+(2.71828183) raised
+to the power <num>,
+which mustbe
+a
+positive number.
+PLOAT (<num>) <num> converted to type REAL (from BYTE or IRTEGER)
+IKT (<num>) largest whole number less than or egual to <num)>
+PI the constant 3.14159265
+SQR(<num>)
+sqguare
+root
+of <num>, which must be positive
+SQRT (<num>) square root of <num>; same as SQR
+Page B-4
+Basic09 REFERENCE MANUAL
+Expressions, Operators
+and PunctionsRND
+(<num>)
+if
+<num>=0 returns random
+x,
+0
+<=
+x
+<
+1
+if <num>>0 returns random x, 0 <= x < <num :
+if <num><0 use ABS(<num>) as new random number seed
+The following functions can return ANY numeric type, depending on the
+type
+of
+the
+input
+parameter(s).
+ABS (<num>) absolute value of <num>
+SGR(<num>) signum of <num>: -1 if <num> < 0, 0 if <num> = 0, or
+1l if <num> > 0
+SQ(<num>) square <num>
+VAL (<str>) convert type string to type numeric
+The following functions return results of type iNTEGER or BYTE
+FIX (<num>) round REAL <num> and convert to type INTEGERMOD (<numl>, <num2>)
+modulus (remainder) function, <numl> mod <num2>
+ADDR(<name>) absolute memory address of variable, array,
+or structure named <name>.
+SIZE(<name>) storage size in bytes of variable, array,
+or structure named <name>.
+ERR error code of most recent error, automatically
+resets to zero when referenced
+PEEK (<int>) value of byte at memory address <int>
+POS current character position of PRINT buffer
+ASC(<str>) numeric value of first character of <str>
+LER(<str>) length of string <str>
+SUBSTR(<strl>,<str2>) _
+: substring search: returns starting position of first
+occurrence of <strl> in <str2>, or 0 if not found.
+Basic09 REFERENCE MANUAL
+xpressions, Operators
+and
+Punctions
+The following functions perform
+bit-by-bit logical operations
+on integer
+or
+byte data types and return integer results.
+They should ROT
+be
+confused with
+the
+BOOLEAR-type
+operators.LARD
+(<num>, <num>)
+Logical
+ARD
+LOR
+(<num>,
+<num>)
+Logical OR
+LXOR
+(<num>,
+<num>>)
+Logical EXCLUSIVE OR
+LROT
+(<num>)
+Logical ROT
+These functions return
+a
+result
+of
+type STRING:
+CHRS
+(<int>)
+ASCII
+char.
+equivalent
+of
+<int>
+DATES date
+and
+‘time,
+format:
+"yy/mm/dd hh:mm:ss"
+LEPTS (<str>,<int>)
+1leftmost
+<int> characters
+of
+<str>
+RIGHTS (<str>,<int>)
+rightmost
+<int>
+characters
+of
+<str>
+MIDS (<strd>,<intld>,<int2>
+middle
+<int2> characters
+of
+<str> starting
+at
+character position <intl>STRS
+(<num>)
+converts numeric type <num> to
+displayable
+characters
+of
+type STRING representing
+the
+number converted.
+:
+TRIMS
+({str>)
+<str> with trailing spaces removed
+The following functions return BOOLEAN
+values:
+TRUE always returns TROE
+PALSE always returns PALSEEOP (#<num>) End of File test on disk file path
+<num),
+returns TRUE
+if
+end-of-file condition.
+Page
+B8-6
+Basic09
+REFERENRCE
+MANUAL
+Program Statements
+and
+Structure
+PROGRAM STRUCTURE
+A BASICO0S program can be written as a single procedure, or it may be
+divided into a number of smaller procedures, each of which is designed to-
+perform a specific function. Single procedure programs may be useful
+when the program is relatively small. However, large complex programs
+are generally much easier to develop, test, and maintain when the program
+is divided into several procedures. Generally, the programmer will
+create a main routine which will then call other Basic09 procedures to
+perform specific functions as subroutines. These Basic09 procedures may
+in turn call other Basic09 procedures in the same manner. These
+techniques reflect sound structured programming practice.
+A procedure consists of any number of program statement lines. Each
+line can have an optional line number, and more than one program
+statement can be put on the same line if separated by "\" (<clear></>)
+characters. For example, the following statements are equivalent:
+GOSUB 550 \ PRIRT X,Y \ RETURK GOSUB 550
+PRINT X,Y
+RETURR
+While the above statements are functionally equivalent, the second is
+generally considered preferable when using Basic09 since the first method
+runs no faster and tends to hide the structure of the program. The
+number of characters on a given line is dependent on the content of the
+line. In general, lines should be limited to 128 characters or less, to
+avoid the generation of errors when Basic09 decompiles the I-Code for
+listing purposes or at run time.
+Program readability is improved if all variables are declared with
+DIM statements at the beginning of the procedure, but this is not
+mandatory. The program can be terminated with END or STOP statements,
+which are also optional. :
+LINE RUMBERS
+Line numbers are optional. They can be any integer number in the
+range of 1 to 32767. Line numbers should only be used where absolutely
+necessary (such as with GOSUB) because they make programs harder to
+understand, use additional memory space, and increase compile time
+considerably. Line numbers are local to procedures, i.e., the same line
+number can be used in different procedures without conflict,
+Page °-1
+Basic09
+REFPERERCE
+MANUAL
+Program Statements
+and
+Structure
+ASSIGNMERT
+STATEMENTS
+Assignment
+statements are used
+for
+computation
+or
+initialization
+of
+variables,
+LET Statement
+Syntax:
+[LET]
+<var>
+:=
+<expr>
+[LET]
+<var>
+=
+<expr>
+[LET] <struct)> := <struct>
+[LET]
+<struct>
+=
+<struct>
+LET evaluates
+an
+expression
+and stores the
+result
+in
+<var>
+which may
+be
+a
+simple variable
+or
+data structure
+element. The result
+of the
+expression must
+be
+of
+the
+same
+or
+compatible type
+as <var>.
+Basic09 will
+accept
+either
+"="
+or ":="
+as
+an
+assignment operator, however,
+the
+second
+form ( := ) is preferred because it distinguishes the assignment
+operation
+from
+a
+comparison
+(the
+test
+for
+equality). The
+":="
+operator
+is
+the
+same
+as
+used
+in
+PASCAL.
+Another usage
+of
+the
+assignment statement
+is
+to
+copy the
+entire
+value
+of an
+array
+or
+complex data structure
+to
+another array
+or
+complex
+data structure. The data
+structures
+do not have
+to
+have the same type
+or
+"shape". The only
+restriction
+is
+that the
+size
+of
+the
+destination
+structure
+be the same
+or
+larger than the
+source structure.
+1In
+fact thistype
+of
+assignment
+can be used
+to
+perform unusual type conversions.
+For
+example,
+a
+string variable
+of
+80
+characters
+can be copied
+to
+a
+one-
+dimensiocnal
+array
+of
+80
+bytes.
+Examples:
+A
+:=
+0.1
+value
+:=
+temp/sin(x)
+DIM arrayl(100), array2(100)
+arrayl
+:=
+array2
+LET AUTHORS
+:=
+FIRST_NAMES
++
+LAST_NAMES
+DIM truth,lie:BOOLEANlie
+:=
+100
+<
+1
+truth
+:=
+ROT lie
+count
+=
+total-adjustment
+matrix(2).coefficient(n+2)
+:=
+matrix(l).coefficient(n)
+Page 9-2
+Basic09 REFERENCE MARUAL
+-
+Program
+Statements
+and
+Structure
+POKE Statement
+Syntax: PORKE <int expr> , <byte expr>
+PORKE
+allows
+a
+program
+to
+store data
+at
+a
+specific memory
+address.The first
+expression
+is
+used
+as
+the
+absolute address
+to
+store
+the type
+BYTE result of the second expression. POKE can alter any memory address,
+so
+care should be taken when using
+it.
+‘
+Examples:
+POKE ADDR(buffer)+5,ASC("A")
+POKE
+1200,14
+POKE $1C00,SFF
+POKE pointer,PEEK (pointer+l)
+(* alternative to: alphabet$ := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" *)
+POR
+i=0
+to 25
+POKE ADDR(alphabet$)+i,$40+i
+NEXT
+i
+POKE ADDR(alphabet$)+26,SFF
+Page 9-3
+Basic09 REFERENCE MARUAL
+Program Statements
+and
+Structure
+CORTROL STATEMENTSControl statements affect
+the
+(usually)
+sequential execution
+of
+program
+statements, They
+are
+used
+to
+construct loops
+or
+make
+decisions
+that alter program flow. Basic09 provides a selection of looping
+statement forms that allow any kind
+of
+loop
+to
+be
+constructed
+using
+sound
+structured programming
+style.
+IF
+Statement: Type
+1
+Syntax:
+IF
+<bool expr>
+THEN
+<line
+#>
+This form of the if statement causes execution to be transferred to
+the
+statement having
+the
+line
+number specified
+if
+the
+result
+of
+the
+expression
+is
+TRUE,
+otherwise
+the next seguential statement
+is
+executed.For
+Example:
+IF
+payment
+<
+balance
+then 400
+I?
+Statement: Type
+2
+Syntax: IF <bool expr> THEN <statements>
+[ ELSE <statements> ]
+ERDIP
+This kind of IF structure evaluates the expression to a BOOLEAR
+value,
+If
+the result
+is
+TRUE
+the statement(s) immediately following
+the
+THEN
+are executed.
+If
+an
+ELSE clause exists,
+statements between
+the ELSE
+and ERDIF are skipped,
+IP
+the
+expression evaluated
+to
+FALSE control
+is
+transferred to the first statement following the ELSE, if present, or
+otherwise
+to the
+statement following
+the ENDIF.
+Examples:
+IF a < b THENR
+PRIFRT "a is less than b"
+PRINT "a:";a;" b:";b
+ERDIFP
+IFP a < b THER
+PRIRT "a is less than b"
+ELSE
+IP a=b THER
+PRIRT *“a eguals b"
+ELSE
+PRIRT "a is greater than b"
+ERDIF
+ERDIP
+Page 9-4
+BASICO0S REFERENCE MARUAL
+Program Statements and Structure
+POR/NEXT Statement
+Syntax: POR <var> = <expr> TO <expr> [ STEP <expr> ]
+REXT <var>
+Creates a loop that usually executes a given number of times while
+automatically increasing or decreasing a specified counter variable. The
+first expression 1is evaluated and the result stored in <var> which nust
+be a simple integer or real variable. The second expression is evaluated
+and stored in a temporary variable. If the STEP clause is used, its
+expression is evaluated and used as the loop increment. If the increment
+is negative, the loop will count DOWN,
+The "body" of the 1loop (i.e. statements between the "POR" and
+"NEXT") is executed until the next variable(a counter) is larger than the
+terminating expression value. For negative STEP values, the loop will
+execute until the loop counter is less than the termination value. If
+the initial value of <var> is beyond the terminating value, the body of
+the loop is never executed. It is legal to jump out of POR/NEXT loops.
+There is no limit to the nesting of POR/REZT loops.
+Examples:
+FOR counter = 1 to 100 STEP .5
+PRIRNT counter
+REXT counter
+POR var = min-1 TO min+max STEP increment-adjustment
+PRIRNT var
+REXT var
+FPOR x = 1000 to 1 STEP -1
+PRIRT x
+NEXT
+x
+Page 9-5
+Basic09
+REFERENCE MANUALProgram Statements
+and
+Structure
+WEILE,..DO
+Statement
+Syntax:
+WHILE
+<bool expr>
 DO
-cRUN GFX("CIRCLE",XTEMP,YTEMP,3,0)
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX("CIRCLE",XCOR,YCOR,3,1)
-cXTEMP=XCOR
-cYTEMP=YCOR
-cXCOR=XCOR+PATH1
-cYCOR=YCOR+PATH2
-cENDWHILE
-cPATH1=RND(15)+2
-cPATH2=RND(10)+2
-cIF XCOR>249 THEN
-cXCOR=249
-cENDIF
-cIF XCOR<5 THEN
-cXCOR=5
-cENDIF
-cIF YCOR>185 THEN
-cYCOR=185
-cENDIF
-cIF YCOR<5 THEN
-cYCOR=5
-cENDIF
-cFLAG=FLAG*-1
-cIF FLAG<0 THEN
-cPATH1=PATH1*-1
-cPATH2=PATH2*-1
-cENDIF
-cNEXT T
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**CLEAR Clear the screen**
-
-**Syntax: RUN GFX("CLEAR"[,color])**
-
-**Function:** Clears the current graphics screen. If you do not specify a color,
-CLEAR sets the entire screen to the current background color. CLEAR also sets
-the graphics cursor at coordinates 0,0, the upper left corner of the screen.
-
-**Parameters:**
-
-```
-color A code indicating the color to set the screen.
-```
-**Examples:**
-
-```
-RUN GFX("CLEAR")
-RUN GFX("CLEAR",14)
-```
-
-**_Basic09 Reference_**
-
-**COLOR Change the foreground color**
-
-**Syntax: RUN GFX("COLOR",color)**
-
-**Function:** Changes the foreground color (and possibly the color set). COLOR does
-not change the graphics format or the cursor position.
-
-**Parameters:**
-
-```
-color A code indicating the color you want for the foreground.
-See the chart earlier in this chapter for color information.
-```
-**Examples:**
-
-```
-RUN GFX("COLOR",10)
-```
-**Sample Procedure:**
-
-This procedure connects a series of differently colored circles to produce a
-necklace effect.
-
-```
-PROCEDURE necklace
-cDIM COLOR,T,U,J,R,FLAG,XCOR,YCOR:INTEGER
-cRUN GFX("MODE",1,0)
-cRUN GFX("CLEAR")
-cCOLOR=1
-cXCOR=1
-cYCOR=1
-cR=2
-cFLAG=1
-cFOR T=1 TO 6
-cFOR J=1 TO 40
-cXCOR=XCOR+1
-cYCOR=YCOR+.8
-cIF FLAG<0 THEN
-cR=R-1
-cELSE
-cR=R+1
-cENDIF
-cCOLOR=COLOR+1
-cIF COLOR>3 THEN COLOR=1
-cENDIF
-cRUN GFX("CIRCLE",XCOR,YCOR,R,COLOR)
-cNEXT J
-cFLAG=FLAG*-1
-cNEXT T
-cFOR U=1 TO 10000
-cNEXT U
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**FILL Flood fill with current foreground color at current
-graphics cursor location**
-
-**Syntax: RUN GFX("FILL")**
-
-**Function:** Will fill in adjacent pixels that are the same color as the pixel the fill
-started from.
-
-**Parameters:**
-
-```
-None
-```
-**Examples:**
-
-```
-RUN GFX("FILL")
-```
-
-**_Basic09 Reference_**
-
-**GCOLR Read the color of a pixel**
-
-**Syntax: RUN GFX("GCOLR"[,xcor,ycor],color)**
-
-**Function:** Read the color of a pixel at the current graphics cursor location, or from
-the coordinates xcor,ycor.
-
-**Parameters:**
-
-```
-xcor,ycor Xcor and ycor are optional coordinates to read the color value
-from.
-color Color is the color value of the pixel read, may a byte or an
-integer.
-```
-**Examples:**
-
-```
-RUN GFX("GCOLR",color)
-RUN GFX("GCOLR",xcor,ycor,color)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**GLOC Find the graphics screen location**
-
-**Syntax: RUN GFX("GLOC",storage)**
-
-**Function:** Determines the location of the graphics screen in memory and returns
-the address in the specified variable. When you know the graphic screen address,
-you can use PEEK and POKE to perform special functions not available in the
-GFX module, such as filling a portion of the screen with a color or saving a
-graphics screen to disk.
-
-NitrOS-9 Level Two maps display screens into a procedure’s address space before
-PEEK and POKE can operate on a display screen. This means that you must have
-at least eight kilobytes of free memory in the user’s address space. Procedure and
-data memory requirements must not exceed 56 kilobytes.
-
-**Parameters:**
-
-```
-storage An integer type variable in which GLOC stores the memory
-address that the screen is mapped in at in the current process
-(assuming a VDG
-text or Coco 1/2 graphics screen).
-```
-**Examples:**
-
-```
-RUN GFX("GLOC",location)
-```
-**Sample Procedure:**
-
-This procedure uses the GLOC function to locate the current graphics screen, then
-uses POKE to paint a series of boxes on the screen.
-
-```
-PROCEDURE boxin
-cDIM LOCATION,PLACE,COLOR,BEGIN,QUIT,X,TERMINATE,
-LINE,T,J:INTEGER
-cRUN GFX("MODE",1,0)
-cRUN GFX("CLEAR")
-cRUN GFX("GLOC",LOCATION)
-cLOCATION=LOCATION + 100 \ PLACE=LOCATION
-cBEGIN=1
-cQUIT=80
-cCOLOR=255
-cTERMINATE=10
-cLINE=32
-cFOR x=1 TO 4
-cFOR T=1 TO QUIT
-cFOR J=BEGIN TO TERMINATE
-cPOKE PLACE+J,COLOR
-cNEXT J
-cPLACE=PLACE+LINE
-```
-
-**_Basic09 Reference_**
-
-```
-cNEXT T
-cLOCATION=LOCATION+160
-cBEGIN=BEGIN+1
-cPLACE=LOCATION
-cQUIT=QUIT-10
-cTERMINATE=TERMINATE-1
-cCOLOR=COLOR-85
-cNEXT X
-cINPUT Z$
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**JOYSTK Get joystick status**
-
-**Syntax: RUN GFX("JOYSTK",stick,fire,xcor,ycor)**
-
-**Function:** Determines the status of the specified joystick fire button and the X,Y
-position of the specified joystick handle. Use this function only with a standard
-joystick or mouse, not with the high-resolution mouse adapter. If you want to make
-a procedure that will be single button driven (and will work under both Level One
-and Level Two), you should check the button status for 0 (no buttons pressed) or
-<>0 (at least one button pressed).
-
-**Parameters:**
-
-```
-stick The joystick (0 or 1) for which you want to determine the
-status.
-0 indicates the right joystick, 1 indicates the left joystick.
-fire A variable in which JOYSTK returns the status of the specified
-fire button. Fire can be byte, integer, or boolean type. Under
-Level One, a value of $FF or TRUE indicates the button is
-pressed. Under Level Two, it can return values of 1,2 or 3, with
-the following meanings:
-```
-```
- 1=Button 1 pressed
- 2=Button 2 pressed
- 3=Both buttons pressed
-xcor,ycor Byte or integer type variables in which JOYSTK stores the X-
-and Y-coordinates of the joystick handle position. The
-coordinate range is 0-63.
-```
-**Examples:**
-
-```
-RUN GFX("JOYSTK",0,shoot,x,y)
-```
-**Sample Procedure:**
-
-This procedure uses the JOYSTK function to draw on the screen with the right
-joystick.
-
-```
-PROCEDURE joydraw
-cDIM STICK,FIRE,XCOR,YCOR,XTEMP,YTEMP:INTEGER
-cRUN GFX("MODE",2,1)
-cRUN GFX("CLEAR")
-cXCOR=0 \YCOR=0
-cREPEAT
-cXTEMP=XCOR
-cYTEMP=YCOR
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX("JOYSTK",0,FIRE,XCOR,YCOR)
-cXCOR=XCOR*4
-cYCOR=YCOR*4
-cRUN GFX("LINE",XTEMP,YTEMP,XCOR,YCOR)
-cUNTIL FIRE<>0
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**LINE Draw a line**
-
-**Syntax: RUN GFX("LINE"[,xcor1,ycor1],xcor2 ycor2[,color])**
-
-**Function:** Draws a line in the current or specified foreground color in one of the
-following ways:
-
-```
- From the current draw position to the specified X,Y-coordinates.
- From the specified beginning X- and Y-coordinates to the specified ending
-X,Y-coordinates.
-```
-**Parameters:**
-
-```
-xcor1,ycor1 Are LINE’s beginning X- and Y-coordinates.
-xcor2,ycor2 Are LINE's ending X- and Y-coordinates.
-color A code indicating the color you want the line to be.
-See the chart earlier in this section for color information.
-```
-**Examples:**
-
-```
-RUN GFX("LINE",192,128)
-RUN GFX("LINE",0,0,192,128)
-RUN GFX("LINE",0,0,192,128,2)
-```
-**Sample Procedure:**
-
-This procedure draws a sine wave of vertical lines across the screen.
-
-```
-PROCEDURE waves
-cDIM A,B,C,D,X,Y,Z: INTEGER
-cCALC=0 \ A=100
-cRUN GFX("MODE",0,1)
-cRUN GFX("CLEAR")
-cRUN GFX("COLOR",2)
-cFOR X=0 TO 255 STEP 1
-cCALC=CALC+.05
-cY=A-SIN(CALC)*15
-cZ=Y+25
-cRUN GFX("LINE",X,Y,X,Z)
-cNEXT X
-cEND
-```
-
-**_Basic09 Reference_**
-
-**MODE Switch to graphics screen**
-
-**Syntax: RUN GFX("MODE",format,color)**
-
-**Function:** Switches the screen from alphanumeric (text) to graphics, selecting the
-screen format and color code. You must run MODE before you can use any other
-graphics function. When you do, BASIC09 allocates a six-kilobyte block of
-memory for graphics. If your system does not have this amount of memory
-available, NitrOS-9 returns an error message.
-
-**Parameters:**
-
-```
-format Either 0 (a two-color 256 by 192 pixel screen) or 1 (a four-color,
-128 by 192 pixel screen).
-color A code indicating the color to set the screen. See the chart earlier
-in this chapter for information on color sets.
-```
-**Examples:**
-
-```
-RUN GFX("MODE",1,2)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**MOVE Move graphics cursor**
-
-**Syntax: RUN GFX("MOVE",xcor,ycor)**
-
-**Function:** Moves the invisible graphics cursor to the specified location on the
-screen. MOVE does not change the display in any way.
-
-**Parameters:**
-
-```
-xcor,ycor The coordinates for the cursor.
-```
-**Examples:**
-
-```
-RUN GFX("MOVE",192,128)
-```
-**Sample Procedure:**
-
-This procedure draws and pops bubbles on the screen using the CIRCLE function.
-It uses MOVE to select the position for the circles.
-
-```
-PROCEDURE bubbles
-cDIM XCOR,YCOR,T,R,ARRAY(3,100):INTEGER
-cRUN GFX("MODE",1,0)
-cRUN GFX("CLEAR")
-cFOR T=1 TO 20
-cARRAY(1,T)=RND(255)
-cARRAY(2,T)=RND(192)
-cARRAY(3,T)=RND(50)
-cRUN GFX("MOVE",ARRAY(1,T),ARRAY(2,T))
-cRUN GFX("CIRCLE",ARRAY(3,T),3)
-cNEXT T
-cFOR T=1 TO 28
-cRUN GFX("MOVE",ARRAY(1,T),ARRAY(2,T))
-cRUN GFX("CIRCLE",ARRAY(3,T),3)
-cSHELL "DISPLAY 07"
-cNEXT T
-cEND
-```
-
-**_Basic09 Reference_**
-
-**POINT Set point to specified color**
-
-**Syntax: RUN GFX("POINT",xcor,ycor[,color])**
-
-**Function:** Displays a dot at the specified coordinates. If you specify a color,
-POINT sets the pixel at the new coordinates to that color. Otherwise, POINT sets
-the pixel at the new coordinates to the foreground color.
-
-**Parameters:**
-
-```
-xcor,ycor The coordinates for a pixel.
-color The code of the color you want the pixel to be.
-See the chart earlier in this section for color information.
-```
-**Examples:**
-
-```
-RUN GFX("POINT",192,128)
-RUN GFX("POINT",192,128,2)
-```
-**Sample Procedure:**
-
-```
-PROCEDURE boxup
-cDIM XCOR,YCOR,BEGIN,COLOR,QUIT,TERMINATE,
-LINE:INTEGER
-cDIM T,X,Y:INTEGER
-cXCOR=50 \YCOR=30 \COLOR=1
-cBEGIN=1 \START=1 \QUIT=20 \TERMINATE=50
-cRUN GFX("MODE",1,0)
-cRUN GFX("CLEAR")
-cFOR T=1 TO 4
-cFOR X=BEGIN TO QUIT
-cFOR Y=START TO TERMINATE
-cRUN GFX("POINT",XCOR+Y,YCOR,COLOR)
-cNEXT Y
-cYCOR=YCOR+1
-cNEXT X
-cSTART=START+10
-cTERMINATE=TERMINATE-10
-cCOLOR=COLOR+1
-cNEXT T
-cINPUT Z$
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**QUIT Deallocate graphics screen**
-
-**Syntax: RUN GFX("QUIT")**
-
-**Function:** Switches the screen to the alphanumeric (text) mode and deallocates
-graphics memory.
-
-**Parameters:**
-
-```
-None
-```
-**Examples:**
-
-```
-RUN GFX("QUIT")
-```
-
-**_Basic09 Reference_**
-
-**High-Resolution Graphics**
-
-BASIC09’s high-resolution graphics greatly expand the capabilities of the Color
-Computer 3. You can have greater screen resolution (up to 640 by 200 pixels), as
-many as 64 colors, and the ability to mix graphics and text on one screen. In
-addition, you can use different text fonts, or styles.
-
-All drawing commands are faster if the text and graphics cursors are OFF at the
-time they are executed. So if you want to draw a screen using drawing commands
-and then have a mouse cursor and/or text cursor for interacting with the user, shut
-the cursors off, do the main drawing, and then turn them back on.
-
-The high-resolution module, GFX2, has many more functions than its medium
-resolution counterpart. GFX2 gives you the ability to:
-
-```
- Select from 64 colors. NitrOS-9 provides a palette with 16 default colors.
-You can change any of these default colors to any of the 64 colors available
-on the Color Computer 3.
- Set border colors.
- Set color patterns.
- Create different types of graphics screen cursors.
- Use logic functions.
- Turn an automatic scaling function off or on.
- Draw outline or filled boxes.
- Draw ellipses and arcs.
- Fill specified areas with specified colors.
- GET and PUT sections of the graphics screen.
- Select character fonts, which include boldfaced, transparent, and
-proportionally spaced characters.
- Move the cursor. Erase portions of a line or of the screen.
- Select reverse or normal video.
- Underline text.
-```
-Also, high-resolution graphics operate through the NitrOS-9 Windowing System.
-This means that you can run several procedures in different windows. You can
-establish windows to display text, or to display graphics, or both. You can easily
-display any window.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**Establishing a Hardware Window**
-
-For your convenience, NitrOS-9 has a number of predefined or hardware window
-formats. Hardware windows are text windows, and you cannot use them for
-graphic applications. Because hardware windows are predefined, you can easily
-establish them with the INIZ command. For instance, to establish Window 7, type:
-
-```
-iniz /w7[ENTER]
-```
-However, you cannot see the window until you send a message to it. Type:
-
-```
-echo Hello Window 7 > /w7[ENTER]
-```
-Now, to see the window and your message press [CLEAR]. To return to the
-original screen, press [CLEAR] again.
-
-To NitrOS-9, a window is a device and you can send data to it. To view the Errmsg
-file in the SYS directory of your system diskette, list it to Window 7 by typing:
-
-```
-list sys/errmsg > /w7[ENTER]
-```
-to move to Window 7 and see the listing. Press [SHIFT][CLEAR] to return to the
-previous screen.
-
-You can also fork a shell (an execution environment) to a window. To cause a shell
-to operate in window 7, type:
-
-```
-shell i=/w7&[ENTER]
-```
-The i= function of SHELL tells NitrOS-9 that the window is _immortal_. It does not
-die after completing a task. To operate NitrOS-9 from the window, press
-[CLEAR].
-
-Besides window 7, you have six other predefined windows. The following chart
-shows all the hardware windows and their parameters:
-
-```
-Starting
-Coordinate
-s
-Window Screen Size X-Coord, Window Size
-Number Chars/line Y-Coord Cols Rows
-1 80 0,0 80 25
-2 80 0,0 80 25
-3 80 0,0 80 25
-4 80 0,0 80 25
-5 80 0,0 80 25
-```
-
-**_Basic09 Reference_**
-
-```
-6 80 0,0 80 25
-7 80 0,0 80 25
-```
-The /TERM window can be set in /dd/sys/env.file, by changing the settings for
-CONDVTYP, CONXSIZ, CONYSIZ, CONFCLR, CONBCLR, and CONBDCLR,
-and this will change /TERM's setting as NitrOS-9 boots.
-
-**Defining Windows**
-
-As well as hardware windows, NitrOS-9 also lets you establish windows to your
-own specifications. You can set definable windows for either text or graphics, or
-both. You can locate them anywhere on a screen, and you can make them any size.
-
-You initialize definable windows in the same manner you initialize hardware
-windows, using INIZ. If you want to have text on the window, you must merge
-SYS/Stdfonts (found on your system diskette) with the window (NitrOS-9/EOU
-pre-loads these fonts for you on boot). You can also establish a shell in a definable
-window, from which you can use NitrOS-9 or BASIC09.
-
-To establish definable windows you must supply NitrOS-9 with information about
-the type of window you want (its graphic format), its size, and its location on the
-screen. The easiest way to do this is with the NitrOS-9 WCREATE command.
-
-WCREATE requires a window format code in the form -s= _format code_ to tell
-NitrOS-9 what type of a window you want. The following chart shows the possible
-window formats you can choose:
-
-```
-Table 9.5
-Format
-Code
-```
-```
-Screen Size
-Cols x Rows
-```
-```
-Resolution
-Width/Height
-```
-```
-No. of
-Colors
-```
-```
-Memory
-Required
-```
-```
-Screen
-Type
-01 40 x 25 ——— 16† 2000 Text
-02 80 x 25 ——— 16† 4000 Text
-05 80 x 25 640 x 200 2 16000 Graphics
-06 40 x 25 320 x 200 4 16000 Graphics
-07 80 x 25 640 x 200 4 32000 Graphics
-08 40 x 25 320 x 200 16 32000 Graphics
-00* Specifies the Processes' current screen.
-FF Currently displayed screen. Use when putting several windows on the same physical
-screen when setting them up from a procedure file. Applications should use $00
-instead.
-† You have to reconfigure the palette to get 16 colors rather than the default of eight colors. The
-following section provides information on the palette.
-```
-
-**_Displaying Text and Graphics_** **|** **_9_**
-
-
-**_Basic09 Reference_**
-
-Format Codes 01 and 02 select text screens, and Format Codes 5-8 select graphics
-screens. The Screen Size column shows the maximum number of text columns and
-rows available for each screen. The Resolution column shows the maximum _pixels_
-(graphic units) available for each of the graphic screens. The Memory column
-shows how much memory NitrOS-9 must set aside for each screen format.
-Memory requirements depend on the resolution and number of colors selected for a
-window.
-
-**The Palette**
-
-BASIC09 has 64 colors you can select for screen displays. The colors are available
-through a palette. The Color Computer’s palette can hold 16 colors at once.
-
-The following chart shows the default colors for the palette in Screen Format 7:
-
-```
-Table 9.6
-Register Color Register Color
-00 Black 08 Black
-01 Red 09 Green
-02 Green 10 Black
-03 Yellow 11 Buff
-04 Blue 12 Black
-05 Magenta 13 Green
-06 Cyan 14 Black
-07 White 15 Orange
-```
-Instead of the default colors, you can select any of the 64 colors (0-63) for any of
-the palette registers. You do this using the PALETTE command described later in
-this chapter. The BORDER and COLOR commands also affect the colors available
-in the palette by changing the color in the background and foreground registers,
-Registers 02 and 03, respectively.
-
-```
-Note: The information in the next section assumes you have a Color
-Computer 3 with 512 kilobytes of memory. If your computer has 128
-kilobytes of memory, skip to the section “High-Level Graphics With
-128K.”
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Establishing a Graphics Window**
-
-To create any window, you should first initialize it with the INIZ command. Type:
-
-iniz w1
-
-If you are not running NitrOS9 EOU, you will need to merge at least stdfonts to
-any window in order to see text. To do so, type:
-
-```
-merge sys/stdfonts>/w1
-```
-Using the information in the preceding tables, use WCREATE to establish a
-graphics window. The following command line creates a graphics window in
-Window 1 that has 320 x 200 resolution and that fills the entire screen. The new
-window has 16 colors available and provides 40 column by 25 line text:
-
-```
-wcreate /wl -s=8 00 00 40 25 03 02 02
-| | | | | | | | | |
-| | | | | | | | | +-> The screen border color
-| | | | | | | | +----> The screen background color
-| | | | | | | +-------> The screen foreground color
-| | | | | | +----------> The screen height in rows
-| | | | | +-------------> The screen width in columns
-| | | | +----------------> The starting Y-Coordinate
-| | | +-------------------> The starting X-coordinate
-| | +-----------------------> The screen type
-| +----------------------------> The window name
-+-----------------------------------> The command name
-```
-**Starting a Shell in a Window**
-
-At this point, the new window exists, and you can send data to it. However, if you
-want to operate from the window, you must install a shell in it. Type:
-
-```
-shell 1=/w1&
-```
-Press [CLEAR] to move to the new window. To load BASIC09, type:
-
-```
-basic09 #18K
-```
-Select either more or less memory, according to your needs. Using BASIC09 in a
-graphics window, you can write procedures to create high-resolution graphics, and
-you can display the graphics on the same screen.
-
-
-**_Basic09 Reference_**
-
-**Using High-Level Graphics With 128K**
-
-If your computer is equipped with only 128 kilobytes of memory, you cannot use
-more than one window with BASIC09. Also, to use even one window, you must
-follow certain steps to provide enough memory for BASIC09 operations.
-
-Refer to Table 9.6. You must select a window mode that does not use more than
-16000 bytes of memory—either window Format 5 or Format 6.
-
-To provide enough memory to use BASIC09, you must fork a shell to the window
-you create, then kill the shell in TERM. Doing this means that you can no longer
-operate from your TERM screen. However, you can run NitrOS-9 and BASIC09
-from the window.
-
-The following steps show you how to create a Format 6 graphics screen in
-Window 1, write a BASIC09 high-resolution graphics procedure, and execute it
-using minimum memory.
-
-1. Boot NitrOS-9. Then, create a graphics window by typing:
-    iniz w1[ENTER]
-    wcreate /w1 -s=06 00 00 40 24 06 01 01[ENTER]
-    merge sys/stdfonts>/w1[ENTER]
-    shell i=/w1&[ENTER]
-    ex[ENTER]
-2. The system stops, and you can no longer type or issue commands. Press
-    [CLEAR] to move to the new window. Then, load BASIC09 by typing:
-       basic09[ENTER]
-3. Enter the edit mode, and type the following procedure:
-    PROCEDURE squeeze
-    cDIM XCOR,YCOR,X,Y:INTEGER; RESPONSE:STRING[1]
-    cRUN GFX2("CUROFF")
-    cXCOR=320 \ YCOR=95 \ X=300 \ FLAG=1
-    cPRINT CHR$(12)
-    cLOOP
-    cFOR Y=1 TO 100 STEP 2
-    cX=X-3
-    cGOSUB 10
-    cIF FLAG<1 THEN
-    cRUN GFX2("COLOR",0)
-    cELSE
-    cRUN GFX2("COLOR",3)
-    cENDIF
-    cRUN GFX2("ELLIPSE",XCOR,YCOR,X,Y)
-    cFLAG=FLAG*-1
-    cNEXT Y
-    cRUN GFX2("COLOR",0)
-    cFOR Y=99 TO 1 STEP -2
-
-
-```
-Displaying Text and Graphics | 9
-cGOSUB 10
-cX=X+3
-cRUN GFX2("ELLIPSE",XCOR,YCOR,X,Y)
-cNEXT Y
-cRUN GFX2("COLOR",0)
-cENDLOOP
-c10 RUN INKEY(RESPONSE)
-cIF RESPONSE="" THEN
-cRETURN
-cENDIF
-cPRINT CHR$(12)
-cRUN GFX2("COLOR",9)
-cRUN GFX2("CURON")
-cEND
-```
-4. When you have entered the procedure exactly as shown, exit the edit mode,
-    and from the BASICO9 command mode, save Squeeze by typing:
-       save squeeze[ENTER]
-5. Compile Squeeze by typing:
-    pack squeeze[ENTER]
-    Squeeze is now an executable module saved in your current execution
-    directory. The following steps assume your execution directory is
-    /D0/CMDS.
-6. Exit BASIC09 by typing:
-    bye[ENTER]
-7. Merge Squeeze, RUNB, INKEY, and GFX2 into one module. To do this,
-    type:
-       merge /d0/cmds/squeeze /d0/cmds/runb
-       /d0/cmds/inkey/d0/cmds/gfx2 >
-       /d0/cmds/yawn[ENTER]
-8. MERGE does not set the new file Yawn as an executable file. Before you
-    execute it, you must make the file executable by typing:
-       attr /d0/yawn e pe[ENTER]
-9. To execute Yawn, type:\
-    yawn
-10.To terminate the procedure, press the space bar.
-
-
-**_Basic09 Reference_**
-
-The merging procedure in step 7 saves a considerable amount of memory. Every
-module you load uses one or more 8-kilobyte blocks of storage space. For instance,
-INKEY is only 94 bytes in length, However, if you load it as a separate module, it
-requires 8192 bytes. RUNB is 12185 bytes in length. This means that it requires
-two 8-kilobyte blocks, or 16384 bytes of memory. GFX2 is 2190 bytes in length,
-and Squeeze is 605 bytes in length. Loaded individually, they also require two
-memory blocks.
-
-If you load all four modules independently, they use 40960 bytes. However, by
-combining them into one file, they load into two memory blocks, or 16384 bytes.
-
-Using the information in this section, you can write and execute numerous
-BASIC09 procedures with only 128 kilobytes of memory. However, if your
-computer has 512 kilobytes of memory, you can bypass many of these steps. Also,
-the additional memory enables you to have several windows open at one time. For
-instance, you can create one window in which to write BASIC09 procedures,
-another window in which to execute your procedures, and a third window from
-which you can use NitrOS-9 commands.
-
-```
-Note: The remainder of this chapter assumes you have at least 512
-kilobytes of memory. If you don’t, you can still run many of the
-sample procedures by implementing the steps in this section.
-```
-**Creating Windows from BASIC09**
-
-Using GFX2 routines, BASIC09 provides the means to create and manage
-windows. The steps for creating windows from BASIC09 are as follows:
-
-1. DIM a variable to hold the path number to the window you want to create.
-2. OPEN a path to the window.
-3. SELECT the new window as the display window.
-4. Send commands, data, or text to the window through the open path.
-5. CLOSE the open path.
-6. Use SELECT to return to your original window.
-
-If you do not want to return immediately to the screen or window of origin, you
-can skip Steps 5 and 6.
-
-The following sample procedure shows how to open the next available window as
-a 320 x 192 graphics window, draw a circle, then return to the original screen when
-you press a key.
-
-
-```
-Displaying Text and Graphics | 9
-PROCEDURE make_win
-cDIM PATH:INTEGER
-cDIM RESPONSE:STRING[1]
-cOPEN #PATH,"/W":WRITE
-cRUN GFX2(PATH,"DWSET",08,00,00,40,24,03,02,02)
-cRUN GFX2(PATH,"SELECT")
-cRUN GFX2(PATH,"CIRCLE",200,90,80)
-cGET #1,RESPONSE
-cCLOSE #PATH
-cRUN GFX2("SELECT")
-cEND
-```
-This procedure establishes a Format 8 window, beginning at coordinates 0,0 and
-covering the total screen. The foreground color is green, the background color is
-black, and the border color is black.
-
-Because this procedure does not INIZ the window it opens, the window
-automatically disappears when the procedure closes its path. To create a window
-that stays in the system, even after you close the path to it, use INIZ before the
-OPEN statement, like this:
-
-```
-SHELL "INIZ /W2"
-```
-After you create and define the window, view it by pressing [CLEAR]. To get
-back to the screen you are working on, press [SHIFT][CLEAR]. If you intend to
-use a window more than once in a procedure, you do not need to close its path until
-the procedure no longer needs it.
-
-**Creating Overlay Windows**
-
-When you establish a window, you are initializing an NitrOS-9 device. However,
-an overlay window is only a new screen for an existing window. An overlay screen
-can be the same size as its window, or it can be smaller. NitrOS-9 automatically
-transfers to the overlay window any current procedures operating in the device
-window.
-
-The process for creating overlay windows lets you select whether you want to save
-the contents of the screen covered by the new window. If you choose to save the
-contents, the previous screen is redisplayed when you end the overlay.
-
-The following procedure provides an example of using overlay windows. It creates
-six overlays, each smaller than the preceding window. The procedure then waits
-for you to press a key. When you do, it removes the overlay windows.
-
-
-**_Basic09 Reference_**
-
-```
-PROCEDURE overwindows
-cDIM X,Y,X1,Y1,T,J,B,L,PLACE:INTEGER
-cDIM RESPONSE:STRING[1]
-cX=0 \Y=0
-cX1=80 \Y1=24
-cPLACE=33
-cFOR T=1 TO 6
-cIF T=2 OR T=6 THEN
-cB=3
-cELSE B=2
-cENDIF
-cRUN GFX2("OWSET",1,X,Y,X1,Y1,B,T)
-cX=X+6 \Y=Y+2
-cX1=X1-12 \Y1=Y1-4
-cFOR J=1 TO 5
-cPRINT TAB(PLACE); "Overlay Screen "; T
-cNEXT J
-cPLACE=PLACE-6
-cNEXT T
-cPRINT "Overlay Screen 6"
-cPRINT "Press A Key...";
-cGET #1,RESPONSE
-cFOR T=1 TO 6
-cRUN GFX2("OWEND")
-cNEXT T
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**The Graphics Cursor and the Draw Pointer**
-
-High-resolution graphics provide a text cursor, a graphics cursor, and a _draw
-pointer_. The text cursor and the graphics cursor can be either visible or invisible.
-
-#### The Draw Pointer 9-
-
-Text functions always begin at the current location of the text cursor. Whenever
-you _print_ on the screen, the cursor automatically moves to the end of the text or to
-the beginning of the next line, depending on whether or not you use a semicolon
-after the print statement. You can reset the text cursor to any place on the screen
-with the CURXY function of GFX2.
-
-Many BASIC09 graphics functions also begin operating at a location pointed to by
-the draw pointer. When you begin graphics, the draw pointer is located at
-coordinates 0,0. BASIC09 then updates the pointer as you execute certain graphics
-functions. For instance, the LINE function of GFX2 draws from the draw pointer
-position to the specified end coordinates. The draw pointer is left pointing to the
-end coordinates.
-
-Because some functions begin at the draw pointer, you need to keep track of its
-location and make certain it is placed properly. Use the SETDPTR function to
-move the draw pointer to new locations.
-
-The graphics cursor is for use with joystick or mouse operations. It provides a
-_pointer_ for graphics applications. The system diskette provides patterns that can be
-loaded into the graphics cursor _buffer_. You can select from a variety of pointer
-images.
-
-**High-Resolution Text**
-
-When you create a graphics window, you can display either text characters,
-graphics characters, or both.
-
-To display graphics, move the draw pointer to the location where you want the
-graphics to begin. Then, execute the graphics routines.
-
-To display text, move the text cursor to the location where you want the text to
-begin. Then, use normal BASIC commands to _print_ text.
-
-Instructions for the draw pointer relate to a 640 x 200 grid, numbered 0-639 and 0-
-
-199. Instructions for the text cursor relate to the number of characters per line and
-the number of lines on the current screen format.
-
-
-**_Basic09 Reference_**
-
-**Using Fonts**
-
-NitrOS-9 Level Two includes fonts (character sets) that are stored in the SYS
-directory on the system diskette and must be manually merged before you can use
-them. NitrOS-9 EOU includes many fonts that are pre-loaded and are available for
-use at startup. You can also create your own fonts and instruct BASIC09 to use
-them. If you create your own fonts, you can design any symbols or graphics
-characters you want to use.
-
-To use fonts, you must be in a graphics window. See "Establishing a Graphics
-Screen" earlier in this chapter. Use the FONT function to tell NitrOS-9 what font
-you want. The fonts are installed in group 200. The following procedure uses
-characters installed in group 200, buffers 1, 2, and 3, using the font in buffer 3 to
-draw a border, then prints a message using the characters in buffer 2. It then returns
-to buffer 3 and asks you to press a key to end the procedure.
-
-```
-PROCEDURE borders
-cDIM T,B,V,J,K:INTEGER
-cDIM RESPONSE:STRING[1]
-cB=199
-cPRINT CHR$(12)
-cRUN GFX2("FONT",200,3)
-cRUN GFX2("COLOR",1,2)
-cFOR T=0 TO 79
-cPRINT CHR$(B);
-cNEXT T
-cFOR T=1 TO 21
-cRUN GFX2("CURXY",0,T)
-cPRINT CHR$(B); CHR$(B);
-cRUN GFX2("CURXY",78,T)
-cPRINT CHR$(B); CHR$(B);
-cNEXT T
-cRUN GFX2("CURXY",0,21)
-cFOR T=0 TO 79
-cPRINT CHR$(B);
-cNEXT T
-cRUN GFX2("FONT",200,2)
-cRUN GFX2("COLOR",0,2)
-cRUN GFX2("CURXY",45,9)
-cPRINT "A Demonstration"
-cRUN GFX2("CURXY",50,10)
-cPRINT "Of A"
-cRUN GFX2("CURXY",43,11)
-cPRINT "Buffer Three Border"
-cRUN GFX2("CURXY",51,12)
-cPRINT "And"
-cRUN GFX2("CURXY",45,13)
-cPRINT "Buffer Two Text"
-cRUN GFX2("FONT",200,1)
-```
-
-```
-Displaying Text and Graphics | 9
-cRUN GFX2("COLOR",3,2)
-cRUN GFX2("CURXY",33,15)
-cPRINT "Press A Key...";
-cGET #1,RESPONSE
-cPRINT CHR$(12)
-cEND
-```
-**High-Resolution Quick Reference**
-
-High-resolution functions are all part of the GFX2 module. You call them in a
-BASIC09 procedure with the following syntax:
-
-```
-RUN GFX2([PATH,]"FUNCTION"[,PARAMETER[,...]])
-```
-_Path_ is an optional variable name that tells NitrOS-9 the window in which you
-want the function performed. _Function_ is the high-resolution task you want to
-perform. _Parameter_ is an essential or optional value that affects the performance of
-the function. Different functions require or permit different numbers of parameters.
-
-The following reference gives a brief description of the high-resolution graphics
-functions, followed by a detailed description of each function.
-
-
-**_Basic09 Reference_**
-
-**Window Functions**
-
-```
-Function Description
-CWArea Changes the size of a window. You can only reduce the working
-area of a window, not increase it.
-DWEnd Deallocates an established window.
-DWProtectSw Lets you unprotect a window and set other device windows over it.
-This might destroy the contents of either or both windows.
-DWSet Establishes a window and sets its location on the screen, its size,
-its background color, its foreground color, and its border color.
-GetSel Returns menu selection
-Menu Set window menus for high level menu handler
-Item Set pulldown items for high level menu handler
-OWEnd Deallocates the specified overlay window.
-OWSet Establishes an overlay window on a device window that already
-exists. The function also sets the overlay window size, back-
-ground color, foreground color, and border color. When using this
-function, you can choose whether or not to save the contents of the
-original screen.
-SBar Update scroll bars
-Select Selects the window to display.
-Title Set window title & sizes for high level menu handler
-UMBar Update menu bar
-WInfo Returns window information
-WnSet Set high level window type (this is different than basic windows
-types which set resolution and color depth; these define window
-types like framed, outlined, etc.)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**CWAREA Change working area**
-
-**Syntax: RUN GFX2([path,]"CWAREA",xcor,ycor,sizex,sizey)**
-
-**Function:** Restricts output in the window to the specified area. The new area must
-be the same or smaller than the previous working area. When a window’s working
-area is changed, NitrOS-9 scales graphic and text coordinates and graphic images
-to the new proportions _if the Scaling switch is turned on_. Text characters remain
-the same size. The xcor,ycor,sizex and sizey parameters are always based on 8x8
-pixel fonts, even if a 6x8 pixel font is currently selected.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to change the
-working area.
-xcor,ycor The beginning coordinates (the upper left corner) for the new
-working area, relative to the original window. The coordinates
-are based on the character column and row size of the original
-window.
-sizex Designates the number of columns in the new working area.
-sizey The number of lines available in the new working area.
-```
-**Examples:**
-
-```
-RUN GFX2("CWAREA",10,0,40,10)
-```
-**Sample Procedure:**
-
-This procedure makes the working area in a window progressively smaller, filling
-each area with a different color. It then changes the areas’ colors rapidly to produce
-a hypnotic effect.
-
-```
-PROCEDURE hypnobox
-cDIM X,Y,X1,Y1,T,R,COLOR:INTEGER
-cDIM KEY:STRING[1]
-cKEY=""
-cX=3 \Y=1
-cX1=80-(X+X) \Y1=24-(Y+Y)
-cFOR T=0 TO 10
-cRUN GFX2("COLOR",3,T)
-cRUN GFX2("CLEAR")
-cRUN GFX2("CWAREA",X,Y,X1,Y1)
-cX=X+3 \Y=Y+1
-cX1=80-(X+X) \Y1=24-(Y+Y)
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cWHILE KEY="" DO
-cRUN INKEY(KEY)
-```
-
-**_Basic09 Reference_**
-
-```
-cFOR T=1 TO 16
-cR=RND(65)
-cRUN GFX2("PALETTE",T,R)
-cNEXT T
-cENDWHILE
-cRUN GFX2("DEFCOL")
-cRUN GFX2("CWAREA",5,2,80,24)
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**DWEND Device window end**
-
-**Syntax: RUN GFX2([path,]"DWEND")**
-
-**Function:** Deallocates the device window you initialized with DWSET and INIZ.
-If the window deallocated is the last device window on the screen, BASIC09
-returns the screen memory to the system. DWEND automatically positions you in
-the next device window, a result similar to pressing [CLEAR]. You can use this
-function with DWSET to redefine a device window to a different type.
-
-**Parameters:**
-
-```
-path The path number of the window you wish to end.
-Path can be a constant or variable.
-```
-**Examples:**
-
-RUN GFX2("DWEND")
-RUN GFX2(PATH,"DWEND")
-RUN GFX2(3,"DWEND")
-**Sample Procedure:**
-
-From /TERM, this procedure temporarily opens a path to Window 3, displays the
-new window, draws a design, then returns to the /TERM screen and closes the
-path.
-
-```
-PROCEDURE decorate
-cDIM PATH,T,Y:INTEGER
-cOPEN #PATH,"/W3":WRITE
-cRUN GFX2(PATH,"DWSET",7,0,0,80,24,3,2,2)
-cRUN GFX2(PATH,"SELECT")
-cY=1
-cRUN GFX2(PATH,"COLOR",3,2)
-cFOR T=1 TO 185 STEP 3
-cY=Y+1
-cRUN GFX2(PATH,"ELLIPSE",320,96,T,Y)
-cNEXT T
-cRUN GFX2(PATH,"COLOR",1,2)
-cFOR T=185 TO 1 STEP -6
-cRUN GFX2(PATH,"ELLIPSE",320,96,T,Y)
-cIF INT(T/3)=T/3 THEN
-cY=Y+1
-cENDIF
-cNEXT T
-cRUN GFX2(1,"SELECT")
-cRUN GFX2(PATH,"DWEND")
-cCLOSE #PATH
-cEND
-```
-
-**_Basic09 Reference_**
-
-**DWPROTSW Device window protect switch**
-
-**Syntax: RUN GFX2([path,]"DWPROTSW","switch")**
-
-**Function:** Lets you _unprotect_ one device window and set other device windows on
-top of it.
-
-NitrOS-9 on the Color Computer 3 normally uses a protected windowing system
-that does not allow window devices to overlap. Removing the window protection
-with DWPROTSW lets one device window exist on the same screen area as
-another window device. Because this might destroy the contents of an unprotected
-window, you need to use care with this function.
-
-As an example, GSHELL uses this to allow you to open other device windows on
-top of the main window, such as when you select the Clock app from the Tandy
-menu.
-
-The "bottom device window" that GShell creates covers the entire screen and stays
-unprotected. Any sizable applications the user picks (like Clock) have their
-sizing/placement box put on this underlying screen, moved around and sized by the
-mouse, and once the position and size of the window is locked in, it creates a new
-device window in that space on top of the unprotected one. More applications can
-be placed on this same screen, with the position and size of each one shown by
-drawing on the unprotected window underneath them all.
-
-**Parameters:**
-
-```
-path The route to the window you want to unprotect.
-switch Either OFF to turn off protection, or ON to turn on protection.
-The default is ON.
-```
-**Examples:**
-
-```
-RUN GFX2("DWPROTSW",OFF)
-RUN GFX2("DWPROTSW",ON)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**DWSET Device window set**
-
-**Syntax: RUN GFX2([path,)“DWSET”,format,xcor,ycor,width,height,
-foreground, background, border)**
-
-**Function:** Defines a device window. Normally, you first open a path to a window,
-then use DWSET to set the window format, location, size, and colors.
-
-**Parameters:**
-
-```
-path The route to the window you are defining.
-format The code for the type of screen you want to establish.
-See Table 9.5 at the beginning of this section for the
-formats available.
-xcor,ycor The coordinates (character column and row) of the upper
-left corner of
-the screen you want to create.
-width The width (in characters) of the new window.
-height The height (in lines) of the new window.
-foreground The code for the window's foreground color.
-background The code for the window’s background color.
-border The code for the window’s border color.
-```
-**Examples:**
-
-```
-RUN GFX2("DWSET",06,50,100,50,10,20,12,9)
-```
-**Sample Procedure:**
-
-From /TERM, this procedure temporarily opens a path to the next free window,
-creates the window format, and uses SELECT to display the new window, draws a
-design, then returns to the /TERM screen, deallocates the window, and closes the
-path.
-
-```
-PROCEDURE lemon
-cDIM PATH,T,X,Y:INTEGER
-cOPEN #PATH,"/W3":WRITE
-cRUN GFX2(PATH,"DWSET",7,0,0,80,24,3,2,2)
-cRUN GFX2(PATH,"SELECT")
-cY=1
-cRUN GFX2(PATH,"COLOR",0,2)
-cFOR T=1 TO 185 STEP 3
-cY=Y+1
-cRUN GFX2(PATH,"ELLIPSE",320,96,T,Y)
-cNEXT T
-cX=T
-cRUN GFX2(PATH,"COLOR",3,2)
-cFOR T=62 TO 1 STEP -3
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX2(PATH,"ELLIPSE",326,96,X,T)
-cIF INT(T/3)=T/3 THEN
-cX=X+1
-cENDIF
-cNEXT T
-cRUN GFX2(1,"SELECT")
-cRUN GFX2(PATH,"DWEND")
-cCLOSE #PATH
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**GETSEL Get menu selection or keypress from Multi-Vue menus**
-
-**Syntax: RUN GFX2([path],"GETSEL",menu_id,menu_item)**
-
-**Function:** Returns the menu number and menu item number (both will be 0 if
-none was selected) from the Multi-Vue menu handler. If a key was pressed, this
-can be determined by either an INKEY or an SS.Ready GetStat call. This is usually
-used in conjunction with ONMOUSE and MOUSE to allow smooth multi-tasking
-in the background.
-
-For further details and detailed programming examples, see Chapter 13 "Multi-Vue
-Features".
-
-**Parameters:**
-
-```
-path The route to the window that contains the menu.
-menu_id The menu number that was pulled down and clicked on.
-0=none selected.
-menu_item The menu item number that was selected with the mouse.
-0=none selected.
-```
-**Examples:**
-
-```
-RUN GFX2("GETSEL",menunum,menuitem)
-```
-**Sample Procedure:**
-
-```
-PROCEDURE MemMaps
-cDIM MId_Memory,menuid,menuitem,Disable, Enable:INTEGER
-cDIM valid,fire,mx,my,area,sx,sy:INTEGER
-cDIM wd(2):STRING
-cDIM m1(4):STRING
-cDIM progname(4),prompt:STRING[6]
-cDIM exitflag:BOOLEAN
-cDisable=0
-cEnable=1
-cMId_Memory=33
-cprogname(1)="pmap"
-cprogname(2)="smap"
-cprogname(3)="mmap"
-cprogname(4)="gpmap"
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",8,0,0,40,25,3,0,0)
-cRUN GFX2("curoff")
-cRUN GFX2("Select")
-cRUN GFX2("Palette",0,0)
-cRUN GFX2("Palette",1,7)
-cRUN GFX2("Palette",2,$38)
-cRUN GFX2("Palette",3,$3f)
-cRUN GFX2("Title",wd,"Memory Map Tools",40,20,1)
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX2("Menu",wd,1,"Memory Maps",MID_Memory, 6,4,m1,Enable)
-cRUN GFX2("Item",m1,1,"PMap ",Enable)
-cRUN GFX2("Item",m1,2,"SMap ",Enable)
-cRUN GFX2("Item",m1,3,"MMap ",Enable)
-cRUN GFX2("Item",m1,4,"GPMap",Enable)
-cRUN GFX2("WnSet",1,wd)
-cRUN GFX2("SetMouse",3,1,1)
-cRUN GFX2("GCSet",$ca,1)
-cexitflag=FALSE
-cLOOP
-cRUN GFX2("curoff")
-cRUN GFX2("OnMouse",0)
-cRUN GFX2("Mouse",valid,fire,mx,my,area,sx,sy)
-cIF valid<>0 AND fire=1 AND area=1 THEN
-cRUN GFX2("GetSel",menuid,menuitem)
-cIF menuid=MID_Memory AND menuitem>0 AND menuitem<5 THEN
-cRUN GFX2("OWSet",1,1,1,36,18,0,3)
-cRUN GFX2("WnSet",4)
-cRUN GFX2("Font",$c8,2)
-cSHELL progname(menuitem)
-cRUN GFX2("Font",$c8,1)
-cRUN GFX2("curon")
-cINPUT "Press ENTER:",prompt
-cRUN GFX2("OWend")
-cELSE
-cIF menuid=2 THEN
-cexitflag=TRUE
-cENDIF
-cENDIF
-cENDIF
-cEXITIF exitflag=TRUE THEN
-cENDEXIT
-cENDLOOP
-cRUN GFX2("curon")
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**MENU Set window menus for high level menu handler**
-
-**Syntax: RUN GFX2([path],"MENU",d_array,menunum,
-menuname,menuid,xsize,numofitems,menu_array,enableflag)**
-
-**Function:** Defines the Menus that will appear on the Menu bar. Part of the
-MultiVue menu handler.
-
-**Parameters:**
-
-```
-path The route to the window that contains the menu.
-d_array The window descriptor array.
-menunum Position of the drop down menu in the menu bar
-(1 to number of menus on menu bar).
-menuname Text name of the menu as it will appear on the menu bar.
-menuid Menu ID number that will be returned to caller (Which
-menu was dropped down and selected from). 1-32 are
-reserved to be common ones between programs, some of
-which are defined in the MultiVue manual. It is
-recommended that non-general menu id's start at 33 (up to
-a maximum of 127).
-xsize Width of the pull down menu (in characters, not pixels).
-numofitems Number of items in this pull down menu.
-menu_array Array for this pull down menu.
-enableflag 0=Entire pull down menu is disabled (not selectable),
-1=pull down menu enabled (selectable).
-```
-**Examples:**
-
-```
-RUN GFX2("MENU",wd,1,"Disk",33,8,4,m1,1)
-RUN GFX2("MENU",wd,2,"Memory",34,5,2,m2,1)
-RUN GFX2("MENU",wd,3,"Special",35,6,3,m2,0)
-```
-**Sample Procedure:**
-See Sample Program for GETSEL.
-
-
-**_Basic09 Reference_**
-
-**ITEM Set pulldown items for high level menu handler**
-
-**Syntax: RUN GFX2([path,]"ITEM",Menubar_array,itemnum,
-itemname,enableflag)**
-
-**Function:** Defines a pulldown menu Item. Part of the MultiVue menu handler.
-
-**Parameters:**
-
-```
-path The route to the window that contains the menu.
-Menubar_array The menu bar menu selection array. There will be a
-different array for pull down menu. (See Chapter on
-MultiVue menus.)
-itemnum Position of this item in the pulldown (1 to number of items on
-menu).
-itenname Name of this item (text on menu pulldown).
-enableflag 0=item is disabled (not selectable),
-1=item is enabled (selectable).
-```
-**Examples:**
-
-```
-RUN GFX2("ITEM",m1,1,"OPEN",1)
-RUN GFX2("ITEM",m1,2,"OPEN",1)
-RUN GFX2("ITEM",m1,3,"CLOSE",0)
-```
-**Sample Procedure:**
-See Sample Program for GETSEL.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**OWEND Overlay window end**
-
-**Syntax: RUN GFX2([path,]"OWEND")**
-
-**Function:** Closes an overlay window. The underlying device window settings are
-preserved and changes done on the overlay window do not affect those original
-settings. If the overlay window was created with save switch on (see **OWSET** ),
-whatever was under the overlay window will be restored to the screen.
-
-**Parameters:**
-
-_path_ path is the path number of the overlay window you wish to end.
-Path can be a constant or variable.
-
-**Examples:**
-
-```
-RUN GFX2("OWEND")
-RUN GFX2(PATH,"OWEND")
-RUN GFX2(3,"OWEND")
-```
-
-**_Basic09 Reference_**
-
-**OWSET Establish an overlay window**
-
-**Syntax: RUN GFX2([path,]"OWSET",save switch,xpos,ypos,xsize,
-ysize,foreground,background)**
-
-**Function:** Creates an overlay window on a previously existing device window.
-Reconfigures the current device window paths to use a new area of the screen as
-the current device window. The underlying window settings are preserved and
-changes to the overlay do not affect it.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to set an overlay.
-save switch Either 0 or 1. A value of 0 tells BASIC09 not to save the
-overlaid area. A value of 1 tells BASIC09 to save the overlaid
-area and restore it when the new window closes.
-xpos The character column in which to start the new window
-(upper left corner)
-ypos The character row in which to start the new window
-(upper left corner).
-xsize The width of the new window in characters.
-ysize The height of the new window in rows.
-foreground The foreground color of the new window.
-background The background color of the new window.
-```
-**Examples:**
-
-```
-RUN GFX2("OWSET",00,44,10,32,8,00,06)
-```
-**Sample Procedure:**
-
-This procedure creates six progressively smaller overlay windows, labeling each. It
-then waits for you to press a key, after which it erases all the windows and leaves
-the original window intact.
-
-```
-PROCEDURE overwin
-cDIM X,Y,X1,Y1,T,J,B,L,PLACE:INTEGER
-cDIM RESPONSE:STRING[1]
-cX=0 \Y=0
-cX1=80 \Y1=24
-cPLACE=33
-cFOR T=1 TO 6
-cIF T=2 OR T=6 THEN
-cB=3
-cELSE B=2
-cENDIF
-cRUN GFX2("OWSET",1,X,Y,X1,Y1,B,T)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cX=X+6 \Y=Y+2
-cX1=X1-12 \Y1=Y1-4
-cFOR J=1 TO 5
-cPRINT TAB(PLACE); "Overlay Screen "; T
-cNEXT J
-cPLACE=PLACE-6
-cNEXT T
-cPRINT "Press A Key...";
-cGET #1,RESPONSE
-cFOR T=1 TO 6
-cRUN GFX2("OWEND")
-cNEXT T
-cEND
-
-
-**_Basic09 Reference_**
-
-**SBAR Update position of scrollbars in a framed with scrollbars window**
-
-**Syntax: RUN GFX2([path,]"SBAR",xcol,yrow)**
-
-**Function:** Moves the horizontal and vertical scroll bars to the specified positions.
-These are base 0, and the maximum positions depends on the size of the window.
-The coordinates are based on text character positions (8x8 pixels).
-
-**Parameters:**
-
-```
-xcol X position of horizontal scroll bar (in columns). 0 to (window
-width-4).
-yrow Y position of vertical scroll bar (in rows). 0 to (window height-5).
-```
-**Examples:**
-
-```
-RUN GFX2("SBAR",0,10)
-```
-**Sample Procedure:**
-Run 'FontInfo'. You will need #16K for running within BASIC09.
-
-```
-PROCEDURE FontInfo
-cDIM errnum,MId_Font,menuid,menuitem,Disable, Enable:INTEGER
-cDIM ybarpos,linenum,startline,endline,
-numoffonts,valid,fire,mx,my,area,sx,sy:INTEGER
-cDIM wd(2),m1(1):STRING
-cDIM filepath:BYTE
-cDIM header,fonttext(100):STRING[100]
-cDIM prompt:STRING[6]
-cDIM exitflag:BOOLEAN
-cDisable=0
-cEnable=1
-cMId_Font=33
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cRUN GFX2("curoff")
-cRUN GFX2("Select")
-cPRINT "Setting palettes from GSHPAL settings in
-/dd/sys/env.file..."
-cRUN GetGSHPal
-cRUN GFX2("Title",wd,"Font List",80,25,1)
-cRUN GFX2("Menu",wd,1,"Font Info",MID_Font, 6,1,m1,Disable)
-cRUN GFX2("Item",m1,1,"Info",Enable)
-cRUN GFX2("WnSet",2,wd)
-cRUN GFX2("SetMouse",3,1,1)
-cRUN GFX2("GCSet",$ca,4)
-cPRINT "Getting font list from /dd/sys/fontlist.txt..."
-cnumoffonts=0
-cON ERROR GOTO 10
-cOPEN #filepath,"/dd/sys/fontlist.txt":read
-clinenum=1
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cREPEAT
-cREAD #filepath,fonttext(linenum)
-clinenum=linenum+1
-cUNTIL LEFT$(fonttext(linenum-1),4)="----"
-cheader=fonttext(linenum-2)
-cRUN GFX2("CLEAR")
-cWHILE NOT(EOF(#filepath)) DO
-cnumoffonts=numoffonts+1
-cEXITIF numoffonts>100 THEN
-cnumoffonts=100
-cENDEXIT
-cREAD #filepath,fonttext(numoffonts)
-cENDWHILE
-cCLOSE #filepath
-cON ERROR
-cstartline=1
-cexitflag=FALSE
-cendline=startline+21
-cIF endline>numoffonts THEN
-cendline=numoffonts
-cENDIF
-cRUN GFX2("GCSet",0,0)
-cRUN GFX2("curxy",0,0)
-cRUN GFX2("revon")
-cPRINT header;
-cRUN GFX2("ereoline")
-cRUN GFX2("revoff")
-cRUN GFX2("CWArea",1,2,78,22)
-cFOR linenum=startline TO endline
-cRUN GFX2("curxy",0,linenum-1)
-cPRINT fonttext(linenum);
-cRUN GFX2("ereoline")
-cNEXT linenum
-cRUN GFX2("GCSet",$ca,1)
-cLOOP
-cRUN GFX2("curoff")
-cRUN GFX2("OnMouse",0)
-cRUN GFX2("Mouse",valid,fire,mx,my, area,sx,sy)
-cIF valid<>0 AND fire=1 AND area=1 THEN
-cRUN GFX2("GetSel",menuid,menuitem)
-c(* Scroll up
-cIF menuid=4 THEN
-c(* Check if already top (do nothing if we are)
-cIF startline>1 THEN
-cstartline=startline-1
-cendline=endline-1
-cIF endline<numoffonts THEN
-cendline=endline+1
-cENDIF
-cRUN GFX2("curxy",0,0)
-cRUN GFX2("INSLIN")
-cPRINT fonttext(startline);
-cRUN CalcBarPos(21+0,numoffonts, startline,ybarpos)
-cRUN GFX2("SBar",0,ybarpos)
-
-
-**_Basic09 Reference_**
-
-```
-cENDIF
-cELSE
-c(* Scroll down
-cIF menuid=5 THEN
-c(* Check if already bottom (do nothing if we are)
-cIF endline+1<=numoffonts THEN
-cendline=endline+1
-cstartline=startline+1
-cRUN GFX2("curxy",0,0)
-cRUN GFX2("DELLIN")
-cRUN GFX2("curxy",0,21)
-cPRINT fonttext(endline);
-cRUN CalcBarPos(21+0,numoffonts, startline,ybarpos)
-cRUN GFX2("SBar",0,ybarpos)
-cENDIF
-cELSE
-c(* Close box
-cIF menuid=2 THEN
-cexitflag=TRUE
-cENDIF
-cENDIF
-cENDIF
-cENDIF
-cEXITIF exitflag=TRUE THEN
-cENDEXIT
-cENDLOOP
-cRUN GFX2("CurOn")
-cGOTO 20
-c10 errnum=ERR
-cRUN GFX2("OWSet",1,10,10,60,7,0,3)
-cRUN GFX2("WnSet",4)
-cPRINT "Could not read /dd/sys/fontlist.txt"
-cPRINT "Error #";ERR
-cSHELL "ERROR "+STR$(errnum)
-cRUN GFX2("curon")
-cINPUT "Press <ENTER> to exit:",prompt
-cRUN GFX2("OWEnd")
-c20 RUN GFX2("WnSet",0)
-cRUN GFX2("curon")
-cEND
-PROCEDURE GetGshPal
-c(* Get GSHPAL settings, set palettes 0-3
-c(* If any errors, just return
-cDIM envfile:BYTE
-cDIM envline:STRING[128]
-cDIM tempstr:STRING[32]
-cDIM setpal(4):BYTE
-cDIM baseshift,colorvalue(3):INTEGER
-cDIM c,palclr,tempnum:INTEGER
-csetpal(1)=$1b
-csetpal(2)=$31
-csetpal(3)=0
-```
-
-```
-Displaying Text and Graphics | 9
-```
-csetpal(4)=0
-cON ERROR GOTO 5
-cOPEN #envfile,"/dd/sys/env.file":READ
-cWHILE (NOT(EOF(#envfile))) DO
-cREAD #envfile,envline
-cIF LEFT$(envline,1)<>"*" THEN
-cRUN ForceUpper(envline)
-cIF LEFT$(envline,6)="GSHPAL" THEN
-csetpal(3)=VAL(MID$(envline,7,1))
-cIF setpal(3)>=0 AND setpal(3)<=3 THEN
-ctempstr=RIGHT$(envline,LEN(envline)-SUBSTR("=",envline))
-cpalclr=0
-cFOR c=0 TO 2
-ccolorvalue(c+1)=VAL(MID$(tempstr,c*2+1,1))
-cNEXT c
-cFOR c=3 TO 1 STEP -1
-cbaseshift=VAL(MID$("0189",colorvalue(c)+1,1))
-cpalclr=palclr+baseshift
-cIF c=2 THEN
-cpalclr=palclr+baseshift
-cELSE
-cIF c=1 THEN
-cpalclr=palclr+baseshift*3
-cENDIF
-cENDIF
-cNEXT c
-csetpal(4)=palclr
-cPUT #1,setpal
-cENDIF
-cENDIF
-cENDIF
-cENDWHILE
-cCLOSE #envfile
-c5 ON ERROR
-cEND
-
-PROCEDURE ForceUpper
-cDIM curpos:INTEGER
-cPARAM str(128):BYTE
-cFOR curpos=1 TO 128
-cEXITIF str(curpos)=$FF THEN
-cENDEXIT
-cIF str(curpos)>=$61 AND str(curpos)<=$7A THEN
-cstr(curpos)=str(curpos)-$20
-cENDIF
-cNEXT curpos
-cEND
-
-PROCEDURE CalcBarPos
-c(* Entry:
-c(* barsize=# of row or columns in the scroll bar
-c(* numofelements=# of elements (lines or columns) in file we
-are viewing
-c(* elementnum=starting element # to view
-
-
-**_Basic09 Reference_**
-
-```
-c(* (all of the above are base 1)
-c(* Exit:
-c(* barposition=position to use in SBar (base 0)
-cPARAM barsize,numofelements, elementnum, barposition:INTEGER
-cDIM startelement,ydiff,ypos:REAL
-c(* Adjust start line # to base 0
-cstartelement=elementnum-1
-c(* If # of elements completely fits on screen, barposition
-always 0
-cIF numofelements<=barsize THEN
-cbarposition=0
-cELSE
-cIF startelement+barsize>=numofelements THEN
-cbarposition=barsize-1
-cELSE
-cydiff=FLOAT(barsize)/(numofelements-barsize)
-cIF startelement=1 THEN
-cbarposition=0
-cELSE
-cbarposition=INT(ydiff*startelement)
-cENDIF
-cENDIF
-cENDIF
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**SELECT Select window to view on screen**
-
-**Syntax: RUN GFX2([path,]"SELECT")**
-
-**Function:** SELECT causes a window to display if the procedure is operating in the
-active window. If the procedure is not in the active window, the newly selected
-window displays when you press [CLEAR]. If you do not specify a path, BASIC09
-selects the device using the standard input, standard output, and standard error
-paths, Paths 0, 1, and 2.
-
-**Parameters:**
-
-```
-path The path to the window to select.
-```
-**Examples:**
-
-```
-RUN GFX2("SELECT")
-RUN GFX2(1,"SELECT")
-RUN GFX2(PATH,"SELECT")
-```
-**Sample Procedure:**
-
-From /TERM, this procedure temporarily opens a path to the next free window,
-creates the window format, and uses SELECT to display the new window, draws a
-design, then returns to the /TERM screen, deallocates the window, and closes the
-path.
-
-```
-PROCEDURE design
-cDIM PATH,T,Y:INTEGER
-cOPEN #PATH,"/W":WRITE
-cRUN GFX2(PATH,"DWSET",5,0,0,80,24,3,2,2)
-cRUN GFX2(path,"PALETTE",1,9)
-cRUN GFX2(path,"CUROFF")
-cRUN GFX2(PATH,"SELECT")
-cY=1
-cFOR T=1 TO 200 STEP 3
-cY=Y+1
-cRUN GFX2(PATH,"ELLIPSE",320,96,T,Y)
-cNEXT T
-cRUN GFX2(PATH,"COLOR",1,2)
-cFOR T=200 TO 1 STEP -6
-cRUN GFX2(PATH,"ELLIPSE",320,96,T,Y)
-cNEXT T
-cRUN GFX2(1,"SELECT")
-cRUN GFX2(PATH,"DWEND")
-cCLOSE #PATH
-cEND
-```
-
-**_Basic09 Reference_**
-
-**TITLE Sets up the main Multi-Vue style window descriptor**
-
-**Syntax: RUN GFX2([path,],"TITLE",d_array,title$,xcolmin,ycolmin,
-menucount)**
-
-**Function:** Sets up the main window descriptor for Multi-Vue style windows, as
-well as the window title (shown when not the active window), the minimum size
-the window can be run in (by text columns/rows, which are 8x8 pixel chunks), and
-the maximum number of user-defined menu bar drop down menus. Note that the
-Close box is always present and does not need to be defined by the program and is
-not included in this count.
-
-**Parameters:**
-
-```
-path The route to the window that you are setting up a Multi-Vue
-style window.
-d_array The window descriptor array. It should be STRING[32] and the
-array should be the maximum number of menu pull downs you
-want +1 (i.e. 2 menu pulldowns should be DIM
-wd(3):STRING).
-title$ The title of the window. This will only display if the window is
-not the current active window (has control of the keyboard and
-mouse). Maximum 20 characters.
-xcolmin The minimum size (in text columns) that the window can run
-in.
-ycolmin The minimum size (in text rows) that the window can run in.
-menucount The number of menu pull downs that will appear on the menu
-bar.
-```
-**Examples:**
-
-```
-RUN GFX2("TITLE",wd,"Tools",34,10,2)
-```
-**Sample Procedure:**
-See the sample program for GETSEL.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**UMBAR Updates the menu bar, allowing enabling/disabling of menu
-items or entire menus under program control. It also allows a program to do
-its own pulldowns.**
-
-**Syntax: RUN GFX2([path,],"UMBAR")**
-
-**Function:** Updates the Menu bar and Menu pulldowns to change any
-activated/deactivated that the program updated through the menu and item arrays.
-If one makes a menu with no items, they can create their own dropdown using
-OWSet, and enable/disable the menu bar menu entry when needed. MVCanvas
-uses this for its Tools menu (which is all graphics and no text), for example.
-
-**Parameters:**
-
-```
-path The route to the window that you are updating the menu bar on.
-```
-**Examples:**
-
-```
-RUN GFX2("UMBAR")
-```
-**Sample Procedure:**
-
-```
-PROCEDURE FileUtils
-cDIM MId_File,MId_Utils,menuid,menuitem, Disable,Enable:INTEGER
-cDIM valid,fire,mx,my,area,sx,sy:INTEGER
-cDIM wd(3):STRING
-cDIM m1(4):STRING
-cDIM m2(4):STRING
-cDIM filename:STRING
-cDIM progname(3),prompt:STRING[6]
-cDIM openedflag,exitflag:BOOLEAN
-cDisable=0
-cEnable=1
-cMId_File=33
-cMId_Utils=34
-cprogname(1)="FStat"
-cprogname(2)="List"
-cprogname(3)="Dump"
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cRUN GFX2("curoff")
-cRUN GFX2("Select")
-cRUN GFX2("Palette",0,0)
-cRUN GFX2("Palette",1,7)
-cRUN GFX2("Palette",2,$38)
-cRUN GFX2("Palette",3,$3f)
-cRUN GFX2("Title",wd,"File Utilities",80,25,2)
-cRUN GFX2("Menu",wd,1,"File",MID_File,6,2, m1,Enable)
-cRUN GFX2("Item",m1,1,"Open",Enable)
-cRUN GFX2("Item",m1,2,"Close",Enable)
-cRUN GFX2("Menu",wd,2,"Utilities",MID_Utils,6,3, m2,Disable)
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX2("Item",m2,1,"FStat ",Enable)
-cRUN GFX2("Item",m2,2,"List ",Enable)
-cRUN GFX2("Item",m2,3,"Dump ",Enable)
-cRUN GFX2("WnSet",1,wd)
-cRUN GFX2("SetMouse",3,1,1)
-cRUN GFX2("GCSet",$ca,1)
-cexitflag=FALSE
-copenedflag=FALSE
-cLOOP
-cRUN GFX2("curoff")
-cRUN GFX2("OnMouse",0)
-cRUN GFX2("Mouse",valid,fire,mx,my,area,sx,sy)
-cIF valid<>0 AND fire=1 AND area=1 THEN
-cRUN GFX2("GetSel",menuid,menuitem)
-cIF menuid=2 THEN
-cexitflag=TRUE
-cELSE
-cIF menuid=MID_File THEN
-cIF menuitem=2 AND openedflag=TRUE THEN
-copenedflag=FALSE
-cRUN GFX2("Menu",wd,2,"Utilities",MID_Utils,6,3, m2,Disable)
-cRUN GFX2("UMBAR")
-cPRINT CHR$(12);
-cELSE
-cIF menuitem=1 THEN
-cSHELL "DIR"
-cRUN GFX2("CURON")
-cINPUT "Type in filename to open:",filename
-cRUN GFX2("CUROFF")
-cIF TRIM$(filename)<>"" THEN
-copenedflag=TRUE
-cRUN GFX2("Menu",wd,2,"Utilities",MID_Utils,6,3, m2,Enable)
-cRUN GFX2("UMBAR")
-cPRINT CHR$(12);"'";filename;"' selected"
-cELSE
-cPRINT CHR$(12)
-cENDIF
-cENDIF
-cENDIF
-cELSE
-cIF menuid=MID_Utils AND menuitem>=1 AND menuitem<=3 THEN
-cRUN GFX2("OWSet",1,2,2,76,21,0,3)
-cRUN GFX2("WnSet",4,wd)
-cSHELL progname(menuitem)+" "+filename
-cRUN GFX2("CURON")
-cINPUT "Press ENTER:",prompt
-cRUN GFX2("CUROFF")
-cRUN GFX2("OWend")
-cENDIF
-cENDIF
-cENDIF
-cENDIF
-cEXITIF exitflag=TRUE THEN
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cENDEXIT
-cENDLOOP
-cRUN GFX2("curon")
-cEND
-
-
-**_Basic09 Reference_**
-
-**WINFO Returns window information about the current window**
-
-**Syntax: RUN GFX2([path,]"WINFO",format,xsize,ysize,foreground,
-background,border)**
-
-**Function:** Returns the screen type, window size and current foreground,
-background and border colors for the process's window (or window on the optional
-path). Very useful for writing programs that adapt to the size of the window that
-they are run on.
-
-**Parameters:**
-
-```
-format Screen type. See Table 9.5 at the beginning of this section.
-xsize Current working area window width.
-ysize Current working area window height.
-foreground Foreground color.
-background Background color.
-border Border color.
-```
-**Examples:**
-
-```
-RUN GFX2("WINFO",sctype,curwidth,curheight,
-fgcolor,bkcolor,brdcolor)
-```
-**Sample Procedure:**
-
-```
-PROCEDURE winfo
-cDIM sctype,curwidth,curheight,fgcolor, bkcolor,brdcolor:INTEGER
-cDIM c,orgwidth,orgheight:INTEGER
-cDIM prompt:STRING[2]
-cGOSUB 100
-corgwidth=curwidth
-corgheight=curheight
-cRUN GFX2("OWSet",1,5,5,30,15,2,3)
-cPRINT "After overlay window,"
-cGOSUB 100
-cRUN GFX2("OWEnd")
-cRUN GFX2("CWArea",0,10,40,15)
-cFOR c=1 to 20
-cPRINT
-cNEXT c
-cPRINT "After CWArea,"
-cGOSUB 100
-cRUN GFX2("CWArea",0,0,orgwidth,orgheight)
-cRUN GFX2("CurXY",0,orgheight-1)
-cEND
-c100 RUN GFX2("WINFO",sctype,curwidth,curheight,
-fgcolor,bkcolor,brdcolor)
-cPRINT "Screen type=";sctype
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cPRINT "Current width=";curwidth
-cPRINT "Current height=";curheight
-cPRINT "Foreground color=";fgcolor
-cPRINT "Background color=";bkcolor
-cPRINT "Foreground color=";brdcolor
-cINPUT "Press [ENTER]:",prompt
-cRETURN
-
-
-**_Basic09 Reference_**
-
-**WNSET Actually sets the Multu-Vue window type (both with menus**
-
-**and not)**
-
-**Syntax: RUN GFX2([path,],"WNSET",wintype,d_array)**
-
-**Function:** Actually draws the Multi-Vue style window. NOTE: You must have set
-up your TITLE, MENU, and ITEM functions first (and the main window array) if
-you are going to be using any type of framed window (with or without scroll bars).
-You can also use WNSET on overlay windows as well. The window that WNSET
-is going to be changing the appearance of must be already set up via DWSET or
-OWSET as WNSET simply changes the existing window's appears for the Multi-
-Vue window type that is desired.
-
-**Parameters:**
-
-```
-path The route to the window that you are setting up a Multi-Vue
-style window.
-wintype The window frame type, from the table below. Only 1 and 2
-allow pull down menus. Note that only type 0 will let you print or draw in
-the entire window; window types >0 reserve the far edge columns and rows
-for borders, menus, etc.:
-```
-1. = normal window
-2. = framed menu window
-3. = framed menu window with scroll bars
-4. = shadowed box window
-5. = double box window
-6. = plain box window
-_d_array_ The window descriptor array. It should be STRING[32] and the
-array should be the maximum number of menu pull downs you want +1 (i.e.
-2 menu pulldowns should be DIM wd(3):STRING)
-
-**Examples:**
-
-```
-RUN GFX2("WnSet",1,wd)
-```
-**Sample Procedure:**
-See the sample program for GETSEL.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**Drawing Functions**
-
-```
-Function Description
-Arc Draws an arc
-Bar Draws a filled rectangle
-Box Draws a rectangle outline
-Circle Draws a circle
-Draw Draws an image from directions provided in a draw string
-Ellipse Draws an ellipse
-FCircle Draws a filled Circle
-FEllipse Draws a filled ellipse
-Fill Fills the area of the window the same color as the pixel under the draw
-pointer
-Line Draws a line
-Point Sets the pixel under the draw pointer to the specified color or to the
-default color
-```
-
-**_Basic09 Reference_**
-
-**ARC Draw an arc**
-
-**Syntax:** RUN GFX2({path,)“ARC”[,mx,my],xrad,yrad,xcor1,ycor1,xcor2,
-ycor2)
-
-**Function:** Draws an arc at the current or specified draw position with the specified
-X and Y radius. If you specify the same radius for both X and Y, the function
-draws a circular arc, otherwise the arc is elliptical. The X coordinates are in the
-range 0-639. The Y coordinates are in the range 0-199.
-
-ARC begins drawing from the point on the screen closest to the first set of
-coordinates (xcor1, ycor1). It stops at the portion of the screen closest to the
-second set of coordinates (xcor2, ycor2). You can determine on which side of the
-line ARC draws by selecting which set of coordinates is the beginning and which
-set is the end.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw an arc.
-mx,my The X- and Y-coordinates for the center of the arc. If you do
-not specify mx and my, BASIC09 uses the current draw
-pointer position.
-xrad The radius of the arc’s width.
-yrad The radius of the arc’s height.
-xcor1 ycor1 The beginning and ending coordinates for an imaginary line
-xcor2,ycor2 from which the function draws an arc. The line is relative to
-the center of the arc (the center point is at 0,0 for these
-coordinates) and extends through the two coordinates from
-one edge of the screen to the other. Negative coordinates are
-allowed.
-```
-**Examples:**
-
-```
-RUN GFX2("ARC",58,108,50,108,50,156)
-```
-**Sample Procedure:**
-This procedure draws a series of diagonally-cut arcs on a graphics window screen.
-
-```
-PROCEDURE arcing
-cDIM MX,MY,XRAD,YRAD,XCOR,YCOR,XCOR2,YCOR2:INTEGER
-cDIM T,X,Y,Z:INTEGER
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cPRINT CHR$(12)
-cFOR T=1 TO 98 STEP 2
-cRUN GFX2("ARC",318,95,150,T,0,1,0,1)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cRUN GFX2("ARC",324,95,150,T,1,0,1,1)
-cNEXT T
-
-
-**_Basic09 Reference_**
-
-**BAR Fill a rectangle**
-
-**Syntax:** RUN GFX2([path,]"BAR"[,xcor1,ycor1],xcor2,ycor2)
-
-**Function:** Fills a rectangular area defined by two sets of coordinates. BAR defines
-its area with an imaginary diagonal line from the first set of coordinates to the
-second set of coordinates. The X coordinates are in the range 0-639. The Y
-coordinates are in the range 0-199. BAR resets the draw pointer to its original
-position.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw a bar.
-xcor1,ycor1 The beginning coordinates of the line defining the area to fill.
-If you omit these coordinates, BAR uses the draw pointer
-position.
-```
-### The Graphics Cursor and the Draw Pointer 9-
-
-```
-Pointer." Also see SETDPTR.
-xcor2,ycor2 The ending coordinates of the line defining the area to fill.
-```
-**Examples:**
-
-```
-RUN GFX2("BAR",200,100)
-RUN GFX2("BAR",0,0,100,50)
-```
-**Sample Procedure:**
-This procedure draws a bar chart on a window screen.
-
-```
-PROCEDURE OSgraf
-cDIM COLOR,T,X,XCOR1,YCOR1,XCOR2,YCOR2:INTEGER;
-RESPONSE:STRING[1]
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cPRINT CHR$(12)
-cRUN GFX2("DEFCOL")
-cCOLOR=13 \ XCOR1=10 \ YCOR1=180
-cXCOR2=-XCOR1+40
-cRUN GFX2("CUROFF")
-cFOR T=1 TO 10
-cREAD YCOR2
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("BAR",XCOR1,YCOR1,XCOR2,YCOR2)
-cRUN GFX2("COLOR",7)
-cRUN GFX2("BOX",XCOR1,YCOR1,XCOR2,YCOR2)
-cCOLOR=COLOR+1 \ XCOR1=XCOR1+50 \ XCOR2=XCOR1+40
-cNEXT T
-cPRINT \ PRINT " NitrOS-9 Sales Chart"
-cRUN GFX2("BOX",0,0,510,180)
-cGET #1,RESPONSE
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cRUN GFX2("CURON")
-cPRINT CHR$(12)
-cEND
-cDATA 170,150,140,130,110,90,70,60,50,30
-
-
-**_Basic09 Reference_**
-
-**BOX Draw a rectangle**
-
-**Syntax: RUN GFX2([path,]"BOX"[,xcor1,ycor1],xcor2,ycor2)**
-
-**Function:** Draws a rectangle. BOX defines its area with an imaginary diagonal
-line from the first set of coordinates to the second set of coordinates. The X
-coordinates are in the range 0-639. The Y coordinates are in the range 0-199. BOX
-resets the draw pointer to its original position.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw a box.
-xcor1,ycor1 The beginning coordinates for the line that defines the
-rectangle to be drawn. If you omit these coordinates, BOX
-uses the draw pointer position.
-xcor2,ycor2 The ending coordinates for the line that defines the
-rectangular area to be drawn.
-```
-**Examples:**
-
-```
-RUN GFX2("BOX",200,100)
-RUN GFX2("BOX",0,0,100,50)
-```
-**Sample Procedure**
-This procedure draws a series of progressively smaller boxes of different colors on
-a window screen. Then, it rapidly changes the colors of the boxes to produce a
-hypnotic effect.
-
-```
-PROCEDURE hypbox
-cDIM X,Y,X1,Y1,T,R,COLOR: INTEGER
-cDIM KEY:STRING[1]
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cKEY=""
-cX=18 \Y=6
-cY1=185 \X1=621
-cRUN GFX2("CLEAR")
-cFOR T=0 TO 15
-cCOLOR=T
-cRUN GFX2("COLOR",3)
-cRUN GFX2("BOX",X,Y,X1,Y1)
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("FILL",X-1,Y-1)
-cX=X+18 \Y=Y+6
-cX1=X1-18 \Y1=Y1-6
-cNEXT T
-cWHILE KEY="" DO
-cRUN INKEY(KEY)
-cFOR T=1 TO 16
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cR=RND(65)
-cRUN GFX2("PALETTE",T,R)
-cNEXT T
-cENDWHILE
-cRUN GFX2("DEFCOL")
-cEND
-
-
-**_Basic09 Reference_**
-
-**CIRCLE Draw a circle**
-
-**Syntax: RUN GFX2([path,]"CIRCLE"[,xcor,ycor],radius)**
-
-**Function:** Draws a circle with a specified radius. If you specify coordinates,
-CIRCLE uses them for the center point. Otherwise, CIRCLE locates the center of
-the circle at the current draw pointer position. See "The Graphics Cursor and the
-Draw Pointer" earlier in this section. Also see SETDPTR.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw a circle.
-xcor,ycor The coordinates for the circle’s center. The X coordinates
-are in the range 0-639. The Y coordinates are in the range
-0-199.
-radius The radius of the circle.
-```
-**Examples:**
-
-```
-RUN GFX2("CIRCLE",100)
-RUN GFX2("CIRCLE",100,200,50)
-```
-**Sample Procedure:**
-This procedure uses circles to produce a geometric design.
-
-```
-PROCEDURE ciraround
-cDIM T,X,Y:INTEGER
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cPRINT CHR$(12)
-cRUN GFX2("COLOR",1,2)
-cFOR T=1 TO 130
-cX=150*SIN(T)+320
-cY=25*C0S(T)+96
-cRUN GFX2("CIRCLE",X,Y,100)
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cFOR T=1 TD 45
-cX=150*SIN(T)+320
-cY=25+C0S(T)+96
-cRUN GFX2("CIRCLE",X,Y,100)
-cNEXT T
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**DRAW Draw a polyline figure**
-
-**Syntax: RUN GFX2([path,]"DRAW",[xcor,ycor],option list)**
-
-**Function:** Draws, in the directions specified, and for the distances specified, in an
-option list. It allows an optional start location before the option list. The option list
-is a string of characters and numbers. You can separate options with spaces or
-commas or run them together. You must include commas between the two
-coordinates for the B and U options and the optional start position.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw.
-xcor,ycor Optional start coordinates. Sets the draw pointer to the
-specified coordinates before drawing.
-option list A string consisting of one or more of the following options:
-```
-```
-Options:
-N num draws north (up) num units.
-S num draws south (down) num units.
-E num draws east (right) num units.
-W num draws west (left) num units.
-NE num draws northeast (up and right) num units.
-NW num draws northwest (up and left) num units.
-SE num draws southeast (down and right) num units.
-SW num draws southwest (down and left) num units.
-A val rotates the draw axis. Possible values are:
-```
-1. = normal
-2. = 90 degrees
-3. = 180 degrees
-4. = 270 degrees
-U _xcor,ycor_ draws a relative vector to the specified coordinates.
-Xcor and ycor are relative to the current draw
-pointer position. The draw pointer location does not
-change. Xcor and ycor must be separated by a
-comma.
-B _xcor,ycor_ produces a blank line (moves the cursor but does not
-draw). The xcor and ycor coordinates are relative to
-the current draw pointer location. If you specify
-relative coordinates located offscreen, you cannot
-see subsequent lines.
-
-
-**_Basic09 Reference_**
-
-**Examples:**
-
-```
-RUN GFX2("DRAW","N10,E10,S10,W10")
-RUN GFX2("DRAW",155,95,"N10E10S10W10")
-```
-**Sample Procedure:**
-
-```
-PROCEDURE drawing
-cDIM T,X,Y,COLOR:INTEGER
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cCOLOR=0
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 96 STEP 6
-cRUN GFX2("SETDPTR",320,96)
-cFOR Y=0 TO 3
-cCOLOR=MOD(Y,2)
-cRUN GFX2("COLOR",COLOR)
-cFOR X=1 TO 4
-cREAD DR$
-cDR$="A"+STR$(Y)+DR$ +STR$(T)
-cRUN GFX2("DRAW",DR$)
-cNEXT X
-cNEXT Y
-cRESTORE
-cNEXT T
-cRUN GFX2("COLOR",3)
-cEND
-cDATA "N","E","S","W"
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**ELLIPSE Draw an ellipse**
-
-**Syntax: RUN GFX2([path,)"ELLIPSE"[,xcor,ycor],xrad,yrad)**
-
-**Function:** Draws an ellipse with the center at the current draw pointer position or
-at the specified X,Y coordinates. The X coordinates are in the range 0-639. The Y
-coordinates are in the range 0-199.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw.
-xcor,ycor The coordinates for the ellipse’s center. If you omit these
-coordinates, ELLIPSE uses the current draw pointer
-position.
-xrad,yrad The radii of the ellipse’s width and height.
-```
-**Examples:**
-
-```
-RUN GFX2(“ELLIPSE",100,50)
-RUN GFX2C"ELLIPSE",100,125,100,10)
-```
-**Sample Procedure:**
-This program uses ELLIPSE to draw a graphic design shaped like a Christmas tree
-decoration.
-
-```
-PROCEDURE xbulb
-cDIM T,Y:INTEGER
-cRUN GFX2("DWEnd")
-cRUN GFX2("DWSet",7,0,0,80,25,3,0,0)
-cY=1
-cRUN GFX2("COLOR",3,2)
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 180 STEP 3
-cY=Y+1
-cRUN GFX2("ELLIPSE",320,96,T,Y)
-cNEXT T
-cRUN GFX2("COLOR",1,2)
-cFOR T=180 TO 1 STEP -6
-cRUN GFX2("ELLIPSE",320,96,T,Y)
-cIF INT(T/3)=T/3 THEN
-cY=Y+1
-cENDIF
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cEND
-```
-
-**_Basic09 Reference_**
-
-**FCIRCLE Draw a filled (painted) circle**
-
-**Syntax: RUN GFX2([path,]"FCIRCLE"[,xcor,ycor],radius)**
-
-**Function:** Draws a filled in circle with a specified radius. If you specify
-coordinates, FCIRCLE uses them for the center point. Otherwise, FCIRCLE
-locates the center of the circle at the current draw pointer position. See "The
-Graphics Cursor and the Draw Pointer" earlier in this section. Also see SETDPTR.
-
-**Parameters:**
-
-```
-Path The route to the window in which you want to draw a circle.
-xcor,ycor The coordinates of the circle's center. The X coordinates are
-in the range of 0-639. The Y coordinates are in the range of
-0-199.
-Radius The radius of the circle. This value must be an INTEGER
-type.
-```
-**Examples:**
-
-```
-RUN GFX2("FCIRCLE",100)
-RUN GFX2("FCIRCLE",100,200,50)
-```
-**Sample Procedure:**
-This program generates a bulls-eye target.
-
-```
-PROCEDURE Bullseye
-cDIM C:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cRUN GFX2("CUROFF")
-cFOR C=0 TO 7
-cRUN GFX2("COLOR",LAND(C,3))
-cRUN GFX2("FCIRCLE",320,100,160-C*20)
-cNEXT C
-cRUN GFX2("CURON")
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**FELLIPSE Draw a filled (painted) ellipse**
-
-**Syntax: RUN GFX2([path],"FELLIPSE"[,xcor,ycor],xrad,yrad)**
-
-**Function:** Draws a filled in ellipse with center at the current draw pointer position
-or at the specified X,Y coordinates. The X coordinates are in the range 0-639. The
-Y coordinates are in the range 0-199.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to draw a circle.
-xcor,ycor The coordinates of the ellipse's center. If you omit these
-coordinates, ELLIPSE uses the current draw pointer
-position.
-xrad,yrad The radii of the ellipse's width and height. These values
-must
-be INTEGER types.
-```
-**Examples:**
-
-```
-RUN GFX2("FELLIPSE",100,50)
-RUN GFX2("FELLIPSE",100,50,200,50)
-```
-**Sample Procedure:**
-This program generates an elliptical bulls-eye target.
-
-```
-PROCEDURE BullseyeEllipse
-cDIM C:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cRUN GFX2("CUROFF")
-cFOR C=0 TO 7
-cRUN GFX2("COLOR",LAND(C,3))
-cRUN GFX2("FELLIPSE",320,100,320-C*20,100-C*10)
-cNEXT C
-cRUN GFX2("CURON")
-cEND
-```
-
-**_Basic09 Reference_**
-
-**FILL Fill (paint) window**
-
-**Syntax: RUN GFX2([path,]"FILL"[,xcor,ycor])**
-
-**Function:** Paints an area with the current foreground color. Paint fills the portion
-of the window that is the same color as the pixel under the draw pointer.
-
-**NOTE:** FILL can error out if it has a very complex area to fill. If this happens, try
-to use FILL in simpler areas multiple times rather than one large complex fill.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to use the FILL
-function.
-xcor,ycor Are optional X- and Y-coordinates to reposition the draw
-pointer before FILL begins. If you omit these coordinates,
-BASIC09 uses the current draw position.
-```
-**Examples:**
-
-```
-RUN GFX2("FILL",100,180)
-```
-**Sample Procedure:**
-This procedure draws and fills 100 boxes on a window.
-
-```
-PROCEDURE colorbox
-cDIM A,B,C,D,T,COLOR:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cCOLOR=0
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 100
-cA=RND(560)
-cB=RND(151)
-cC=A+RND(80)
-cD=B+RND(40)
-cCOLOR=COLOR+1
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("BOX",A,B,C,D)
-cRUN GFX2("FILL",A+1,B+1)
-cNEXT T
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**LINE Draw a line**
-
-**Syntax: RUN GFX2([path,]"LINE"[,xcor1,ycor1],xcor2,ycor2)**
-
-**Function:** Draws a line in one of the following ways:
- From the current draw pointer to the specified X- and Y-coordinates.
- From the specified beginning X- and Y-coordinates to the specified ending
-X- and Y-coordinates.
- **NOTE:** Horizontal lines are the fastest, followed by vertical lines, followed
-by diagonal lines.
-**Parameters:**
-
-```
-path The route to the window in which you want to draw a line.
-xcor1,ycor1 The optional beginning X- and Y-coordinates for the line.
-xcor2,ycor2 The ending X- and Y-coordinates for the line.
-```
-**Examples:**
-
-```
-RUN GFX2("LINE",192,128)
-RUN GFX2("LINE",0,0,192,128)
-```
-**Sample Procedure:**
-This procedure draws a sine wave of vertical lines across a window.
-
-```
-PROCEDURE waves
-cDIM A,X,Y,Z:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cCALC=0
-cA=100
-cRUN GFX2("CLEAR")
-cRUN GFX2("COLOR",3,2)
-cFOR X=0 TO 638 STEP 1
-cCALC=CALC+.05
-cY=A-SIN(CALC)*15
-cZ=Y+25
-cRUN GFX2("LINE",X,Y,X,Z)
-cNEXT X
-cEND
-```
-
-**_Basic09 Reference_**
-
-**POINT Mark a point**
-
-**Syntax: RUN GFX2([path,]"POINT"[,xcor,ycor])**
-
-**Function:** Sets the pixel at the current draw pointer position or at the specified
-coordinates to the current foreground color. If you do not specify coordinates,
-POINT sets the pixel at the draw pointer.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to turn on the
-specified pixels.
-xcor,ycor Optional coordinates for the POINT function. The
-X-coordinates are in the range 0-639. The Y-coordinates
-are in the range 0-199.
-```
-**Examples:**
-
-```
-RUN GFX2("POINT")
-RUN GFX2("POINT",192,128)
-```
-**Sample Procedure:**
-This procedure uses POINT to produce a swirl design on a window screen.
-
-```
-PROCEDURE paint
-cBASE 0
-cDIM X(20),Y(20):INTEGER
-cDIM T,R,J,K:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cJ=0
-cK=0
-cRUN GFX2("CUROFF")
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 288 STEP 3
-cJ=J+1
-cFOR R=0 TO 11
-cX(R)=INT(T*SIN(30+R+K))+320
-cY(R)=INT(J*COS(30+R+K))+96
-cRUN GFX2("POINT",X(R),Y(R))
-cK=K+1
-cNEXT R
-cNEXT T
-cRUN GFX2("CURON")
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Configuring Functions**
-
-```
-Function Description
-Border Sets the border palette register
-Color Sets any of the foreground, background, or border colors
-DefCol Sets palette registers to the default colors
-GCSet Establishes a buffer from which BASIC09 gets the graphics cursor
-Logic Turns on AND, OR, or XOR logic functions for draw functions
-Palette Changes colors in the palette registers
-```
-```
-Pattern Establishes a buffer from which BASIC09 gets a pattern for graphicsfunctions
-```
-```
-PutGC Positions the graphics cursor
-ScaleSw Turns scaling on or off
-SetDPtr Positions the draw pointer
-```
-
-**_Basic09 Reference_**
-
-**BORDER Set the border color**
-
-**Syntax: RUN GFX2([path,]"BORDER",color)**
-
-**Function:** Resets the palette register that affects a window's border color (register
-0) to the specified color code. For information on the palette and on screen colors,
-see "The Palette" and Table 9.5 earlier in this chapter.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to change border
-color.
-color One of the current palette colors. Color can be either a constant
-or a variable.
-```
-**Examples:**
-
-```
-RUN GFX2("BORDER",1)
-```
-**Sample Procedure:**
-This procedure lets you select different border colors by pressing [+] or [-] to select
-higher or lower color codes. Press [Q] to end the procedure.
-
-```
-PROCEDURE border
-cDIM COLOR:INTEGER
-cDIM KEY:STRING[1]
-cCOLOR=8
-cRUN GFX2("CLEAR")
-cWHILE KEY<>"q" AND KEY<>"Q" DO
-cGET #1,KEY
-cIF KEY="-" OR KEY="=" THEN
-cCOLOR=COLOR-1
-cENDIF
-cIF KEY="+" OR KEY=";" THEN
-cCOLOR=COLOR+1
-cENDIF
-cIF COLOR>8 OR COLOR<0 THEN COLOR=8
-cENDIF
-cRUN GFX2("BORDER",COLOR)
-cRUN GFX2("CURXY",0,0)
-cENDWHILE
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**COLOR Set screen colors**
-
-**Syntax: RUN GFX2([path,]"COLOR",foreground[,background]
-[,border])**
-
-**Function:** Changes any of the foreground, background, or the border colors.
-COLOR does not change the draw pointer position.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to change one or
-more screen or text colors.
-foreground The register number for the foreground palette.
-background The register number for the background palette.
-border The register number for the border palette. Changing the
-border color for any window on a screen, changes the
-border color for all windows on the same screen.
-```
-**Examples:**
-
-RUN GFX2("COLOR",1)
-RUN GFX2("COLOR",1,2)
-RUN GFX2("COLOR",1,2,1)
-**Sample Procedure:**
-This procedure fills a window screen with multicolored circles.
-
-```
-PROCEDURE bubbles
-cDIM X,Y,W,Z,T:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cZ=1
-cRUN GFX2("COLOR",1,0,0)
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 80
-cX=RND(635)+4
-cY=RND(185)+5
-cW=RND(50+5)
-cZ=Z+1
-cIF Z>3 THEN Z=1
-cENDIF
-cRUN GFX2("CIRCLE",X,Y,W)
-cRUN GFX2("COLOR",Z)
-cRUN GFX2("FILL",X,Y)
-cNEXT T
-cRUN GFX2("COLOR",3,2,2)
-cEND
-```
-
-**_Basic09 Reference_**
-
-**DEFCOL Set default colors**
-
-**Syntax: RUN GFX2([path,]"DEFCOL")**
-
-**Function:** Sets the palette registers back to their default values. The type of
-monitor you have determines the actual hues. See “The Palette” and Table 9.6
-earlier in this section.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to restore the original
-palette registers.
-```
-**Examples:**
-
-```
-RUN GFX2("DEFCOL")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**GCSET Set graphics cursor**
-
-**Syntax: RUN GFX2("GCSET",group,buffer)**
-
-**Function:** Defines a buffer from which BASIC09 gets the graphics cursor. This
-lets you define your own cursor for graphics operations. To turn the graphics
-cursor off, use a group Number 0. You must execute this command to display a
-graphics cursor. Before using GCSET, you must merge the Stdcur file in the SYS
-directory to the window.
-
-**NOTE:** The larger the graphics cursor is, the slower it will draw/redraw on the
-screen. Also, for optimal speed, a graphics cursor should be the same color depth
-as the screen it is running on. (a 2 color buffer for a 2 color screen, a 4 color buffer
-for a 4 color screen, a 16 color buffer for a 16 color screen). Please note that the
-standard graphics cursors in OS9/NitrOS9 are _only_ 2 color, so they will run a bit
-slower on a 4 or 16 color screen.
-
-**Parameters:**
-
-```
-group The group number of the buffer containing the cursor image to
-use. See NitrOS-9 Windowing System for information on the
-group to use.
-buffer The number of the buffer that contains the cursor image to use.
-See NitrOS-9 Windowing System for information on the buffer
-to use.
-```
-**Examples:**
-
-```
-RUN GFX2("GCSET",1,5)
-```
-
-**_Basic09 Reference_**
-
-**LOGIC Perform logic function**
-
-**Syntax: RUN GFX2("LOGIC","function")**
-
-**Function:** Causes BASIC09 to perform the specified logic function on all data bits
-used by subsequent drawing functions. Once set, the logic function remains in
-effect until you turn LOGIC off.
-
-**Parameters:**
-
-```
-function can be any of the following logical functions:
-OFF — no logic
-AND — performs AND logic
-OR — performs OR logic
-XOR — performs XOR logic
-```
-**Examples:**
-
-```
-RUN GFX2("LOGIC","AND")
-RUN GFX2("LOGIC","XOR")
-```
-**Sample Procedure:**
-This procedure uses LOGIC to draw a horizontal bar across a background of
-multicolored vertical bars. Using XOR logic, the procedure causes the horizontal
-bar to change the color of each vertical bar.
-
-```
-PROCEDURE logic
-cDIM A,Z,T,X,Y,COLOR:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cRUN GFX2("LOGIC","OFF")
-cRUN GFX2("CLEAR")
-cCOLOR=0
-cFOR T=0 TO 619 STEP 20
-cCOLOR=COLOR+1
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("BAR",T,0,T+20,190)
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cRUN GFX2("LOGIC","XOR")
-cFOR T=1 TO 10
-cRUN GFX2("BAR",0,80,639,112)
-cNEXT T
-cRUN GFX2("LOGIC","OFF")
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**PALETTE Set color for palette registers**
-
-**Syntax: RUN GFX2([path,]"PALETTE",register,color)**
-
-**Function:** Sets palette colors. Lets you install any of the Color Computer’s 64
-colors in the palette for use with text and graphics.
-
-**Parameters:**
-
-```
-path The route to the window where you want to change palette
-colors.
-register The number of the register in which you want to install a new
-color.
-color The code of the new color you want to install.
-```
-**Examples:**
-
-```
-RUN GFX2("PALETTE",13,32)
-```
-**Sample Procedure:**
-This procedure draws a series of bars and circles, then repeatedly changes their
-colors using PALETTE.
-
-```
-PROCEDURE palette
-cDIM T,K,J,X,Y,COLOR:INTEGER
-cDIM RESPONSE:STRING[1]
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cRUN GFX2("COLOR",3,2,2)
-cCOLOR=0
-cRUN GFX2("CLEAR")
-cRUN GFX2("CUROFF")
-cFOR Y=0 TO 23 STEP 3
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("BAR",0,Y,639,Y+3)
-cCOLOR=COLOR+1
-cIF COLOR=2 THEN
-cCOLOR=COLOR+1
-cENDIF
-cNEXT Y
-cFOR Y=164 TO 185 STEP 3
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("BAR",0,Y,639,Y+3)
-cCOLOR=COLOR+1
-cNEXT Y
-cCOLOR=0
-cFOR K=45 TO 170 STEP 48
-cFOR T=100 TO 580 STEP 100
-cRUN GFX2("COLOR",3)
-cRUN GFX2("CIRCLE",T,K,30)
-cRUN GFX2("COLOR",COLOR)
-```
-
-**_Basic09 Reference_**
-
-```
-cRUN GFX2("FILL",T,K)
-cCOLOR=COLOR+1
-cIF COLOR=2 THEN
-cCOLOR=COLOR+1
-cENDIF
-cNEXT T
-cNEXT K
-cREPEAT
-cX=RND(63)
-cREPEAT
-cY=RND(16)+1
-cUNTIL Y<>2
-cRUN GFX2("PALETTE",Y,X)
-cRUN INKEY(RESPONSE)
-cUNTIL RESPONSE>""
-cRUN GFX2("DEFCOL")
-cRUN GFX2("CURON")
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**PATTERN Select pattern buffer**
-
-**Syntax: RUN GFX2([path,]"PATTERN",group,buffer)**
-
-**Function:** Selects the contents of a preloaded Get/Put buffer as a pattern for
-graphics functions. Although PATTERN can use a buffer of any size, it uses a
-specific number of bytes, depending on the screen format in use:
-
-```
-Color
-Mode
-```
-```
-Pattern
-Array Size
-```
-```
-Bits
-Per Pixel
-02 4 bytes x 8 bytes = 32 bytes 1
-04 8 bytes x 8 bytes = 64 bytes 2
-16 16 bytes x 8 bytes = 128 bytes 4
-```
-The pattern array is a 32 x 8 pixel representation of graphics memory. It takes the
-current color mode into consideration to define the number of bits per pixel and
-pixels per byte. If the buffer is larger than the number of bytes required,
-PATTERN ignores the extra bytes. BASIC09 uses the selected pattern with all
-draw commands until you change the pattern or turn off the pattern function by
-specifying a group and buffer number of 0.
-
-**NOTE:** One should use patterns for the Color Mode that matches the screen type
-that they are using to get the maximum speed. If they don't match, the graphics
-driver has to do a pixel by pixel conversion for every drawing command that is
-using the pattern, which is much slower. NitrOS9 EOU preloads the standard and
-MVCanvas pattern buffers for all 3 color depths (2, 4 and 16 color).
-
-**Parameters:**
-
-```
-path The route to the window in which you want to use a new
-graphics pattern,
-group The group number of the buffer you want to use for a graphics
-pattern.
-buffer The buffer number that you want to use for a graphics pattern.
-```
-**Examples:**
-
-```
-RUN GFX2("PATTERN",1,3)
-```
-
-**_Basic09 Reference_**
-
-**Sample Procedure:**
-This procedure loads the current window data at location 0,0 into a buffer to use as
-a draw pattern. It then draws a circle and fills the circle with the pattern in the
-buffer.
-
-```
-PROCEDURE pattern
-cTYPE registers=cc,a,b,dp:BYTE; x,y,u:INTEGER
-cDIM regs:registers
-cDIM buffernum:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cbuffernum=-1
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",8,0,0,40,25,3,2,2)
-cWHILE buffernum<>0 DO
-cRUN GFX2("COLOR",4)
-cRUN GFX2("CLEAR")
-cRUN GFX2("FCIRCLE",320,96,100)
-cRUN GFX2("CURXY",0,23)
-cRUN GFX2("ERLINE")
-cINPUT "Buffer #0-16, 0=quit:",buffernum
-cEXITIF buffernum=0 THEN
-cENDEXIT
-cRUN GFX2("PATTERN",205,buffernum)
-cRUN GFX2("COLOR",3)
-cRUN GFX2("FILL",320,96)
-cRUN GFX2("PATTERN",0,0)
-cregs.x=60
-cRUN SysCall($0A,regs)
-cENDWHILE
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**PUTGC Put graphics cursor**
-
-**Syntax: RUN GFX2([path,]"PUTGC",xcor,ycor)**
-
-**Function:** Places and displays the graphics cursor at the specified location. Use
-screen relative coordinates for this function, not window relative coordinates. The
-horizontal range is 0-639. The vertical range is 0-199.
-
-**Parameters:**
-
-```
-path The route to the window where you want to display a graphics
-cursor.
-xcor,ycor The screen coordinates for the cursor location. The
-X coordinates are in the range 0-639. The Y coordinates
-are in the range 0-199.
-```
-**Examples:**
-
-```
-RUN GFX2("PUTGC",100,5)
-```
-**Sample Procedure:**
-This procedure displays the available graphic cursors stored in group 202. Before
-this procedure can work, you must merge the Stdptrs file in the SYS directory of
-your system disk with the window you are using. For instance, if your system
-diskette is in Drive /D0, merge Stdptrs with Window 1, by typing:
-
-```
-merge /d0/sys/stdptrs > /w1
-```
-NitrOS9/EOU pre-loads the standard graphic cursors.
-
-```
-PROCEDURE viewcur
-cDIM T,Z:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,0,2,2)
-cRUN GFX2("CLEAR")
-cFOR T=1 TO 7
-cRUN GFX2("GCSET",202,T)
-cRUN GFX2("PUTGC",320,96)
-cFOR Z=1 TO 6000
-cNEXT Z
-cNEXT T
-cRUN GFX2("GCSET",0,0)
-cEND
-```
-
-**_Basic09 Reference_**
-
-**SCALESW Enable/disable scaling**
-
-**Syntax: RUN GFX2([path,]"SCALESW","switch")**
-
-**Function:** Enables or disables scaling when drawing on variously formatted
-windows. Scaling in windows is normally on. If scaling is off, coordinates are
-relative to the window origin coordinates. Scaling does not affect text.
-
-**Parameters:**
-
-```
-path The route to the window where you want to turn scaling off or on.
-switch Either OFF (disable scaling} or ON (enable scaling).
-```
-**Examples:**
-
-```
-RUN GFX2("SCALESW","OFF")
-```
-**Sample Procedure:**
-This procedure runs a routine of drawing a design in overlay windows twice. The
-routine runs once with scaling off and once with scaling on. After the first routine
-pauses, press the space bar to see the second demonstration.
-
-```
-PROCEDURE scale
-cDIM X,Y,X1,Y1,T,B,J,R,W,Z:INTEGER
-cDIM RESPONSE:STRING[1]
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("PALETTE",1,9)
-cRUN GFX2("CUROFF")
-cRUN GFX2("CLEAR")
-cPRINT "The first set of windows will be with scaling off."
-cPRINT "The second set of windows will be with scaling on."
-cINPUT "Press [ENTER] to begin:",response
-cFOR J=1 TO 2
-cIF J=1 THEN
-cRUN GFX2("SCALESW","OFF")
-cELSE
-cRUN GFX2("SCALESW","ON")
-cENDIF
-cX=0 \Y=0 \X1=80 \Y1-24
-cFOR T=1 TO 4
-cIF T=2 OR T=4 THEN
-cB=3
-cELSE
-cB=2
-cENDIF
-cRUN GFX2("OWSET",1,X,Y,X1,Y1,B,T)
-cFOR R=1 TO 35
-cW=40*SIN(R)+170
-cZ=25+COS(R)+45
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cRUN GFX2("CIRCLE",W,Z,30)
-cNEXT R
-cX=X+6 \Y=Y+2 \X1=X1-12 \Y1=Y1-4
-cNEXT T
-cPRINT "Press A Key...";
-cGET #1,RESPONSE
-cFOR T=1 TO 4
-cRUN GFX2("OWEND")
-cNEXT T
-cNEXT J
-cEND
-
-
-**_Basic09 Reference_**
-
-**SETDPTR Set draw pointer**
-
-**Syntax: RUN GFX2([path,]"SETDPTR",xcor,ycor)**
-
-**Function:** Places the draw pointer at the specified coordinates. The draw pointer
-selects the beginning point of the next graphics draw function (such as CIRCLE,
-LINE, BOX, and so on), if you do not supply other coordinates.
-
-**Parameters:**
-
-```
-path The route to the screen where you want to set the draw pointer.
-xcor,ycor The screen coordinates for the draw pointer location. The
-X-coordinates are in the range 0-639. The Y-coordinates are in
-the range 0- 199.
-```
-**Examples:**
-
-```
-RUN GFX2("SETDPTR",100,5)
-```
-**Sample Procedure:**
-This procedure uses coordinates from a DATA statement for setting the draw
-pointer to create a series of star shapes.
-
-```
-PROCEDURE star
-cDIM X,Y,T,J:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cPRINT CHR$(12)
-cFOR J=1 TO 10
-cREAD X,Y
-cRUN GFX2("SETDPTR",X+J,Y+J+J)
-cFOR T=1 TO 5
-cREAD X,Y
-cRUN GFX2("LINE",X+J,Y+J+J)
-cNEXT T
-cNEXT J
-cDATA 320,46,440,146,200,84,440,84,200,146,320,46
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Get/Put Functions**
-
-```
-FunctionDescription
-DefBuff Defines a buffer for storage
-Get Saves a specified portion of a window to a buffer
-GPLoad Preloads a buffer from a disk file
-KillBuff Deallocates a buffer
-Put Places the image stored in a buffer onto a window
-```
-
-**_Basic09 Reference_**
-
-**DEFBUFF Define a GET/PUT buffer**
-
-**Syntax: RUN GFX2("DEFBUFF",group,buffer,size)**
-
-**Function:** Defines a buffer for GET/PUT operations and other purposes.
-
-When you define a buffer, you do so by group number and buffer number. Each
-buffer you define can allocate up to 48K (free RAM permitting). These buffers can
-be mapped into a process space to be manipulated (assuming enough free space in
-the process' RAM along with its program and data areas) that can then be used for
-GET/PUT graphics, clipboards and other data storage. The system needs 30 bytes
-overhead (buffer definitions) for GET/PUT buffers. Within the group, you can
-allocate one or more buffers. Select a group number and a buffer number as
-indicated in the following "Parameters" section. Use these numbers in future
-references to the buffer.
-
-A buffer remains allocated until you use the KILLBUFF function to remove it
-from your system's memory. For more information on GET/PUT buffers, see
-KILLBUFF, PUT, GET, and GPLOAD.
-
-**Parameters:**
-
-```
-group A number you select in the range 1-199.
-buffer A number (in the range 1-255) that you assign to the
-buffer you create.
-size The size of the buffer, in the range of 1 to 49152 bytes,
-depending on available memory in your system.
-NOTE: If the size is >32767, it will need to be specified in
-hexadecimal format. Example: To make a buffer of 40000 bytes,
-pass the size as '$9C40'.
-```
-**Notes:** One method of selecting a group number is to use the ID function to obtain
-your user's process ID number. Then, use this ID number as the base group
-number. A general guideline is that system wide buffers, such as fonts, mouse
-cursors, etc., use reserved groups 200 to 254 (some of those are reserved for future
-use). Group 255 is not directly accessible to a user process; this group is reserved
-for overlay windows.
-
-If a program needs more than 255 buffers then their "home" group number can
-provide, it can use additional group numbers that are their home group number
-plus multiples of 32, as long as the result is <200. (So process #3 could use groups
-3,35,67,99,131,163; this would allow for up to 1,530 buffers for a single process).
-
-
-```
-Displaying Text and Graphics | 9
-```
-**Examples:**
-
-```
-RUN GFX2("DEFBUFF",1,5,$4000)
-```
-
-**_Basic09 Reference_**
-
-**GET Get a block from the window**
-
-**Syntax: RUN GFX2([path,]"GET",group,buffer,xcor,ycor,xsize,ysize)**
-
-**Function:** Saves a window area Get/Put buffer. Use PUT to replace the image to
-the window. If you did not previously define the buffer, BASIC09 creates it. If you
-store the window data in a predefined buffer, the data must be the same size or
-smaller than the buffer, If not, BASIC09 truncates the data to the size of the buffer.
-(Also see PUT and DEFBUFF.)
-
-**Parameters:**
-
-```
-path The route to the window where you want to save an image.
-group The group number of the Get buffer (1-199).
-buffer The Get buffer number (1-255).
-xcor,ycor The X- and Y-coordinates of the upper left corner of the
-window image to save. The X-coordinates are in the range
-0-639. The Y-coordinates are in the range 0-199.
-```
-```
-Note: You can GET/PUT on a hardware text screen, and the X and Y
-ranges on those are 0-39 or 0-79 (40 and 80 column text screen
-respectively, and 0-24 on the Y range. Also, a buffer going off the
-right side of the screen wraps around to the next line(s) on the left.
-xsize The horizontal size of the window section to save.
-ysize The vertical size of the window section to save.
-```
-**Examples:**
-
-```
-RUN GFX2("GET",1,5,0,0,10,15)
-```
-**Sample Procedure:**
-This procedure draws a character, loads it into a buffer, then repeatedly replaces
-the character to the window screen using PUT. Each new image erases the
-previous image, giving an impression of animation.
-
-```
-PROCEDURE putdown
-cDIM T,J:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("CLEAR")
-cRUN GFX2("ELLIPSE",320,96,12,4)
-cRUN GFX2("CIRCLE",320,90,5)
-cRUN GFX2("COLOR",1)
-cRUN GFX2("FILL",320,96)
-cRUN GFX2C"COLOR",3)
-cRUN GFX2C"FILL",320,90)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cRUN GFX2("BAR",305,100,335,104)
-cRUN GFX2("GET",1,1,288,85,50,23)
-cRUN GFX2("GET",1,2,1,1,50,23)
-cRUN GFX2("PUT",1,2,288,85)
-cJ=10
-cFOR T=20 TO 559 STEP 4
-cJ=J+1
-cRUN GFX2("PUT",1,1,T,J)
-cNEXT T
-cRUN GFX2("KILLBUFF",1,1)
-cRUN GFX2("CURON")
-cEND
-
-
-**_Basic09 Reference_**
-
-**GPLOAD Load data into Get/Put buffer**
-
-**Syntax: RUN GFX2("GPLOAD",group,buffer,format,xdim,ydim,size)**
-
-**Function:** Loads a buffer with image data that PUTBLK can use for window
-displays. If the Get/Put buffer is not created, BASICO9 creates it. If it is defined,
-the size of the data should not be larger than the buffer. This command allows a
-Get/Put buffer to be loaded from disk or created from scratch, amongst other
-things.
-
-**Parameters:**
-
-```
-group The group number you select, in the range 1-199, to let you
-group buffers.
-buffer A number in the range 1-255 that you assign to the buffer you
-create.
-format The type code of the screen format. (See Table 9-3.)
-xdim The X (horizontal) dimension of the stored block.
-ydim The Y (vertical) dimension of the stored block.
-size The size of the buffer in bytes. A buffer size can be up to 32
-kilobytes, depending on available memory.
-```
-**Examples:**
-
-```
-RUN GFX2("GPLOAD",1,5,6,100,50,5000)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**KILLBUFF Deallocate Get/Put buffer**
-
-**Syntax: RUN GFX2("KILLBUFF",group,buffer)**
-
-**Function:** Deallocates the indicated Get/Put buffer, returning it's memory to the
-system. You select group and buffer numbers when you define a buffer or when
-you load or get a window image. For more information on Get/Put buffers, see
-DEFBUFF, PUT, GET, and GPLOAD.
-
-**Parameters:**
-
-```
-group The group number of the buffer you want to deallocate, in the
-range 1-199. Buffer Group Numbers 0 and 200-255 are
-reserved for NitrOS-9 system use.
-buffer The number of the buffer to deallocate, in the range 1-255.
-If you want to kill an entire group of buffers, use buffer 0.
-```
-**Examples:**
-
-```
-RUN GFX2("KILLBUFF",1,5)
-```
-**Sample Procedure:**
-This procedure draws a figure on a window screen, loads it into a buffer, then
-repeatedly places it in new locations on the screen. Each new PUT erases the
-previous image.
-
-```
-PROCEDURE putdown
-cDIM X,Y,T,J:INTEGER
-cRUN GFX2("CUROFF")
-cRUN GFX2("CLEAR")
-cRUN GFX2("ELLIPSE",320,96,12,4)
-cRUN GFX2("CIRCLE",320,90,5)
-cRUN GFX2("COLOR",1)
-cRUN GFX2("FILL",320,96)
-cRUN GFX2("COLOR",3)
-cRUN GFX2("FILL",320,90)
-cRUN GFX2("BAR",305,100,335,104)
-cRUN GFX2("GET",1,1,288,85,50,23)
-cRUN GFX2("GET",1,2,1,1,50,23)
-cRUN GFX2("PUT",1,2,288,85)
-cJ=10
-cFOR T=20 TO 559 STEP 6
-cJ=J+2
-cRUN GFX2("PUT",1,1,T,J)
-cNEXT T
-cRUN GFX2("KILLBUFF",1,1)
-cRUN GFX2("CURON")
-cEND
-```
-
-**_Basic09 Reference_**
-
-**PUT Put a saved data block on the window**
-
-**Syntax: RUN GFX2([path,]"PUT",group,buffer,xcor,ycor)**
-
-**Function:** Places the image in the specified Get/Put buffer on the window. PUT
-requires only the group and buffer numbers and the window coordinates for the
-upper left corner of the image. The GET function saves the dimensions of the
-block in the buffer. PUT automatically handles window format conversion;
-however it should be noted that if conversion is needed (different color depth
-between the buffer and the window), it greatly slows down. Clipping currently also
-slows things down, except for clipping on the bottom. Hardware text windows now
-allow GET/PUT as well, requiring 2 bytes per character, but they will wrap to the
-next line on the right side rather than clip. It should also be noted that PUT is
-heavily optimized when drawn on even byte boundaries horizontally that match the
-original GET (vertical does not matter). This is every 2 pixels in a 16 color mode,
-every 4 pixels in a 4 color mode, and every 8 pixels in a 2 color mode. The speed
-gains can be several times faster.
-
-**Parameters:**
-
-```
-path The route to the window where you want to place a pre-saved
-image.
-group The group number of the buffer in which to save the window
-data. If this your own and not a system one, it is recommended
-that you use your process ID (see the ID function) as the
-primary group number. See GET for further details.
-xcor,ycor The X- and Y-coordinates of the upper left corner of the
-window position. The X-coordinates are in the range of 0-639.
-The Y-coordinates are in the range 0-199. On hardware text
-windows, they are 0-39 (40 column) or 0-79 (80 column) for
-the X-coordinate, and 0-24 for the Y coordinate.
-```
-```
-Note: You can GET/PUT on a hardware text screen, and the X and Y
-ranges on those are 0-39 or 0-79 (40 and 80 column text screen
-respectively, and 0-24 on the Y range. Also, a buffer going off the
-right side of the screen wraps around to the next line(s) on the left.
-```
-**Examples:**
-
-```
-RUN GFX2("PUT",1,5,100,50)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Sample Procedure:**
-This procedure draws a character, loads it into a buffer, then repeatedly replaces
-the character to the window screen using PUT. Each new image erases the
-previous image, giving an impression of animation. The program will also
-demonstrate the speed difference between even byte boundary PUT and non-even
-byte boundary PUT. Note that the even byte version is actually drawing more
-frames than the non-even one (90 times vs. 135) yet is still much faster.
-
-```
-PROCEDURE putdown
-cDIM x,y,t,j,idnum:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("CUROFF")
-cRUN GFX2("CLEAR")
-cRUN GFX2("PALETTE",1,9)
-cRUN GFX2("ID",idnum)
-cRUN GFX2("ELLIPSE",320,96,12,4)
-cRUN GFX2("CIRCLE",320,90,5)
-cRUN GFX2("COLOR",1)
-cRUN GFX2("FILL",320,96)
-cRUN GFX2("COLOR",3)
-cRUN GFX2("FILL",320,90)
-cRUN GFX2("BAR",305,100,335,104)
-cRUN GFX2("GET",idnum,1,288,85,50,23)
-cRUN GFX2("GET",idnum,2,0,1,50,23)
-cRUN GFX2("PUT",idnum,2,288,85)
-cRUN GFX2("CURXY",40,1)
-cPRINT "Non-boundary PUT";
-cj=10
-cFOR t=20 TO 559 STEP 6
-cj=j+2
-cRUN GFX2("PUT",idnum,1,t,j)
-cNEXT t
-cRUN GFX2("CURXY",40,1)
-cPRINT "Even boundary PUT";
-cj=10
-cFOR t=20 TO 559 STEP 4
-cj=j+1
-cRUN GFX2("PUT",idnum,1,t,j)
-cNEXT t
-cRUN GFX2("KILLBUFF",idnum,0)
-cRUN GFX2("CURXY",0,23)
-cRUN GFX2("CURON")
-cEND
-```
-
-**_Basic09 Reference_**
-
-**Text/Cursor Handling Functions**
-
-```
-Function Description
-```
-#### BELL - Ring the Terminal Bell 9-
-
-#### CLEAR - Homes the Cursor and Clears the Screen 9-
-
-```
-CrRtn Performs a carriage return by moving the cursor down one line and
-to the extreme left of the window
-CurDwn Moves the graphics cursor down one line
-CurHome Positions the cursor at coordinates 0,0
-CurLft Moves the graphics cursor left one space
-```
-#### CUROFF - Turn Cursor Off 9-
-
-#### CURON - Turn Cursor On 9-
-
-```
-CurRgt Moves the graphics cursor right one space
-CurUp Moves the graphics cursor up one line
-CurXY Positions the cursor at specified coordinates
-DelLin Deletes the line at the graphics cursor position
-```
-#### EREOLINE - Erase to End of Line 9-
-
-#### EREOWNDW - Erase to End of Window 9-
-
-```
-ErLine Erases the line under the cursor
-InsLin Inserts a blank line at the graphics cursor position
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**BELL Ring the terminal bell**
-
-**Syntax: RUN GFX2("BELL")**
-
-**Function:** Rings the terminal’s bell (produces a beep through the speaker).
-
-**Parameters:**
-
-```
-None
-```
-**Examples:**
-
-```
-RUN GFX2("BELL")
-```
-**CLEAR Clear the screen**
-
-**Syntax: RUN GFX2([path,]"CLEAR")**
-
-**Function:** Clears the current working area of a window. CLEAR does not change
-the location of the draw pointer but does set the text cursor and graphics cursor
-location to the upper left corner of the window.
-
-**Parameters:**
-
-```
-path The route to the window you want to clear.
-```
-**Examples:**
-
-```
-RUN GFX2("CLEAR")
-```
-**CRRTN Carriage return**
-
-**Syntax: RUN GFX2([path,]"CRRTN")**
-
-**Function:** Causes BASIC09 to send a carriage return to a window. The cursor
-moves down one line and to the extreme left of the window.
-
-**Parameters:**
-
-```
-path The route to the window in which you want a carriage return.
-```
-**Examples:**
-
-```
-RUN GFX2("CRRTN")
-```
-
-**_Basic09 Reference_**
-
-**CURDWN Cursor down**
-
-**Syntax: RUN GFX2([path,]"CURDWN")**
-
-**Function:** Moves the cursor down one text line. The X-coordinate, or column
-position, remains the same.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to move the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURDWN")
-```
-**CURHOME Cursor home**
-
-**Syntax: RUN GFX2([path,]"CURHOME")**
-
-**Function:** Moves the text cursor to the top left corner of the screen.
-
-**Parameters:**
-
-```
-path The route to the window where you want to reset the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURHOME")
-```
-**CURLFT Move cursor left**
-
-**Syntax: RUN GFX2(path,]"CURLFT")**
-
-**Function:** Moves the cursor one character to the left.
-
-**Parameters:**
-
-```
-path The route to the window where you want to move the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURLFT")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**CUROFF Turn off cursor**
-
-**Syntax RUN GFX2([path,]"CUROFF")**
-
-**Function:** Makes the cursor invisible.
-
-**NOTE:** Shutting off the text cursor will speed up text output slightly. On graphics
-windows, it will also speed up graphics commands, as the system will not need to
-remove and redraw the cursor before and after every graphics command.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to turn the cursor off.
-```
-**Examples:**
-
-```
-RUN GFX2("CUROFF")
-```
-**CURON Turn on cursor**
-
-**Syntax: RUN GFX2([path,]"CURON")**
-
-**Function:** Makes the text cursor visible.
-
-**NOTE:** Turning on the text cursor will slow down text output slightly. On
-graphics windows, it will also slow down graphics commands, as the system will
-need to remove and redraw the cursor before and after every graphics command.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to turn the cursor on.
-```
-**Examples:**
-
-```
-RUN GFX2("CURON")
-```
-**CURRGT Move cursor right**
-
-**Syntax: RUN GFX2([path,]"CURRGT")**
-
-**Function:** Moves the cursor one character to the right.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to move the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURRGT")
-```
-
-**_Basic09 Reference_**
-
-**CURUP Move cursor up**
-
-**Syntax: RUN GFX2([path,]"CURUP")**
-
-**Function:** Moves the cursor up one line.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to move the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURUP")
-```
-**CURXY Set cursor position**
-
-**Syntax: RUN GFX2([path,]"CURXY",column,row)**
-
-**Function:** Moves the cursor to the specified column and row position. The column
-and row coordinates are relative to the window’s current character width and
-height.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to move the cursor.
-column The column (horizontal) position for the cursor. Please note that
-if you are on a graphics screen and have a 6 pixel wide font
-selected, that the column will properly take that into
-consideration. The following table lists the column values.
-```
-```
-Font Width
-Types 6 Pixel 8 Pixel
-6,8 0-53 0-39
-5,7 0-105 0-79
-```
-```
-row The row (vertical) position for the cursor.
-```
-**Examples:**
-
-```
-RUN GFX2("CURXY",10,10)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**DELLIN Delete current line of text**
-
-**Syntax: RUN GFX2([path,]"DELLIN")**
-
-**Function:** Deletes the line on which the cursor is resting and closes the space.
-DELLIN operates on both text and graphics screens.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to delete a line.
-```
-**Examples:**
-
-```
-RUN GFX2("DELLIN")
-```
-**Sample Procedure:**
-This procedure draws a series of various colored concentric circles, then produces
-a lemon shape by removing slices of the circle with DELLIN
-
-```
-PROCEDURE slice
-cDIM X,Y,R,T,COLOR:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("CLEAR")
-cCOLOR=0
-cX=320
-cY=96
-cFOR T=185 TO 10 STEP -10
-cRUN GFX2("CIRCLE",X,Y,T)
-cNEXT T
-cFOR T=140 TO 320 STEP 10
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("FILL",T,96)
-cCOLOR=COLOR+1
-cNEXT T
-cRUN GFX2("CURXY",0,8)
-cFOR T=1 TO 8
-cRUN GFX2("DELLIN")
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cEND
-```
-
-**_Basic09 Reference_**
-
-**EREOLINE Erase to end of line**
-
-**Syntax: RUN GFX2([path,]"EREOLINE")**
-
-**Function:** Deletes the portion of the current line from the cursor to the right side of
-the window.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to erase a portion of a
-line.
-```
-**Examples:**
-
-```
-RUN GFX2("EREOLINE")
-```
-**Sample Procedure:**
-This procedure uses EREOLINE to produce a series of steps down the screen.
-
-```
-PROCEDURE steps
-cDIM T,J,K:INTEGER
-cRUN GFX2("COLOR", 2,3)
-cRUN GFX2("CLEAR")
-cRUN GFX2("COLOR",3,2)
-cFOR T=0 TO 22
-cJ=T*3
-cRUN GFX2("CURXY",J,T)
-cRUN GFX2("EREOLINE")
-cNEXT T
-```
-**EREOWNDW Erase to end of window**
-
-**Syntax: RUN GFX2([path,]"EREOWNDW")**
-
-**Function:** Deletes all the lines in a window from the line on which the cursor is
-positioned to the bottom of the window.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to delete screen
-contents.
-```
-**Examples:**
-
-```
-RUN GFX2("EREOWNDW")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**ERLINE Delete current line of text**
-
-**Syntax: RUN GFX2([path,]"ERLINE")**
-
-**Function:** Deletes the current line {(on which the cursor is resting) from the
-window but does not close the space.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to remove the contents
-of a screen line.
-```
-**Examples:**
-
-```
-RUN GFX2("ERLINE")
-```
-**Sample Procedure:**
-This procedure draws a bull’s-eye design, then slices it with the ERLINE function.
-
-```
-PROCEDURE cut
-cDIM X,Y,R,T,COLOR:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cCOLOR=0
-cX=320
-cY=96
-cRUN GFX2("CLEAR")
-cCOLOR=0
-cFOR T=185 TO 10 STEP -10
-cRUN GFX2("CIRCLE",X,Y,T)
-cNEXT T
-cFOR T=140 TO 320 STEP 10
-cRUN GFX2("COLOR",COLOR)
-cRUN GFX2("FILL",T,96)
-cCOLOR=COLOR+1
-cNEXT T
-cFOR T=2 TO 22 STEP 2
-cRUN GFX2("CURXY",0,T)
-cRUN GFX2("ERLINE")
-cNEXT T
-cRUN GFX2("COLOR",3,2)
-cEND
-```
-
-**_Basic09 Reference_**
-
-**INSLIN Insert line**
-
-**Syntax: RUN GFX2([path,]"INSLIN")**
-
-**Function:** Moves the window lines at and below the cursor down one line.
-
-**Parameters:**
-
-```
-path The route to the window in which you want a blank line.
-```
-**Examples:**
-
-```
-RUN GFX2("INSLIN")
-```
-**Sample Procedure:**
-This procedure draws a round face on the screen, then uses INSLIN and DELLIN
-to make a mouth appear to move.
-
-```
-PROCEDURE chomp
-cDIM X,Y,T:INTEGER
-cDIM RESPONSE:STRING[1]
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRESPONSE=""
-cRUN GFX2("CLEAR")
-cRUN GFX2("CIRCLE",320,96,80)
-cRUN GFX2("COLOR",0,2)
-cRUN GFX2("FILL",320,96)
-cRUN GFX2("COLOR",2)
-cRUN GFX2("CIRCLE",285,80,12)
-cRUN GFX2("CIRCLE",355,80,12)
-cRUN GFX2("FILL",285,80)
-cRUN GFX2("FILL",355,80)
-cRUN GFX2("CIRCLE",315,96,3)
-cRUN GFX2("CIRCLE",325,96,3)
-cRUN GFX2("ARC",320,92,14,3,3,1,1,1)
-cRUN GFX2("COLOR",3,2)
-cRUN GFX2("CIRCLE",289,77,3)
-cRUN GFX2("CIRCLE",359,77,3)
-cRUN GFX2("CURXY",0,14)
-cREPEAT
-cRUN GFX2("INSLIN")
-cFOR X=1 TO 100
-cNEXT X
-cRUN GFX2("DELLIN")
-cRUN INKEY(RESPONSE)
-cUNTIL RESPONSE>""
-cEND
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Font Handling Functions**
-
-```
-Function Description
-BlinkOff Turns blinking characters off (only for hardware text screens)
-BlinkOn Turns blinking characters on (only for hardware text screens)
-```
-#### TCHARSW - Selects or Deselects Transparent Characters 9-
-
-```
-Font Specifies the buffer from which BASIC09 selects its font characters
-PropSw Selects or deselects proportional characters
-```
-#### REVOFF - Reverse Video Off 9-
-
-#### REVON - Reverse Video On 9-
-
-```
-TCharSw Transparent characters switch
-UndInOff Turns the underline function off
-```
-#### UNDLNON - Underline Characters On 9-
-
-
-**_Basic09 Reference_**
-
-**BLNKOFF Character blink off**
-
-**Syntax: RUN GFX2([path,]"BLNKOFF")**
-
-**Function:** Executing BLNKOFF causes all subsequent characters sent to a
-window on a hardware screen to stop blinking. A hardware screen is one of the
-predefined device windows /W1 through /W7. Executing BLNKOFF cancels a
-previous blink command; characters already blinking continue to do so. Blink does
-not operate on graphics windows.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to blink characters.
-```
-**Examples:**
-
-```
-RUN GFX2("BLNKOFF")
-```
-**BLNKON Character blink on**
-
-**Syntax: RUN GFX2([path,]"BLNKON")**
-
-**Function:** Executing BLNKON causes all subsequent characters sent to a window
-on a hardware screen to blink. A hardware screen is one of the predefined device
-windows /W1 through /W7. Executing BLNKOFF cancels a previous blink
-command; characters already blinking continue to do so. Blink does not operate on
-graphics windows.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to blink characters.
-```
-**Examples:**
-
-```
-RUN GFX2("BLNKON")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**BOLDSW Switch bold characters on or off**
-
-**Syntax: RUN GFX2([path,]"BOLDSW","switch")**
-
-**Function:** Causes characters to display in either regular or bold typeface. The
-default is regular typeface. BOLD only works on graphics screens.
-
-**Parameters:**
-
-```
-path The route to the window in which you want bold characters.
-switch Can be either “ON” or “OFF.” I switch is “ON,” subsequent
-characters are bold. If switch is “OFF,” subsequent characters
-are not bold.
-```
-**Examples:**
-
-```
-RUN GFX2("BOLDSW","ON")
-```
-**Sample Procedure:**
-This procedure demonstrates the BOLDSW function by displaying both bold and
-normal text on a window screen.
-
-```
-PROCEDURE bold
-cDIM LINE:STRING
-cDIM LETTER:STRING[1]
-cDIM T,J,K,FLAG:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("CLEAR")
-cFLAG=1
-cFOR T=1 TO 8
-cREAD LINE
-cFOR J=1 TO LEN(LINE)
-cLETTER=MID$(LINE,J,1)
-cIF LETTER<>"!" AND LETTER<>"#" THEN
-cPRINT LETTER;
-cENDIF
-cIF LETTER="1" THEN
-cFLAG=FLAG*-1
-cIF FLAG>0 THEN
-cRUN GFX2("BOLDSW","OFF")
-cELSE
-cRUN GFX2("BOLDSW","ON")
-cENDIF
-cENDIF
-cIF LETTER="#" THEN
-cPRINT CHR$(34);
-cENDIF
-cNEXT J
-cPRINT
-cNEXT T
-```
-
-**_Basic09 Reference_**
-
-```
-cPRINT \ PRINT
-cEND
-cDATA "This is a demonstration of"
-cDATA "the !Bold! function of"
-cDATA "BASIC09’s GFX2 module."
-cDATA "Use the command"
-cDATA "!RUN GFX2(#BOLDSW#,#0N#)1"
-cDATA "to turn boldface on."
-cDATA "Use !RUN GFX2(#BOLDSW#,#OFF#)!"
-cDATA "to turn boldface off"
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**FONT Define font buffer**
-
-**Syntax: RUN GFX2([path,]"FONT",group,buffer)**
-
-**Function:** Defines a buffer from which BASIC09 gets the character font (style) for
-the current screen. Use the text/cursor handling functions referenced in this section
-with the font you load. When you merge the Stdfonts file in your SYS directory
-with a graphics window, you have the choice of three fonts from Buffers 1, 2, and
-3, located in Group 200. You can also create your own fonts. FONT works only on
-graphics screen. See “Using Fonts” earlier in this chapter.
-
-You must load the font you want to use into the defined buffer before using FONT.
-
-**NOTE:** While the standard for fonts is that all fonts are in group 200 ($C8), it is
-not mandatory. As long as the special GET/PUT buffer header for fonts is present,
-other groups can be used. EOU automatically loads 49 fonts. See
-/dd/sys/fontlist.txt for a list of the fonts, their descriptions and which size
-characters they are.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to use an alternate
-font.
-group The group number of the buffer containing the font to use.
-buffer The number of the buffer containing the font to use.
-```
-**Examples:**
-
-```
-RUN GFX2("FONT",280,2)
-```
-
-**_Basic09 Reference_**
-
-**PROPSW Proportional space switch**
-
-**Syntax: RUN GFX2([path,]"PROPSW","switch")**
-
-**Function:** Enables or disables the automatic proportional spacing of characters on
-graphic screens.
-
-**NOTE:** Proportional fonts will display notably slower than a standard 8x8 font.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to use proportional
-character spacing.
-switch Either OFF to turn proportional spacing off, or ON to turn
-proportional spacing on. The default setting of the switch is OFF.
-```
-**Examples:**
-
-```
-RUN GFX2("PROPSW","ON")
-```
-**Sample Procedure:**
-This procedure produces a demonstration of the BASIC09 proportional spacing
-function.
-
-```
-PROCEDURE proport
-cDIM LINE:STRING
-cDIM LETTER:STRING[1]
-cDIM T,J,K,FLAG:INTEGER
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",7,0,0,80,25,3,2,2)
-cRUN GFX2("CLEAR")
-cFLAG=1
-cFOR T=1 TO 12
-cREAD LINE
-cFOR J=1 TO LEN(LINE)
-cLETTER=MID$(LINE,J,1)
-cIF LETTER<>"!" AND LETTER<>"#" THEN
-cPRINT LETTER;
-cENDIF
-cIF LETTER="!" THEN
-cFLAG=FLAG*-1
-cIF FLAG>0 THEN
-cRUN GFX2("PROPSW","OFF")
-cELSE
-cRUN GFX2("PROPSW","ON")
-cENDIF
-cENDIF
-cIF LETTER="#" THEN
-cPRINT CHR$(34);
-cENDIF
-cNEXT J
-```
-
-```
-Displaying Text and Graphics | 9
-```
-cPRINT
-cNEXT T
-cPRINT \ PRINT
-cEND
-cDATA "This is a demonstration of"
-cDATA "!Proportional! Spacing! using"
-cDATA "BASIC09‘s GFX2 module."
-cDATA ""
-cDATA "!The quick brown fox jumped...!"
-cDATA "The quick brown fox jumped..."
-cDATA ""
-cDATA "Use the command"
-cDATA "!RUN GFX2(#PROPSW#,#ON#)!"
-cDATA "to turn proportional spacing on."
-cDATA "Use !RUN GFX2(#PROPSW#,#OFF#)!"
-cDATA "to turn proportional spacing off"
-
-
-**_Basic09 Reference_**
-
-**REVOFF Reverse video off**
-
-**Syntax: RUN GFX2([path,]"REVOFF")**
-
-**Function:** Disables reverse video characters. Once set, reverse video remains in
-effect until you execute the reverse video off function.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to display reverse
-characters.
-```
-**Examples:**
-
-```
-RUN GFX2("REVOFF")
-```
-**REVON Reverse video on**
-
-**Syntax: RUN GFX2([path,]"REVON")**
-
-**Function:** Enables reverse video characters. Once set, reverse video remains in
-effect until you execute the reverse video off function.
-
-**Parameters:**
-
-```
-path The route to the window in which you want to display reverse
-characters.
-```
-**Examples:**
-
-```
-RUN GFX2("REVON")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**TCHARSW Transparent characters switch**
-
-**Syntax: RUN GFX2([path,],"TCHARSW","switch")**
-
-**Function:** Enables or disables transparent characters. If enabled, on graphics
-screens it means that anything underneath text you PRINT will remain on the
-screen. If disabled, anything underneath text you print will be cleared to the
-currently selected background color. On hardware text screens, if enabled, the
-foreground color, blink and underline attributes are changed to your current
-settings, but the background color will be left alone.
-
-**Parameters:**
-
-```
-path The route to the window in which you want
-to use transparent characters.
-switch Either OFF to turn transparent characters
-off, or ON to turn transparent characters
-on. The default setting of the switch is
-OFF.
-```
-**Examples:**
-
-```
-RUN GFX2("TCHARSW","ON")
-RUN GFX2("TCHARSW","OFF")
-```
-
-**_Basic09 Reference_**
-
-**UNDLNOFF Underline characters off**
-
-**Syntax: RUN GFX2([path,]"UNDLNOFF")**
-
-**Function:** Disables character underline. After you execute UNDLNON, all
-characters displayed are underlined until you execute UNDLNOFF. The default is
-UNDLNOFF.
-
-**Parameters:**
-
-```
-path The route to the window where you want to use underline
-characters.
-```
-**Examples:**
-
-```
-RUN GFX2("UNDLNOFF")
-```
-**UNDLNON Underline characters on**
-
-**Syntax: RUN GFX2([path,]"UNDLNON")**
-
-**Function:** Enables character underline. After you execute UNDLNON, all
-characters displayed are underlined until you execute UNDLNOFF. The default is
-UNDLNOFF.
-
-**Parameters:**
-
-```
-path The route to the window where you want to use underline
-characters.
-```
-**Examples:**
-
-```
-RUN GFX2("UNDLNON")
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Mouse Handling Functions**
-
-```
-Function Description
-```
-#### MOUSE - Return Mouse Information 9-
-
-#### ONMOUSE - Set Mouse Clicked/Key Pressed Signal 9-
-
-#### SETMOUSE - Set Mouse Parameters 9-
-
-
-**_Basic09 Reference_**
-
-**MOUSE Return mouse information**
-
-**Syntax: RUN GFX2("MOUSE",valid,fire,x,y,[area,sx,sy])**
-
-**Function:** Returns Mouse packet information.
-
-**Parameters:**
-
-```
-valid 0=data not valid (not interactive window)
-fire Mouse fire button status.
-```
-1. =no buttons down,
-2. =Button A down,
-3. =Button B down,
-4. =Both buttons down
-_X_ Scaled X coordinate (window relative)
-_y_ Scaled Y coordinate (window relative)
-The following 3 parameters are optional and used for menu framed windows. All 3
-must be present for a menu framed window in order to use the Multi-Vue menuing
-system.
-_area_ Window area type if WNSET has been used to make a menu
-framed window (with or without scrollbars).
-1. =Inside the working area of the window
-2. =Outside the working area, but in the menu region. This can be the
-top menu bar, or scroll bars (if in a framed scrollbar window)
-3. =Off window entirely (mouse on different device window)
-_sx_ Unscaled X coordinate (full screen coordinate)
-_sy_ Unscaled Y coordinate (full screen coordinate)
-**NOTES:** One can use the _valid_ parameter to see if their program is the
-current interactive window (has control of the keyboard, mouse and screen).
-If _valid_ returns 0 (meaning it is not the current interactive window), the
-program can pause and/or put itself to sleep for the remainder of the current
-clock tick (or use **OnMouse** ). It can then monitor when it becomes the
-interactive process again, and then unpause and resume running normally.
-This can be used as an auto-pause in games if the player switches off of the
-game window, for example.
-
-**Examples:**
-
-```
-RUN GFX2("MOUSE",validflag,button,x,y)
-RUN GFX2("MOUSE",validflag,button,x,y,
-areatype,rawx,rawy)
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Sample Procedure:**
-
-```
-PROCEDURE Mouse
-cDIM validflag,button,x,y,oldx,oldy:INTEGER
-cDIM buttons(3):STRING[12]
-cbuttons(1)="Button 1"
-cbuttons(2)="Button 2"
-cbuttons(3)="Buttons 1&2"
-cRUN GFX2("DWEND")
-cRUN GFX2("DWSET",8,0,0,40,25,0,2,2)
-cRUN GFX2("SETMOUSE",$FF,$FF,1)
-cRUN GFX2("GCSET",$CA,1)
-cRUN GFX2("FONT",$C8,2)
-coldx=-1
-coldy=-1
-cLOOP
-cRUN GFX2("MOUSE",validflag,button,x,y)
-cEXITIF validflag=0 THEN
-cPRINT "Mouse off window"
-cENDEXIT
-cIF button>0 THEN
-cRUN GFX2("CURXY",0,23)
-cPRINT buttons(button);" clicked while mouse at coordinate
-";x;",";y;
-cRUN GFX2("EREOLINE")
-cELSE
-cIF oldx<>x OR oldy<>y THEN
-coldx=x
-coldy=y
-cRUN GFX2("CURXY",25,0)
-cRUN GFX2("EREOLINE")
-cPRINT x;",";y
-cENDIF
-cENDIF
-cEXITIF button=3 THEN
-cPRINT "Both buttons pressed, exiting program"
-cENDEXIT
-cENDLOOP
-cEND
-```
-
-**_Basic09 Reference_**
-
-**ONMOUSE Set up mouse button and key pressed signals, optionally**
-
-**sleep until a mouse click or key press**
-
-**Syntax: RUN GFX2("ONMOUSE",signal)**
-
-**Function:** Sets up key and mouse button presses to send a signal to the calling
-program. There are two ways that this function can be set up, depending on the
-signal number requested to be sent:
-
-Requesting a signals between 1 and 255 will let the program continue running
-normally until a key or mouse button is pressed; it will then send the signal code to
-the calling program. However, there is a caveat; If you are running BASIC09 itself
-it will cause the program break out as if the BREAK key was hit, and the program
-will not be able to trap it properly. For specific signal numbers to work, the
-program must be PACK'ed first, and run through the run time package RUNB.
-Used in this way, the signal coming in will trigger any ON ERROR GOTO the
-program has set up, and the signal number will become the error code (ERR).
-Because of this, it is recommended that one chooses a signal number that is *not* a
-regular error number (either for NitrOS9/OS-9 or BASIC09), so a signal number
-between 100-182 is recommended.
-
-Requesting a signal of 0 is a special request to put the calling program to sleep
-until a key or mouse button is pressed; the program will then be woken up. This
-way the rest of the system gets to run full speed while waiting for the user to click
-something. The program will resume execution on the line following the
-ONMOUSE function. The program can then check for a mouse click (with
-MOUSE) or key press (INKEY or a SS.Ready GetStat system call, and act
-appropriately. This option is usually used when waiting for a user to make a menu
-selection for Multi-Vue type programs, but can be used for other things as well.
-
-**Parameters:**
-
-```
-signal 0=put program to sleep until a mouse click or key press.
-1-255 =Signal sent to the calling program when a mouse button is
-clicked or a key is pressed. This can only be trapped by ON
-ERROR GOTO, and only when a program is PACK'ed and
-running through RUNB (not BASIC09). This allows a program to
-continue running doing other things without constantly manually
-monitoring for a mouse click or key press.
-```
-
-```
-Displaying Text and Graphics | 9
-```
-**Examples:**
-
-```
-RUN GFX2("ONMOUSE",0) Put program to sleep until a key is pressed
-or mouse button is clicked.
-RUN GFX2("ONMOUSE",100) Set up an ERROR 100 to trigger when a
-key is pressed or mouse button is clicked. (RUNB only)
-```
-**Sample Procedure:**
-See the sample program for GETSEL.
-
-
-**_Basic09 Reference_**
-
-**SETMOUSE Set mouse parameters (see NOTE below)**
-
-**Syntax: RUN GFX2(scanrate,timeout,autofollowflag)**
-
-**Function:** Can set the mouse scan rate & mouse timeout, as well as turning mouse
-cursor auto-follow on or off.
-
-**Parameters:**
-
-```
-scanrate How many clock ticks (1/60th of a second) between
-physical mouse reads. (3 is a nice balance of smoothness
-and friendly multi-tasking, 1/20th of a second). A value of
-255 indicates to leave the current setting alone.
-timeout How many clock ticks (1/60th of a second) after a button
-press before the mouse goes into "quiet" mode. Pressing a
-mouse button starts a number of timers for both mouse
-buttons (time in current state, time in last state, to keep
-trick of multiple clicks). This timeout setting is how long
-before the system resets the counters while waiting for
-another mouse click. Once it hits this value all timers are
-cleared and shut off (taking less CPU overhead) until the
-next mouse click. A value of 255 indicates to leave the
-current setting alone.
-autofollowflag 0=Turn auto-follow mouse off,
-1=turn auto-follow mouse on.
-On means the operating system will handle all mouse
-position and drawing on the screen automatically.
-```
-**Examples:**
-
-```
-RUN GFX2("SETMOUSE",3,120,0)
-RUN GFX2("SETMOUSE",255,255,1)
-```
-**Sample Procedure:**
-See the sample program for GETSEL.
-
-
-```
-Displaying Text and Graphics | 9
-```
-**Music/Miscellaneous Functions**
-
-```
-Function Description
-```
-#### ID - Return Process ID 9-
-
-#### TONE - Play a Tone 9-
-
-**ID Return process ID**
-
-**Syntax: RUN GFX2("ID",idnum)**
-
-**Function:** Returns the process ID # of the current process. Useful for reserving
-GET/PUT buffers unique to the caller's process, so as to not interfere with other
-processes currently running.
-
-**Parameters:**
-
-```
-idnum The process ID #
-```
-**Examples:**
-
-```
-RUN GFX2("ID",idnum)
-```
-**TONE Play a tone through the speaker**
-
-**Syntax: RUN GFX2("TONE",frequency,duration,volume)**
-
-**Function:** Plays a single tone through the speaker. NOTE: Unlike almost all other
-GFX2 functions, tones will play no matter which window is the active one.
-
-**Parameters:**
-
-_frequency_ Tone frequency (1-4095)
-_duration_ Duration (1-255) (measured in 1/60th of a second increments).
-_volume_ Volume (1-63)
-
-**Examples:**
-
-```
-RUN GFX2("TONE",500,60,63)
-RUN GFX2("TONE",2000,1,31)
-```
-
-**Chapter 10**
-
-**BASIC09 Quick Reference**
-
-This chapter contains a quick reference of all BASIC09 commands, statements,
-and functions. It includes commands for programming, editing, and debugging, as
-well as the Command mode commands.
-
-The following chart lists all BASIC09 keywords that you can use in a procedure.
-
-**Statements and Functions**
-
-```
-Command Description
-ABS Returns the absolute value of a number.
-ACS Calculates the arccosine of a number.
-```
-```
-ADDR
-```
-```
-Returns an integer value which is the absolute memory
-address of a variable, array, or structure in a process’s
-address space.
-AND Generates the logical AND of two boolean values.
-ASC Returns the ASCII code of the first character in a string.
-ASN Calculates the arcsine of a number.
-ATN Calculates the arctangent of a number.
-BASE Sets the lowest array or data structure subscript in a
-procedure to either 0 or 1.
-BYE Ends execution of a procedure and terminates BASIC09.
-CHAIN Executes a module, passing arguments if appropriate.
-CHD Changes the current data directory.
-```
-```
-CHR$ Returns the ASCII character represented by a specified integer.
-CHX Changes the current execution directory.
-CLOSE Deallocates the specified path to a file or device.
-COS Calculates the cosine of a number.
-CREATE Opens a path and establishes a new file on disk.
-DATE$ Returns the computer’s current date and time.
-DEG Causes BASIC09 to calculate angles in degrees.
-```
-**Command Description**
-
-
-```
-BASIC09 Quick Reference | 10
-```
-**DATA** Stores data in a procedure to be accessed by the READ
-statement.
-
-**DELETE** Deletes a file from disk.
-
-**DIM** Declares simple variables, arrays or complex data
-structure for size and type.
-
-**DO** See WHILE/DO/ENDWHILE.
-
-**ELSE** See IF/THEN/ELSE/ENDIF.
-
-**END** Terminates execution of a procedure. Returns to the
-calling procedure or to BASIC09's command mode.
-Displays the specified text.
-
-**ENDEXIT** See EXITIF/ENDEXIT.
-
-**ENDIF** See IF/THEN/ELSE/ENDIF.
-
-**ENDLOOP** See LOOP/ENDLOOP.
-
-**ENDWHILE** See WHILE/DO/ENDWHILE.
-
-**EOF** Tests for the end of a disk file.
-
-**ERR** Returns the error code of the most recent error.
-
-**ERROR** Generates the specified error.
-
-**EXITIF/
-ENDEXIT**
-
-```
-Tests conditions in a loop. The procedure exits the loop
-if the condition is true.
-```
-**EXP** Calculates e (2.71828183) raised to the specified value.
-
-**FALSE** A boolean function that always returns FALSE.
-
-**FIX** Rounds a real number and converts it to an integer.
-
-**FLOAT** Converts a byte or integer value to a real number.
-
-**FOR/NEXT** Creates a program loop of a specified number of repetitions.
-
-**GET** Reads an element or a data structure from a binary file or
-a device.
-**GOSUB/
-RETURN**
-
-Transfers program control to a specified subroutine.
-RETURN sends execution back to the calling routine.
-**IF/THEN/ELSE/
-ENDIF**
-
-```
-Evaluates an expression and performs an operation if the
-conditions are met. Including ELSE causes an alternate
-operation if the conditions are false.
-```
-**INKEY** Stores the character of a keypress in a string variable.
-
-
-**_Basic09 Reference_**
-
-```
-INPUT Causes a procedure to accept input from the
-keyboard or other specified device.
-Command Description
-INT Returns the largest whole number less than or equal
-to the specified value.
-KILL Unlinks a procedure. (Removes it from BASIC09’s
-directory.)
-LAND Performs a bit-by-bit logical AND on two-byte, or
-integer, values.
-LEFT$ Returns the specified number of characters, from the
-leftmost portion of a string.
-LEN Returns the length of the specified string.
-LET Assigns a value to a variable.
-LNOT Performs a bit-by-bit logical NOT function on two-
-byte, or integer, values.
-LOG Calculates the natural logarithm.
-LOG10 Calculates a base 10 logarithm.
-LOOP/
+ERDWEILE
+This
+is
+a
+1loop
+construct with
+the
+test
+at the "top"
+of
+the loop.
+Statements
+within
+the loop
+are
+executed
+as
+long
+as <bool
+expr>
+is
+TRUE,
+The.
+body
+of
+the
+1loop
+will
+not be
+executed
+if
+the
+boolean expression
+evaluates
+to
+FALSE when
+first executed.
+’
+Examples:
+WHILE
+a<b
+DO
+is
+equivalent
+to
+-
+100 IP a<b
+THEN
+500
+PRIRT
+a
+PRIRT
+a
+a
+:=
+a+l
+a :=
+a+l
+ERDWHILE GOTO
+100
+500
+REM
+DIM yes:BOOLEAR
+yes=TRUEWHILE
+yes
+DO
+PRIRT
+“yes!
+*;
+yes
+:=
+POS<50
+ERDRHILE
+REM reverse
+the
+letters
+in
+word$
+backward$
+:=
+""
+IRPUT word$
+WHILE LER(wordS)
+>
+0
+DO
+)
+backward$
+:=
+backward$
++
+RIGHTS(word$,l)
+word$
+:=
+LEPTS$
+(word$,LER(word$)-1)
+ERDWHILE
+word$
+:=
+backward$
+PRIRT word$
+Page 9-6
+Basic09 REPERENCE MANRUAL
+Program Statements and Structure
+- REPEAT..UNTIL Statement
+Syntax: REPEAT
+ORTIL <bool expr>
+This
+is
+a
+1loop
+that has its test
+at
+the
+bottom
+of
+the
+loop.
+The
+statement
+(s)
+within
+the
+loop
+are
+executed until
+the
+result
+of
+<bool expr>
+is
+TRUE. The body
+of
+the
+loop
+is
+always executed
+at
+least
+one
+time.-
+Examples:
+x
+=0
+is
+the same
+as
+x=0
+REPEAT 100 PRIRT x
+PRINT
+x
+=x+1
+x=x+1
+IP X <=
+10
+then
+100
+UNRTIL x>10
+(* compute factorial: n! ¥*)
+temp := 1.
+INPUT "Factorial
+of
+what number?
+",n
+REPEAT
+temp := temp * n
+n := n-1
+UNTIL
+n <= 1.0
+PRINT
+"The
+factorial
+is
+";
+temp
+Page 9-7
+Basic09 REFERENCE
+MANUAIL
+Program Statements and Structnre
+LOOP and ENDLOOP Statements
+Syntax:
+LOOP
 ENDLOOP
-```
-```
-Establishes a loop. Use EXITIF and ENDEXIT to
-test the loop and exit when a specified condition is
-true.
-LOR Performs a bit-by-bit logical OR on two-byte, or
-integer, values.
-LXOR Performs a bit-by-bit logical EXCLUSIVE OR on
-two-byte, or integer, values.
-MID$ Returns the specified number of characters,
-beginning at the specified position in a string.
-MOD Returns the modulus (remainder) of a division operation.
-```
-```
-NEXT See FOR/NEXT.
-NOT Returns the logical complement of a boolean value.
-ON ERROR/
+EXITIF and ENDEXIT Statements
+Syntax: EXITIF <bool expr> THEN <statements>
+ERDEXIT
+These related types of statements can be used to construct loops
+with
+tests
+located
+any place
+in the
+body
+of
+the loop.
+The
+LOOP
+and
+ERDLOOP statements define the body of the loop. EXITIF clauses can be
+inserted anywhere inside the loop to leave the loop if the result of its
+test is true. Note that if there is no EXITIF clause you will create a
+loop
+that
+never
+ends.
+The EXITIF clause evaluates
+an
+expression
+to
+a
+boolean
+result.
+1If
+the result
+is
+false, the
+statement following
+the
+ERDEXIT
+is
+executed
+next. Otherwise, the statement(s) between the EXITIF and ENDEXIT are
+executed, then control
+is
+transferred
+to the
+statement following
+the
+bodyof the
+1loop.
+This exit clause
+is
+often used
+to
+perform
+some specific
+function upon termination
+of
+the
+loop which depends
+on
+where
+the
+loop
+terminated.
+EXITIP statements
+are
+almost always used when LOOP...ERDLOOP
+is
+used, but they can also be useful in ANY type of Basic09 loop construct
+(e.g., FOR/REXT, REPEAT... URTIL, etc.). Examples:
+LOOP is equivalent to 100 REM top of loop
+count=count+l count=count+l
+EXITIF count >100 THEN
+IF
+COUNT
+<=
+100 then 200
+done = TRUE done = TRUE
+ENDEXIT GOTO
+300
+PRINT count 200 PRIRT count
+x = count/2 X = count/2
+ERDLOOP GOTO 100
+300 REM out of loop
+IRPUT x,y
+LOOPPRIRT
+EXITIF
+x
+< 0
+THER
+PRIRT "x became zero first"
+ERDEXIT
+X
+=
+x-1
+EZITIF y < 0 THEN PRIRT "y became zero first"
+ERDEXIT
+y
+=
+y-1
+ERDLOOP
+Page 5-8
+Basic09
+REFERENCE
+HRARUAL
+Program Statements
+and Structure
+GOTO Statement
+Syntax: GOTO <line #>
+The GOTO unconditionally transfers execution flow to the line having
+the specified number. Note that the line number is a constant, not an
+expression or a variable. ' _
+Example:
+GOTO 1000
+GOSUB/RETURN Statements
+Syntax: GOSUB <line #>
+RETURN
+The GOSUB statement transfers program execution to a subroutine
+starting at the specified line number. The subroutine is executed until
+a RETORN statement is encountered which causes execution to resume at the
+statement following the calling GOSUB. Subroutines may be "nested" to
+any depth.
+Example:
+FOR n := 1 to 10
+x := SIR(n)
+GOSUB 100
+NREXT n
+FORm := 1 TO 10
+X := COS(m)
+GOSUB 100
+NEXT m
+STOP
+100 x := x/2
+PRIRT
+x
+RETURR
+Page 9-9
+Basic09 REFERENCE MARUAL
+Program Statements
+and
+Structure
+ON GOTO Statement
+OR GOSUB Statement
+Syntax: ON <int expr> GOTO <line %> {,<line #>}
+OR <int expr> GOSUB <line &> {,<line #>}
+These statements evaluate an integer expression and use the result
+to
+'select
+a
+corresponding
+line number from
+an
+ordered
+list.
+Control
+is’
+then transferred to that line number unconditionally in ON GOTO
+statements
+or
+as
+a
+subroutine
+in
+OR GOSUB statements. These statements
+are
+similar
+to
+CASE
+statements
+in
+other languages.
+'
+The expression must evaluate to a positive INTEGER-type result
+having a value of between 1 and N; N being the highest line number in the
+list. N is limited by input line length and the number of digits in each
+line number. The best case limit for N is 60. If the expression has any
+other result, no step is selected and the next sequential statement is
+executed.
+Example:
+(* spell out the digits 0 to 9 *)
+DIM digit:INTEGER
+AS="one digit only, please"
+IRPOT
+"type
+in a
+digit"; digit
+OR digit+l GOSUOB 10,11,12,13,14,15,16,17,18,19
+PRIKRT
+AS
+STOP
+(* names of digits ¥*)
+10
+AS$
+:=
+"ZERO"
+RETURN
+1l AS := "“ONE"
+RETURN
+12
+A8
+:=
+"TWO"
+RETURR
+13 A$ := "“THREE"
+RETURN
+14 AS := "FOUR"
+RETURK
+15 A$ := “FIVE"
+RETORK
+16
+AS
+:=
+"SIX"
+RETURR
+17 AS$ := "SEVEN"
+RETURR
+18 AS$ := "EIGHT"
+RETORR
+19 A$
+:=
+"NINE"
+RETURR
+Page 9-10
+Basic09 REFERENCE MARUAL
+Program Statements
+and Structure
+ON
+ERROR GOTO StatementSyntax:
+ON ERROR
+[
 GOTO
-```
-```
-Traps errors and transfers control to the specified
-line number. ON ERROR without the GOTO turns
-off error trapping. PACKed procedures can only trap
-signals with ON ERROR GOTO.
-ON/GOSUB Evaluates an expression. Then, selects from a list the
-line number that is in the position indicated by the
-result of the expression. Procedure execution
-```
-
-```
-BASIC09 Quick Reference | 10
-```
-```
-transfers to the selected line.
-```
-**Command Description**
-
-**ON/GOTO** Evaluates an expression. Then, selects from a list the line
-number that is in the position indicated by the result of the
-expression. Procedure execute jumps to the selected line.
-**OPEN** Opens an IO path to an existing file or device.
-**OR** Performs a logical OR on two boolean values.
-**PARAM** Describes the parameters a called procedure expects from a
+<line
+#>
+}
+This
+statement
+sets
+a
+"trap"TM
+that transfers control
+to
+the
+line
+number given
+when
+a
+non-fatal run-time
+error occurs.
+If
+no
+ON ERROR GOTO
+has been
+executed
+in
+a
+procedure before
+an error occurs, the
+procedurewill stop and enter
+DEBUG
+mode. The error trap can
+be
+turned
+off by
+executing ON ERROR without
+a
+GOTO.
+‘
+This statement is often used in conjunction with the ERR function
+which
+returns the
+specific
+error
+code, and the
+ERROR statement which
+artificially generates
+“errors", Note: the ERR function automatically
+resets
+to
+zero
+any time
+it is
+called.
+Example:
+(* List a file *)
+DIM path,errnum: INRTEGER, name: STRING[45], line: STRING[80]
+ON ERROR GOTO
+10
+IRPOT "File name? "; name
+OPER #path,name:READ
+LOOP
+READ
+#path,
+line
+PRIRT line
+ERDLOOP
+10
+errnum=ERR
+IP errnum := 211 THER
+(*
+end-of~-file
+*)
+PRIRT "Listing complete."
+CLOSE #path
+ERD
+ELSE
+(*
+other errors
+*)
+PRINT "Error
+number
+";
+errnum
+END
+ENDIF
+Page 9-11
+Basic09 REFERERCE MARUAL
+Program Statements and Structure
+RON Statement
+Syntax: ROR <proc name> [ ( <param> {,<param>} ) ]
+or: RON <string var> [ ( <param> {,<param>} ) ]}
+This statement calls a procedure by name; when that procedure ends,
+control will pass
+to
+the
+next statement
+after
+the
+RUN. It
+is
+most
+often
+used to call a procedure inside the workspace, but it can also be used to’
+call a previously compiled (by the PACK command) procedure or a 6809
+machine language procedure outside the workspace. The name can be
+optionally
+taken
+from
+a
+string variable.
+Parameter Passing
+The RUN statement can include a list of parameters enclosed in
+parentheses to be passed to the called procedure. The called procedure
+must have PARAM statements of the same size and order to match the
+parameters passed to it by the calling procedure.
+The parameters can be variables or constants, or the names of entire
+arrays or data structures. They can be of any type (EXCEPT variables of
+type BYTE, but BYTE arrays are O.K.). If a parameter is a constant or
+expression,
+it is
+passed
+"by
+value",
+i.e.,
+it is
+evaluated
+and placed
+in
+a2
+temporary storage location and the address
+of
+the
+temporary storage
+is
+passed
+to
+the
+«called
+procedure, Parameters passed by value
+can be
+changed by the receiving procedure, but the changes are not reflected in
+the
 calling procedure.
-**PAUSE** Suspends execution of a procedure, and enters the Debug
+If the parameter is the name of a variable, array, or data structure
+it is passed by "reference”, i.e., the address of that storage is sent
+to the called procedure and thus the value in that storage may be changed
+by the receiving procedure. These changes ARE reflected in the calling
+procedure.
+Calling External Procedures
+If the procedure named by the RURN statement can't be found in the
+workspace, Basic09 will check to see if it was loaded by 05-9 outside the
+workspace. If it isn't found there, Basic09 will try to find a disk file
+having the same name in the current execution directory, load it, and run
+it. In either case, Basic09 checks to see if the called procedure is a
+Basic09 I-code module or a 6809 machine language module and executes it
+accordingly. If it is a 6809 machine language module, BASICO0S executes a
+JSR instruction to its entry point and the
+module
+is
+executed
+as 6809
+native code. The machine language routine can return to the original
+calling procedure by executing an RTS instruction. The diagram on the
+next page shows what the stack frame passed to machine-language
+subroutines looks like.
+Page 9-12
+Basic09 REPERENCE MARUAL
+Program Statements
+and
+Structure
+After an external procedure has been called but is no longer needed,
+the KILL statement should be used to get rid of it so its memory space
+can be used for other purposes.
+STACK FRAME PASSED TO MACHIRE LARGUAGE PROCEDODRES
+~
+higher addresses
+|
+size of lst
+param
+[
++ = = = = = = -4 4 bytes
+|
+addr of
+1lst
+param
+|
+|
+I
+——— -—
+| " |
+| parameter count | 2 bytes
+| | |
++ === == i ===
+[ | |
+| return address ] 2 bytes
+| | I
+B+ - <- 6809 Stack Pointer
+“Register value
+Machine language modules return error status by setting the "C" bit
+of the MPU condition codes register and by setting the B register to the
+appropriate error code. For an example of a machine language subroutine
+("INKEY"), see Appendix A.
+Example of use of the RUN statement:
+PROCEDURE trig_table
+numl := 0 \ num2 := 0
+REPEAT
+ROUR display(numl,SIR(numl))
+ROUR display(num2,COS(num2))
+PRIRT
+UNRTIL
+numl
+> 1
+ERD
+PROCEDURE display
+PARAM passed,funcval
+Page 9-13
+Basic09
+REFERENCE MARUAL
+Program Statements
+and Structure
+PRIRT passed;":";funcval,
+passed
+:=
+passed
++
+0.1
+ERD
+KILL Statement
+Syntax:
+KILL
+<str
+expr>This statement
+is
+used
+to
+"unlink"
+an
+external procedure, possibly
+returning
+.
+system
+memory, and remove
+it
+from Basic09's proceduredirectory.
+If
+the
+procedure
+is
+inside
+the
+workspace, nothing happens
+and
+no
+error
+is
+generated. KILL
+can
+be.
+used along with auto-loading PACKed
+procedures
+as an
+alternative
+to
+CHAIR when
+program overlay
+is
+desired.
+WARNINGS:
+1.
+It
+can be
+fatal
+to
+0S-9
+to
+KILL
+a
+procedure
+that
+is
+still "active®.
+2.
+When used together with
+a
+RUN statement, both statements MUST
+use
+the
+same string
+variable which contains
+the
+name
+of
+the
+procedure. See first
+example below:
+Examples:
+LET procname$="average"
+RON procname$KILL procname$
+IRPUT
+*"Which
+test
+do
+you want
+to
+run? ",test$
+RUN
+test$
+RILL
+test$
+Page S-14
+BASIC0S REFERENCE HANUAL
+Program Statements
+and
+Structure
+CHAIN Statement
+Syntax: CBAIR <str expr>
+The CHAIN statement performs an 0S-9 "chain" operation on the SHELL,
+passing the specified string as an argument. CBAIN causes Basic09 to be
+exited, unlinked, and its memory to be returnedto 0S-9. The string
+should evaluate
+to
+the
+name
+of an
+executable module
+{(such
+as
+Basic09),
+passing parameters if appropriate.
+CHAIN can begin execution of any module, not just Basic09. It
+executes the module indirectly through the Shell in order to take
+advantage of Shell's parameter processing, which has the side-effectof
+leaving an extra "incarnationTM of the Shell active. Programs that
+repeatedly chain to each other will eventually find all of memory filled
+with waiting Shells. This can be prevented by using the "ex" option of
+Shell. Consult the O0S-9 User's Guide for more details on the
+capabilities
+of
+the Shell.
+Files that are open when a CHAIN occurs are not closed. However,
+the 0S-9 Fork call will only pass the standard 1/0 paths (0,1,2) to a
+child process. Therefore, if it is necessary to pass an open path to
+another program segment, the "ex"TM option of Shell must be used.
+Examples:
+CHAIN "“ex BASIC0Y9 menu”
+CEAIN "Basic09 #£#10k sort (""datafileTM",""tempfile"TM)"
+CHAIN
+"DIR /DO"
+CEAIR "Dir; Echo *** Copying Directory ***; ex basic09 copydir"
+Page 9-15
+Basic09 REFERENCE HMANUAL
+Program Statements and Structure
+SHELL Statement
+Syntax: SHELL <str expr>
+SHELL allows Basic09 programs to run any OS-9 command or program. SHELL
+gives access
+to
+virtually
+any 0S-9
+function including multiprogramming,utility
+commands, terminal
+and I/0
+control, and more.
+Consult
+the
+"0S-9
+User's Manual"
+for
+a
+detailed discussion
+of
+0S5-9
+standard commands.
+The SHELL statement requests O05-9 to create a new process, initially
+executing the "shell"TM which is the 0S-9 command interpreter. The shell
+can then «call any program in the system (subject to the normal security
+functions). The string expression is evaluated and passed to the shell
+to be executed as a command line (just as if it had been typed in). 1If
+the string is null, Basic09 is temporarily suspended and the shell
+process displays prompts and accepts commands in its normal manner. When
+the shell process terminates, Basic09 becomes active again and resumes
+execution at the statement following the SHELL statement.
+Here
+are
+a
+few examples
+of
+using
+the
+shell from
+Basic09:
+SHELL "copy filel file2" sequential execution
+SHELL "copy filel file2&" concurrent execution
+SHELL “"edit document” calling text editor
+SHELL
+"asm
+source o=obj
+!
+spl
+&"
+concurrent assembly
+Page 9-16
+Basic09 REPERENRCE MANUAL
+Program Statements and Structure
+ERD Statement
+Syntax: ERD [<output list>]
+ERD ends execution of the procedure and returns to the calling procedure
+or to Basic09 command mode if it was the highest level procedure. If an
+output list is given, END also works the same as a PRIRT statement. ERD
+is an executable statement and can be used several times in the same
+procedure, ERD is optional; it 1is not required at the "bottom"TM of a
+procedure,
+Examples:
+ERD
+ERD "I have finished execution"
+Page 9-17
+Basic09 REFERERCE
+HMANUAL
+Program Statements
+and
+Structure
+STOP Statement
+Syntax:
+STOP
+[<output list>]
+STOP immediately terminates execution
+of
+all
+procedures
+and
+returns
+to
+the
+Command
+Mode.
+If
+an
+output
+list
+is
+given,
+it
+also
+works
+like
+a
+PRINT
+statement,
+BYE Statement
+Syntax: BYE
+BYE
+ends
+execution
+of the
+procedure
+and
+terminates
+Basic09.
+Any
+openfiles
+are
+closed, and any unsaved procedures
+or
+data
+in
+the
+workspace
+will
+be lost.
+BYE
+is
+especially
+useful
+for
+creating PACKed programs
+and/or programs
+to
+be
+called from 0S-9
+procedure
+files.
+WARNIRG: BYE CAUSES BASIC0S9 TO ABORT, 1IT SHOULD OKLY BE USED IF THE
+PROGRAM HAS BEENR SAVED BEFPORE IT IS TESTED!
+ERROR Statement
+Syntax: ERROR(<int expr>)
+ERROR generates
+an
+error having
+the error code specified
+by the result
+of
+evaluation
+of the
+expression. ERROR
+is
+often used
+for
+testing error
+routines. For details on error handlingsee the OR ERROR GOTO statementdescription.
+.
+PAUSE StatementSyntax: PAUSE [<output list>]
+PAUSE suspends execution
+of the
+procedure and causes Basic09
+to enter
+Debug Mode. If an output list 4is given, it also works like a PRIRT
+Statement.
+<output> BREAK IN PROCEDURE <procedure name>
+The Debug Mode "CONT" command can be used to resume procedure execution
+at the following statement.
+Examples:
+PAUSE
+PAUSE now outside main loop
+Page S5-18
+Basic09 REFERERCE MARUAL
+Program Statements and Structure
+CED and CEX Statements
+Syntax: CHD <str expr>
+CHX <str expr>
+These statements change the current default Data or Execution
+directories, respectively. The string must specify the pathlist of a
+file which has the DIR attribute. For more information on the 0S-9
+directory structure, consult the "0S-9 User's Manual".
+DEG and RAD Statements
+Syntax: DEG
+RAD
+These statements set the procedure's state flag to assume angles stated
+in degrees or radians in SIN, COS, TAN, ACS, ASN and ATN functions. This
+flag applies only to the currently active procedure. The default state
+is radians.
+BASE 0 and BASE 1 Statements
+Syntax: BASE 0
+BASE
+1
+These statements indicate whether a particular procedure's lowest array
+or data structure index (subscript) is zero or one. The default is one.
+These statements do not affect the string operations (e.g., MID§, RIGHTS,
+OR LEFTS) where the beginning character of a string is always index one.
+TRON and TROFF Statements
+Syntax: TRON
+TROFF
+These statements turn the trace mode on or off and are useful for
+debugging. When trace mode is turned on, each statement is decompiled
+and printed before execution. Also, the result of each expression
+evaluation is printed as it occurs.
+BASIC0S REFERENCE MANUAL
+Program Statements
+and
+Structare
+Comment Statements
+Syntax:
+REM
+<chars>
+(*
+<chars>
+[
+*]
+)
+These statements
+are used
+to
+put
+comments
+in
+programs.
+The second form
+of
+the
+statement
+is
+for
+compatibility with PASCAL programs, Comments
+are
+retained
+in the
+I-code but are removed
+by the
+PACK compile
+command.
+The"
+"!"
+character
+can be typed
+in
+place
+of
+the
+keyword REM when
+editing
+programs. The compiler trims away extra spaces
+following REM
+to
+conserve
+memory
+space.
+Examples:
+REM this
+is
+a
+comment
+(*
+This
+is
+also
+a
+comment
+*)
+(*
+This
+is
+another kind
+of
+comment
+Page 9-20
+Basic09 REPERENCE MARUAL
+Program Statements and Structure
+DECLARATIVE STATEMENTS
+The DIH, PARAM, and TYPE statements are called declarative
+Statements because they are used to define and/or declare variables,
+arrays, and complex data structures. The DIM and PARAM statements are
+almost identical, the difference being that DIM statements are used to
+declare storage used exclusively within the procedure,'and the PARAH
+statement is used to declare variables received from another calling
+procedure.
+When do you need to use the DIM statement? You don't need to for
+simple variables of type REAL, because this is the default format for
+undeclared variables. You also don't need to for 32-character STRING
+type variables (any name ending with a "$" is automatically assigned this
+type). Even though you don't have to declare variables in these two
+cases, you may want to anyway to improve you program's internal
+documentation. Those things you must declare are:
+l. Any simple variables of type BYTE, INTEGER, or BOOLEAR,
+2. Any simple STRIRG variables shorter or longer than 32
+characters.
+3. Arrays of any type.
+4. Complex data structures of any type.
+The TYPE statement does not really create variable storage. 1Its
+purpose is to describe a pew data structure type that can be used in DIM
+or PARAM statements in addition to the five atomic data types built-in to
+Basic09, Therefore, the TYPE statement is only used in programs that
+utilize complex data structures.
+Page 9-21
+BASIC0S9
+REFERERCE MANUAL
+Program Statements
+and
+Structure
+DIM Statement
+Syntax DIM
+<decl
+seqg>
+{;
+<decl seq>
+}
+<decl seg>
+:=
+<decl>
+{,
+<decl>
+}
+[:
+<type>
+]
+<decl> := <name> [ <subscript> ]
+<{subscr>
+:=
+(
+<const>
+[,<const> [,<const>]]
+)
+<type>
+:=
+BYTE
+|
+IRTEGER
+|
+REAL
+|
+BOOLEAR
+|
+STRING | STRIRG <max len> | <user defined type>
+<user def> := user defined by TYPE statement
+The
+DIM statement
+is
+used
+to
+declare simple variables,
+arrays,
+or
+complex
+data structures of the five atomic types or any user-defined type.
+During compilation Basic09 assigns storage required for all variables
+declared
+in
+DIM
+statements.
+Declaring Simple Variables
+Simple variables are declared by using the variable name in a DIM
+statement without a subscript. 1If variables are not explicitly declared,
+they are automatically made type REAL or type STRING([32] if the name ends
+with
+a
+"$"
+character.
+Therefore
+all
+simple
+variables
+of
+other types must
+be
+explicitly declared. For
+example:
+DIM
+logical :BOOLEAR
+Several variables
+can be
+declared
+in
+sequence with
+a
+:<type> following
+a
+group
+of
+the same type:
+DIM
+a,b,c:
+STRIRG
+In addition, several different types can be declared in a single DIK
+statement by using
+a ";" to
+separate different types:
+DIE a,b,c:IRTEGER; n,m:decimal;
+x,Yy,z:BOOLEAN
+In
+this example
+a, b,
+and
+
+are type
+INTFEGER, n
+and m are type "decimal"
+(2
+user-defined
+type), and
+x, y,
+and
+z
+are type
+BOOLEAN.
+String
+variables
+are
+declared
+the same way except that an
+optional maximum
+string 1length can be specified. 1If a length is not explicitly given, 32
+characters are assumed:
+DIM name:STRING[40]; address,city:STRIRG; zip:REAL
+In this case
+"name"TM
+is a
+string variable of 40
+characters maximum,
+"address" and
+“"city"
+are string variables
+of 32
+characters
+each, and
+*zip" is a
+real variable.
+:
+Page 5-22
+BASIC0S REFERERCE MARUAL
+Program Statements and Structure
+Array
+Declarations
+Arrays
+can
+have
+one,
+two
+or
+three
+dimensions.
+The
+DIM
+statement
+format
+(including type grouping)
+is
+the same
+as for
+simple variables
+except
+each name
+is
+followed
+by
+a
+subscript(s)
+to
+indicate
+its size.
+The
+maximum
+subscript size
+is
+32767.
+Simple
+variable
+and array declarations
+can-be mixed
+in
+the
+same
+DIH
+statement:
+'
+DIE a(10),b(20,30),c:INTEGER; x(5,5,5):STRING[12]
+In the example above, "a" is an array of 10 integers, "b" is a 20 by 30
+matrix
+of
+integers,
+"c" is
+a
+simple integer variable, and
+"x"
+is
+a
+three-
+dimensional array
+of
+l2-character
+strings.
+Arrays can be any atomic or user-defined type. By declaring arrays
+of wuser-defined types, structures of arbitrary complexity and shape can
+be generated. Here's an example declaration that generates a doubly-
+linked list of character strings. Each element of the array consists of
+the string containing the data and two integer "pointers". '
+TYPE link_pointers = fwd,back: IRTEGER
+TYPE element = info: STRING[64]; ptr: link_pointers
+DIM list(100): element :
+(* make a circular list *)
+BASEOD
+FOR
+index
+:=
+0
+to
+99
+list (index).info := "secret message " + STRS(index)
+list(index) .ptr.fwd := index+l
+list(index) .ptr.back := index-1l
+NEXT index
+(* £ix the ends *)
+list(0).ptr.back
+3=
+99
+list(99).ptr.fwd
+:=
+0
+(*
+Print the list
+*)
+index=0
+REPEAT }
+PRINT list(index).info
+index := list(index).ptr.fwd
+UNTIL index=0
+ERD
+Page 9-23
+Basic09
+REFERENCE MARUAL
+Program Statements
+and
+Structure
+PARAM
+Statement
+Syntax: Same
+as
+DIM
+statement
+PARAM 1is identical to the DIM statement, but it does not create variable
+storage. Instead, it describes what parameters the "called" procedure
+expects
+to
+receive from
+the
+"calling" procedure.
+The
+programmer must ensure that
+the total size
+of
+each
+parameter
+(as
+evaluated
+by the
+RUN statement
+in
+the
+calling procedure) conforms
+to the
+amount
+of
+.storage
+expected
+for
+each parameter
+in
+the
+called procedure
+as
+specified
+by the
+PARAM statement, Basic09 checks
+the
+size
+of
+each
+parameter
+(to
+prevent accidental access
+to
+storage other than
+the
+parameter), but it DOES ROT CHECK TYPE. However, in most cases the
+programmer should ensure that the parameters evaluated in the RORN
+statement and sent to the called procedure agree exactly with the PARAM
+statement specification with respect to: the number of parameters, theirorder,
+size,
+shape, and
+type.
+Because type-checking is not performed, if you really know what you
+are doing you can make the parameter passing operation perform useful but
+normally illegal type
+conversions
+of
+identically-sized data structures.
+For
+example, passing
+a
+string
+of
+80
+characters
+to
+a
+procedure expecting
+a
+BYTE array having
+80
+elements will assign
+the
+numeric value
+of
+eachcharacter
+in the
+string
+to the
+corresponding element
+of
+the byte array.
+Page 9-24
+Basic09 REFERERCE MANUAL
+Program Statements and Structure
+TYPE Statement
+Syntax: TYPE <typename>
+<type decl>
+<type decl> {; <type decl>}
+<field name> . <decl> [ : <type> ]
+<decl> := <name> [ <subscript> ]
+<subscript> := ( <const> [,<const>] {,<const>] ] )
+<type> := BYTE | INTEGER | REAL ;| BOOLEAN |
+STRINRG [<max len>] | <user defined>
+user defined by TYPE statement{user defined> :
+This statement is used to define new data types. New data types are
+defined as a "vector®TM (a one-dimensional array) of previously defined
+types. This structure differs from an array in that the various elements
+may be of different types, and the elements are accessed by field name
+instead of an array index. Here's an example:
+TYPE cust_recd = name,address(3) :STRING; balance
+This example creates a new data type called “"cust_recd" which has three
+named fields: a field called "name" which is a string, a field called
+"addressTM which is a vector . of three strings, and a field called
+"balance” which is a (default) real value.
+The TYPE statement can include previously defined types so that very
+complex non-rectangular data structures can be created such as lists,
+trees, etc. This statement does not create any variable storage itself;
+the storage is created when the newly defined type is used in a DIH
+statement. The example shown below creates an array having 250 elements
+of type "cust_recd"TM that was defined above:
+DIM customer_f£file(250):cust_recd
+To access elements of the array in assignment statements, the field name
+is used as well as the index:
+name$ = customer_£file(35).name
+customer_file(N+1) .address(3) = "New York, NY"
+customer_£file(X).balance= 125,98
+The complex structure allows creation of data types appropriate to the
+job at hand by providing more natural organization and association of
+data. Additionally, the position of the desired element is known and
+defined at compilation time and need not be calculated at run time,
+unlike arrays, and can therefore be accessed faster than arrays.
+Page 9-25
+Basic09
+REFPERERCE
+HARUAL
+Program Statements
+and
+Structure
+This
+Page
+Intentionally
+Blank
+Page 9-26
+Basic09 REFERENCE HANUAL
+Input and
+Output Statements
+FILES ARD UNIFIED INPUT/OUTPUT
+A file 1is a logical concept for a sequence of data which is named
+for convenience in use and storage. File data may be pure binary data,
+textual data (ASCII characters), or any other useful information.
+Hardware input/output ("I/O") devices used by 0S-9 also work like files,
+so you can generally use any 1/0 facility regardless of whether you are
+working with disk files or I1/0 devices such as printers. This single
+interface standard for any device and simple communication facilities
+allow any device to be used with any other device; this concept is known
+as "unified I/0". Note that unified I/O can benefit routine programming.
+For example: £file operations- can be debugged by communicating with a
+terminal or printer instead of a storage device, and procedures which
+normally communicate with a terminal can be tested with data coming from
+and sent to a storage device.
+Basic09 normally works with two types of files: sequential files and
+random-access
+files.
+A sequential file sends or receives (WRITE/READ) textual data only
+in order. t is not generally possible to start over at the beginning of
+a seguential file once a number of bytes have been accessed (many I/0
+devices such as printers are necessarily sequential). A seguential file
+contains only valid ASCII characters; the READ and WRITE commands perform
+format conversion similar to that done automatically in IRPUOT and PRIRT
+conmands. A sequential file contains record-delimiter characters
+(carriage return) which separate the data created by different WRITE
+operations. Each WRITE command will send a complete sequential-file
+record, which is an arbitrary number of characters terminated by a
+carriage return. Each READ will also read all characters up to the next
+carriage return.
+A random—-access file sends and receives (PUT/GET) data in binary
+form exactly as it is internally represented in BASICO0Y9 which minimizes
+both the time involved in converting the data to and from ASCII
+representation as well as reducing the file space required to store the
+data. It is possible to POT and GET individual bytes or a substructure
+of many bytes (in a complex structure). The GET of a structure merely
+recovers the number of bytes associated with that type of structure. It
+is possible to move to a particular byte in a random-access file (using
+SEEE) and to begin to POT or GET seguentially from that point (in
+general, "“SEEK #path,0" is egquivalent to the REWIND whichis used in some
+forms of BASIC). Since the random-access file contains no record-
+separators to indicate the size of particular elements of the file, the
+programmer should use the SIZE function to determine the size of a single
+element, then use SEEK to move to the desired element within the file.
+A new file is created on a storage device by executing CREATE. Once
+a file exists, the OPER command is used to notify the operating system to
+set up a channel to the desired device and return that path number to the
+BASICO0S program. This channel number is then used in file-access
+cperations (e.g., RERD, WRITE, GET, PUT, SEEK, etc.). When the
+Page 10-1
+Basic09 REPERENCE MANUAL
+Input and Output Statements
+programmer is finished with the file, it should be terminated by CLOSE to
+assure
+that the
+file
+system
+has
+updated
+all
+data back onto
+magnetic
+media.
+I/0 PATHS
+A
+"path"TM
+is
+a
+description
+of
+a
+"channel"
+through which
+data
+flows
+from
+a
+given
+program outward,
+or
+from
+some
+device
+inward.
+In
+order
+for
+data to flow to or from a device, there must be in 0S-9 an associateddevice driver
+-
+see the
+0S5-9
+Users
+Manual.
+When
+a
+path
+is
+created, 0S-9
+returns a unique number to identify the path in subsequent file
+operations.
+This "path
+number”
+is
+used
+by
+the I/O statements
+to
+specify
+the file to be used, Three path numbers have special meanings because
+they are "standard I/0 paths" representing Basic09's interactive
+input/output (your terminal). These are automatically "opened" for you
+and should not be closed except in very special circumstances. The
+standard I/0 path numbers are: :
+0 Standard Input (Keyboard)
+1 Standard Output (Display)
+2
+Standard Error/Status
+(Display)
+The table below is a summary of the I/0 statements within Basic09
+and their general
+wusage.
+This reflects typical usage; most statements
+can be used with any I/O device or file. Sometimes certain statements
+are used in unusual ways by advanced programmers to achieve certain
+special effects.
+Statement Generally Used With Data Format
+(File Type)
+IRPOT Reyboard (interactive input) Text (Sequential)
+PRIRT Terminals, Printers Text (Segquential)
+OPEN Disk Files and I/0 Devices Any
+CREATE Disk Files and I/0O Devices Any
+CLOSE Disk Files and I/0 Devices Any
+DELETE Disk Files Any
+SEEK Disk Files Binary (Random)
+READ Disk Piles Text (Sequential)
+WRITE Disk Files Text (Sequential)
+GET Disk Files and I/0 Devices Binary (Random)
+POT DISK Files and I/0 Devices Binary (Random)
+Page 10-2
+Basic09 REFPERENCE HARUAL
+Input and
+Output
+Statenments
+IRPUT Statement
+Syntax: INPOUT [ #<int expr>,] ["<prompt>*",] <input list>
+IRPUT accepts input during execution of a program. The input is
+normally read from the standard input device (terminal) unless an
+optional path number is given. When the IRPUT statement is encountered,
+program execution is suspended and a "?" prompt is displayed. If the
+optional prompt string is given, it is displayed instead of the normal
+"?" prompt. The INPUT statement is really both an input and output
+statement. Therefore, if a path other than the default standard input
+path is wused, the path should be open in UPDATE mode. This makes INPUT
+dangerous if used on disk files unless you like prompts in your data (use
+READ)
+.
+The data entered is assigned in order to the variable names as they
+appear in the input list. The variables can be of any atomic type, and
+the input data must be of the same (or compatible) type. The line is
+terminated by a carriage return. There must be at least as many input
+items given as variables in the input list. The length of the input
+line cannot exceed 256 characters.
+If any error occurs (type mismatch, insufficient amount of data,
+etc.), the message:
+**INPUT ERROR - RETYPE**
+is displayed, followed by a new prompt. The entire input line must then
+be reentered.
+The IRPUT statement uses 0S-9's line input function (READLN) which
+performs line editing such as backspace, delete, end-of-file, etc. To
+perform input WITHOUT editing (i.e., to read pure binary data), use the
+GET statement.
+Examples:
+IRPUT number,name$,location
+INPOT #path,x,y,2
+IRPUT "What is your selection: ", choice
+IFPUT #path, "What's your name? ",name$§;
+Bere's how to read a single character (without editing) from the terminal
+(path #0):
+DIH char:STRING[1]
+GET £0,char
+Page 10-3
+Basic09 REFERERCE MARUAL
+Input and Output Statements
+For
+a
+function
+to test
+if
+data
+is
+available from
+the
+keyboard without
+"hanging”
+the program,
+see the "INREY"
+assembly language program
+included
+in
+Appendix
+a.
+PRIRT Statement
+Syntax:
+PRINRT
+<output list>
+PRIRT #<int exp>, <output list>
+PRIRT USIRG <str expr>, <output list>
+PRIRT #<int exp>, USIRG <str expr>, <output list>
+PRINT outputs
+the
+values
+of
+the items
+given
+in
+the
+output
+list
+to
+the standard output device (path #1, the terminal) unless another path
+number
+is
+specified.
+The output list consists of one or more items separated by comma or
+semicolon characters. Each item can
+be
+a
+constant, variable,
+or
+expression of any atomic type. The PRINT statement evaluates each item
+and
+converts
+the
+result
+to
+corresponding ASCII characters which
+are then
+displayed.
+If
+the
+separator character following
+the
+item
+is
+a
+semicolon,the
+next item will
+be
+displayed without
+any
+spacing
+in
+between.
+1If
+a
+comma is used, spaces will be output so the next item starts at the next
+"tab"TM
+zone,
+The tab zones are
+16
+characters
+1long
+starting
+at the
+beginning of the line. If the line is terminated by a semicolon, the
+usual carriage return following the output line is inhibited.
+The "TAB(expr)" function
+can be
+used
+as an
+item
+in the output
+list,
+which outputs
+the
+correct number
+of
+spaces
+to
+cause the
+next item
+to
+start
+in the
+print column specified
+by the
+result
+of
+the expression.
+1If
+the output
+line
+is
+already past
+the
+desired tab position, the TAB
+is
+ignored. A related <function, "POS", can be used in the program to
+determine
+the
+output position
+at
+any given
+time.
+The output columns are
+numbered from one to a maximum of 255, The size of Basic09's output
+buffer varies according to stack size at the moment. A practical value
+is at least 512 characters. '
+The PRIRT USIRG form of this statement is described at the end of
+this chapter.
+Examples:
+PRIRT value,temp+(n/2.5),location$
+PRIRT #printer_path,"The result is "; n
+PRIRT “"what is" + name$ + "'s age? ";
+PRIRT "index: ";i;TAB(25);"value: ";value
+PRIRT USIRG "R10.2,%2,R5.3",x,y
+Page 10-4
+Basic09 REFERENCE MANUAL
+Input and Output Statements
+PRINT #outpath USIRG fmt$,count,value
+(* print an 80-character line of all dashes *)
+REPEAT
+PRIRT "-";
+ONTIL POS >= 80
+PRIRT
+Page 10-5
+BASIC0S
+REFERENCE
+MANRUAL
+Input and Output Statements
+OPEN Statement
+Syntax:
+OPEN
+#<int var>,<str expr>
+[
+:
+<access mode>
+]
+{access mode>
+:=
+<mode>
+|
+<mode>
++
+<access mode)
+<mode>
+:=
+READ
+|
+WRITE
+!
+UPDATE
+|
+EXEC
+|
+DIR
+OPEN
+issues
+a
+reguest
+to
+0S-9
+to
+open
+an
+I/O path
+to an
+existingfile
+or
+device. The
+STRIRG expression
+is
+evaluated
+and
+passed
+to
+0S~9
+as
+the descriptive
+pathlist. The
+variable
+name specified
+must
+be
+DIMensioned
+as
+type
+INTEGER
+or
+BYTE
+and
+is
+used
+to
+"receive"
+the "path
+number” assigned
+to
+the
+path
+by
+08-9. The
+path number
+is
+used
+to
+reference the specific file/device
+in
+subsequent input/output
+statements.
+The
+OPEN
+statement may also
+specify
+the
+path's desired
+"“access
+mode"
+which
+can be READ, WRITE, UPDATE,
+EXEC,
+or
+DIR.
+The access mode defines
+which direction
+1I/0
+transfers will
+occur.
+If
+no
+access mode
+is
+specified,
+UPDATE
+is
+assumed and both reading and
+writing
+are permitted.The
+DIR mode
+allows
+0S-9
+directory-type
+files
+to
+be
+accessed
+but should
+ROT
+be
+used
+in
+combination
+with with WRITE
+or
+UPDATE
+modes. The EXEC mode
+causes the
+current execution directory
+to be
+used instead
+of
+the
+current
+data directory.
+Refer
+to
+the "0S~9 User's Manual"
+for
+more information
+on how files access modes.
+Examples:
+DIF printer_path:BYTE; name:STRIRG[24]
+name="/p"
+OPER #printer_path,name:WRITE
+PRINT #printer_path,"Mary had
+a
+little lamb®
+CLOSE #printer_path
+DIM
+inpath:IRNTEGER
+dev$="/winchester/"
+IRPUT
+names$
+OPER #inpath,dev$+name$:READ
+OPER #path:userdir$:READ+DIR
+OPEN #path,name$:WRITE+EXEC
+Page 10-6
+Basic09 REFERENCE HMANUAL
+Input and Output Statements
+CREATE statement
+Syntax: CREATE #<int var>,<str expr> [ : <access mode> ]
+<access mode> := <mode> ! <mode)> + <access mode>
+<mode> := WRITE ! UPDATE ! EXEC
+The CREATE statement is used to create a new file on a multifile
+mass storage device such as disk or tape. If the 'device is not
+multifile, this statement works like an "OPEN" statement. The variable
+name is used to "receive" the path number assigned by 0S-9 and must be of
+BYTE or INTEGER type. The STRING expression is evaluated and passed to
+05-9 to be used as the descriptive pathlist.
+The "access mode”TM defines the direction of subsequent I/0 transfers
+and should be either WRITE or UPDATE. "UPDATE" mode allows the file to
+be either read or written.
+0S-9 has a single file type that can be accessed both sequentially
+OR at random. Files are byte-~addressed, so no explicit "record" length
+need be given (see GET and PUT statements). When a new file is created,
+it has an initial length of zero. Files are expanded automatically by
+PRIRT, WRITE, or PUT statements that write beyond the current "end of
+file®TM. File size may be set explicitly using the 0S9 statement.
+Examples:
+CREATE #trans, "transactions”TM:UPDATE
+CREATE #spool, "/user4/reportTM:WRITE
+CREATE #outpath,nameS$:UPDATE+EXEC
+Page 10-7
+Basic09
+REPERENCE MANUAL
+Input and
+Output Statements
+CLOSE Statement
+Syntax:
+CLOSE
+#<int expr>
+{
+,#<int
+expr>
+}
+The
+CLOSE statement notifies
+0S-9 that one
+or
+more
+I/O
+paths
+are
+no
+longer needed. The paths
+are
+specified
+by their number(s).
+If
+the
+closed
+path used
+a
+non-sharable
+device
+(such as
+a
+printer),
+the
+device
+is
+released and can
+be
+assigned
+to
+another
+user.
+The path must
+have
+been
+previously established
+by
+means
+of
+the
+OPEN
+or
+CREATE statements.
+Paths
+#0, #1,
+and
+#2 (the
+standard
+I/O paths)
+should
+never
+be
+closed
+unless the user
+immediately
+opens
+a
+new path
+to
+take over the
+Standard
+Path number.
+Examples:
+CLOSE
+#master,
+#trans,
+fnew_master
+CLOSE
+#5,%£6,%9
+CLOSE
+£l
+\(*
+closes standard output path
+*)
+OPEN #path,"/T1"
+\(*
+Permanently redirects Std Output
+*)
+CLOSE
+#0
+\(*
+closes standard input path
+*)
+OPER #path,"/TERM®
+\(*
+Permanently redirects Std Input
+*)
+Page 10-8
+Basic09 REFERENCE MARUALInput and Output Statements
+DELETE
+StatementSyntax:
+DELETE
+<str
+expr>
+This statement
+is
+used
+to
+delete
+a
+mass storage
+file.
+The
+file's name
+is
+removed from
+the
+directory
+and
+all
+its
+storage
+is
+deallocated,
+so
+any
+data
+on the
+file
+is
+permanently
+lost.
+The string
+expression
+is
+evaluated
+and
+passed
+to
+0S-9
+as
+the
+descriptive
+pathlist
+of
+the
+file.
+The user
+must have
+write permission
+for
+the
+file
+to be
+deleted.
+See
+the
+"0S5-9
+OPERATING SYSTEM USER'S MANUAL"
+for
+more information.
+Examples:DELETE
+*/D0/0ld_junk"”
+name$="file55"DELETE
+nameS$
+|
+'
+-
+DELETE "/D2/"+name$
+(deletes file named "/D2/file55")
+Page 10-9
+Basic09
+REFERERCE
+HMANUAL
+Input
+and
+Output Statements
+SEEK
+Statement
+Syntax:
+SEEK
+#<int
+expr>,<real
+expr>
+SEER changes
+the file pointer address
+of
+a
+mass storage
+file,
+which
+is
+the
+address
+of
+the next data byte(s)
+that
+are
+to be read or
+written.
+Therefore, this
+statement
+is
+essential
+for
+random
+access
+of
+data
+on
+files
+using
+the
+GET
+and
+PUT
+statements.
+The first expression specifies the path number of the file and must
+evaluate
+to
+a
+byte
+value.
+The
+second expression specifies
+the
+desired
+file pointer address, and must evaluate to a REAL value in the range 0 <=
+result
+<=
+2,147,483,648.
+2Any
+fractional part
+of
+the result
+is
+truncated.
+Of course the actual maximum file size depends on the capacity of the
+device,
+'
+Although
+SEERK
+is
+normally used
+with random-access
+files,
+it
+can be used
+to
+"rewind"
+sequential
+files.
+For
+example:SEEK #path,0
+is the same as a "rewind" or "restore"TM function. This is the only form
+of
+the SEEK
+statement
+that
+is
+generally useful
+for files
+accessed
+by
+READ
+and
+WRITE statements. These statements
+use
+variable~length
+records,
+so
+it is
+difficult
+to
+know
+the
+address
+of
+any
+particular
+record
+in
+the file.
+Examples:
+SEEK #fileone,filptr*2
+SEEK #outfile, 208894
+SEEK #inventory,(part_num - 1) * SIZE(inv_rcd)
+Page 10-10
+Basic09 REFERERCE MANUAL
+Input and
+Output Statements
+WRITE Statement
+Syntax: WRITE #<int expr>,<output list>
+The WRITE statement writes data in ASCII character format on a
+file/device. The first expression specifies the number of a path that
+was previously opened by a OPEN or CREATE statement in WRITE or UPDATE
 mode.
-**PEEK** Returns the byte value of a memory address.
-**PI** Represents the constant 3.14159265.
-**POKE** Stores a byte value at a specified memory address.
-**POS** Returns the current character position of the print buffer.
-
-**PRINT** or**?**
-
-Sends the specified characters or values to the display. The?
-shorthand can be used with any of the following PRINT
-keywords as well.
-**PRINT USING** Sends characters or values to the display, using the specified
-format.
-**PRINT #** Sends the specified characters or values to the specified path.
-**PRINT # USING** Sends characters or values to the specified path using the
-specified format.
-**PUT** Writes data to a random access file.
-**RAD** Causes BASIC09 to calculate angles in radians.
-**READ** Accesses data from procedure DATA lines or from files or
-devices.
-**REM** or**!** Indicates that the following characters in a procedure line are
-comments and are not to be executed. Also use (* *), or (*.
-**REPEAT/UNTIL** Establishes a loop that executes until the specified condition is
-met.
-**RESTORE** Restores the DATA pointer to the first data item or to a
-specified line.
-**RETURN** See GOSUB/RETURN.
-**RIGHT$** Returns the number of characters specified, from the rightmost
-portion of a string.
-**RND** Returns a random number from a specified range.
-
-
-**_Basic09 Reference_**
-
-```
-Command Description
-RUN Calls another procedure for execution.
-SEEK Changes the file pointer address.
-SGN Determines the sign of a number.
-SHELL Calls an NitrOS-9 command or program for execution.
-SIN Calculates the sine of a specified value.
-SIZE Returns the number of bytes assigned to a variable, array, or
+The output list consists of one or more expressions separated by
+commas. Each expression can evaluate to any expression type. The result
+is then 'converted to an ASCII character string and written on the
+specified path beginning at the present file pointer which is updated as
+data
+is
+written.
+If the output list has more than one item, ASCII null characters
+(S00) are written between each output string. The last item is followed
+by a carriage return character, ‘
+Note that this statement creates variable-length ASCII records..
+Examples:
+WRITE #outpath,cat,dog,mouse
+WRITE #xfile,LBFT$(A$,n)}count/2
+Page 10-11
+Basic09 REFERERCE MANDAL
+Input and Output Statements
+READ Statement
+Syntax: READ #<int expr>,<input list>
+The READ statement causes input data in ASCII character format to be
+read from
+a
+file
+or
+device. The first expression specifies
+a
+path number
+which
+must have been
+previously
+opened
+by an
+OPER
+or
+CREATE statement
+in
+READ or UPDATE access mode (except the standard input path £#0). Data is.
+read starting at the path's current file pointer address which is updated
+as
+data
+is
+read.
+‘
+READ calls 0S-9 to read a variable length ASCII record. Individual
+data
+items
+within
+the
+record
+are
+converted
+to
+Basic09's
+internal binary
+format, These results are assigned in order to the variables given in
+the input
+list.
+The input data
+must match
+the
+number
+and type
+of
+the
+variables
+in
+the
+input
+list.
+The individual data items in the input record are separated by ASCII
+null characters. Numeric items can also be delimited by commas or space
+characters. The input record is terminated by a carriage return
+character.
+Examples:
+READ #inpath,name$,address$,city$,state$,zip
+PRIRT £1,"height,weight? "
+READ #0,height,weight
+Note: READ
+is
+also used
+to
+read lists
+of
+expressions
+in the program. See
+the DATA statement section for details.
+Page 10-12
+Basic09 REFERENCE MARUAL
+Input and
+Outpat Statements
+GET
+Statement
+PUT Statement
+Syntax:
+GET #<expr>,<struct
+name>
+POT #<expr>,<struct
+name>
+The GET and PUT statements read and write fixed-size binary data
+records to files or devices. These are the primary I/0 statements used
+for random access input and output.
+The first expression is evaluated and used as the number of the I/0O
+path which must have previously been opened by an OPER or CREATE
+statement, Paths used by PUT statements must have been opened in WRITE
+or UPDATE access modes, and paths used by GET statements must be in READ
+or
+UPDATE
+mode.
+The statement wuses exactly one name which can be the name of a
+variable, array or complex data structure. Data is written from, or
+read into, the variable or structure named. The data is transferred in
+Basic09's internal binary format without conversion which affords very
+high throughput compared to READ and WRITE statements. Data is
+transferred beginning at the current position of the path's file pointer
+(see SEEK statement) which is automatically updated.
+0S-9's file system does not inherently impose record structures on
+random-access files, All files are considered to be continuous sequences
+of addressable binary bytes. A byte or group of bytes located anywhere
+in the file can be read or written in any order. Therefore the
+prooremmer is:- free to use the basic file access system to create any
+record structure desired.
+Record I/O in Basic09 is associated with data structures defined by
+DIM and TYPE statements. The GET and PUT statements write entire data
+structures -or parts of data structures. A PUT statement, for example,
+can write a simple variable, an entire array, or a complex data structure
+in one operation. To illustrate how this works, here is an example based
+on a simple inventory system that requires a random access file having
+100 records. Each record must include the following information: the
+name of the item (a 25-byte character string), the item's list price and
+cost (both real numbers), and the quantity on hand (an integer).
+First it is necessary to use the TYPE statement to define a new data
+type that describes such a record. For example:
+TYPE inv_item=name:STRING[25];1ist,cost:REAL;gty:INTEGER
+This staztement describes a new record type called "inv_item" but does not
+Page 10-13
+Basic09
+REPERENCE MARUAL
+Input and Output Statements
+cause
+variable storage
+to
+be
+assigned
+for
+it.
+The next step
+is
+to createtwo
+data structures:
+an
+array
+of 100
+"records"
+of
+type "inv_item"
+to be
+called "inv_array” and
+a
+single working
+record called "work_rec":
+DIM inv_array(100):inv_item
+DIM work_rec:inv_item
+You
+can
+manually
+count the
+number
+of
+bytes
+assigned
+for
+each
+type
+to
+calculate
+the
+total size
+of
+each
+record.
+Sometimes
+this can
+become
+complicated
+and
+error-prone. Also, any change
+in a
+TYPE definition
+could
+require recalculation. Fortunately, Basic09
+has
+a
+built-in function:
+SIZE(<name>)that returns
+the
+number
+of
+bytes assigned
+to
+any variable,
+array,
+or
 complex data structure.
-SQ Calculates a value raised to the power of two.
-SQR/SQRT Calculates the square root of a positive number.
-STEP Sets the size of increment in a FOR/NEXT loop.
-STOP Terminates the execution of all procedures and returns to the
-BASIC09 Command mode.
-STR$ Converts numeric data to string data.
-SUBSTRING Returns the starting position of a sequence of characters in a
-string.
-SYSCALL Executes an NitrOS-9 System Call.
-TAB Begins a print operation at the specified column.
-TAN Calculates the tangent of a value.
-TRIM$ Strips trailing spaces from the specified string.
-TRON/TROFF Turn the trace mode on and off.
-TRUE Returns the boolean value of TRUE.
-TYPE Defines a new data type.
-UNTIL See REPEAT/UNTIL.
-USING See PRINT USING.
-VAL Converts a string to an integer.
-WHILE/DO/
-ENDWHILE Executes a loop as long as a specified condition is true.
-WRITE Writes data in ASCII format to a file or device.
-XOR Performs a logical EXCLUSIVE OR on two boolean values.
-```
-
-```
-BASIC09 Quick Reference | 10
-```
-**Commands by Type**
-
-**Statements**
-BASE 0 DIM GOSUB OPEN RETURN
-BASE 1 ELSE GOTO PARAM RUN
-BYE END IF/THEN PAUSE SEEK
-CHAIN ENDEXIT INPUT POKE SHELL
-CHD ENDIF KILL PRINT STOP
-CHX ENDLOOP LET PUT TROFF
-CLOSE ENDWHILE LOOP RAD TRON
-CREATE ERROR NEXT READ TYPE
-DATA EXITIF/THEN ON ERROR/GOTO REM UNTIL
-DEG FOR/TO/STEP ON/GOSUB REPEAT WHILE/DO
-DELETE GET ON/GOTO RESTORE WRITE
-
-**Transcendental Functions**
-
-```
-ACS COS LOG10 SIN
-ASN EXP PI TAN
-ATN LOG
-```
-**Numeric Functions**
-
-```
-ABS LAND MOD SQ
-FIX LNOT RND SQR
-FLOAT LOR SGN SQRT
-INT LXOR
-```
-**String Functions**
-
-```
-ASC LEFT$ RIGHT$ TRIM$
-CHR$ LEN STR$ VAL
-DATE$ MID$ SUBSTR STR
-INKEY
-```
-**Miscellaneous Functions**
-
-```
-ADDR FALSE SIZE SYSCALL
-EOF PEEK TAB
-ERR POS TRUE
-```
-
-**_Basic09 Reference_**
-
-**Data Types**
-
-The following list shows the BASIC0S data type you can specify when defining a
+In
+our example, SIZE(work_rec) will return
+the
+number
+37,
+and
+SIZE(inv_array) will return 3700.
+The size function
+is
+often used
+in
+conjunction with
+the
+SEERK
+statement
+to
+position
+a
+file
+pointer
+to a
+specific recordfs address.
+The
+procedure below creates
+a
+file called
+"inventory"TM
+and
+initializes
+it
+with zeroes and nulls:
+PROCEDDRE makefile
+TYPE inv_item
+=
+name:STRIRG[25]; list,cost:REAL;
+gty:INTEGERDIM inv_array(100):inv_item
+DIM work_rec:inv_item
+DIM path:byteCREATE
+#path,
+"inventory"
+work_rec.name
+=
+""
+work_rec.list
+:=
+0.
+work_rec.cost
+:=
+0,
+work_rec.qgty
+:=
+0
+FORn
+=1
+TO 100
+POT {path,work_rec
+REXT
+n
+ERD
+Notice that the
+assignment statements reference each named "field"
+of
+work_rec
+by name, but the
+PUT statement references
+the
+record
+as a
+whole.
+The subroutine below asks for
+a
+record number, then asks for data
+and writes
+it on the file at the specified record:IRPUOT
+"Record number ?%,recnum
+IRPUT "Item name? ",work_rec.name
+INPUT "List price? ",work_rec.list
+IRPUT "Cost price? ",work_rec.cost
+IRPUT "Quantity? ",work_rec.gty
+SEEX #path, (recnum
+- 1) *
+SIZE(work_rec)
+PUOT
+#path,work_rec
+Page 10-14
+Basic09 REPERENCE MARUAL
+Input and Output Statements
+The routine below uses a 1loop to read the entire file into the array
+"inv_array": :
+SEEK #path,0 \ (* "rewind" the file *)
+FOR K =1 TO 100
+GET #path,inv_array(k)
+REXT
+k
+Because ENTIRE STRUCTURES can be read, we can eliminate the FOR/NEXT loop
+and do exactly the same thing by:
+SEEK #path,0
+GET #path,inv_array
+The above example is a very simple case, but it illustrates the combined
+power of Basic09 complex data structures and the random access 1/0
+statements. When fully exploited, this system has the following
+important characteristics:
+1. It is self-documenting. You can clearly see what a program
+does, because structures have descriptive named sub-structures.
+2. It is extremely fast.
+3. Programs are simplified and typically require fewer statements
+to perform I/0 functions than in other BASICs.
+4, It is versatile. By creating appropriate data structures you
+can read or write almost any kind of data on any file, including
+files created by other prograzms or languages. :
+These advantages are possible because a single GET or PUT statement can
+move any amount of data, organized any way you want.
+Page 10-15
+Basic09 REFERENCE MARUAL
+Input and
+Output
+Statements
+IRTERNAL
+DATA
+STATEHENRTS
+DATA StatementREAD Data Statement
+RESTORE Statement
+Syntax: READ <input list>
+DATA <expr> , { <expr> }
+RESTORE [ <line number> ]
+These . statements provide an efficient way to build constant tables
+within a program. DATA statements provide values, the READ statement
+assigns the values to variables, and RESTORE statements can be used to
+set which data statement is to be read next.
+The DATA statements have one or more expressions separated by
+commas. They can be located anywhere in a program. The expressions are
+evaluated -each time the data statements are read and can evaluate to any
+type. Here are some examples:
+DATA 1.1,1.5,9999,"CAT","DOG"
+DATA SIR(temp/25), COS(temp*PI)
+DATA TRUE,FALSE, TRUE,TRUE,PALSE
+The READ statement has a list of one or more variable names. When
+executed,
+it
+gets
+“"input"
+by
+evaluating
+the
+current expression
+in the
+current data statement. The result must match
+the type
+of
+the
 variable.
-
-```
-Type Function
-BOOLEAN Returns TRUE or FALSE.
-BYTE Specifies that a numeric variable is to store single-byte
-values.
-INTEGER Specifies that a numeric variable is to store integer (two-
-byte) values.
-REAL Specifies that a numeric variable is to store real (five-byte)
-values.
-STRING Specifies that a variable is to store ASCIT characters.
-```
-**Types of Access for Files**
-
-You can use the following parameters with the CREATE and OPEN commands.
-Check the individual commands for information on which parameter to use with
-which command.
-
-```
-Parameter Function
-DIR or
-[ENTER]
-```
-```
-Lets BASIC09 access a directory-type file for reading. Do
-not use with UPDATE or WRITE.
-EXEC Lets BASICO9 access the current execution directory
-rather than the current data directory.
-READ Sets the file access mode for reading.
-WRITE Sets the file access mode for writing.
-UPDATE Sets the file access mode for both reading and writing.
-```
-
-```
-BASIC09 Quick Reference | 10
-```
-**Command Mode**
-
-The following chart lists the commands available from the BASIC09 Commands
-mode:
-
-```
-Command Function
-$ Calls the shell command interpreter to execute an
-NitrOS-9 command. Type EX to return to BASIC09.
-$ command Tells BASIC09 to execute the specified NitrOS-9
-command(s) or program(s). Upon completion it
-immediately returns to BASIC09. To run more than
-one command, separate each command with a semi-
-colon (';').
-BYE or
-[CTRL][BREAK]
-```
-```
-Returns you to the NitrOS-9 system or to the program
-that called BASIC09.
-CHD Changes the current data directory.
-CHX Changes the current execution directory.
-DIR Displays the name, size, and variable storage
-requirement of each procedure in the workspace.
-EDIT or E Enters the procedure editor/compiler mode.
-KILL Removes one or more procedures from the workspace.
-LIST Displays a formatted listing of one or more
-procedures.
-LOAD Loads all procedures from a file into the workspace.
-MEM Displays current workspace size or reserves a
-specified amount of memory for the workspace.
-PACK Performs a second compilation and stores the resulting
-file in the execution directory. NOTE: Source code
-must be saved before using PACK or it will be lost!
-RENAME Changes a procedure’s name.
-RUN Causes a procedure to execute.
-SAVE Writes one or more procedures to disk.
-```
-
-**_Basic09 Reference_**
-
-**Edit Commands**
-
-The following chart lists the commands available from the Edit mode:
-
-```
-Command Function
-[ENTER] Moves the edit pointer to the next line.
-+ num Moves the edit pointer forward a specified number of lines.
-+* Moves the edit pointer past the last line.
-```
-**-** **_num_** Moves the edit pointer back a specified number of lines.
-**-*** Moves the edit pointer to the first line.
-**_text_** A space followed by text inserts an unnumbered line before
-    the current line.
-**_line_** Typing a line number with or without text following it
-    inserts the line into the procedure.
-**_line_**
-**[ENTER]**
-
-```
-Moves the edit pointer to the line line.
-```
-```
-c/ str1 / str2 / Changes the text str1 to the text str2.
-c*/ str1 / str2 Changes all occurrences of str1 to str2.
-d Deletes the current line.
-d* Deletes all the lines in the current procedure.
-d num Deletes num lines including the current line in the current
-procedure.
-l Lists the current line.
-l* Lists all the lines in the current procedure.
-l num Lists num lines including the current line in the current
-procedure.
-q Terminates the edit session.
-r Renumbers lines from the first line number, in increments
-of 10.
-r* Renumbers all numbered lines in increments of 10. The
-first line number is 100.
-r line Renumbers lines from line in increments. of 10.
-r line num Renumbers lines from line , in increments of num.
-s/ str Searches for the first occurrences of str.
-s*/ str Searches for all occurrences of str.
-```
-
-```
-BASIC09 Quick Reference | 10
-```
-**Debug Commands**
-
-The following table lists all the Debug commands and what they accomplish:
-
-```
-Command Function
-$ Calls the shell command interpreter to execute an
-NitrOS-9 command. Type EX to return to BASIC09.
-$ command Tells BASIC09 to execute the specified NitrOS-9
-command(s) or program(s). Upon completion it
-immediately returns to BASIC09. To run more than one
-command, separate each command with a semi-colon
-(';').
-BREAK Sets a breakpoint at the specified procedure.
-CONT Causes procedure execution to continue.
-DEG/RAD Selects either degrees or radians as the unit of angle
-measurement for trigonometric functions.
-DIR Displays the procedures in the workspace.
-Q Leaves the Debug mode for the System mode.
-LET Assigns a new value to a variable.
-LIST Displays a source listing of the suspended procedure.
-PRINT var Displays the value of the specified variable.
-STATE Lists the nesting order of all active procedures.
-STEP num Causes execution of the suspended procedure in specified
-increments.
-TRON/TROFF Turns the trace function on and off.
-```
-
+When
+all the
+expressions
+in a
+DATA
+statement have been evaluated,
+the
+next DATA statement (in sequential order) is used. If there are no more
+DATA statements following, processing "wraps around" to the first data
+statement
+in
+the
+program.
+The RESTORE statement used without a line number causes the first
+DATA statement
+in the
+program
+to be used
+next,
+If
+it is
+used with
+a
+line
+number, the data statement having that line number
+is
+used next.
+Exanples:
+’
+’
+100
+DATA
+9,10
+Page 10-16
+Basic09 REFERENCE MARUAL
+Input and Output Statements
+FORMATTED OUTPUT: THE PRINT USING STATEMENT
+Basic09 has a powerful output editing capability useful for report
+generation and other applications where formatted output is required.
+The output editing uses the PRIRT USIRG statement which has the following
+syntax:
+PRINRT [#<expr>] USIRG <str expr> , <output list>
+The optional path number expression can be used to specify the path
+number of any output file or device. If it is omitted, the output is
+written to the standard output path (usually the terminal).
+The string expression is evaluated and used as a "format specifi-
+cationTM which contains specific formatting directives for each item in
+the "output list". The items in the output list can be constants,
+variables, or expressions of any atomic type. BLANKS ARE ROT ALLOWED IN
+FORMAT STRINGS! As each output item is processed, it is matched up with
+a specification in the format list. The type of each expression result
+must be compatible with the corresponding format specification. If there
+are fewer format specifications than items in the output list, the format
+specification list is repeated again from its beginning as many times as
+necessary.
+A format string has one or more format specifications which are
+separated by commas. There are two kinds of specifications: ones that
+control output editing of an item from the output list and ones that
+cause an output function by themselves (such as tabbing and spacing).
+There are six basic output editing directives. Each has a corresponding
+one-letter identifier:
+real format
+exponential format
+integer format
+hexadecimal format
+string format
+boclean formatWwnnmHgThe identifier letter is followed by a constant number called the "field
+width". This number indicates the exact number of print columns the
+output is to occupy and must allow for the data ARD "overhead" character
+positions such as sign characters, decimal points, exponents, etc. Some
+formats have additional mandatory or optional parameters that control
+subfields or select editing options. One of these options is
+"justification" which specifies whether the output is to "line up" on the
+left side, right side, or <center of the output field. Fields are
+commonly right-justified in reports because it arranges them into neat
+columns with decimal points aligned in the same position.
+The abbreviations and symbols used in the syntax specifications are:
+Page 10-17
+Basic09 REFERERCE MAKRUAL
+Input and Output Statements.
+Total field width: 1l <= w <= 255
+fraction field: l<=w<K=09
+OPTIONAL justification: < (left) > (right) ° (center)
+Page 10-18
+Basic09 REFERENCE
+HANRUAL
+Input and
+Output Statements
+REAL
+FORMAT
+Syntax: Rw.fj
+This format
+can be
+used
+for
+numbers
+of
+types REAL,
+IRTEGER
+or
+BYTE.
+The
+total field
+width specification must include
+two
+overhead
+positions
+for
+the
+sign and decimal
+point. The
+"f"
+gpecifies how
+many
+fractional
+digits
+to the
+right
+of
+the
+decimal point
+are
+to
+be
+displayed.
+1If
+the
+number has
+more significant digits
+than the
+field allows
+for,
+the
+undisplayed places
+are used
+to
+round
+the
+displayed
+digits. For example:
+"PRIRT
+USIRG
+"R8.2",
+12.349 gives
+12.35
+The
+justification modes
+are:
+left justify with leading sign and trailing
+spaces.
+(default if justification mode omitted)
+right justify with leading spaces
+and sign.
+right justify with leading spaces and trailing sign
+(financial format)
+*YVA
+Examples:
+PRINT USIRG "R8.2<",5678.123 5678.12
+PRIRT USIRG "R8.2>",12.3 12.30
+PRINT USIRG "R8.2>",-555,9 -555.90
+PRINT USING "R10.2°",-6722.4599 6722.46-
+PRINT USIRG
+"RS5.1","9999999"
+Rl
+b
+EXPONERTIAL PORHMAT
+Syntax: Ew.fj
+This format prints numbers of types REAL, INTEGER, or BYTE in the
+scientific notation format using a mantissa and decimal exponent. The
+syntax and behavior of this format is similar to the REAL format except
+the "w" (field width) must allow for six overhead positions for the
+mantissa sign, decimal point, and exponent characters. The "<" and ">"
+justification modes are allowed and work the same way.
+Examples:
+PRINT USIRG "El12.3",1234.567 1.234E+03
+PRINT USIRG "El12.6>",-0.001234 -1.234E-03
+Page 10-19
+Basic09
+REFPERERCE
+MARUAL
+Input and
+Output Statements
+INTEGER FORMAT
+Syntax:
+Iwj
+This format is used to display numbers of types IRTEGER or BYTE, and
+REAL numbers
+that
+are
+within
+range
+for
+automatic
+type conversion.
+The
+"w"
+(field
+width) must allow
+for
+one
+position overhead
+for the
+sign.
+The
+justification modes
+are:
+:
+<
+left justify with leading
+sign and
+trailing spaces
+(default)
+>
+right justify
+with leading spaces and
+sign
+s right justify with leading sign and zeros
+Examples:
+PRIRT USIRG
+"I4<",10
+10
+PRINT USIKG "I4>",10
+’
+10
+PRIRT USIRG "I4"",10
+010
+HEXZADECIHAL PORMATSyntax:
+BHwj
+This format
+can be used
+to
+display
+the internal binary
+representation
+of
+ANY data
+type, using hexadecimal characters. The
+"w"
+(field width)
+specification
+determines: the
+number
+of
+hexadecimal
+characters
+to be
+output.
+Justification modes
+are:
+<
+left
+justify with trailing spaces
+>
+right justify, leading spaces
+“
+center justify
+Because the number
+of
+bytes
+of
+memory used
+to
+represent data varies
+according
+to type, the
+following specification make
+the most sense for
+each data type:
+E2
+boolean, byte
+(one
+byte)B4
+integer
+(two bytes)
+H10 real (five bytes)
+BEn*2
+string
+of
+length
+n
+Examples:
+PRIRT
+UOSIRG
+“H4",100 00C4
+PRIRT USIRG "H10",1.5 01C0000000
+PRIRT
+USINRG "H8", "ABC" 414243
+Page 10-20
+Basic09
+REFERERCE MARUAL
+Input and
+Output Statements
+STRIRG FORMAT
+Syntax: Swj
+This format is used to display string data of any length. The "w"
+(field
+width)
+specifies
+the
+total field
+size.
+If
+the
+string
+to
+be
+it is padded with spacesdisplayed is shorter than the field size,
+according to the Jjustification mode. If it is too long, it will be
+truncated on the right side. The format specifications are:
+Left justify (default if mode omitted)
+; right justify
+- Center justify
+Examples:
+PRINT USIRG "S8<","HELLO" HELLO
+PRINT USIRG "S8>","HELLO" HELLO
+BELLOPRIRT USING "S8"", "HELLO"
+BOOLEAR FORMAT
+Syntax: Bfij
+This format
+is
+used
+to
+display boolean
+data. The result
+of the
+is
+converted
+to the
+strings "TRUE" and "FALSE". The
+boolean expression
+specification
+is
+otherwise identical
+to
+the
+STRING format.
+Page 10-21
+Basic09 REFERENCE MARUAL
+Input
+and Output Statements
+CONTROL SPECIFICATIORSControl specifications
+are
+useful
+for
+horizontal formatting
+of
+the
+output
+line.
+They
+are not
+matched with
+items
+in
+the
+output
+list
+and can
+be
+used freely. The control formats
+are:
+Tn Tab
+to
+column
+n
+Xn
+Space
+n
+columns
+'str' 1Include
+constant
+string. The string
+must
+not
+include
+single
+or
+double quotes, backslash,
+or
+carriage return
+characters,
+Warning: Control specifications
+at the end of
+the
+format specification
+list
+will
+NOT
+be
+processed
+if
+all
+output
+items have been exhausted.
+Example:
+PRINT USIKG
+*"‘addr‘',X2,B4,X2,'data',X2,H2%,1000,100
+prints
+addr
+03E8
+data
+64
+REPEAT GROUPSMany
+times, identical sequences
+of
+specifications
+are
+repeated
+in
+format specification
+lists.
+The repeated groups can
+be
+enclosed
+in
+parentheses and
+preceded by
+a
+repeat
+count.
+These repeat groups
+can be
+nested. Here are some examples:
+"2(X2,R10.5)"
+is the same as
+"X2,R10.5,X2,R10.5"
+"2(I2,2(X1,84))"
+is
+the same as "I2,X1,S4,X1,S54,I2,%X1,54,X1,54"
+Page 10-22
+Basic09 REFERENCE MANUAL
+Program Optimization
+GENERAL EXECUTIOR PERFORMANCE OF BASICO9
+The Basic09 multipass compiler produces a compressed and optimized
+low-level "I-code"TM for execution. Compared to other BASIC languages,
+program storage is greatly decreased and execution speed is increased.
+Bigh-level 1language interpreters have a general reputation for
+slowness which is probably not deserved. Because the Basic09 I-code is
+kept at a very powerful level, a single, fast, I-code interpretation will
+often result in many MPU instruction cycles (such as execution of
+floating-point arithmetic operations). Thus, for complex programs, there
+is little performance difference between execution of I-code and straight
+machine-language instructions. This is generally not the case with
+traditional BASIC interpreters that have to "compile”TM from text as they
+run or even with "tokenized" BASICs that must perform table-searching
+during execution. Basic09 1I-code instructions that reference variable
+storage, statements, labels, etc., contain the actual memory addresses,
+so no table searching is ever required. Of course, Basic09 fully
+exploits the power of the 6809's instruction set which was optimized for
+efficient execution of compiler-produced code.
+Because the Basic09 I-code is interpreted, a variety of entry-time
+and run-time tests and development aids are available to help in program
+development: aids not available on most compilers. The editor reports
+errors immediately when they are entered, the debugger allows debugging
+using the original program source statements and names, and the I-code
+interpreter performs run time error checking of things such as array
+bound errors, subroutine nesting, arithmetic errors, and other errors
+that are not detected (and usually crash) native-compiler-generated code.
+OPTIRUM USE OF RUMERIC DATA TYPES
+Because Basic09 includes several different numeric representations
+(i.e., REAL, IRTEGER, and BYTE) and does "automatic type conversions”
+between them, it is easy to write expressions or loops that take at least
+ten times longer to execute than is necessary. Some particular BASICO9
+numeric operators (+, -, *, /) and control structures (FOR..NEXT) include
+versions both for REAL and INTEGER values. The IRTEGER versions, of
+course, are much faster, and may have slightly different properties
+(e.g., IRTEGER divides discard any remainder). Type conversions take
+time, so expressions whose operands and operators are of the same type
+are more efficient.
+BASIC0S9's REAL (floatinc-point) math package provides excellent
+performance, A special 40-bit binary flcating point representation
+designed for speed and accuracy, was develcped especially for BASICO9after exhaustive research. The new CORDIC technique
+is
+used to
+deriveall transcendental functions (SIR, TAN, LOG, EXP, etc.). The integer
+shift-and-add technique
+is faster and more consistantly accurate than the
+commonly used series-expansion approximations.
+Page 11-1
+Basic09 REFERERCE HMANUAL
+Progranm Optimization
+Nonetheless, IRTEGER operations are faster because they generally
+have corresponding 6809 machine-language instructions. Overall program
+speed will increase and storage requirements will decrease if INTEGERSs
+are used whenever possible. IRTEGER arithmetic operations use the same
+symbols as REAL but Basic09 automatically selects the IRTEGER operations
+when working with an integer-value result. Only if all operands of an
+expression are of types BYTE or IRTEGER will the result also be IRTEGER.
+Sometimes, similar or identical results can be obtained in a number
+of different ways at wvarious execution speeds. For example, if the
+variable "value"TM is an integer, then "value*2" will be a fast integer
+operation, However, if the expression is "value*2,.0" the value "2.0"
+will be represented as a REAL number, and the multiplication will be a
+REAL multiplication which will also reguire that the variable "value"
+will have to be transformed into a REAL value, and finally the result of
+the expression will have to be transformed back to an IRTEGER value if it
+is to be assigned to a variable of that type. Thus a single decimal
+point will slow this particular operation down by about ten times!
+ARITHHETIC FURCTIORS RARKED BY SPEED
+Operation Typical Speed (MPU Cycles)
+IRTEGER ADD OR SUBTRACT 150
+INTEGER RULTIPLY 240
+REAL ADD 440
+REAL SUBTRACT 540
+IRTEGER DIVIDE 960
+REAL MULTIPLY ) 990
+REAL DIVIDE 3870
+REAL SQUARE ROOT 7360
+REAL LOGARITHM OR EXPONENTIAL 20400
+REAL SINE OR COSINE 32500
+REAL POWER (7) 39200
+This table can be used to deduce some interesting points, For
+example, "value*2" is not optimum - "value+value" can produce the same
+result in less time because multiplication takes longer than addition.
+Similarly, "value*value” or "SQ(value)" 1is MUCH faster than the
+equivalent *value®2", Another interesting case is "x/2.0". The REAL
+divide will cost 3870 cycles, but REAL multiplication takes only 990
+cycles. The mathematical eguivalent to division by a <constant is
+nultiplication by the inverse of the constant. Therefore, using "x*0.5"
+instead is almost four times faster!
+LOOPING QUICKLY
+When Basic09 identifies a POR..REXT loop structure with an IRTEGER
+loop counter variable, it uses a special integer version of the FOR,.REXT
+loop. This is much faster than the REAL-type version and is generally
+preferable, ther kinds of loops will also run faster if INTEGER type
+variables are used for loop counters.
+Page 11-2
+Basic09 REFERENCE MARNUAL
+Program Optimization
+When writing program loops, remember that statements INSIDE the loop
+may be executed many times for each single execution OUTSIDE the loob.
+Thus, any value which can be computed before entering a loop will
+increase program speed,
+OPTIMUM USE OF ARRAYS ARD DATA STRUCTURES
+Basic09 internally uses INTEGER numbers to index arrays and complex
+data structures. If the program uses subscripts that are REAL type
+variables or expressions, Basic09 has to convert them to INTEGERs before
+they can be used. This takes additional time, so use INTEGER expressions
+for subscripts whenever you can.
+Note that the assignment statement (LET) can copy identically sized
+data structures, LET is much faster than copying arrays or structures
+element-by-element inside a loop.
+THE PACK COMMARD
+The PACK command produces a compressed version of a Basic09
+procedure, Depending on the number of comments, line numbers, etc.,
+#~~vograms will execute from 10% to 30% faster after being PACKed.
+inimizing use of line numbers will even speed up procedures that are
+unPACEed.
+ELIMIRATING CORSTANT EXPRESSIORS ARD SUBEXPRESSIORS
+Consider the expression:
+x =
+x+SQRT(100)/2
+It is exactly the same as the expression:
+x = x+5
+The subexpression "SQRT(100)/2" consists of constants only, so its result
+will not vary regardless
+of
+the rest
+of
+the program. But every time the
+program
+is run, the computer must evaluate
+it.
+This time can be
+significant, especially if the statement is within a loop. Constantexpressions
+or
+subexpressions should be
+calculated by the programmer
+while writing the program (using DEBUG mode or a pocket calculator).
+FAST IRPUT ARD OUTPUT FURCTIORS
+_— - ‘o
+.
+.
+.
+Reading or writing data
+a
+line or record at a time
+1is
+much faster.han one character at
+a
+time. Also, the GET and PUT statements are much
+Page 11-3
+Basic09
+REFERERCE HARUAL
+Program Optimization
+faster
+than
+READ and
+WRITE
+statements
+when dealing with
+disk files. This
+is because GET and POUT use the exact binary format used internally by
+Basic09.
+READ,
+WRITE,
+PRIRT, and
+IRPUT must perform binary-to-ASCII
+or
+ASCII-to-binary conversions which
+take
+time.
+’
+PROFESSIONAL PROGRAMMIKG TECHNIQUES
+One sure way to make a program faster is to use the most efficient
+algorithms
+possible,.
+There
+are
+many
+good
+programming
+"cookbooks" that
+explain useful algorithms with examples in BASIC or PASCAL. Thanks to
+Basic09's
+rich
+vocabulary
+you can use
+algorithms written
+in
+either
+language with little
+or
+no
+adaptation.
+,
+Basic09 also eliminates
+any
+possible excuse
+for not
+using goodstructured programming
+style that
+produces efficient, reliable, readable,
+and
+maintainable
+software.
+Basic09 generates optimized code
+to be
+executed
+by the 6809
+which
+is
+the
+most
+powerful
+8-bit
+processor
+in
+existence
+at the time
+of
+this
+writing.
+But
+a
+computer
+can
+only execute
+what
+it is
+told
+to
+execute, and no
+language implementation
+can
+make
+upfor an
+inefficient program. An
+inefficient program
+is
+evidence
+of
+a
+lack
+of
+understanding
+of the
+problem.
+‘The
+result
+is
+likely
+to
+be hard
+to
+understand and hard
+to
+update
+if
+program specifications change
+(they
+always
+do).
+The
+identification
+of
+efficient algorithms
+and their clear,
+structured expression
+is
+indicative
+of
+professionalism
+in
+software design
+and
+is
+a
+goal
+in
+itself.
+Page 11-4
+Basic09 REFERENCE MANUAL
+Sample Programs
+PROCEDURE fibonacci
+REM computes the first ten Fibonacci numbers
+DIM x,y,i,temp:INTEGER
+x:=0
+\y:=0
+POR
+i=0
+TO
+10
+temp:=y
+IF i<>0 THEN
+yi=y+x
+ELSE y:=1
+ENDIF
+Xx:=temp
+PRIRNT
+i,y
+REXT i
+PROCEDURE fractions
+REM by
+T.F.
+Ritter
+REM finds increasingly-close rational approximations
+REM to the desired real value
+DIM m:IRTEGER
+desired:=PI
+last:=0
+FOR m=1 TO 30000
+n:=INT(.5+m*desired)
+trial:=n/m A
+IF ABS(trial-desired)<ABS(last-desired) THEN
+PRIRT n; "“/"; m; " = "; trial,
+PRINT “"difference = "; trial-desired;
+PRINT
+last:=trial
+ENDIP
+REXT m
+Page A-1l
+Basic09
+REFERERCE MANUALSample Programs
+PROCEDURE prinbiREM
+by T.F.
+Ritter
+RER prints the integer parameter value in binary
+PARAM n:INTEGER
+DIM i:INTEGER
+POR i=15 TO 0 STEP -1
+IF
+n<0
+THER
+PRINT
+"1%;
+ELSE
+PRIRT
+"0";
+ERDIFP
+n:=n+n
+REXT
+i
+PRIRT
+ERD
+PROCEDDRE hanoi
+REM by T.F. Ritter
+REM move n discs in Tower of Banoi game
+REM See BYTE Magazine, Oct 1980, pg. 279
+PARAM n:IRTEGER; from,to_,other:STRING[8]
+IF n=1 THBERN
+PRIRT "move /%"; n; " from "; from; " to "; to_
+ELSE '
+RON hanoi(n-l,from,other,to_)-
+PRIRT " move #"; n; " from "; from; "TM to "; to_
+RON hanoi(n-l,other,to_,from)
+ERDIF
+ERD
+Page A-2
+Basic09 REFERENCE MANUAL
+Sample Programs
+PROCEDURE roman
+REM
+prints
+integer parameter
+as
+Roman Numeral
+PARAM
+x:INTEGERDIM
+value,svalu,i:INTEGER
+DIM char,subs:STRINGchar:="MDCLXVI"
+subs:="CCXXII
+"
+baTa 1000,100,500,100,100,10,50,10,10,1,5,1, 1 0
+FOR
+i=1
+TO
+7
+READ value
+READ svalu
+WHILE x>=value DOPRINT
+MIDS$(char,i,l):
+X:=x-value
+ENRDWHILE
+IP x>=value-svalu THEN
+PRINT MIDS$(subs,i,l); MIDS$(char,i,l);
+t=x-value+svalu
+'
+ERDIF
+REXT
+i
+ERD
+Page A-3
+Basic09 REFERERCE MANUAL
+Sample Programs
+PROCEDURE eightgqueens
+REM originally by N. Wirth; here re-coded from Pascal
+REM finds the arrangements by which eight queens
+REM
+can be
+placed
+on
+a
+chess board
+without
+conflict
+DIM
+n,k,x(8):INTEGER
+DIM
+col(8),up(l5),down(15)
+:
+BOOLEAN
+BASE
+0
+(* initialize empty board *)
+n:=0
+POR
+k:=0
+TO
+7
+\col(k):=TRUE
+\NEXT
+k
+POR k:=0 TO 14 \up(k) :=TRUE \down(k) :=TRUE \NEXT k
+ROR generate(n,x,col,up,down)
+END '
+PROCEDURE generate
+PARAM n,x(8): IRTEGER ,
+PARAM col(8) ,up(15),down(15):BOOLEAN
+DIM h,k:IRTEGER \h:=0
+BASE
+0
+REPEAT
+IP col(h) ARD up(n-h+7) ARD down{n+h) THER
+(* set gueen on square [n,h] *)
+x(n):= .
+col (h) :=PALSE \up(n-h+7) :=FALSE \down(n+h) := FALSB
+n:=n+l
+IF n=8 THER
+(* board full; print configuration ¥*)
+POR
+k=0
+TO
+7
+,
+PRIET x(k); " "
+NEXT
+k
+PRIRT
+ELSE RUN generate(n,x,col,up,down)
+ERDIF
+(* remove qgueen from square [n,h] ¥*)
+n:=n-1
+col (h) :=TRUE \up(n-h+7) :=TRUE \down (n+h) :=TRUE
+ERDIP
+h:=h+1
+URTIL h=8
+ERD
+Page A-4
+Basic09 REFERENCE MANUAL
+Sample Programs
+PROCEDURE electric
+REM re-programmed from "ELECTRIC"
+REM by Dwyer and Critchfield
+REM Basic and the Personal Computer (Addison—Wesley,v1978)
+REM provides a pictorial representation of the
+REM resultant electrical field around charged points
+DIM a(10),b(10),c(10)
+DIM x,y,1i,3: INTBGER
+xscale:=50./78.
+yscale:=50./32.
+IRPUT “How many charges do you have? ",n
+PRINT "The field of view is 0-50,0-50 (x,y)"
+POR i=1 TO n
+PRINT "tvpe in the x and y positions of charge ";
+PRINT
+i;
+IRPOT a(i),b(i)
+NEXT i
+PRINT “"type in the size of each charge-
+POR i=1 TO n
+PRINRT "charge *; 1,
+INPUT c(i)
+REXT
+i
+REM visit each screen position
+FOR y=32 TO 0 STEP -1
+FOR x=0 TO 78
+REM compute field strength into v
+GOSUB 10
+z:=v*50.
+REM map z to valid ASCII in b$
+GOSUB 20
+REM print char (proportional to field)
+PRINT
+bS;
+NEXT x
+PRINT
+NEXT y
+END
+v=l,
+FOR i=1 TO
+n
+:=SQRT(SQ(xscale*x-a(i))+SQ(yscale*y-b(i)))
+EXITIF r=.0 THEN
+:=99999,
+ENDEXIT
+vi=v+c(i)/r
+NEXT
+i
+RETURN
+(continued on next page)
+Page A-3
+Basic09 REFERENCE MANUAL
+Sample Programs
+PROCEDURE ELECTRIC -~ CONTINUED
+20 IP z<32 THER b$:=" "
+ELSE
+IF z>57 THER z:=2+8
+ERDIFP
+IP z>90 THER bS:="*"
+ELSE
+IP z>IRT(z)+.5 THEN bS$:=" "
+ELSE b$:=CBRS$(z)
+ERNDIPF
+ERDIF
+ERDIFRETURR
+Page A-6
+Basic09 REFERERCE MANUAL
+Sample Programs
+PROCEDURE structst
+REM example of intermixed array and record structures’
+REM note that structure d contains 200 real elements
+TYPE a=one(2) :REAL
+TYPE b=two(10):a
+TYPE c=three(10):bDIK d,e:c
+FOR i=1 TO 10
+FOR
+j=1
+TO
+10
+FOR k=1 TO 2
+PRINT d.three(i).two(j).one(k)
+d.three(i).two(j).one(k):=0.
+PRINT e.three(i).two(Jj).one(k)
+PRIRT
+NEXT Kk
+NEXT
+j
+REXT
+i
+REM this is a complete structure assignment
+e:=d :
+FOR i=1 TO 10
+POR j=1 TO 10
+FOR k=1 TO 2
+PRINT
+e.three(i).two(Jj).one(k);
+NEXT k
+PRINT
+NEXT j
+NEXT
+i
+ERD
+Page A-7
+Basic09 REFERERCE MARUAL
+Sample Programs
+PROCEDURE pialook
+REM display PIA at address (T.F. Ritter)
+REM made understandable by K. Kaplan
+DIX address:INTEGER
+INPUT "Enter PIA address"; address
+RON side(address)
+RUN side(ad+2)
+ERDPROCEDURE
+side
+REM display side of PIA at address
+PARAM address:INTEGER
+DIM data:INTEGER
+(* loop until control register input strobe
+(* flag (bit 7) is set
+REPEAT \ UNTIL LARD(PEEK (address+l),$80) <> 0
+(* now read the data register
+data := PEEK(address)
+(* display data in binary
+RON prinbyte(data)
+ERD
+PROCEDURE prinbyte
+REM print byte as binary
+PARAM n:IRTEGER
+DIM i:INTEGER
+n:=n*256
+POR i=7 TO 0 STEP -1
+IF n<0 THEN PRINT "1%;
+ELSE PRINT "0";
+ERDIF
+n:=n+n
+KEXT
+i
+PRIRTEED
+Page A-8
+Basic09 REFERERCE MANUAL
+Sample Programs
+PROCEDURE gsortl
+REM quicksort, by T.F. Ritter
+PARAM bot,top,d(1000): INTEGER
+DIM n,m:INTEGER; btemp:BOOLEAN
+LOOP \REM each element gets the once over
+REPEAT \REM this is a post-inc instruction
+btemp:=d(n)<d(top)
+ne=n+l
+URTIL ROT (btemp)
+n:=n-1 \REM point at the tested element
+EXITIF n=m THERN
+ENDEXIT
+REPEAT \REM this is a post-dec instruction
+:=m-1
+ONTIL d(m)<=d(top) OR m=n
+EXITIP n=m THER
+ERDEXIT
+ROR exchange(d(m),d(n))
+n:=n+l \REM prepare for post-inc
+EXITIF n=m THER
+ERDEXIT
+ENDLOOP
+IP n<>top THEN
+IP d(n)<>d(top) TEHEN
+ROUN exchange(d(n),d(top))
+ERDIF
+ERDIF
+IFP bot<n-l1 THEN
+ROUN
+gsortl (bot,n-1,d)
+ERDIP
+IF n+l<top TEER
+RON gsortl (n+l1l, top,d)
+EHDIP
+ERD
+(continued on next page)
+Page A-9
+Basic09 REFERENCE MANUAL
+Sample Programs
+(QUICKSORT
+-
+continued)
+PROCEDURE exchange
+PARAM a,b:IRTEGER
+DIM temp:IRTEGER
+temp:=a
+a:=b
+b:=tenmp
+ERD
+PROCEDURE prin
+PARAM n,m,d(1000): INTEGER
+DIM i:INTEGER
+POR
+i=n
+TO
+m
+PRIRT
+d(i);
+REXT
+i
+PRINT
+ERD
+PROCEDURE sortest
+REM This procedure is used to test Quicksort
+REM It fills the array "d" with randomly generated
+REM numbers and sorts them.
+DIM i,d(1000) :INTEGER
+POR i=1 TO 1000
+d(i):=INT(RRD(100))
+REXT
+i
+RON prin(1,1000,4d)
+RUR gsortl(1,1000,4)
+ROR prin(1,1000,d)
+ERD
+Page A-10
+Basic09 REFERENCE MARUAL
+Sample Prograns
+The following procedures demonstrate multiple-precision
+arithmetic, in this case using five integers to represent
+a twenty decimal digit number, with four fractional places.
+PROCEDURE mpadd
+REM
+a+b=>c:five_integer_number
+(T.F.
+Ritter)
+PARAM a(5),b(5),c(5) :INTEGER
+DIM i,carry:INTEGER
+carry:=0
+POR
+i=5
+TO
+1
+STEP
+-1
+c(i)s:=a(i)+b(i)+carry
+IF
+c(i)>10000 THEN
+c(i):=c(i)-10000
+carry:=1
+ELSE carry:=0
+ERDIFREXT
+i
+PROCEDURE mpsub
+PARAH a(5),b(5),c(5):IRTEGER
+DIM i,borrow:INTEGER
+borrow:=0
+FOR
+i=5
+TO
+1
+STEP
+-1
+c(iY:=a(i)-b(i)-borrow
+IP
+c(i)<0 THER
+c(i):=c(i)+10000
+borrow:=1
+ELSE borrow:=
+ERDIF
+- FEXT i
+PROCEDURE mprint
+PARAM a(5):INRTEGER
+DIM i:IRTEGER; s:STRING
+FOR
+i=1
+TO
+5
+IF i=5
+THEN PRINT
+".":
+ERDIF
+s:=STRS(a(i))
+PRINT MIDS("0000"+s,LEN(s)+l,4);
+REXT
+i
+(continued on next page)
+Page A-ll
+Basic09 REFERENCE MARUAL
+Sample Programs
+(multi-precision arithmetic, continued)
+PROCEDURE mpinput
+PARAM a(5): INTEGER
+DIM n,i:IRTEGER
+IRPUT "input multi-precision number' ",bs
+n:=SUBSTR(".",bS)
+IF n<>0 THER
+. a(5) :=VAL(MIDS$ (b$+"0000" ,n+1,4))
+b$:=LEFTS (b$,n~-1)
+ELSE a(5):=
+ENDIF
+b$:="00000000000000000000"+b$
+n:=1+4+LER(bS)
+POR i=4 TO 1 STEP -1
+n:=n-4
+a(i)
+:=VAL(MIDS(bS,n,4))
+NEXT
+i
+PROCEDURE mptoreal
+PARAM a(5):INTEGER; b:REAL
+DIM i:INTEGERb:=a
+(1)
+FPOR i=2 TO 4
+b:=b*10000
+b:=b+a (i)
+REXT
+i
+b:=b+a(5)*,0001
+Page A-12
+Basic09 REFPERENCE MANRNUAL
+Sample Programs
+PROCEDURE Patch
+(* Program to examine and patch any byte of a disk file ¥)
+(* Written by L. Crane *) '
+DIM buffer(256) :BYTE
+DIM path,offset,modloc:IRTEGER; loc:REAL
+DIM rewrite:STRIRG
+IRPUT "pathlist? ",rewrite
+OPEN #path,rewrite:UPDATE
+LOOP ’
+IRPOT “sector number? ",rewrite
+EXITIF rewrite="" THEN ERDEXIT
+loc=VAL(rewrite)*256
+SEEK #path,loc
+GET s#path,buffer
+RON bumpBuffer(loc,buffer)
+LOOP
+INPUT "change (sector offset)? ",rewrite
+EXITIP rewrite="" THER
+ROR DumpBuffer (loc,buffer)
+ENDEXIT
+EXITIP rewrite="S" OR rewrite="s" THEN ENDEXIT
+offset=VAL(rewrite)+l
+LOQP .
+EXITIF offset>256 THER ERDEXIT
+modloc=loc+offset~-1
+PRINT USIRG "h4,' - ',h2",modloc,buffer(offset);
+INPOT ":",rewrite
+EXITIF rewrite="" THEN ENDEXIT
+IFP rewrite<>" " THER
+buffer (offset)=VAL(rewrite)
+ERDIF
+offset=o0ffset+l
+ENDLOOPENDLOOP
+INPUT "rewrite sector? ",rewrite
+IF LEFTS (rewrite,1)="Y" OR LEFTS(rewrite,l)="y"* THER
+SEEK #path,loc
+POT ipath,buffer
+ERDIP
+ERDLOOPCLOSE #path
+BYE
+(Continued on next page ¥*)
+Page A-13
+Basic09 REFPERERCE MANUAL
+Sample-
+Programs
+PATCH - CONTINUED
+PROCEDURE DumpBuffer
+(*
+Called
+by
+PATCH
+*)
+TYPE buffer=char(8) : INTEGER
+PARAM loc:REAL; line(1l6) :buffer
+DIM i,j:INTEGER
+WHILE
+loc>65535.
+DO
+loc=loc-65536.
+ENDWHILE
+POR
+j=1
+TO
+16
+PRIRT USIRG "h4",PIX(IRT(loc))+(j-1)*16;
+PRINT ":";
+POR i=1 TO 8
+PRIRT USING "X1,B4",line(j).char(i);NEXT
+i
+‘
+RON printascii(line(j))
+PRINT
+NEXT
+j
+PROCEDURE PrintASCII
+TYPE buffer=char(16):BYTE
+PARAM line:buffer
+DIM ascii:STRIKG; nextchar:BYTE; i:IRTEGER
+ascii=""
+FOR i=1 TO 16
+nextchar=line.char
+(i)
+IF nextchar>127 THEN
+nextchar=nextchar-128
+ENDIF
+IF nextchar<32 OR nextchar>125 THEN
+ascii=ascii+" "
+ELSE
+ascii=ascii+CHRS (nextchar)
+ERDIF '
+NEXT i ,
+PRIRT " "; ascii:
+Page A-14
+Basic09 REFERENCE MANUAL
+Sample Programs
+PROCEDURE MakeProc
+(* Generates an 0S-9 command file to apply a command *) »
+(* Such as copy, del, etc., to all files in a directory *)
+(* or directory system. Author: L. Crane ¥*)
+DIM DirPath,ProcPath,i,j,k:INTEGER
+DIM Copy2ll,CopyFile: BOOLEAN
+DIM ProcName,FileName,Relnput, ReOutput,response STRINRG
+DIM SrcD1r,DestD1r DlrLlne STRING[BO]
+DIM Function,Options:STRING[60]
+DIM ProcLine:STRING[160]
+ProcName="CopyDir"
+Function="Copy"”
+Options="#32k"
+REPEAT
+PRINT "Proc name ("; ProcName; ")";
+INRPUT response
+IFP response<>"" THEN
+ProcName=TRIMS (response)
+ERDIF
+OR ERROR GOTO 100
+SEELL "del "+ProcName
+100 ON ERROR
+INPOT "Source Directory? ",SrcDir
+SrcDir=TRIMS(SrcDhir)
+OR ERROR GOTO 200
+SEELL "del procmaker...dir”
+200 ON ERROR
+SHELL "dir "+SrcDir+" >procmaker...dir"
+OPEN #DirPath,"procmaker...dir":READ
+CREATE #ProcPath,ProcName:WRITE
+PRINT "Function ("; Function; ")":
+INPUT response
+IP response<>"" THEN
+Punction=TRIMS (response)
+ERDIF
+INPUT "Redirect Input? ",response
+IF response="y" OR response="Y" THEN
+ReInput="<" \ ELSE \Relnput=""
+ERDIF
+IRPUT "Redirect Output? ",response
+IF response="y" OR response="Y" THEN
+ReOutput=">" \ ELSE \ReOutput=""
+ERDIF
+PRIRT "Options ("; Options; ")";
+IrP0T response
+IF¥ response<>"" TEHER
+Options=TRIMS (response)
+ERDIF
+Page A-15
+INPOT
+Basic09 REFERERCE MANUAL
+Sample Programs
+MAREPROC- CONTINUED
+"Destination Directory? ",DestDir
+DestDir=TRIMS
+(DestDir)
+WRITE
+WRITE
+#ProcPath,"t"
+#ProcPath, "TMode .1 -pause"
+READ #DirPath,DirLine
+IRPOT "Use all files? ",response
+CopyAll=response="y" OR response="Y"
+WHILE ROT (EOF (DirPath)) DO
+READ #DirPath,DirLine
+i=LEN(TRIMS$ (DirLine))
+IF i>0 THEN
+3=1
+REPEAT
+k=3
+WHILE j<=i ARD MID$(DirLine,j,1)<>" " DO
+Jj=3+1
+ENDWHILE
+PileName=MIDS$(DirLine,k,j-k)
+IF NOT(CopyAll) THEN
+PRIRT "Use "; FileName;
+IRPUT response
+CopyFile=response="y" OR response="Y"
+ERDIF
+IF CopyAll OR CopyFile THEN
+ProcLine=Function+" ®"+Relnput+SrcDir+"/"+FileName
+IF DestDir<>"" THEN
+ProclLine=ProcLine+" "+ReOutput+DestDir
++"/"+FileName
+ERDIF
+ProclLine=ProcLine+" "+Options
+WRITE &#ProcPath,ProclLine
+ERDIF
+'
+WHILE j<i AND MID$(DirLine,j,1l)=" " DO
+j=J+1
+ERDWEILE
+OHTIL j>=i
+ERDIF
+ERDWHILE
+WRITE
+WRITE
+$ProcPath, "TMode .l pause"
+#ProcPath,"Dir e "+SrcDir
+IF DestDir<>"" THER
+WRITE #ProcPath,"Dir e "+DestDir
+ERDIP
+CLOSE
+CLOSE
+SHLLL
+PRIRT
+INPUT
+$DirPath
+$ProcPath
+*del procmaker...dir"
+"Another
+?
+",response
+UETIL response<>"Y" AND response<>"y"
+Page A-16
+Basic09 REFERENCE MANUAL
+Sanple Programs-
+IF response<>"B"TM ANRD response<>"b' THEN
+BYE
+ERDIPkkkkdkhkhkhkdkhhkhkhkdkk
+* INKEY - a subroutine for Basic09 by Robert Doggett
+* Called by: RUN INKEY(Strvar)
+* RUN INKEY(Path,StrVar)
+* INKEY determines if a key has been typed on the given path
+* (Standard Input if not specified), and if so, returns the next
+* character in the String Variable. 1If no key has been typed, the
+* null string is returned. If a path is specified, it must be
+* either type BYTE or INTEGER.
+0021 TYPE set SBRTN+0OBJCT
+0081 REVS set REENT+1
+0000 B87CDOOSE mod InKeyEnd, InKeyNam, TYPE,REVS
+, InKeyEnt,0
+000D 496E6B65 InKeyNam fcs "Inkey"
+D 0000 org 0 Parameters
+D 0000 Return rmb 2 Return addr of caller
+D 0002 PCount rmb 2 Num of params following
+D 0004 Paraml rmb 2 lst param addr
+D 0006 Lengthl rmb 2 size
+D 0008 Param2 rmb 2 2nd param addr
+D 000A Length2 rmb 2 size
+0012 3064 InReyEnt leax Paraml,S
+0014 EC62 ldd PCount, S Get parameter count
+0016 10830001 cmpd #1 just one parameter?
+00la 2717 beg InKey20 ..Yes; default path A=0
+" 001C 10830002 cmpd #2 Are there two params?
+0020 2635 bne ParamErr No, abort
+0022 ECF804 ldd [Paraml,S] Get path number
+0025 AE66 ldx Lengthl,S
+0027 301F leax -1,X byte variable?
+0029 2706 beg InKeylO ..Yes; (A)=Path number
+002B 301F leax -1,X Integer?
+002D 2628 ' bne: ParamErr ..No; abort
+002F 1F98 tfr B,A
+0031 3068 InReyl0 leax Param2,S
+0033 EEOQ2 InKey20 1ldu 2,X A length of string
+0035 AE84 léax 0,X addr of string
+0037 C6FF 1db §SFF
+0039 E784 stb 0,X Initialize to null str
+003B 11830002 cmpu #2 at least two-byte str?
+003F 2502 blo InKey30 . .No
+0041 E701 stb 1,X put str terminator
+0043 C601 InRKey30 1ldb #SS.Ready
+0045 103F8D 0s9 ISGetStt is there an data ready?
+0048 2508
+becs
+InKeyS90 ..No; exit
+Page A-17
+004A004E
+00510052
+0054
+0056
+0057
+0059
+005a
+005B005E
+108E0001103F89
+39
+ClFé6
+2603
+39
+C638
+43
+39
+1A6916
+Basic09
+REFERENCE MANUAL
+Sample Programs
+InKey90
+ParamErr
+InRKeyErr
+InKeyEnd
+ldy
+089
+rts
+cmpb
+bne
+rts1db
+coma
+rtsemod
+equ
+£1
+ISRead Read
+one
+byte
+return
+error
+status
+$ESNotRdy
+InKeyErr
+(carry clear)
+#ESParam Parameter
+Error
+Page A-18
+BYE
+CHD
+BREAK
+CONT
+ABS
+ACS
+ADDRANDASC
+ASN
+ATN
+BASEBOOLEAN
+BYE
+BYTE
+CEAINCED
+CERS
+CEX
+CLOSEcos
+CREATE
+DATADATES
+DEG
+DELET
+DIM
+CHX
+DIR
+{cr>
+<line #>
+{space>
+c
+DEGDIR
+END
+DIR
+DO
+ELSE
+END
+ENDEXIT
+ENDIF
+ENDLOOP
+ENDWHILE
+EQOF
+ERR
+ERROR
+EXEC
+EXITIF
+EXP
+FALSE
+FIX
+FLOATFOR
+GET
+GOSUB
+GOTOIF
+INPUT
+Basic09 REFERENCE MANUAL
+Appendix B - Quick Reference
+SYSTEM MODE COMMANDS
+EDIT LOAD
+KILL MEM
+LIST PACK
+EDIT MODE COMMANDS
+c* l*
+d q
+a* r
+1
+DEBUOG MODE COMMARDS
+LET
+Q
+LIST ‘ RAD
+PRINT STATE
+PROGRAM RESERVED WORDS
+INT PEERINTEGER
+PI
+KILL POKE
+LAND POS
+LEFTS PRINT
+LEN PROCEDURE
+LET _ PUT
+LNOT RAD
+LOG READ
+LOG10 REAL
+LOOP REM
+LOR REPEAT
+LXOR RESTORE
+MIDS RETURN
+MOD RIGHTS
+NEXT RNDNOT RUN
+ON ~ SEER
+OPEN SGN
+OR SEELL
+PARAM SIN
+PAUSE SIZE
+SQ
+Page B-1
+RENAME
+RUN
+SAVE
+STEP
+TROF
+TRON
+F
+SQR
+SQRT
+STEP
+STOP
+STRS$
+STRING
+SUBSTRTAB
+TAN
+THENTO
+TRIMS
+TROFF
+TRON
+TRUE
+TYPE
+UNTIL
+UPDATE
+USINGVAL
+WHILE
+WRITE
+XOR
+Basic09
+REFERENCE MARUAL
+Appendix
+B -
+Quick Reference
+Basic09
+STATEMENTS
+BASE O ELSE GOTO OPEN RETURN
+BASE 1 END IF/THEN PARAM RUN
+BYE ENDEXIT INPUT PAUSE SEEK
+CHAIN. ENDIF RILL POKE SHELL
+CHD ENDLOOP LET PRINT STOP
+CEX ENDWHILE LOOP POT TROFF
+CLOSE ERROR NEXT RAD TRON
+CREATE EXITIF/THEN ON ERROR GOTO READ TYPE
+DATA FOR/TO/STEP ON/GOSUB REM UNTIL
+DEG GET ON/GOTO REPEAT WEILE/DO
+DELETE GOSUB RESTORE WRITE
+DIM
+TRARSCEDERTAL FUNCTIONS
+ACS (x) COoS (x) LOGl0 (x) SIN (x)
+ASN (x) EXP (x) PI TAN (Xx)
+ATN (x) LOG (x)
+ROMERIC FUNCTIORS
+ABS (x) LAND {(m,n) MOD (m,n) SQ (x)
+PIX
+(x)
+LNOT
+(m,n)
+RND
+(x)
+SQR
+(x)
+FLOAT (m) LOR ‘m,n) SGN (x) SORT (x)
+INT
+(x)
+LXOR
+{(m,n)
+STRING PUNCTIONS
+ASC
+(char$)
+LEFTS
+(str$,m)
+RIGHTS
+(strS$)
+TRIMS
+(str$)
+CHRS (m) LEN (str$) STRS (X) VAL(strS$)
+DATES MIDS (str$,m,n)
+SUBSTR
+(stl$,st2$)
+MISCELLANEOUS PURCTIONS
+ADDR (var) FALSE. POS TAB (m)
+EOF (spath) PEERK (addr) SIZE (var) _TRUE
+ERR
+OPERATOR PRECEDERCE
+highest -> NOT -(neg)
+-~
+*
+%k
+* /
++ -
+> < <O = >= <=
+AND
+lowest -> OR XOR
+Page B-2
+40
+41
+42
+43
+45
+46
+47
+48
+49
+BASICO0S REFERENCE MANUAL
+Appendix C - Error Codes
+Basic09 ERROR CODESUnrecognized
+Symbol
+Excessive Verbage
+(too
+many keywords
+or
+symbols)
+Illegal Statement Construction
+I-code
+Overflow
+(need
+more
+workspace
+memory)
+Illegal
+IllegalIlleqal
+Illegal
+IllegalIllegal
+Illegal
+Illeqgal
+Illegal
+Illegal
+Illegal
+Channel Reference
+(bad
+path number
+given)
+Mode (Read/Write/Update/Dir only)
+Number
+Prefix
+Operand
+Operator
+Record Field Name
+Dimension
+LiteralRelational
+Type Suffix
+Too-Large Dimension
+Too-Large Line Number
+Missing
+Missing
+Missing
+Missing
+Missing
+Assignment Statement
+Path Number
+Comma
+Dimension
+DO Statement
+Memory Full (need more workspace memory)
+Missing
+Missing
+Missing
+Missing
+Missing
+Missing
+Missing
+Missing
+GOTO
+Left ParenthesisLine Reference
+Operand
+Right Parenthesis
+THEN statement
+TOvVariable
+Reference
+No Ending Quote
+Too Many Subscripts
+Unknown Procedure
+Multiply-Defined Procedure
+Divide
+by Zero
+Operand Type Mismatch
+String Stack Overflow
+Unimplemented Routine
+Undefined Variable
+Basic09 REFERERCE MARUAL
+Appendix C - Error Codes
+50 - Floating Overflow
+51 - Line with Compiler Error
+52 - Value out of Range for Destination
+53 - Subroutine Stack Overflow
+54 - Subroutine Stack Underflow
+55 - Subscript out of Range
+56 - Parameter Error
+57 - System Stack Overflow
+58 - I/0 Type Mismatch
+59 - I/0 Numeric Input Format Bad
+60 - I/0 Conversion: Number out of Range
+61 - Illegal Input Format
+62 - I/0 Format Repeat Error
+63 - I/0 Format Syntax Error
+64 - Illegal Path Number .
+65 - Wrong Number of Subscripts
+66 - Non-Record-Type Operand
+67 - Illegal Argument
+68 - Illegal Control Structure
+69 - Unmatched Control Structure
+70 = Illegal POR Variable
+71 - Illegal Expression Type
+72 - Illegal Declarative Statement
+73 - Array Size Overflow
+74 - Undefined Line Number
+75 - Multiply-Defined Line Number
+76 - Multiply-Defined Variable
+77 - Illegal Input Variable
+78 - Seek Out of Range
+79 - Missing Data Statement
+80 - Print Buffer Overflow
+Error codes above 80 are those used by 0S-9 or other external programs.
+Consult the "0S-9 User's GuideTM for a list of error codes and
+explanations.
+Page C-2
+Basic09 REFERERCE MANUALAppendix
+D
+-
+Runb
+Runb
+is
+the
+Basic09
+run-time package.
+It
+is
+similar
+to Basic09
+with
+the
+following
+exceptions: Runb
+is
+about half
+the
+size
+of
+Basic09 and
+no
+file
+editing
+or
+debugging
+can
+be done. The main
+purpose
+of Runb
+is
+to
+save space and
+to
+execute packed modules.
+It
+should
+be
+noted
+that
+Runb
+will only execute packed modules. Another feature
+of
+Runb
+is
+that
+CONTROL-C
+and
+CONTROL-Q
+can be trapped
+by
+ON ERROR GOTO
+where
+Basic09
+can't.
+-
+When
+the
+name
+of
+a
+packed module
+is
+typed
+at
+the
+0S-9 prompt, Shell
+will
+determine
+that the
+module
+is
+packed Basic09
+I-code.
+Shell thenloads and forks
+Runb,
+and Runb will
+1link
+to
+and
+execute
+the
+named
+program.
+To run
+packed modules
+in
+this way,
+Runb must
+be
+in
+the
+commands
+directory.
+Packed modules
+can be executed without
+Runb,
+but
+Basic09
+will haveto
+be used and
+more space will
+be
+required.
+Page D-1
+$
+Abs
+Acs
+Addr
+And
+Array
+Asc
+Asn
+Atn
+Base
+BooleanBreak
+Bye
+Byte
+ChainChdChr$
+Chx
+Close
+Constants
+Cont
+Cos
+Create
+Date$
+Debug Mode
+DegDelete
+Dim
+Dir
+Do
+Edit
+Else
+End
+Endexit
+Endif
+EndloopEndwhileEof
+Err
+Error
+Exec
+Exitif
+Exp
+Expressions
+False
+LITOUTIBI o
+~ (Ve 1
+bt (Ve
+i
+WHMDLWAWHMNDWDUHBABUVITODUTW- \D |
+[ [os
+?1 NWs
+ol (=}
+o ~
+D !
+o \O
+LILLL - A(e] |
+[ ~J
+trtot)11t wo
+DOOOWHPYWOOROWOOUOYOAANOTWODANDHHONNDHHOANNHWOWODWPO~ononow|
+N0|U0B00WbtOVWN
+Basic09 REFERENRCE MARUAL
+Files
+Fix
+Float
+For
+Formats
+FunctionsGet
+Gosub
+Goto
+If
+InputInt
+Integer
+Kill
+Kill
+‘Land
+Left$
+Len
+Let
+List
+List
+Lnot
+Load
+Log
+Logl0
+Loop
+Lxor
+Mem
+MidsS
+Mod
+Next
+Not
+On Error
+On Gosub
+On Goto
+Open
+-Operators
+Or
+Pack
+Param
+Parameters
+Paths
+PausePeekPi
+Index
+10-1
+t1Totrittttotrvtetyeteet ooNNDNhOOH~-~-- wWOW {11(=)}e
+ODWYWHOUWLWOHWLWOOWODONODWORRRNODANNODODWOWN !
+DU]NN|RNUITUIARSIO00WOWUIOOPage E-1
+Poke
+Pos
+Print
+Put
+Q
+Rad
+Read
+Real
+Rem
+Rename
+Repeat
+RestoreReturn
+Right$
+Rnd
+Run
+Save
+Seek
+Sgn
+Shell
+Sin
+Size
+5q
+Sqr
+Sqgrt
+State
+Step
+Stop
+Str$
+String
+Substr
+Tab
+Tan
+Trim$
+Troff
+Tron
+True
+Type
+Until
+Update
+Using
+Val
+While
+Write
+Xor
+9-3
+8-5 '
+6-3:;10-4
+10-13
+6-3
+6-3,9-19
+10-12,10-16
+7-3
+9-203-7
+9-7
+10-16
+8-S8-6
+8-4
+3-7,5-1,9-12
+2-8'3-8
+10-10
+8-5
+9-16
+8-4
+8-5,10-13
+8-5
+8-4
+8-4
+6-4
+6-4,9-5
+5-18
+8-6
+7-4
+8-5
+10-48-4
+8-6
+6-4,9‘19
+6-4,9-19
+8-6
+9-25
+9-7
+10-6
+10-178-5
+9-6
+10-11
+8-2
