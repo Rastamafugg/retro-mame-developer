@@ -1802,7 +1802,7 @@ Syntax:
   RETURN
 ```
 
-The GOSUB statement transfers program execution to a subroutine starting at the specified line number. The subroutine is executed until a RETORN statement is encountered which causes execution to resume at the statement following the calling GOSUB. Subroutines may be "nested" to any depth.
+The GOSUB statement transfers program execution to a subroutine starting at the specified line number. The subroutine is executed until a RETURN statement is encountered which causes execution to resume at the statement following the calling GOSUB. Subroutines may be "nested" to any depth.
 
 Example:
 
