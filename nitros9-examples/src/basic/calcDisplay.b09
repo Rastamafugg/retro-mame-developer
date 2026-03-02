@@ -219,17 +219,17 @@ TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleM
 
 PARAM expr: STRING[80]; state: calcState; lastExpr: STRING[80]
 
-DIM pos: INTEGER
+DIM position: INTEGER
 DIM result: REAL
 DIM errCode: BYTE
 
-pos     := 1
+position     := 1
 result  := 0.0
 errCode := 0
 
 ON ERROR GOTO 900
 
-RUN parseExpr(expr, pos, result, errCode)
+RUN parseExpr(expr, position, result, errCode)
 
 IF errCode <> 0 THEN
   state.errorState   := errCode
@@ -254,7 +254,7 @@ PROCEDURE parseExpr
 (* Parses addition and subtraction: lowest precedence, left-associative.    *)
 (* Calls parseTerm for each operand. Returns result and errCode by ref.     *)
 
-PARAM expr: STRING[80]; pos: INTEGER; result: REAL; errCode: BYTE
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
 
 DIM right: REAL
 DIM op: STRING[1]
@@ -262,20 +262,20 @@ DIM op: STRING[1]
 right := 0.0
 op    := ""
 
-RUN parseTerm(expr, pos, result, errCode)
+RUN parseTerm(expr, position, result, errCode)
 
 LOOP
   EXITIF errCode <> 0 THEN
   ENDEXIT
-  RUN skipSpaces(expr, pos)
-  EXITIF pos > LEN(expr) THEN
+  RUN skipSpaces(expr, position)
+  EXITIF position > LEN(expr) THEN
   ENDEXIT
-  op := MID$(expr, pos, 1)
+  op := MID$(expr, position, 1)
   EXITIF op <> "+" AND op <> "-" THEN
   ENDEXIT
-  pos   := pos + 1
+  position   := position + 1
   right := 0.0
-  RUN parseTerm(expr, pos, right, errCode)
+  RUN parseTerm(expr, position, right, errCode)
   IF errCode = 0 THEN
     IF op = "+" THEN
       result := result + right
@@ -291,7 +291,7 @@ PROCEDURE parseTerm
 (* Parses multiplication and division: higher precedence than +/-.          *)
 (* Calls parseFactor for each operand. Returns result and errCode by ref.   *)
 
-PARAM expr: STRING[80]; pos: INTEGER; result: REAL; errCode: BYTE
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
 
 DIM right: REAL
 DIM op: STRING[1]
@@ -299,20 +299,20 @@ DIM op: STRING[1]
 right := 0.0
 op    := ""
 
-RUN parseFactor(expr, pos, result, errCode)
+RUN parseFactor(expr, position, result, errCode)
 
 LOOP
   EXITIF errCode <> 0 THEN
   ENDEXIT
-  RUN skipSpaces(expr, pos)
-  EXITIF pos > LEN(expr) THEN
+  RUN skipSpaces(expr, position)
+  EXITIF position > LEN(expr) THEN
   ENDEXIT
-  op := MID$(expr, pos, 1)
+  op := MID$(expr, position, 1)
   EXITIF op <> "*" AND op <> "/" THEN
   ENDEXIT
-  pos   := pos + 1
+  position   := position + 1
   right := 0.0
-  RUN parseFactor(expr, pos, right, errCode)
+  RUN parseFactor(expr, position, right, errCode)
   IF errCode = 0 THEN
     IF op = "*" THEN
       result := result * right
@@ -332,7 +332,7 @@ PROCEDURE parseFactor
 (* Handles unary minus, parenthesised sub-expressions, and numeric atoms.   *)
 (* Recursively calls parseExpr for parenthesised groups.                    *)
 
-PARAM expr: STRING[80]; pos: INTEGER; result: REAL; errCode: BYTE
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
 
 DIM ch: STRING[1]
 DIM inner: REAL
@@ -340,42 +340,42 @@ DIM inner: REAL
 ch    := ""
 inner := 0.0
 
-RUN skipSpaces(expr, pos)
+RUN skipSpaces(expr, position)
 
-IF pos > LEN(expr) THEN
+IF position > LEN(expr) THEN
   errCode := 6 \! errSyntaxError: unexpected end of expression
 ELSE
-  ch := MID$(expr, pos, 1)
+  ch := MID$(expr, position, 1)
   IF ch = "(" THEN
-    pos := pos + 1
-    RUN parseExpr(expr, pos, result, errCode)
+    position := position + 1
+    RUN parseExpr(expr, position, result, errCode)
     IF errCode = 0 THEN
-      RUN skipSpaces(expr, pos)
-      IF pos > LEN(expr) OR MID$(expr, pos, 1) <> ")" THEN
+      RUN skipSpaces(expr, position)
+      IF position > LEN(expr) OR MID$(expr, position, 1) <> ")" THEN
         errCode := 6 \! errSyntaxError: missing closing parenthesis
       ELSE
-        pos := pos + 1
+        position := position + 1
       ENDIF
     ENDIF
   ELSE IF ch = "-" THEN \! unary minus
-    pos := pos + 1
-    RUN parseFactor(expr, pos, inner, errCode)
+    position := position + 1
+    RUN parseFactor(expr, position, inner, errCode)
     IF errCode = 0 THEN
       result := 0.0 - inner
     ENDIF
   ELSE
-    RUN parseNumber(expr, pos, result, errCode)
+    RUN parseNumber(expr, position, result, errCode)
   ENDIF \ENDIF
 ENDIF
 
 END
 
 PROCEDURE parseNumber
-(* Extracts a numeric literal from expr at pos, advancing pos past it.     *)
+(* Extracts a numeric literal from expr at position, advancing position past it.     *)
 (* Accepts digits and a single decimal point. Converts via VAL().           *)
-(* Sets errCode := 6 if no valid number is found at pos.                    *)
+(* Sets errCode := 6 if no valid number is found at position.                    *)
 
-PARAM expr: STRING[80]; pos: INTEGER; result: REAL; errCode: BYTE
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
 
 DIM numStr: STRING[40]
 DIM ch: STRING[1]
@@ -387,12 +387,12 @@ result  := 0.0
 errCode := 0
 dotSeen := FALSE
 
-RUN skipSpaces(expr, pos)
+RUN skipSpaces(expr, position)
 
 LOOP
-  EXITIF pos > LEN(expr) THEN
+  EXITIF position > LEN(expr) THEN
   ENDEXIT
-  ch := MID$(expr, pos, 1)
+  ch := MID$(expr, position, 1)
   EXITIF (ch < "0" OR ch > "9") AND ch <> "." THEN
   ENDEXIT
   EXITIF ch = "." AND dotSeen THEN
@@ -401,7 +401,7 @@ LOOP
     dotSeen := TRUE
   ENDIF
   numStr := numStr + ch
-  pos    := pos + 1
+  position    := position + 1
 ENDLOOP
 
 IF numStr = "" THEN
@@ -417,16 +417,16 @@ END
 END
 
 PROCEDURE skipSpaces
-(* Advances pos past any space characters in expr.                          *)
+(* Advances position past any space characters in expr.                          *)
 
-PARAM expr: STRING[80]; pos: INTEGER
+PARAM expr: STRING[80]; position: INTEGER
 
 LOOP
-  EXITIF pos > LEN(expr) THEN
+  EXITIF position > LEN(expr) THEN
   ENDEXIT
-  EXITIF MID$(expr, pos, 1) <> " " THEN
+  EXITIF MID$(expr, position, 1) <> " " THEN
   ENDEXIT
-  pos := pos + 1
+  position := position + 1
 ENDLOOP
 
 END
