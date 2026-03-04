@@ -1,614 +1,457 @@
-# Stocks and Bonds Game Engine Specification
+# Stocks and Bonds — Game Engine Specification
 
-# 1. Game Initialization
+> **Consolidation note:** This document merges two prior drafts. Where the
+> drafts conflicted, the resolution is documented inline. Unresolved gaps
+> (per-security dividend rates; bond interest amounts) are flagged with
+> **[DATA REQUIRED]** markers.
 
-## 1.1 Constants
+---
 
-```json
-{
-  "StartingCash": 5000,
-  "TotalYears": 10,
-  "StockStartPrice": 100,
-  "StockSplitThreshold": 150,
-  "StockSplitRatio": 2,
-  "DividendCutoff": 50,
-  "BankruptcyPrice": 0,
-  "MarginRate": 0.5,
-  "MarginInterestRate": 0.05,
-  "MarginCallPrice": 25,
-  "ValidDiceRolls": [2,3,4,5,6,7,8,9,10,11,12]
-}
-```
+## 1. Constants
 
-## 1.2 Assets
+| Constant              | Value  | Notes                                      |
+|-----------------------|--------|--------------------------------------------|
+| `StartingCash`        | 5000   | Each player begins with $5,000             |
+| `TotalYears`          | 10     | Game runs for exactly 10 years             |
+| `StockStartPrice`     | 100    | All stocks open at $100                    |
+| `StockSplitThreshold` | 150    | Price at or above which a split triggers   |
+| `StockSplitRatio`     | 2      | Split halves price, doubles shares         |
+| `DividendCutoff`      | 50     | Price below which dividends are suspended  |
+| `BankruptcyPrice`     | 0      | Price floor; holdings zeroed at this level |
+| `MarginRate`          | 0.50   | Buyer pays 50%; 50% recorded as margin     |
+| `MarginInterestRate`  | 0.05   | Annual charge on outstanding margin total  |
+| `MarginCallPrice`     | 25     | Margin call triggered at or below $25      |
+| `ValidDiceRolls`      | 2–12   | Inclusive range from 2d6                   |
 
-### Stocks
+---
 
-* 9 stock securities
-* Initial price = 100
-* Dividends defined per certificate
-* Certificates in units of 10, 50, 100 shares
-* Only round lots (multiples of 10 shares) allowed
+## 2. Assets
 
-### Bonds
+### 2.1 Stocks
 
-* Fixed denominations: 1,000 / 5,000 / 10,000
-* Sold at par
-* Price does not fluctuate
-* Annual fixed interest defined per certificate
+Nine (9) traded securities. All start at $100.
 
-# 2. Player State Model
+| ID | Name                |
+|----|---------------------|
+| 1  | Growth Corp         |
+| 2  | Metro Properties    |
+| 3  | Pioneer Mutual      |
+| 4  | Shady Brooks        |
+| 5  | Stryker Drilling    |
+| 6  | Tri-City Transport  |
+| 7  | United Auto         |
+| 8  | Uranium Enterprises |
+| 9  | Valley Power        |
+
+Stock properties:
+
+- `initialPrice` = 100
+- `currentPrice` = INTEGER
+- `dividendPerShare` = **[DATA REQUIRED]** per security
+- `dividendsSuspended` = BOOLEAN (default: false)
+- Certificates issued in lots of 10, 50, or 100 shares
+- All transactions must be in round lots (multiples of 10)
+
+### 2.2 Bonds
+
+Three fixed-denomination bond instruments.
+
+| Denomination | Par Value | Annual Interest |
+|--------------|-----------|-----------------|
+| Small        | 1,000     | **[DATA REQUIRED]** |
+| Medium       | 5,000     | **[DATA REQUIRED]** |
+| Large        | 10,000    | **[DATA REQUIRED]** |
+
+Bond properties:
+
+- Price never fluctuates
+- Sold and redeemed at par
+- Not affected by Situation Cards
+- Not subject to splits, dividend suspension, or bankruptcy
+
+---
+
+## 3. Player State
 
 ```
 Player {
-    cash_balance
+    cashBalance      : INTEGER   (init: 5000)
     holdings {
-        stock_id → shares
-        bond_id → bond_units
+        stockId      → sharesOwned : INTEGER
+        bondId       → bondUnits   : INTEGER
     }
-    margin_total
-    margin_charges_due
+    marginTotal      : INTEGER   (init: 0)
+    marginChargesDue : INTEGER
+    isBankrupt       : BOOLEAN   (init: false)
 }
 ```
 
-Initialize:
+---
 
-```
-cash_balance = 5000
-margin_total = 0
-```
+## 4. Situation Cards
+
+### 4.1 Deck Structure
+
+- Total cards: 36 (18 Bull, 18 Bear)
+- Each card specifies:
+  - `marketType`: BULL or BEAR
+  - `effects`: list of `{ stockId, priceDelta }` pairs
+  - `dividendBonusPerShare` (optional; applies immediately)
+- City Bonds are not affected by any card.
+
+### 4.2 Card Classification Rule
+
+- Net-positive effect cards → Bull
+- Net-negative effect cards → Bear
+- Explicit exception: Growth -8 / Metro -5 / United Auto -7 → Bear
+
+### 4.3 Single-Stock Card Effects
+
+| Stock           | Effects (priceDelta, or priceDelta & dividendBonus) |
+|-----------------|-----------------------------------------------------|
+| Growth Corp     | -10 / +10 / +8 / -8 / +10 & $2/share / -10         |
+| Metro Properties| +5 / +10 / -5 / -10                                 |
+| Pioneer Mutual  | none (appears in multi-stock cards only)             |
+| Shady Brooks    | +5 / -5                                             |
+| Stryker Drilling| +17 / -15 / -10                                     |
+| Tri-City Transport | +15 / +10 / +5 / -5 / -25                       |
+| United Auto     | +10 / +15 / +10 / -5 / -15 / -15                   |
+| Uranium Enterprises | +10 / +10 / -25                                 |
+| Valley Power    | -14 / +5 / +5                                       |
+
+### 4.4 Multi-Stock Card Effects
+
+| Stocks Affected                                     | Market |
+|-----------------------------------------------------|--------|
+| Pioneer +3, Valley +4                               | Bull   |
+| Growth +8, Metro +5, Pioneer +5, United Auto +7     | Bull   |
+| Pioneer -8, Stryker +8, Uranium +5                  | Bull   |
+| Growth -8, Metro -5, United Auto -7                 | Bear   |
 
 ---
 
-# 3. Year Loop (Years 1–10)
+## 5. Market Price Tables
 
-For each year:
+After the Situation Card sets `marketType`, roll 2d6 and look up each
+stock's price delta in the table for that market type.
 
-```
-for year in 1..10:
-    apply_situation_card()
-    update_market_prices()
-    post_prices()
-    distribute_dividends_and_interest()
-    collect_margin_charges()
-    allow_sell_phase()
-    allow_buy_phase()
-    handle_splits()
-    handle_price_threshold_effects()
-```
+### 5.1 Bull Market
 
-# 4. Situation Card Effects
+| Stock               |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  | 10  | 11  | 12  |
+|---------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| Growth Corp         |  -2 |  26 |  18 |  23 |  20 |  17 |  19 |  11 |  13 |  14 |  24 |
+| Metro Properties    | -10 |  16 |  23 |  28 |  15 |  21 |  24 |  18 |  31 |  -8 |  24 |
+| Pioneer Mutual      |  -7 |  25 |  11 |  -2 |  15 |  13 |  17 |  14 |   1 |  19 |  23 |
+| Shady Brooks        |  -9 |   8 |  12 |  11 |   7 |  -2 |   9 |  11 |  14 |  -1 |  20 |
+| Stryker Drilling    |  -2 | -14 |  46 |  56 | -20 |  37 |  -5 |  67 | -11 |  -9 |  51 |
+| Tri-City Transport  |  -9 |  21 |  18 |  19 |  15 |  23 |  26 |  15 |  18 |  25 |  27 |
+| United Auto         |  -7 |  14 |  -5 |  30 |  13 |  23 |  13 |  22 |  18 | -10 |  38 |
+| Uranium Enterprises | -16 |  -4 |  34 |  29 | -10 |  19 |  -7 |  18 | -14 |  13 |  33 |
+| Valley Power        |  -4 |  17 |  15 |  14 |  12 |  14 |  15 |  13 |  10 |  19 |  18 |
 
-Each card:
+### 5.2 Bear Market
 
-* Indicates bull or bear market
-* Applies additional point increase or decrease
-* May affect one or multiple stocks
-
-```
-market = BULL | BEAR
-price += card_effect
-```
-
-# 4. Market Price Determination
-
-```
-roll_dice()
-movement = calculator_lookup(market, roll)
-```
-
-For each stock:
-
-```
-price += movement_adjusted_by_situation_card
-```
-
-# 6. Buying Rules
-
-## 6.1 Cash Purchase
-
-```
-cost = shares * current_price
-
-if cash_balance >= cost:
-    cash_balance -= cost
-    holdings[stock] += shares
-```
-
-## 6.2 Bonds
-
-```
-cost = par_value
-cash_balance -= cost
-holdings[bond] += 1
-```
-
-Bond price never changes.
+| Stock               |  2  |  3  |  4  |  5  |  6  |  7  |  8  |  9  | 10  | 11  | 12  |
+|---------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| Growth Corp         |  12 |   7 |   9 |   7 |   8 |   6 |   5 |  -2 |  11 |  -5 |  -8 |
+| Metro Properties    |  14 |  -6 |  10 |   8 |   6 |   4 |   7 |   6 |  11 |  13 | -10 |
+| Pioneer Mutual      |  13 |  10 |   7 |   5 |   4 |   3 |  -1 |  -3 |  -5 |  -8 | -10 |
+| Shady Brooks        |  10 | -10 |  -5 |  -6 |  -4 |   3 |  -3 |  -8 |  -7 |   6 | -15 |
+| Stryker Drilling    |  10 |  30 | -20 | -40 |  40 | -15 |  45 | -20 |  30 |  25 | -20 |
+| Tri-City Transport  |  20 |   6 |  12 |   3 |   8 |   5 |   6 |   7 |  10 |   4 | -20 |
+| United Auto         |  21 | -19 |  21 |  16 |   4 |   8 | -10 |  10 | -11 |  18 | -23 |
+| Uranium Enterprises |  25 |  22 |  18 | -14 | -12 |  -8 |  10 |  14 | -18 | -22 | -25 |
+| Valley Power        |   8 |  -2 |   7 |   4 |   3 |   5 |   4 |   6 |  -4 |  -4 |  -7 |
 
 ---
 
-# 7. Selling Rules
+## 6. Annual Year Loop
 
-## 7.1 Stock
-
-```
-proceeds = shares_sold * current_price
-cash_balance += proceeds
-holdings[stock] -= shares_sold
-```
-
-## 7.2 Bond
+For each year in 1..10, execute the following phases in order:
 
 ```
-proceeds = par_value
-cash_balance += proceeds
-holdings[bond] -= 1
+1.  DrawSituationCard
+2.  DetermineMarketType         (Bull or Bear from card)
+3.  Roll2d6
+4.  ApplyMarketTableDeltas      (per stock, from table)
+5.  ApplyCardPriceDeltas        (per stock, from card effects)
+6.  ResolvePerStockThresholds   (clamp, dividend flag, splits)
+7.  ApplyDividendsAndInterest   (skip in Year 10)
+8.  ApplyMarginInterest
+9.  SellPhase
+10. BuyPhase
+11. CheckBankruptcy
 ```
 
-If held on margin:
+Final year (Year 10) differences:
 
-```
-must immediately repay related margin balance
-```
+- Steps 7 (dividends and interest) are skipped.
+- No new margin purchases may be made (Step 10 restricted).
+- After Step 11: compute final wealth for all players.
 
 ---
 
-# 8. Dividends & Interest
+## 7. Per-Stock Price Resolution (Step 6)
 
-## 8.1 Stock Dividend Condition
+Applied to each stock after market table and card deltas are summed:
 
 ```
-if price >= 50:
-    dividend = dividend_per_share * shares_owned
+newPrice = currentPrice + marketTableDelta + cardDelta
+
+if newPrice < 0:
+    newPrice = 0
+
+currentPrice = newPrice
+
+if currentPrice < DividendCutoff:
+    dividendsSuspended = true
 else:
-    dividend = 0
+    dividendsSuspended = false
+
+if currentPrice >= StockSplitThreshold:
+    currentPrice = currentPrice / 2
+    sharesOwned  = sharesOwned * 2
 ```
 
-Add to cash.
-
-## 8.2 Bonds
-
-```
-interest = fixed_interest_per_bond * bond_units
-cash_balance += interest
-```
-
-No dividends or interest in Year 10 (closing year).
+> **Resolution conflict note:** Draft 1 placed split resolution after the
+> buy phase. Draft 2 placed it during per-stock price resolution (before
+> dividends). Draft 2 ordering is used here because it is internally
+> consistent with the engine execution order in both drafts and reflects
+> standard board game rules (splits resolved before income is paid).
 
 ---
 
-# 9. Stock Split Logic
+## 8. Dividends and Bond Interest (Step 7)
 
-Trigger:
-
-```
-if price >= 150:
-    price = price / 2
-    shares_owned *= 2
-```
-
----
-
-# 10. Low Price Effects
-
-## 10.1 Below $50
+### 8.1 Stock Dividends
 
 ```
-dividends_suspended = true
+if NOT dividendsSuspended AND year < TotalYears:
+    dividend = dividendPerShare * sharesOwned
+    cashBalance += dividend
+
+if cardHasDividendBonus:
+    cashBalance += dividendBonusPerShare * sharesOwned
 ```
 
-Resume when price ≥ 50.
+Bonus dividends from cards are applied regardless of `dividendsSuspended`
+(the card explicitly grants them).
 
-## 10.2 At or Below $0
+### 8.2 Bond Interest
 
 ```
-holdings[stock] = 0
-price reset next year to STOCK_START_PRICE logic
+if year < TotalYears:
+    for each bondHolding:
+        cashBalance += fixedInterestPerUnit * bondUnits
 ```
 
 ---
 
-# 11. Margin System
+## 9. Margin System
 
-## 11.1 Eligibility
+### 9.1 Eligibility
 
-* Cannot use margin until after first cash purchase year
-* No margin purchases in Year 10
+- A player may not use margin until they have made at least one cash
+  purchase in a prior year.
+- No margin purchases are permitted in Year 10.
 
-## 11.2 Margin Purchase
-
-```
-purchase_price = shares * price
-cash_payment = purchase_price * 0.5
-margin_portion = purchase_price * 0.5
-
-cash_balance -= cash_payment
-margin_total += margin_portion
-```
-
-## 11.3 Annual Margin Charges
+### 9.2 Margin Purchase
 
 ```
-margin_charge = margin_total * 0.05
-cash_balance -= margin_charge
+purchasePrice = shares * currentPrice
+cashPayment   = purchasePrice * MarginRate       (50%)
+marginPortion = purchasePrice * MarginRate       (50%)
+
+cashBalance  -= cashPayment
+marginTotal  += marginPortion
 ```
 
-Must be payable from cash. If not:
+### 9.3 Annual Margin Interest (Step 8)
 
 ```
-force_sell_until_cash_sufficient()
-if still insufficient:
-    player_bankrupt = true
+marginCharge  = marginTotal * MarginInterestRate
+cashBalance  -= marginCharge
 ```
 
-## 11.4 Margin Call
-
-If:
+If `cashBalance` becomes negative after deducting margin interest:
 
 ```
-price <= 25:
-    margin_balance_due_immediately
+force_sell_assets_until_cash_sufficient()
+if cashBalance still < 0:
+    isBankrupt = true
 ```
 
-If:
+### 9.4 Margin Call
+
+Triggered if `currentPrice <= MarginCallPrice` (i.e., price falls to $25
+or below):
 
 ```
-price <= 0:
-    stock surrendered
-    margin balance still due
+margin_balance_due_immediately()
 ```
 
-## 11.5 Paying Margin Balance
+If `currentPrice <= BankruptcyPrice` (price reaches $0):
 
 ```
-cash_balance -= amount_paid
-margin_total -= amount_paid
+sharesOwned = 0          (stock surrendered)
+marginBalance still due  (debt does not forgive)
 ```
 
-All margin must be cleared before Year 10.
+### 9.5 Repaying Margin
+
+```
+cashBalance  -= amountPaid
+marginTotal  -= amountPaid
+```
+
+All outstanding margin must be cleared before Year 10 begins.
 
 ---
 
-# 12. End of Game (Year 10)
+## 10. Buying Rules
 
-After final prices posted:
-
-```
-total_asset_value =
-    cash_balance +
-    sum(shares * price) +
-    sum(bonds * par_value)
-```
-
-No dividends or interest.
-
-Winner:
+### 10.1 Cash Purchase — Stock
 
 ```
-max(total_asset_value)
+cost = shares * currentPrice
+if cashBalance >= cost:
+    cashBalance      -= cost
+    holdings[stock]  += shares
+```
+
+`shares` must be a positive multiple of 10.
+
+### 10.2 Margin Purchase — Stock
+
+See Section 9.2. Same share-lot rule applies.
+
+### 10.3 Bond Purchase
+
+```
+cashBalance      -= parValue
+holdings[bond]   += 1
+```
+
+Bond price is always par; no partial bond units.
+
+---
+
+## 11. Selling Rules
+
+### 11.1 Stock
+
+```
+proceeds             = sharesSold * currentPrice
+cashBalance         += proceeds
+holdings[stock]     -= sharesSold
+```
+
+`sharesSold` must be a positive multiple of 10 and
+`<= holdings[stock]`.
+
+### 11.2 Bond
+
+```
+proceeds             = parValue
+cashBalance         += proceeds
+holdings[bond]      -= 1
+```
+
+### 11.3 Margin-Held Stock
+
+When selling stock purchased on margin, the associated margin balance
+must be repaid immediately from the sale proceeds.
+
+---
+
+## 12. Bankruptcy
+
+A player is eliminated when either condition below is true and cannot
+be resolved through asset liquidation:
+
+```
+CONDITION A: cashBalance < 0 after margin interest charge
+CONDITION B: cannot meet a margin call
+```
+
+Elimination procedure:
+
+```
+liquidate all remaining holdings (stocks at currentPrice, bonds at par)
+if cashBalance still < 0:
+    isBankrupt = true
+    player removed from game
 ```
 
 ---
 
-# 13. Bankruptcy Conditions
+## 13. End of Game (Year 10)
 
-Player eliminated if:
+After final prices are posted (no dividends or interest paid):
 
 ```
-cannot pay margin charges
-OR
-cannot meet margin call
+totalWealth =
+    cashBalance
+    + sum(sharesOwned[i] * currentPrice[i]  for each stock i)
+    + sum(bondUnits[j]   * parValue[j]       for each bond j)
 ```
+
+Player with highest `totalWealth` wins. Ties share the win.
 
 ---
 
-# 14. Optional Variant Logic
+## 14. Optional Rule Variants
 
-## Variant A
+### 14.1 Market Roll Mode
 
-Roll once per year → applies to all stocks.
+Three mutually exclusive options. Select one before game start.
 
-## Variant B
+| Option | Description |
+|--------|-------------|
+| A (Default) | Roll once per year; result applies to all stocks |
+| B | Roll separately for each stock in Year 1 only; single roll thereafter |
+| C | Roll separately for each stock every year |
 
-Roll per security.
+> **Conflict note:** Draft 1 defined two variants (A and B), with B
+> described as per-security rolling with a special 2/12 override rule.
+> Draft 2 defined three variants (A, B, C) without the override rule.
+> Both variant sets are preserved above. The 2/12 override from Draft 1
+> is captured below.
 
-Special rule:
+### 14.2 Extreme Roll Override (Draft 1 Variant B)
+
+When rolling per security:
 
 ```
 if roll == 2 OR roll == 12:
-    override all prices using calculator values for that roll
+    override all stock prices using the calculator value for that roll
 ```
 
----
-
-# 15. Deterministic Implementation Notes
-
-* All price changes are additive integers.
-* Shares always integer multiples of 10.
-* Bonds are discrete units.
-* Order of operations per year must be consistent:
-
-  1. Price update
-  2. Dividends/interest
-  3. Margin charges
-  4. Selling
-  5. Buying
-  6. Split resolution
-  7. Bankruptcy checks
-
-
-# 1. Core Game Structure
-
-## 1.1 Game Length
-- TotalYears = 10
-
-## 1.2 Annual Market Flow
-
-For each year:
-
-1. Draw one Situation Card (random).
-2. marketType = card.marketType (Bull or Bear).
-3. Roll 2d6 (result 2–12).
-4. Apply Market Price Table (based on marketType and roll).
-5. Apply Situation Card price adjustments.
-6. Resolve stock thresholds (bankruptcy floor, dividend suspension, stock splits).
-7. Apply dividends and bond interest (skip in final year).
-8. Apply margin interest.
-9. Player trading phase (sell then buy).
-10. End year.
-
-Final year:
-- No dividends.
-- No bond interest.
-- No margin purchases.
-- Calculate final wealth.
+This rule applies only if the per-security rolling variant is in use.
 
 ---
 
-# 2. Stocks
+## 15. Implementation Constraints
 
-## 2.1 Stock List
-
-- City Bonds (no situation effects)
-- Growth Corp
-- Metro Properties
-- Pioneer Mutual
-- Shady Brooks
-- Stryker Drilling
-- Tri-City Transport
-- United Auto
-- Uranium Enterprises
-- Valley Power
+- All price changes are additive integers; no floating-point required
+  for price tracking.
+- Share counts are always integer multiples of 10.
+- Bond holdings are discrete integer units.
+- Variable memory budget: 32KB hard limit on Basic09 target platform.
+  Array sizes must be sized accordingly.
+- Order of operations within each year must be deterministic and
+  consistent across all players before advancing to the next phase.
 
 ---
 
-# 3. Situation Cards
-
-## 3.1 Structure
-
-Each card:
-
-- marketType: Bull or Bear
-- effects: list of stock price adjustments
-- optional dividendBonusPerShare
-
-Total cards:
-- 36 cards
-  - 18 Bull
-  - 18 Bear
-
-## 3.2 Card Effects
-
-### Single-Stock Cards
-
-**Growth Corp**
-- -10
-- +10
-- +8
-- -8
-- +10 & $2/share
-- -10
-
-**Metro Properties**
-- +5
-- +10
-- -5
-- -10
-
-**Pioneer Mutual**
-- none (except combo cards)
-
-**Shady Brooks**
-- +5
-- -5
-
-**Stryker Drilling**
-- +17
-- -15
-- -10
-
-**Tri-City Transport**
-- +15
-- +10
-- +5
-- -5
-- -25
-
-**United Auto**
-- +10
-- +15
-- +10
-- -5
-- -15
-- -15
-
-**Uranium Enterprises**
-- +10
-- +10
-- -25
-
-**Valley Power**
-- -14
-- +5
-- +5
-
----
-
-### Multi-Stock Cards
-
-- Pioneer +3 / Valley +4  (Bull)
-- Growth -8 / Metro -5 / United Auto -7 (Bear)
-- Pioneer -8 / Stryker +8 / Uranium +5 (Bull)
-- Growth +8 / Metro +5 / Pioneer +5 / United Auto +7 (Bull)
-
----
-
-## 3.3 Card Classification Rule
-
-- Cards with positive net effects → Bull
-- Cards with negative net effects → Bear
-- Explicit exception:
-  - Growth -8 / Metro -5 / United Auto -7 → Bear
-
----
-
-# 4. Market Price Tables
-
-After drawing a card and determining marketType, roll 2d6 and apply the corresponding table.
-
----
-
-## 4.1 Bull Market Table
-
-| Stock               | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  |
-|---------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
-| Growth Corp         | -2  | 26  | 18  | 23  | 20  | 17  | 19  | 11  | 13  | 14  | 24  |
-| Metro Properties    | -10 | 16  | 23  | 28  | 15  | 21  | 24  | 18  | 31  | -8  | 24  |
-| Pioneer Mutual      | -7  | 25  | 11  | -2  | 15  | 13  | 17  | 14  | 1   | 19  | 23  |
-| Shady Brooks        | -9  | 8   | 12  | 11  | 7   | -2  | 9   | 11  | 14  | -1  | 20  |
-| Stryker Drilling    | -2  | -14 | 46  | 56  | -20 | 37  | -5  | 67  | -11 | -9  | 51  |
-| Tri-City Transport  | -9  | 21  | 18  | 19  | 15  | 23  | 26  | 15  | 18  | 25  | 27  |
-| United Auto         | -7  | 14  | -5  | 30  | 13  | 23  | 13  | 22  | 18  | -10 | 38  |
-| Uranium Enterprises | -16 | -4  | 34  | 29  | -10 | 19  | -7  | 18  | -14 | 13  | 33  |
-| Valley Power        | -4  | 17  | 15  | 14  | 12  | 14  | 15  | 13  | 10  | 19  | 18  |
-
----
-
-## 4.2 Bear Market Table
-
-| Stock               | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   | 10  | 11  | 12  |
-|---------------------|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
-| Growth Corp         | 12  | 7   | 9   | 7   | 8   | 6   | 5   | -2  | 11  | -5  | -8  |
-| Metro Properties    | 14  | -6  | 10  | 8   | 6   | 4   | 7   | 6   | 11  | 13  | -10 |
-| Pioneer Mutual      | 13  | 10  | 7   | 5   | 4   | 3   | -1  | -3  | -5  | -8  | -10 |
-| Shady Brooks        | 10  | -10 | -5  | -6  | -4  | 3   | -3  | -8  | -7  | 6   | -15 |
-| Stryker Drilling    | 10  | 30  | -20 | -40 | 40  | -15 | 45  | -20 | 30  | 25  | -20 |
-| Tri-City Transport  | 20  | 6   | 12  | 3   | 8   | 5   | 6   | 7   | 10  | 4   | -20 |
-| United Auto         | 21  | -19 | 21  | 16  | 4   | 8   | -10 | 10  | -11 | 18  | -23 |
-| Uranium Enterprises | 25  | 22  | 18  | -14 | -12 | -8  | 10  | 14  | -18 | -22 | -25 |
-| Valley Power        | 8   | -2  | 7   | 4   | 3   | 5   | 4   | 6   | -4  | -4  | -7  |
-
----
-
-# 5. Price Resolution Order
-
-For each stock:
-
-1. Apply Market Table delta.
-2. Apply Situation Card delta.
-3. If price < 0 → set price = 0.
-4. If price < DividendCutoff → dividends suspended.
-5. If price ≥ StockSplitThreshold → execute split.
-
----
-
-# 6. Dividends
-
-- Paid annually except final year.
-- Not paid if dividendsSuspended = true.
-- Bonus dividends from cards applied immediately.
-
----
-
-# 7. Optional Rule: Market Roll Variants
-
-Option A:
-- Roll once per year (default).
-
-Option B:
-- Roll separately for each stock in Year 1 only.
-
-Option C:
-- Roll separately for each stock every year.
-
----
-
-# 8. Margin Rules (Optional)
-
-## 8.1 Margin Purchase
-
-- Player may pay 50% cash.
-- Remaining 50% recorded as marginBalance.
-
-## 8.2 Interest
-
-- Annual margin interest applied before trading phase.
-
-## 8.3 Margin Restrictions
-
-- No margin purchases in final year.
-
-## 8.4 Margin Call
-
-- If stock price falls to defined marginCallPrice:
-  - Immediate repayment required.
-
-## 8.5 Bankruptcy
-
-- If player cannot cover obligations:
-  - Liquidate assets.
-  - If still negative → player eliminated.
-
----
-
-# 9. Stock Split Rule
-
-- Triggered when price ≥ StockSplitThreshold.
-- Price divided by 2.
-- Shares doubled.
-
----
-
-# 10. Final Wealth Calculation
-
-At end of Year 10:
-
-TotalWealth =
-- cash
-- + (shares × current price)
-- + bonds at par
-
-Highest TotalWealth wins.
-
----
-
-# 11. Engine Execution Order (Deterministic)
-
-DrawCard  
-→ DetermineMarketType  
-→ Roll2d6  
-→ ApplyMarketTable  
-→ ApplyCardEffects  
-→ ResolveThresholds  
-→ DividendsAndInterest  
-→ MarginInterest  
-→ SellPhase  
-→ BuyPhase  
-→ EndYear  
-
-Final year:
-- Skip dividends and interest.
-- No margin buying.
-- Compute final wealth.
-
----
+## 16. Open Items — DATA REQUIRED
+
+The following values are not present in either source draft. They must
+be sourced from the physical game components before implementation.
+
+| Item | Used In |
+|------|---------|
+| `dividendPerShare` for each of the 9 stocks | Section 8.1 |
+| `fixedInterestPerUnit` for each bond denomination | Section 8.2 |
+| Whether dividend bonus cards are Bull or Bear classified | Section 4.2 |
+| Total card count per single-stock effect (verify 36 total) | Section 4.1 |
