@@ -1,10 +1,5 @@
 # Stocks and Bonds — Game Engine Specification
 
-> **Consolidation note:** This document merges two prior drafts. Where the
-> drafts conflicted, the resolution is documented inline. Unresolved gaps
-> (per-security dividend rates; bond interest amounts) are flagged with
-> **[DATA REQUIRED]** markers.
-
 ---
 
 ## 1. Constants
@@ -199,22 +194,27 @@ stock's price delta in the table for that market type.
 For each year in 1..10, execute the following phases in order:
 
 ```
-1.  DrawSituationCard
-2.  DetermineMarketType         (Bull or Bear from card)
-3.  Roll2d6
-4.  ApplyMarketTableDeltas      (per stock, from table)
-5.  ApplyCardPriceDeltas        (per stock, from card effects)
-6.  ResolvePerStockThresholds   (clamp, dividend flag, splits)
-7.  ApplyDividendsAndInterest   (skip in Year 10)
-8.  ApplyMarginInterest
+1.  ApplyDividendsAndInterest   (skip in Year 10)
+2.  ApplyMarginInterest
+3.  DrawSituationCard
+4.  DetermineMarketType         (Bull or Bear from card)
+5.  Roll2d6
+6.  ApplyMarketTableDeltas      (per stock, from table)
+7.  ApplyCardPriceDeltas        (per stock, from card effects)
+8.  ResolvePerStockThresholds   (clamp, dividend flag, splits)
 9.  SellPhase
 10. BuyPhase
 11. CheckBankruptcy
 ```
 
+First year (Year 1) differences:
+
+- Steps 1 & 2 (dividends and interest) are skipped.
+- Step 9 (sell phase) is skipped.
+
 Final year (Year 10) differences:
 
-- Steps 7 (dividends and interest) are skipped.
+- Steps 1 & 2 (dividends and interest) are skipped.
 - No new margin purchases may be made (Step 10 restricted).
 - After Step 11: compute final wealth for all players.
 
@@ -238,24 +238,18 @@ else:
     dividendsSuspended = false
 
 if currentPrice >= StockSplitThreshold:
-    currentPrice = currentPrice / 2
+    currentPrice = currentPrice / 2 (round fractions up)
     sharesOwned  = sharesOwned * 2
 ```
 
-> **Resolution conflict note:** Draft 1 placed split resolution after the
-> buy phase. Draft 2 placed it during per-stock price resolution (before
-> dividends). Draft 2 ordering is used here because it is internally
-> consistent with the engine execution order in both drafts and reflects
-> standard board game rules (splits resolved before income is paid).
-
 ---
 
-## 8. Dividends and Bond Interest (Step 7)
+## 8. Dividends and Bond Interest (Step 1)
 
 ### 8.1 Stock Dividends
 
 ```
-if NOT dividendsSuspended AND year < TotalYears:
+if NOT dividendsSuspended AND year > 1 AND year < TotalYears:
     dividend = dividendPerShare * sharesOwned
     cashBalance += dividend
 
@@ -295,7 +289,7 @@ cashBalance  -= cashPayment
 marginTotal  += marginPortion
 ```
 
-### 9.3 Annual Margin Interest (Step 8)
+### 9.3 Annual Margin Interest (Step 2)
 
 ```
 marginCharge  = marginTotal * MarginInterestRate
@@ -406,8 +400,9 @@ CONDITION B: cannot meet a margin call
 Elimination procedure:
 
 ```
-liquidate all remaining holdings (stocks at currentPrice, bonds at par)
-if cashBalance still < 0:
+allow player to liquidate some or all remaining holdings (stocks at currentPrice, bonds at par) until market call is paid.
+
+once all remaining holdings are sold, if cashBalance still < 0:
     isBankrupt = true
     player removed from game
 ```
@@ -441,13 +436,7 @@ Three mutually exclusive options. Select one before game start.
 | B | Roll separately for each stock in Year 1 only; single roll thereafter |
 | C | Roll separately for each stock every year |
 
-> **Conflict note:** Draft 1 defined two variants (A and B), with B
-> described as per-security rolling with a special 2/12 override rule.
-> Draft 2 defined three variants (A, B, C) without the override rule.
-> Both variant sets are preserved above. The 2/12 override from Draft 1
-> is captured below.
-
-### 14.2 Extreme Roll Override (Draft 1 Variant B)
+### 14.2 Market Roll Mode Option C Additional Rule
 
 When rolling per security:
 
@@ -456,7 +445,7 @@ if roll == 2 OR roll == 12:
     override all stock prices using the calculator value for that roll
 ```
 
-This rule applies only if the per-security rolling variant is in use.
+This rule applies only if the per-security rolling variant (C) is in use.
 
 ---
 
