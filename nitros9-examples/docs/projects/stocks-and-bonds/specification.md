@@ -31,23 +31,23 @@
 
 Nine (9) traded securities. All start at $100.
 
-| ID | Name                |
-|----|---------------------|
-| 1  | Growth Corp         |
-| 2  | Metro Properties    |
-| 3  | Pioneer Mutual      |
-| 4  | Shady Brooks        |
-| 5  | Stryker Drilling    |
-| 6  | Tri-City Transport  |
-| 7  | United Auto         |
-| 8  | Uranium Enterprises |
-| 9  | Valley Power        |
+| ID | Name                | Dividend Per Share |
+|----|---------------------|--------------------|
+| 1  | Growth Corp         | $1                 |
+| 2  | Metro Properties    | $0 (no yield)      |
+| 3  | Pioneer Mutual      | $4                 |
+| 4  | Shady Brooks        | $7                 |
+| 5  | Stryker Drilling    | $0 (no yield)      |
+| 6  | Tri-City Transport  | $0 (no yield)      |
+| 7  | United Auto         | $2                 |
+| 8  | Uranium Enterprises | $6                 |
+| 9  | Valley Power        | $3                 |
 
 Stock properties:
 
 - `initialPrice` = 100
 - `currentPrice` = INTEGER
-- `dividendPerShare` = **[DATA REQUIRED]** per security
+- `dividendPerShare` = INTEGER (see table above; 0 for no-yield stocks)
 - `dividendsSuspended` = BOOLEAN (default: false)
 - Certificates issued in lots of 10, 50, or 100 shares
 - All transactions must be in round lots (multiples of 10)
@@ -56,11 +56,11 @@ Stock properties:
 
 Three fixed-denomination bond instruments.
 
-| Denomination | Par Value | Annual Interest |
-|--------------|-----------|-----------------|
-| Small        | 1,000     | **[DATA REQUIRED]** |
-| Medium       | 5,000     | **[DATA REQUIRED]** |
-| Large        | 10,000    | **[DATA REQUIRED]** |
+| Denomination | Par Value | Annual Interest (5%) |
+|--------------|-----------|----------------------|
+| Small        | 1,000     | $50                  |
+| Medium       | 5,000     | $250                 |
+| Large        | 10,000    | $500                 |
 
 Bond properties:
 
@@ -101,32 +101,61 @@ Player {
 
 ### 4.2 Card Classification Rule
 
-- Net-positive effect cards → Bull
-- Net-negative effect cards → Bear
-- Explicit exception: Growth -8 / Metro -5 / United Auto -7 → Bear
+Physical card classification is authoritative. Sign of price delta does not reliably
+predict market type; four confirmed cards deviate from the sign-based heuristic:
 
-### 4.3 Single-Stock Card Effects
+| Card | Effects | Confirmed Type | Note |
+|------|---------|----------------|------|
+| 1  | Growth Corp +10 & $2/share | Bear | Positive delta, Bear card |
+| 5  | Growth Corp -10            | Bull | Negative delta, Bull card |
+| 8  | Metro Properties +10       | Bear | Positive delta, Bear card |
+| 18 | Tri-City Transport +5      | Bear | Positive delta, Bear card |
 
-| Stock           | Effects (priceDelta, or priceDelta & dividendBonus) |
-|-----------------|-----------------------------------------------------|
-| Growth Corp     | -10 / +10 / +8 / -8 / +10 & $2/share / -10         |
-| Metro Properties| +5 / +10 / -5 / -10                                 |
-| Pioneer Mutual  | none (appears in multi-stock cards only)             |
-| Shady Brooks    | +5 / -5                                             |
-| Stryker Drilling| +17 / -15 / -10                                     |
-| Tri-City Transport | +15 / +10 / +5 / -5 / -25                       |
-| United Auto     | +10 / +15 / +10 / -5 / -15 / -15                   |
-| Uranium Enterprises | +10 / +10 / -25                                 |
-| Valley Power    | -14 / +5 / +5                                       |
+The only reliable classification rule: use the physical card's market type field directly.
+The deck contains exactly 18 Bull cards and 18 Bear cards.
 
-### 4.4 Multi-Stock Card Effects
+### 4.3 Complete Card Reference
 
-| Stocks Affected                                     | Market |
-|-----------------------------------------------------|--------|
-| Pioneer +3, Valley +4                               | Bull   |
-| Growth +8, Metro +5, Pioneer +5, United Auto +7     | Bull   |
-| Pioneer -8, Stryker +8, Uranium +5                  | Bull   |
-| Growth -8, Metro -5, United Auto -7                 | Bear   |
+One card (Card 1) carries a `dividendBonusPerShare` of $2. It is the only such card.
+
+| #  | Type | Stocks Affected                                              | Flavour Text |
+|----|------|--------------------------------------------------------------|--------------|
+|  1 | Bear | Growth Corp +10 & $2/share dividend bonus                    | Extra year-end dividend of $2 per share declared by the Board of Directors. |
+|  2 | Bull | Growth Corp +10                                              | Corporation announces new metal forming process which it claims will revolutionize all metal-working industries covered by U.S. and foreign patents. |
+|  3 | Bull | Growth Corp +8                                               | Corporation releases high profit and sales financial report and announces plans to invest an additional $2 million on special research projects next year. |
+|  4 | Bear | Growth Corp -8                                               | Two founders and major stockholders of the Corporation disagree on policy. One sells out his entire stockholdings. |
+|  5 | Bull | Growth Corp -10                                              | Corporation unexpectedly relinquishes its monopoly on its major product after a lengthy anti-trust suit. |
+|  6 | Bear | Growth Corp -10                                              | President, Vice-President, and Chief Counsel of Growth Corporation of America reach retirement age. |
+|  7 | Bull | Metro Properties +5                                          | National firm leases Company's largest office building. |
+|  8 | Bear | Metro Properties +10                                         | City Council considers the Company's choicest property for large industrial fair. |
+|  9 | Bear | Metro Properties -5                                          | Company's Annual Report shows net earnings off during fourth quarter. |
+| 10 | Bear | Metro Properties -10                                         | Urban Renewal Program delayed by indecision of City Planning Commission. |
+| 11 | Bull | Shady Brooks +5                                              | Influx of personnel of new company in nearby town creates a severe housing shortage. |
+| 12 | Bear | Shady Brooks -5                                              | Community steadily deteriorates. The management is forced to lower rental rates to attract tenants. |
+| 13 | Bull | Stryker Drilling +17                                         | Large petroleum corporation offers to buy all assets for cash. Offer is well above book value. Directors approve and will submit recommendation to stockholders. |
+| 14 | Bear | Stryker Drilling -15                                         | Internal Revenue depletion allowance reduced 50%. |
+| 15 | Bear | Stryker Drilling -10                                         | Land rights litigation holds up progress. |
+| 16 | Bull | Tri-City Transport +15                                       | Company lands ten-year contract with large industrial equipment corporation. |
+| 17 | Bull | Tri-City Transport +10                                       | Intensive advertising campaign gains Company three major, long-term contracts. |
+| 18 | Bear | Tri-City Transport +5                                        | Company moves to a new excellent location. |
+| 19 | Bear | Tri-City Transport -5                                        | President hospitalized in sanitorium for an indefinite period. |
+| 20 | Bear | Tri-City Transport -25                                       | Large terminal destroyed by fire; insufficient insurance on building due to Company's delayed move to new location. |
+| 21 | Bull | United Auto +10                                              | Three-for-one split rumoured. |
+| 22 | Bull | United Auto +15                                              | President announces expansion plans to increase productive capacity 30%. |
+| 23 | Bull | United Auto +10                                              | United Auto announces new advanced-design auto entry in the mini-car field. |
+| 24 | Bear | United Auto -5                                               | Competitor invents a new economical automatic transmission. |
+| 25 | Bear | United Auto -15                                              | Foreign car rage hits the buying public. Big cars in slow demand. |
+| 26 | Bear | United Auto -15                                              | Strikes halt production in all eight United Auto plants as UAW and Company officials fail to reach agreement on labour contract. |
+| 27 | Bull | Uranium Enterprises +10                                      | Company prospectors find huge, new high-grade ore deposits. |
+| 28 | Bull | Uranium Enterprises +10                                      | Experimental nuclear power station proves more economical than anticipated. Three electrical power companies announce plans to build large-scale nuclear power plants. |
+| 29 | Bear | Uranium Enterprises -25                                      | Government suddenly announces it will no longer support ore prices, since it has large stockpiles. |
+| 30 | Bull | Valley Power +5                                              | Major coal company announces reduced coal prices to electric power utilities. |
+| 31 | Bull | Valley Power +5                                              | Commission grants permission to construct a new nuclear generating plant of great capacity and efficiency. |
+| 32 | Bear | Valley Power -14                                             | Public Utility Commission rejects Company's request for rate hike. |
+| 33 | Bull | Pioneer Mutual +3, Valley Power +4                           | Buying wave raises market. |
+| 34 | Bull | Growth Corp +8, Metro Properties +5, Pioneer Mutual +5, United Auto +7 | General market rise over the last two months. |
+| 35 | Bull | Pioneer Mutual -8, Stryker Drilling +8, Uranium Enterprises +5 | War scare promotes mixed activity on Wall Street. |
+| 36 | Bear | Growth Corp -8, Metro Properties -5, United Auto -7          | Surge of profit taking drops stock market. |
 
 ---
 
@@ -442,16 +471,3 @@ This rule applies only if the per-security rolling variant is in use.
 - Order of operations within each year must be deterministic and
   consistent across all players before advancing to the next phase.
 
----
-
-## 16. Open Items — DATA REQUIRED
-
-The following values are not present in either source draft. They must
-be sourced from the physical game components before implementation.
-
-| Item | Used In |
-|------|---------|
-| `dividendPerShare` for each of the 9 stocks | Section 8.1 |
-| `fixedInterestPerUnit` for each bond denomination | Section 8.2 |
-| Whether dividend bonus cards are Bull or Bear classified | Section 4.2 |
-| Total card count per single-stock effect (verify 36 total) | Section 4.1 |
