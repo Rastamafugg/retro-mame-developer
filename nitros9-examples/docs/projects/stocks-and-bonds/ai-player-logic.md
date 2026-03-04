@@ -8,6 +8,11 @@ This document specifies the decision logic for computer-controlled players
 in the Stocks and Bonds game. It is the authoritative reference for authors
 writing the AI sell and buy phase procedures.
 
+All tier-specific parameter values are defined in `ai-difficulty-tiers.md`.
+That document defines the `AIProfile` TYPE structure, per-tier values, and
+endgame override values. This document defines how those parameters are
+applied within the sell and buy phase logic.
+
 ### What the AI Knows
 
 The computer player has access to the same information a human player can
@@ -39,34 +44,90 @@ All AI decisions must comply with the same rules that govern human players:
 
 ---
 
-## 2. Design Parameters
+## 2. AIProfile Reference
 
-These values are named constants in the AI logic. They are design decisions,
-not values derived from the specification. They may be adjusted when a
-difficulty tier system is introduced.
+All behavioral parameters are sourced from an `AIProfile` record passed
+into each AI procedure. The TYPE definition and per-tier values are
+specified in `ai-difficulty-tiers.md` Sections 3 and 4.
 
-| Parameter              | Value | Purpose                                              |
-|------------------------|-------|------------------------------------------------------|
-| `AI_CONCENTRATION_CAP` | 0.40  | Max fraction of available cash per stock purchase    |
-| `AI_MARGIN_RESERVE`    | 0.10  | Margin interest burden threshold that triggers repay |
-| `AI_REPAY_FRACTION`    | 0.50  | Fraction of available cash applied to margin repay   |
-| `AI_USE_MARGIN`        | FALSE | Whether AI ever makes margin purchases (baseline)    |
-| `AI_BOND_IDLE_CASH`    | 5000  | Min idle cash required before AI buys a bond         |
+Parameters used in this document:
 
-`AI_USE_MARGIN = FALSE` is the baseline. The AI never initiates margin
-purchases in this version. This eliminates the need for margin call risk
-management logic on the buy side. A future difficulty tier system may
-enable margin use with additional risk parameters.
+| AIProfile Field      | Type    | Used In     | Purpose                                         |
+|----------------------|---------|-------------|-------------------------------------------------|
+| `concentrationCap`   | BYTE    | Buy Step 4a | Max percent of available cash per stock         |
+| `splitSellPct`       | BYTE    | Sell Rule 3 | Percent of shares to sell at split threshold    |
+| `distressSellPrice`  | BYTE    | Sell Rule 4 | Price at or below which distressed stock is sold|
+| `zeroDivEligible`    | BOOLEAN | Buy Step 3  | Whether zero-dividend stocks are buy candidates |
+| `useMargin`          | BOOLEAN | Buy Step 2  | Whether margin purchases are permitted          |
+| `marginMaxExposure`  | BYTE    | Buy Step 4b | Max margin as percent of portfolio value        |
+| `marginBuffer`       | BYTE    | Buy Step 4b | Required price points above MarginCallPrice     |
+| `marginReservePct`   | BYTE    | Buy Step 1  | Interest burden percent that triggers repayment |
+| `repayFraction`      | BYTE    | Buy Step 1  | Percent of cash applied to voluntary repayment  |
+| `marginClearYear`    | BYTE    | Sell 4.4    | Year at which proactive margin clearance begins |
+| `bondIdleCash`       | INTEGER | Buy Step 5  | Minimum cash before bond purchase considered    |
+| `bondPriority`       | BOOLEAN | Buy Step 5  | Buy bonds even when stocks were purchased       |
+| `endgameYear`        | BYTE    | Sections 3–5| Year at which endgame overrides activate        |
+
+All fractional parameters (`concentrationCap`, `splitSellPct`,
+`marginReservePct`, `repayFraction`, `marginMaxExposure`) are stored as
+integer percentages. Procedures apply them as:
+
+```
+result := (value * paramPct) / 100
+```
+
+No floating-point arithmetic is used, consistent with spec Section 15.
 
 ---
 
-## 3. Sell Phase Logic
+## 3. Endgame Override Application
+
+When `aiProfile.endgameYear > 0` and `currentYear >= aiProfile.endgameYear`,
+the AI applies override values to local working copies of the affected
+parameters before executing sell or buy logic. The stored `AIProfile`
+record is never modified; overrides apply only within the current
+procedure call.
+
+```
+! Applied once at the start of each AI sell or buy procedure call.
+! Copy AIProfile fields to local working variables, then override.
+
+splitSellPctW    := aiProfile.splitSellPct
+zeroDivEligibleW := aiProfile.zeroDivEligible
+repayFractionW   := aiProfile.repayFraction
+bondIdleCashW    := aiProfile.bondIdleCash
+
+IF aiProfile.endgameYear > 0 THEN
+    IF currentYear >= aiProfile.endgameYear THEN
+        splitSellPctW    := 70
+        zeroDivEligibleW := FALSE
+        repayFractionW   := 90
+        bondIdleCashW    := 5000
+    ENDIF
+ENDIF
+
+! All subsequent sell and buy logic references the W (working)
+! variables, not the aiProfile fields directly.
+! Parameters not overridden in endgame are referenced from
+! aiProfile throughout: concentrationCap, distressSellPrice,
+! marginBuffer, marginMaxExposure, marginReservePct,
+! bondPriority, marginClearYear.
+```
+
+Endgame overrides only activate for Hard tier (`endgameYear = 7`).
+Easy and Medium have `endgameYear = 0`, so the override block is never
+entered.
+
+---
+
+## 4. Sell Phase Logic
 
 The AI evaluates each holding independently in a fixed priority order.
 Rules are applied top-down; the first matching rule governs the decision
-for that holding.
+for that holding. Endgame overrides (Section 3) are applied before this
+logic executes.
 
-### 3.1 Priority Order — Stock Holdings
+### 4.1 Priority Order — Stock Holdings
 
 ```
 FOR each stock i where sharesOwned[i] > 0:
@@ -86,35 +147,42 @@ FOR each stock i where sharesOwned[i] > 0:
 
     RULE 3 — Split threshold reached:
         ELSE IF currentPrice[i] >= StockSplitThreshold THEN
-            SELL INT(sharesOwned[i] / 2) shares (round down to multiple of 10)
-            ! Split is about to halve the price. Partial sell captures
-            ! gains before the split. Remaining shares benefit from
-            ! doubled quantity post-split.
+            sellLots := sharesOwned[i] * splitSellPctW / 100
+            sellLots := INT(sellLots / 10) * 10
+            IF sellLots >= 10 THEN
+                SELL sellLots shares[i]
+            ENDIF
+            ! splitSellPctW is the working copy of aiProfile.splitSellPct
+            ! with endgame override applied if applicable.
+            ! Easy=20%, Medium=50%, Hard=30% normal / 70% endgame.
 
-    RULE 4 — Suspended dividend, depressed price:
-        ELSE IF dividendsSuspended[i] AND currentPrice[i] < DividendCutoff THEN
+    RULE 4 — Suspended dividend, price at or below distress threshold:
+        ELSE IF dividendsSuspended[i] AND
+                currentPrice[i] <= aiProfile.distressSellPrice THEN
             SELL all shares[i]
-            ! No yield and confirmed price weakness. No reason to hold.
+            ! distressSellPrice: Easy=50, Medium=50, Hard=60.
+            ! Hard exits before dividend suspension triggers ($50);
+            ! Easy and Medium hold until price drops below $50.
 
     RULE 5 — Default:
         ELSE
-            PASS (do not sell this stock)
+            PASS
         ENDIF
 
 NEXT i
 ```
 
-### 3.2 Stock Sell Rule Reference Table
+### 4.2 Stock Sell Rule Reference
 
-| Rule | Condition                                          | Action              |
-|------|----------------------------------------------------|---------------------|
-| 1    | `currentPrice = 0`                                 | Sell all shares     |
-| 2    | `currentPrice <= 25` AND `marginHeld`              | Sell all shares     |
-| 3    | `currentPrice >= 150`                              | Sell half (round 10)|
-| 4    | `dividendsSuspended AND currentPrice < 50`         | Sell all shares     |
-| 5    | None of the above                                  | Pass                |
+| Rule | Condition                                                  | Action                           |
+|------|------------------------------------------------------------|----------------------------------|
+| 1    | `currentPrice = 0`                                         | Sell all shares                  |
+| 2    | `currentPrice <= MarginCallPrice` AND `marginHeld`         | Sell all shares                  |
+| 3    | `currentPrice >= StockSplitThreshold`                      | Sell `splitSellPctW`% of shares  |
+| 4    | `dividendsSuspended` AND `price <= distressSellPrice`      | Sell all shares                  |
+| 5    | None of the above                                          | Pass                             |
 
-### 3.3 Bond Holdings
+### 4.3 Bond Holdings
 
 ```
 FOR each bond j where bondUnits[j] > 0:
@@ -131,129 +199,219 @@ FOR each bond j where bondUnits[j] > 0:
 NEXT j
 ```
 
-Bonds are the last resort. The AI does not sell bonds unless cash is negative
-after all stock sell decisions have been applied.
+Bond sales are the last resort. The AI does not sell bonds unless cash
+is negative after all stock sell decisions have been applied.
 
-### 3.4 Pre-Year 10 Margin Clearance (Sell Phase)
+### 4.4 Proactive Margin Clearance (Sell Phase)
 
 ```
-IF currentYear = (TotalYears - 1) AND marginTotal > 0 THEN
-    ! End of Year 9. Margin must be cleared before Year 10 begins.
-    ! Sell assets sufficient to cover marginTotal.
+IF marginTotal > 0 AND currentYear >= aiProfile.marginClearYear THEN
+    ! Proactive clearance. Sell assets sufficient to cover marginTotal.
     ! Apply stock sell rules first; supplement with bond sales if needed.
-    ! This logic is enforced again at the Year 10 boundary (S23).
+    ! marginClearYear: Easy=9, Medium=9, Hard=8.
+    ! This logic is enforced again at the Year 10 boundary (screen S23).
 ENDIF
 ```
 
 ---
 
-## 4. Buy Phase Logic
+## 5. Buy Phase Logic
 
-The AI evaluates purchases in priority order after applying any mandatory
-margin repayment.
+The AI evaluates purchases in priority order. Endgame overrides
+(Section 3) are applied before this logic executes.
 
-### 4.1 Step 1 — Mandatory Margin Repayment Check
+### 5.1 Step 1 — Voluntary Margin Repayment Check
 
 ```
 IF marginTotal > 0 THEN
     annualCharge := marginTotal * MarginInterestRate
-    IF annualCharge > (cashBalance * AI_MARGIN_RESERVE) THEN
-        repayAmount := MIN(marginTotal, INT(cashBalance * AI_REPAY_FRACTION))
-        cashBalance  := cashBalance - repayAmount
-        marginTotal  := marginTotal - repayAmount
+    burdenThresh := cashBalance * aiProfile.marginReservePct / 100
+    IF annualCharge > burdenThresh THEN
+        repayAmount := cashBalance * repayFractionW / 100
+        repayAmount := MIN(repayAmount, marginTotal)
+        cashBalance := cashBalance - repayAmount
+        marginTotal := marginTotal - repayAmount
     ENDIF
 ENDIF
 ```
 
-This step reduces margin burden when the annual interest charge would
-exceed 10% of available cash. The AI repays up to 50% of available cash
-toward margin before making any purchases.
+`marginReservePct`: Easy=20, Medium=10, Hard=5. A lower threshold means
+repayment triggers sooner. `repayFractionW` (working copy of
+`repayFraction`) applies the endgame override: Hard uses 90% in endgame
+versus 75% in normal play.
 
-### 4.2 Step 2 — Year 10 Margin Prohibition
+### 5.2 Step 2 — Margin Eligibility
 
 ```
-IF currentYear = TotalYears THEN
-    marginAllowed := FALSE
-ELSE IF NOT hadPriorCashPurchase THEN
-    marginAllowed := FALSE
-ELSE
-    marginAllowed := AI_USE_MARGIN
+marginAllowed := FALSE
+
+IF aiProfile.useMargin THEN
+    IF hadPriorCashPurchase THEN
+        IF currentYear < TotalYears THEN
+            IF currentYear < aiProfile.marginClearYear THEN
+                marginAllowed := TRUE
+            ENDIF
+        ENDIF
+    ENDIF
 ENDIF
 ```
 
-`AI_USE_MARGIN = FALSE` in the baseline, so `marginAllowed` is always
-FALSE in this version regardless of year.
+`useMargin = FALSE` for Easy and Medium; `marginAllowed` is always FALSE
+for those tiers regardless of year or prior purchases. Hard sets
+`useMargin = TRUE` but `marginClearYear = 8`, so no new margin purchases
+are made from Year 8 onward.
 
-### 4.3 Step 3 — Stock Candidate Scoring
+### 5.3 Step 3 — Stock Candidate Scoring
 
 ```
 FOR each stock i:
+
     IF currentPrice[i] = BankruptcyPrice THEN
-        score[i] := -1    ! Exclude bankrupt stocks
+        score[i] := -1        ! Bankrupt stock; ineligible
+
     ELSE IF currentPrice[i] <= MarginCallPrice THEN
-        score[i] := -1    ! Exclude high-risk stocks
+        score[i] := -1        ! Price at forced-sell threshold; ineligible
+
     ELSE IF dividendsSuspended[i] THEN
-        score[i] := -1    ! Exclude distressed no-yield stocks
-    ELSE IF dividendPerShare[i] > 0 THEN
-        score[i] := dividendPerShare[i] / currentPrice[i]
-        ! Yield proxy. Higher dividend relative to price scores higher.
+        score[i] := -1        ! Yield lost; position is distressed
+
+    ELSE IF dividendPerShare[i] = 0 THEN
+        IF zeroDivEligibleW THEN
+            score[i] := 0     ! Eligible but lowest priority
+        ELSE
+            score[i] := -1    ! Excluded; Hard tier and Hard endgame
+        ENDIF
+
     ELSE
-        score[i] := 0
-        ! Zero-dividend stocks are eligible but lowest priority.
+        score[i] := dividendPerShare[i] * 1000 / currentPrice[i]
+        ! Yield proxy scaled by 1000 to preserve integer precision.
+        ! Higher dividend relative to price scores higher.
     ENDIF
+
 NEXT i
 
 Sort candidates by score[i] descending, excluding score[i] = -1.
 ```
 
+The score is multiplied by 1000 to keep all arithmetic in integers.
+Sort order is preserved; only relative rank matters.
+
+#### Easy Tier: No Yield Scoring
+
+Easy AI (`tier = 1`) does not differentiate stocks by yield. All eligible
+stocks receive `score[i] := 0` regardless of `dividendPerShare`. Stocks
+are processed in ascending `stockId` order. This is not currently
+captured as an `AIProfile` field. See Section 7.1 for the known gap.
+
 #### Scoring Reference — Stocks at Starting Price ($100)
 
-| Stock               | Dividend/Share | Score at $100 |
-|---------------------|----------------|---------------|
-| Shady Brooks        | $7             | 0.070         |
-| Uranium Enterprises | $6             | 0.060         |
-| Pioneer Mutual      | $4             | 0.040         |
-| Valley Power        | $3             | 0.030         |
-| United Auto         | $2             | 0.020         |
-| Growth Corp         | $1             | 0.010         |
-| Metro Properties    | $0             | 0.000         |
-| Stryker Drilling    | $0             | 0.000         |
-| Tri-City Transport  | $0             | 0.000         |
+| Stock               | Dividend/Share | Score (x1000) | Zero-div? |
+|---------------------|----------------|---------------|-----------|
+| Shady Brooks        | $7             | 70            | No        |
+| Uranium Enterprises | $6             | 60            | No        |
+| Pioneer Mutual      | $4             | 40            | No        |
+| Valley Power        | $3             | 30            | No        |
+| United Auto         | $2             | 20            | No        |
+| Growth Corp         | $1             | 10            | No        |
+| Metro Properties    | $0             | 0 or -1       | Yes       |
+| Stryker Drilling    | $0             | 0 or -1       | Yes       |
+| Tri-City Transport  | $0             | 0 or -1       | Yes       |
 
-Scores shift as prices change. The AI recalculates from current prices
-each turn.
+Zero-dividend stocks score 0 (eligible) or -1 (excluded) based on
+`zeroDivEligibleW`. Hard excludes them entirely; Hard in endgame also
+excludes them (`zeroDivEligibleW := FALSE`). Scores shift as prices
+change. The AI recalculates from current prices each turn.
 
-### 4.4 Step 4 — Stock Purchase Allocation
+### 5.4 Step 4a — Cash Stock Purchase Allocation
 
 ```
 availableCash := cashBalance
+stocksBought  := FALSE
 
 FOR each candidate stock i in score-descending order:
+
     IF availableCash < currentPrice[i] THEN
-        CONTINUE    ! Cannot afford even one lot
+        CONTINUE    ! Cannot afford even one lot; skip
     ENDIF
 
-    maxCashForStock := INT(availableCash * AI_CONCENTRATION_CAP)
-    maxLots         := INT(maxCashForStock / (currentPrice[i] * 10)) * 10
-    ! maxLots is the largest multiple of 10 shares affordable within cap.
+    maxCashForStock := availableCash * aiProfile.concentrationCap / 100
+    maxLots         := maxCashForStock / currentPrice[i]
+    maxLots         := INT(maxLots / 10) * 10
 
     IF maxLots >= 10 THEN
         BUY maxLots shares CASH
         availableCash := availableCash - (maxLots * currentPrice[i])
+        stocksBought  := TRUE
     ENDIF
 
 NEXT i
 ```
 
-The 40% concentration cap (`AI_CONCENTRATION_CAP`) prevents the AI from
-committing all cash to one stock. If multiple candidates exist, later
-candidates receive allocations from remaining cash.
+`concentrationCap`: Easy=70, Medium=40, Hard=25. Easy puts up to 70%
+of available cash into its first candidate; Hard caps at 25%, forcing
+broader allocation across more candidates.
 
-### 4.5 Step 5 — Bond Purchase Fallback
+### 5.5 Step 4b — Margin Stock Purchase Allocation
+
+Executed only when `marginAllowed = TRUE` (Hard tier, Years 1–7).
+
+All four margin risk conditions from `ai-difficulty-tiers.md` Section 7
+must pass before a margin purchase proceeds:
 
 ```
-IF availableCash >= AI_BOND_IDLE_CASH AND noStocksBoughtThisTurn THEN
-    ! Find the largest denomination bond affordable.
+FOR each candidate stock i in score-descending order:
+
+    priceOK     := currentPrice[i] >=
+                   (MarginCallPrice + aiProfile.marginBuffer)
+
+    portfolioVal := cashBalance
+                  + SUM(sharesOwned[j] * currentPrice[j])
+                  + SUM(bondUnits[k] * parValue[k])
+    exposureOK  := marginTotal <
+                   (portfolioVal * aiProfile.marginMaxExposure / 100)
+
+    IF NOT priceOK OR NOT exposureOK THEN
+        CONTINUE    ! Margin unsafe for this stock; try next candidate
+    ENDIF
+
+    maxFullCost  := availableCash * 2
+    capLimit     := portfolioVal * aiProfile.concentrationCap / 100
+    effectiveCap := MIN(maxFullCost, capLimit)
+
+    maxLots      := effectiveCap / currentPrice[i]
+    maxLots      := INT(maxLots / 10) * 10
+
+    IF maxLots >= 10 THEN
+        cashRequired  := (maxLots * currentPrice[i]) / 2
+        marginPortion := (maxLots * currentPrice[i]) / 2
+        BUY maxLots shares MARGIN
+        availableCash := availableCash - cashRequired
+        marginTotal   := marginTotal + marginPortion
+        stocksBought  := TRUE
+    ENDIF
+
+NEXT i
+```
+
+Step 4b runs after Step 4a. Margin is considered only for candidates not
+fully allocated in the cash pass, or where the concentration cap permits
+additional lots. The cap is applied against portfolio value rather than
+cash alone to prevent margin from creating runaway single-stock exposure.
+
+### 5.6 Step 5 — Bond Purchase
+
+```
+bondBuyAllowed := FALSE
+
+IF availableCash >= bondIdleCashW THEN
+    IF aiProfile.bondPriority THEN
+        bondBuyAllowed := TRUE          ! Easy: buy bonds regardless
+    ELSE IF NOT stocksBought THEN
+        bondBuyAllowed := TRUE          ! Medium/Hard: only if no stocks bought
+    ENDIF
+ENDIF
+
+IF bondBuyAllowed THEN
     IF availableCash >= 10000 THEN
         BUY 1 large bond  (par 10000)
         availableCash := availableCash - 10000
@@ -267,64 +425,57 @@ IF availableCash >= AI_BOND_IDLE_CASH AND noStocksBoughtThisTurn THEN
 ENDIF
 ```
 
-The AI only buys bonds when no stocks were purchased this turn. Bonds
-provide steady 5% annual income and are a safe fallback for idle cash.
+`bondIdleCashW` uses the working copy; endgame overrides this to 5000
+for Hard (from 10000), preserving bond income in final years.
+`bondPriority = TRUE` for Easy only: Easy buys a bond on every turn it
+can afford one, regardless of whether stocks were purchased.
 
 ---
 
-## 5. Decision Priority Summary
+## 6. Decision Priority Summary
 
-| Priority | Phase | Action                                         |
-|----------|-------|------------------------------------------------|
-| 1        | Sell  | Sell bankrupt stocks (price = 0)               |
-| 2        | Sell  | Sell margin-held stocks at or below $25        |
-| 3        | Sell  | Partial sell of stocks at or above split price |
-| 4        | Sell  | Sell suspended-dividend depressed stocks       |
-| 5        | Sell  | Emergency bond liquidation if cash < 0         |
-| 6        | Buy   | Repay margin if interest burden exceeds 10%    |
-| 7        | Buy   | Purchase stocks by yield score, 40% cap each   |
-| 8        | Buy   | Purchase bond if cash idle and no stocks bought|
+| Priority | Phase | Action                                        | Governed By                                 |
+|----------|-------|-----------------------------------------------|---------------------------------------------|
+| 1        | Sell  | Sell bankrupt stocks (price = 0)              | Spec; universal                             |
+| 2        | Sell  | Sell margin-held stocks at call threshold     | Spec; universal                             |
+| 3        | Sell  | Partial sell at split threshold               | `splitSellPctW`                             |
+| 4        | Sell  | Sell distressed suspended-dividend stocks     | `distressSellPrice`                         |
+| 5        | Sell  | Emergency bond liquidation if cash < 0        | Spec; universal                             |
+| 6        | Sell  | Proactive margin clearance                    | `marginClearYear`                           |
+| 7        | Buy   | Voluntary margin repayment                    | `marginReservePct`, `repayFractionW`        |
+| 8        | Buy   | Cash stock purchases by yield score           | `concentrationCap`, `zeroDivEligibleW`      |
+| 9        | Buy   | Margin stock purchases by yield score         | `useMargin`, `marginBuffer`, `marginMaxExposure` |
+| 10       | Buy   | Bond purchase                                 | `bondIdleCashW`, `bondPriority`             |
 
-In the event of conflicting rules within the same priority level (e.g.,
-multiple stocks trigger Rule 3 simultaneously), process stocks in ascending
-`stockId` order for deterministic output.
+When multiple stocks trigger the same rule simultaneously, process them
+in ascending `stockId` order for deterministic output.
 
 ---
 
-## 6. Known Gaps and Deferred Work
+## 7. Known Gaps
 
-### 6.1 Difficulty Tiers
+### 7.1 Easy Tier Yield Scoring Not Parameterized
 
-All parameters in Section 2 are fixed in the baseline. A difficulty system
-would vary these per tier. Candidate parameters:
+Whether yield scoring is applied is not currently a field in `AIProfile`.
+Easy AI's "all stocks equal" behavior (Section 5.3) requires an inline
+tier check rather than a profile parameter. A `useYieldScoring : BOOLEAN`
+field should be added to the `AIProfile` TYPE in `ai-difficulty-tiers.md`
+with the following values:
 
-- `AI_CONCENTRATION_CAP` — lower value = more diversification (harder)
-- `AI_USE_MARGIN` — enable margin use for higher-difficulty AI
-- `AI_MARGIN_RESERVE` — lower threshold = AI repays margin less aggressively
-- Sell Rule 3 threshold — sell at a different fraction before split
+| Tier   | `useYieldScoring` |
+|--------|-------------------|
+| Easy   | FALSE             |
+| Medium | TRUE              |
+| Hard   | TRUE              |
 
-No difficulty tier design is in scope for this version.
+Until that field is added, procedures must check `aiProfile.tier = 1`
+directly when deciding whether to apply yield scoring.
 
-### 6.2 Margin Buy Logic
+### 7.2 Zero-Dividend Stock Volatility Scoring
 
-When `AI_USE_MARGIN = TRUE` is enabled in a future version, the buy phase
-will require additional rules:
-
-- Maximum margin exposure as a fraction of portfolio value
-- Margin call avoidance scoring (avoid stocks near $25)
-- Forced margin repayment schedule as Year 10 approaches
-
-### 6.3 Endgame Strategy
-
-The AI does not adjust behavior based on proximity to Year 10 or relative
-wealth standing compared to other players. A competitive AI would shift
-from income-maximization to wealth-gap-closing in the final years. This
-is deferred.
-
-### 6.4 Zero-Dividend Stock Strategy
-
-Zero-dividend stocks (Metro Properties, Stryker Drilling, Tri-City Transport)
-score 0 and are bought only if no yielding candidates remain after
-concentration-cap allocation. No price momentum or volatility logic is
-applied. Stryker Drilling has high price volatility in the market tables;
-a future version could add a volatility bonus to the scoring model.
+Zero-dividend stocks (Metro Properties, Stryker Drilling, Tri-City
+Transport) score 0 when eligible and are purchased only after all
+yielding candidates are allocated. No price momentum or volatility
+adjustment is applied. Stryker Drilling has the highest price variance
+of any stock in the market tables; a future scoring enhancement could
+add a volatility component. This is deferred.
