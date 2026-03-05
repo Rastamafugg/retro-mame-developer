@@ -54,9 +54,11 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **Limit source changes to the task at hand.** This is a GitHub-managed project; check-ins should be targeted to solving given tasks only. Leave unrelated code unchanged.
 
-* **Use the `:=` assignment operator.** Although `=` is also accepted, using `:=` distinguishes assignment from comparison (test for equality).
+* **Use the `:=` operator for assignment, `=` for comparison.** Although `=` is also accepted for assignment, using `:=` distinguishes assignment from comparison (test for equality).
 
 * **Declare variables with `TYPE`, `PARAM`, and `DIM` at the start of a procedure.** This is not mandatory, but improves readability. The declaration order is strict: `TYPE` first, then `PARAM`, then `DIM`.
+
+* **`TYPE` declarations must occupy a single line** You cannot split a `TYPE` declaration across multiple lines.
 
 * **Initialize variables.** Basic09 does not automatically initialize variables - they contain random values when a procedure starts. Assign initial values explicitly.
 
@@ -177,6 +179,8 @@ DIR       EXEC      READ      UPDATE    WRITE
 * **Declare `STRING` variables with an explicit length when the default is insufficient.** Without a length specifier, `STRING` defaults to 32 characters. Use `DIM name:STRING[40]` to declare a longer string.
 
 * **Account for the 32K variable memory limit.** Basic09 has only 32 KB available for variable storage. Size arrays with this constraint in mind.
+
+* **`FOR` incrementer variable must be of type INTEGER** BYTE incrementer variables will cause a syntax error.
 
 ### File I/O
 

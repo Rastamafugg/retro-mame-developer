@@ -259,7 +259,7 @@ The question mark (?) is the normal input prompt to tell the user that the progr
 
 This program is extremely simple, but younger kids can get great fun from it, Its action is especially amusing to young people who are learning a computer language for the first time because a machine is "responding" to them, and because the machine is too easily "fooled" if you do not type in a real name,
 
-### BASIC PROGRAMMIRG TECHNIQUES: LOOPS AND ARITHMETIC
+### BASIC PROGRAMMING TECHNIQUES: LOOPS AND ARITHMETIC
 
 Another simple program that most of us can identify with is a program to print out multiplication tables.
 
@@ -282,11 +282,11 @@ First, open the editor by typing "e multable" as follows:
   E:
 ```
 
-Next, type in the program line-by-line starting with "FOR i=1 TO 9" (lower-case is perfectly fine). If you loose your way, type "L*" to see where you are, The entire procedure will be displayed and an asterisk placed at the left of the current line. If you make a mistake, use "+" or "-" to move to that line, use "d" to delete the line, and use the space command to enter the line over. Make sure that there are no errors and then type "gq". When you have the program running, try adding a statement before "FOR i=1 TO 9" as follows: "DIM i,j:INTEGER".
+Next, type in the program line-by-line starting with "FOR i=1 TO 9" (lower-case is perfectly fine). If you lose your way, type "L*" to see where you are, The entire procedure will be displayed and an asterisk placed at the left of the current line. If you make a mistake, use "+" or "-" to move to that line, use "d" to delete the line, and use the space command to enter the line over. Make sure that there are no errors and then type "gq". When you have the program running, try adding a statement before "FOR i=1 TO 9" as follows: "DIM i,j:INTEGER".
 
 The FOR i=1 TO 9 and NEXT i constitute the start and end of a control structure or "loop. A control structure is used to cause repeated or conditional execution of the statement(s) it surrounds. A control structure usually has one entry at the top and one exit at the bottom. In this way, the entire structure takes on the properties of a single statement. The beginning statement of the FOR...NEXT structure (FOR...) provides "loop initialization", places the value 1 in the storage called "i", and sets up the operation of the following NEXT (every FOR must have a NEXT). When "NEXT i" is executed, the value in "i" is increased by 1 (which is the default STEP size) and compared to the value 9 (which is the ending value for this loop). If the resulting "i" is less than or equal to 9, the statement(s) following that FOR... is (are) executed.
 
-Loops can be "nested" to execute the enclosed statements even moretimes. For example, the PRINT statement in "multable" is executed 81 times; once for each of 9 values of "j", and this number (9 times) for each of 9 values of "i". The ability to tremendously increase the numberof times some code is executed is at the heart of both computer programming and programming errors. It means that a very small portion of a program can often be made to do the vast majority of the work. But a few remaining special cases may require individual handling and may consume more programming and code than that which "usually" works. Unfortunately, "usually is not sufficient. A special case which occurs once in a thousand times may occur once a second, and if the error stops the program, further processing of normal values also stops. Experience has indicated that the programmer should know what is happening in the first and second pass, and the next-to-the-last and last pass through each loop in the program.
+Loops can be "nested" to execute the enclosed statements even moretimes. For example, the PRINT statement in "multable" is executed 81 times; once for each of 9 values of "j", and this number (9 times) for each of 9 values of "i". The ability to tremendously increase the number of times some code is executed is at the heart of both computer programming and programming errors. It means that a very small portion of a program can often be made to do the vast majority of the work. But a few remaining special cases may require individual handling and may consume more programming and code than that which "usually" works. Unfortunately, "usually is not sufficient. A special case which occurs once in a thousand times may occur once a second, and if the error stops the program, further processing of normal values also stops. Experience has indicated that the programmer should know what is happening in the first and second pass, and the next-to-the-last and last pass through each loop in the program.
 
 ### LISTING PROCEDURE NAMES
 
@@ -1011,7 +1011,7 @@ STATE lists the calling ("nesting") order of all active procedures. The highest~
 
 STEP allows the suspended procedure to be executed one or more source statements at a time, For example, "STEP 5" would execute the equivalent of the next 5 source statements. A debug command line which is just a carriage return is considered the same as "STEP 1". The STEP command is most commonly used with the trace mode on, so the original source lines can be seen as they are executed.
 
-Note: because compiled I-code contains actual statement memory addresses, the "top" or "bottom" statements of. loop structures are usually executed 3just once. For example, in FOR...NEXT loops the FORstatement is executed once, so the statement that appears to be the "top" of the loop will actually be the one following the "FOR" statement.
+Note: because compiled I-code contains actual statement memory addresses, the "top" or "bottom" statements of. loop structures are usually executed just once. For example, in FOR...NEXT loops the FOR statement is executed once, so the statement that appears to be the "top" of the loop will actually be the one following the "FOR" statement.
 
 *TRON*
 
