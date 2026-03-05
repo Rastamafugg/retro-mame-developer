@@ -30,42 +30,83 @@ END
     ERROR(ERR)
 END
 
-PROCEDURE TSTSIZE
+PROCEDURE initPlayer
 (* ================================================= *)
-(* PROCEDURE: TSTSIZE                               *)
-(* PURPOSE  : Confirmation Test 1.1.                *)
-(*            Prints SIZE() of each shared TYPE.    *)
-(*            Expected output:                      *)
-(*              SaveHdr  : 11                       *)
-(*              PlyrRec  : 61                       *)
-(*              MktState : 27                       *)
-(*              AIProfile: 15                       *)
+(* PROCEDURE: initPlayer                             *)
+(* PURPOSE  : Initialize a single PlyrRec to game-  *)
+(*            start values per spec Section 3.       *)
+(*            cashBal=5000, all shares/bonds zero,   *)
+(*            marginTot=0, isBankrupt=FALSE,         *)
+(*            hadCashPur=FALSE. All other fields     *)
+(*            set to safe defaults.                  *)
+(* PARAMS   : plyr - PlyrRec to initialize (by ref) *)
+(* SIDE FX  : Modifies plyr in place.                *)
+(* ================================================= *)
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+
+PARAM plyr: PlyrRec
+
+DIM i: INTEGER
+
+ON ERROR GOTO 900
+
+plyr.plyrName   := ""
+plyr.plyrType   := 0
+plyr.aiTier     := 0
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+
+FOR i := 1 TO 9
+    plyr.stckShrs(i) := 0
+    plyr.mgnHeld(i)  := FALSE
+NEXT i
+
+FOR i := 1 TO 3
+    plyr.bondUnts(i) := 0
+NEXT i
+
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+PROCEDURE TSTINIT
+(* ================================================= *)
+(* PROCEDURE: TSTINIT                               *)
+(* PURPOSE  : Confirmation Test 1.2.                *)
+(*            Calls initPlayer for slots 1-6.       *)
+(*            Prints cashBal, marginTot, isBankrupt  *)
+(*            for each slot.                         *)
+(*            Expected output per slot:             *)
+(*              cashBal=5000 marginTot=0            *)
+(*              isBankrupt=FALSE                    *)
 (* PARAMS   : None.                                 *)
 (* SIDE FX  : Writes to stdout.                     *)
 (* ================================================= *)
 
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
-
-! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr:BYTE;bondIdlCsh:INTEGER;zeroDivEl,useMargin,bondPriory:BOOLEAN
-
-DIM hdr : SaveHdr
-DIM plyr: PlyrRec
-DIM mkt : MktState
-DIM aipr: AIProfile
+DIM plyrs(6): PlyrRec
+DIM i: INTEGER
 
 ON ERROR GOTO 900
 
-PRINT "SaveHdr  : "; SIZE(hdr)
-PRINT "PlyrRec  : "; SIZE(plyr)
-PRINT "MktState : "; SIZE(mkt)
-PRINT "AIProfile: "; SIZE(aipr)
+FOR i := 1 TO 6
+    RUN initPlayer(plyrs(i))
+NEXT i
+
+FOR i := 1 TO 6
+    PRINT "Slot "; i; ": cashBal="; plyrs(i).cashBal;
+    PRINT " marginTot="; plyrs(i).marginTot;
+    PRINT " isBankrupt="; plyrs(i).isBankrupt
+NEXT i
+
 END
 
 900 ! Error handler
