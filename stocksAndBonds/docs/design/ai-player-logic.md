@@ -144,6 +144,8 @@ FOR each stock i where sharesOwned[i] > 0:
             ! Preempt the forced margin call. Selling now recovers
             ! proceeds; waiting risks forced liquidation at the same
             ! or lower price.
+            ! marginHeld[i] maps to plyr.mgnHeld(i) in PlyrRec.
+            ! See save-load-design.md Section 5.2.
 
     RULE 3 — Split threshold reached:
         ELSE IF currentPrice[i] >= StockSplitThreshold THEN
@@ -204,12 +206,65 @@ is negative after all stock sell decisions have been applied.
 
 ### 4.4 Proactive Margin Clearance (Sell Phase)
 
+Runs after Sections 4.1–4.3. Sells held assets in ascending yield-score order until `marginTotal` is covered. Stocks are liquidated before bonds. Bond denomination order is ascending (smallest first) to preserve larger income sources. If total assets are insufficient, the Year 10 forced clearance (S23) handles the residual — no special case is needed here.
+
+Score for clearance ordering reuses the buy yield formula from Section 5.3. Stocks with suspended dividends score -1 (sell first); zero-dividend stocks score 0 (sell second); yielding stocks score by dividend/price ratio (sell last, weakest first). Tie-break is ascending `stockId` per Section 5.3 convention.
+
+Lot rounding in partial sells rounds UP to the nearest 10 to ensure proceeds meet or exceed the remaining `needed` amount. `MIN` clamps the result to shares actually owned.
+
+`marginClearYear`: Easy=9, Medium=9, Hard=8. This logic is enforced again at the Year 10 boundary (screen S23).
+
 ```
 IF marginTotal > 0 AND currentYear >= aiProfile.marginClearYear THEN
-    ! Proactive clearance. Sell assets sufficient to cover marginTotal.
-    ! Apply stock sell rules first; supplement with bond sales if needed.
-    ! marginClearYear: Easy=9, Medium=9, Hard=8.
-    ! This logic is enforced again at the Year 10 boundary (screen S23).
+    needed := marginTotal
+
+    ! Score held stocks for clearance ordering (ascending = weakest first).
+    FOR each stock i where sharesOwned[i] > 0
+        IF dividendsSuspended[i] THEN
+            clrScore[i] := -1
+        ELSE IF dividendPerShare[i] = 0 THEN
+            clrScore[i] := 0
+        ELSE
+            clrScore[i] := dividendPerShare[i] * 1000 / currentPrice[i]
+        ENDIF
+    NEXT i
+
+    Sort held stocks by clrScore[i] ascending.
+    Tie-break: ascending stockId.
+
+    ! Pass 1 — Sell stocks, weakest first, until needed is met.
+    FOR each held stock i in ascending clrScore order
+        IF needed <= 0 THEN
+            CONTINUE
+        ENDIF
+
+        IF sharesOwned[i] * currentPrice[i] <= needed THEN
+            ! Full position: proceeds do not exceed needed amount.
+            SELL all shares[i]
+            needed := needed - (sharesOwned[i] * currentPrice[i])
+        ELSE
+            ! Partial sell: compute minimum lots to cover remainder.
+            sellLots := (needed + currentPrice[i] - 1) / currentPrice[i]
+            sellLots := ((sellLots + 9) / 10) * 10
+            sellLots := MIN(sellLots, sharesOwned[i])
+            SELL sellLots shares[i]
+            needed := needed - (sellLots * currentPrice[i])
+            ! needed may go negative; that is correct and expected.
+        ENDIF
+    NEXT i
+
+    ! Pass 2 — Supplement with bonds if stock proceeds were insufficient.
+    ! Sell smallest denomination first (j=1: $1000, j=2: $5000,
+    ! j=3: $10000). Sell one unit at a time; stop when needed <= 0.
+    FOR j := 1 TO 3
+        WHILE needed > 0 AND bondUnits[j] > 0
+            SELL 1 unit of bond j
+            needed := needed - parValue[j]
+        ENDWHILE
+    NEXT j
+
+    ! If needed > 0 after both passes, total asset value is less than
+    ! marginTotal. Residual is handled by Year 10 forced clearance (S23).
 ENDIF
 ```
 
@@ -291,10 +346,10 @@ FOR each stock i:
 NEXT i
 
 Sort candidates by score[i] descending, excluding score[i] = -1.
+Tie-break: ascending stockId.
 ```
 
-The score is multiplied by 1000 to keep all arithmetic in integers.
-Sort order is preserved; only relative rank matters.
+The score is multiplied by 1000 to keep all arithmetic in integers. Sort order is preserved; only relative rank matters. The ascending `stockId` tie-break applies to all equal-score pairs: zero-dividend stocks (all score 0 when eligible) and any two yielding stocks whose dividend-to-price ratios are equal at current prices.
 
 #### Easy Tier: No Yield Scoring
 
@@ -328,8 +383,13 @@ change. The AI recalculates from current prices each turn.
 availableCash := cashBalance
 stocksBought  := FALSE
 
-FOR each candidate stock i in score-descending order:
+! cashPassLots[i] records lots purchased in the cash pass.
+! Step 4b reads this to compute remaining concentration headroom.
+FOR i := 1 TO 9
+    cashPassLots[i] := 0
+NEXT i
 
+FOR each candidate stock i in score-descending order:
     IF availableCash < currentPrice[i] THEN
         CONTINUE    ! Cannot afford even one lot; skip
     ENDIF
@@ -340,8 +400,9 @@ FOR each candidate stock i in score-descending order:
 
     IF maxLots >= 10 THEN
         BUY maxLots shares CASH
-        availableCash := availableCash - (maxLots * currentPrice[i])
-        stocksBought  := TRUE
+        availableCash   := availableCash - (maxLots * currentPrice[i])
+        cashPassLots[i] := maxLots
+        stocksBought    := TRUE
     ENDIF
 
 NEXT i
@@ -374,9 +435,21 @@ FOR each candidate stock i in score-descending order:
         CONTINUE    ! Margin unsafe for this stock; try next candidate
     ENDIF
 
-    maxFullCost  := availableCash * 2
+    ! Compute remaining concentration headroom after the cash pass.
+    ! capLimit is applied against portfolioVal (not cash alone) to
+    ! prevent margin from creating runaway single-stock exposure.
     capLimit     := portfolioVal * aiProfile.concentrationCap / 100
-    effectiveCap := MIN(maxFullCost, capLimit)
+    alreadySpent := cashPassLots[i] * currentPrice[i]
+    headroom     := capLimit - alreadySpent
+
+    ! One lot = 10 shares. If headroom cannot cover even one lot,
+    ! the cash pass fully consumed this stock's concentration budget.
+    IF headroom < currentPrice[i] * 10 THEN
+        CONTINUE    ! Cap consumed in cash pass; skip this candidate
+    ENDIF
+
+    maxFullCost  := availableCash * 2
+    effectiveCap := MIN(maxFullCost, headroom)
 
     maxLots      := effectiveCap / currentPrice[i]
     maxLots      := INT(maxLots / 10) * 10
@@ -393,10 +466,13 @@ FOR each candidate stock i in score-descending order:
 NEXT i
 ```
 
-Step 4b runs after Step 4a. Margin is considered only for candidates not
-fully allocated in the cash pass, or where the concentration cap permits
-additional lots. The cap is applied against portfolio value rather than
-cash alone to prevent margin from creating runaway single-stock exposure.
+Step 4b runs after Step 4a. `cashPassLots[i]` carries forward the lots
+purchased in the cash pass. The headroom check subtracts that prior
+spend from the concentration cap before computing the margin allocation,
+ensuring the combined cash and margin position never exceeds
+`concentrationCap` percent of portfolio value for any single stock. A
+stock whose cap was fully consumed in the cash pass is skipped without
+attempting a margin purchase.
 
 ### 5.6 Step 5 — Bond Purchase
 
@@ -479,3 +555,26 @@ yielding candidates are allocated. No price momentum or volatility
 adjustment is applied. Stryker Drilling has the highest price variance
 of any stock in the market tables; a future scoring enhancement could
 add a volatility component. This is deferred.
+
+### 7.3 ~~`mgnHeld[i]` source undefined~~ — RESOLVED
+
+`mgnHeld[i]` maps to `plyr.mgnHeld(i)` in `PlyrRec`.
+Citation added to Section 4.1 Rule 2. See `save-load-design.md`
+Section 5.2.
+
+### 7.4 ~~Section 4.4 proactive clearance algorithm missing~~ — RESOLVED
+
+Full algorithm specified in Section 4.4. Asset selection order:
+ascending yield score (weakest first), tie-break ascending `stockId`.
+Lot rounding rounds up. Bond supplementation ascending by denomination.
+Residual delegated to S23.
+
+### 7.5 ~~Step 4b margin pass re-enters fully-capped stocks~~ — RESOLVED
+
+`cashPassLots[i]` tracking array added to Step 4a. Headroom check
+added to Step 4b. See Sections 5.4 and 5.5.
+
+### 7.6 ~~Buy phase score tie-break unspecified~~ — RESOLVED
+
+Ascending `stockId` specified as tie-break in Section 5.3, consistent
+with sell-phase convention in Section 6.
