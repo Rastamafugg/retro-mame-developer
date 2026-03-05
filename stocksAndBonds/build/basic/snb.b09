@@ -1,0 +1,74 @@
+PROCEDURE SNBTYPES
+(* ================================================= *)
+(* PROCEDURE: SNBTYPES                               *)
+(* PURPOSE  : Shared TYPE record definitions for     *)
+(*            Stocks and Bonds. No executable logic. *)
+(*            Compile to verify TYPE syntax before   *)i
+(*            use in consumer procedures.            *)
+(* SIDE FX  : None.                                  *)
+(* ================================================= *)
+
+! SaveHdr: 9xBYTE + 1xINTEGER = 11 bytes
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+
+! PlyrRec: STRING[20]+BYTE+2xINTEGER+2xBOOLEAN+BYTE+9xINTEGER+9xBOOLEAN+3xINTEGER = 61 bytes
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+
+! MktState: 9xINTEGER + 9xBOOLEAN = 27 bytes
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+! AIProfile: 10xBYTE + 1xINTEGER + 3xBOOLEAN = 15 bytes
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr:BYTE;bondIdlCsh:INTEGER;zeroDivEl,useMargin,bondPriory:BOOLEAN
+
+ON ERROR GOTO 900 \ ! 900
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+
+PROCEDURE TSTSIZE
+(* ================================================= *)
+(* PROCEDURE: TSTSIZE                               *)
+(* PURPOSE  : Confirmation Test 1.1.                *)
+(*            Prints SIZE() of each shared TYPE.    *)
+(*            Expected output:                      *)
+(*              SaveHdr  : 11                       *)
+(*              PlyrRec  : 61                       *)
+(*              MktState : 27                       *)
+(*              AIProfile: 15                       *)
+(* PARAMS   : None.                                 *)
+(* SIDE FX  : Writes to stdout.                     *)
+(* ================================================= *)
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr:BYTE;bondIdlCsh:INTEGER;zeroDivEl,useMargin,bondPriory:BOOLEAN
+
+DIM hdr : SaveHdr
+DIM plyr: PlyrRec
+DIM mkt : MktState
+DIM aipr: AIProfile
+
+ON ERROR GOTO 900 \ ! 900
+
+PRINT "SaveHdr  : "; SIZE(hdr)
+PRINT "PlyrRec  : "; SIZE(plyr)
+PRINT "MktState : "; SIZE(mkt)
+PRINT "AIProfile: "; SIZE(aipr)
+END
+
+900 ! Error handler
+    PRINT "Error: "; ERR
+END

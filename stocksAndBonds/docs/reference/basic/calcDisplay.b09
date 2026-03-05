@@ -1,0 +1,440 @@
+PROCEDURE calcDisplay
+(* calcDisplay.b09                                                         *)
+(* Basic09 Scientific Calculator - Display Module                          *)
+(* Phase 1 Week 2: Basic Display Foundation                                *)
+(* CoCo 3 / NitrOS-9 Level 2 / UI: text window only, no GFX2             *)
+
+TYPE calcResult = value: REAL; errorCode: BYTE; valid: BOOLEAN
+
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+DIM currentState: calcState
+DIM inputBuffer: STRING[80]
+DIM lastExpr: STRING[80]
+DIM done: BOOLEAN
+DIM cls: BYTE
+DIM key: STRING[1]
+
+cls  := 12
+done := FALSE
+
+currentState.currentValue  := 0.0
+currentState.memoryValue   := 0.0
+currentState.lastResult    := 0.0
+currentState.angleMode     := 0 \! 0=RAD
+currentState.displayFormat := 0 \! 0=NORMAL
+currentState.decimalPlaces := 4
+currentState.calcMode      := 0 \! 0=BASIC
+currentState.errorState    := 0
+currentState.historyCount  := 0
+
+lastExpr := ""
+
+ON ERROR GOTO 900 \ ! 900
+
+REPEAT
+
+  RUN displayMainScreen(currentState, lastExpr)
+
+  PRINT "Expr> ";
+  INPUT inputBuffer
+
+  IF inputBuffer = "Q" OR inputBuffer = "q" THEN
+    done := TRUE
+  ELSE IF inputBuffer = "M" OR inputBuffer = "m" THEN
+    RUN showMenu(currentState)
+  ELSE IF inputBuffer = "MC" OR inputBuffer = "mc" THEN
+    currentState.memoryValue := 0.0
+  ELSE IF inputBuffer = "MR" OR inputBuffer = "mr" THEN
+    currentState.currentValue := currentState.memoryValue
+  ELSE IF inputBuffer = "MS" OR inputBuffer = "ms" THEN
+    currentState.memoryValue := currentState.currentValue
+  ELSE
+    RUN evaluateInput(inputBuffer, currentState, lastExpr)
+  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
+
+UNTIL done
+
+PUT #1, cls
+PRINT "Basic09 Calculator terminated."
+END
+
+900 PRINT "System error: "; ERR
+    PRINT "Press any key to continue...";
+    GET #0, key
+    PRINT
+END
+
+
+PROCEDURE displayMainScreen
+(* Renders the full calculator text-window UI.                              *)
+
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+PARAM state: calcState; lastExpr: STRING[80]
+
+DIM cls: BYTE
+DIM modeStr: STRING[8]
+DIM angleStr: STRING[4]
+DIM fmtStr: STRING[8]
+DIM displayVal: STRING[20]
+DIM lastLine: STRING[60]
+DIM memLine: STRING[20]
+
+cls := 12
+PUT #1, cls
+
+IF state.calcMode = 0 THEN
+  modeStr := "BASIC"
+ELSE IF state.calcMode = 1 THEN
+  modeStr := "SCI  "
+ELSE IF state.calcMode = 2 THEN
+  modeStr := "STAT "
+ELSE \! default: PROG
+  modeStr := "PROG "
+ENDIF \ENDIF \ENDIF
+
+IF state.angleMode = 0 THEN
+  angleStr := "RAD"
+ELSE
+  angleStr := "DEG"
+ENDIF
+
+IF state.displayFormat = 0 THEN
+  fmtStr := "NORMAL"
+ELSE IF state.displayFormat = 1 THEN
+  fmtStr := "SCI   "
+ELSE \! default: ENG
+  fmtStr := "ENG   "
+ENDIF \ENDIF
+
+IF state.errorState <> 0 THEN
+  displayVal := " *** ERROR " + STR$(state.errorState) + " ***"
+ELSE
+  displayVal := STR$(state.currentValue)
+ENDIF
+
+IF lastExpr = "" THEN
+  lastLine := "(no previous calculation)"
+ELSE IF LEN(lastExpr) > 38 THEN
+  lastLine := LEFT$(lastExpr, 35) + "..."
+ELSE
+  lastLine := lastExpr
+ENDIF \ENDIF
+
+memLine := STR$(state.memoryValue)
+
+PRINT "+-------------------------------------------------------+"
+PRINT "| Basic09 Calculator v1.0           [MODE: "; modeStr; "] |"
+PRINT "+-------------------------------------------------------+"
+PRINT "|                                                       |"
+PRINT "|  "; displayVal
+PRINT "|                                                       |"
+PRINT "+-------------------------------------------------------+"
+PRINT "| Last: "; lastLine
+PRINT "| Mem:  "; memLine; "          ["; angleStr; "] ["; fmtStr; "]"
+PRINT "+-------------------------------------------------------+"
+PRINT "| [M]enu  [MS]Mem-Store  [MR]Mem-Recall  [MC]Mem-Clear |"
+PRINT "| Type expression or command. [Q] to quit.              |"
+PRINT "+-------------------------------------------------------+"
+PRINT
+
+END
+
+
+PROCEDURE showMenu
+(* Displays mode/config menu and processes one validated keypress.          *)
+
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+PARAM state: calcState
+
+DIM cls: BYTE
+DIM key: STRING[1]
+DIM choice: INTEGER
+
+cls := 12
+PUT #1, cls
+
+PRINT "+-------------------------------------------------------+"
+PRINT "|              Basic09 Calculator - Menu                |"
+PRINT "+-------------------------------------------------------+"
+PRINT "|                                                       |"
+PRINT "|  Calculator Mode:                                     |"
+PRINT "|    1. Basic       (arithmetic, memory, sqrt)          |"
+PRINT "|    2. Scientific  (trig, log, exp, constants)         |"
+PRINT "|    3. Statistical (mean, std dev, regression)         |"
+PRINT "|    4. Programming (hex, oct, bin, bitwise)            |"
+PRINT "|                                                       |"
+PRINT "|  Angle Mode:                                          |"
+PRINT "|    5. Toggle RAD / DEG                                |"
+PRINT "|                                                       |"
+PRINT "|  Display Format:                                      |"
+PRINT "|    6. Normal   7. Scientific   8. Engineering         |"
+PRINT "|                                                       |"
+PRINT "|    9. Clear Error State                               |"
+PRINT "|    0. Return to Calculator                            |"
+PRINT "|                                                       |"
+PRINT "+-------------------------------------------------------+"
+PRINT "Choice: ";
+
+REPEAT
+  GET #0, key
+UNTIL key >= "0" AND key <= "9"
+
+choice := VAL(key)
+PRINT key
+
+IF choice = 1 THEN
+  state.calcMode := 0 \! Basic
+ELSE IF choice = 2 THEN
+  state.calcMode := 1 \! Scientific
+ELSE IF choice = 3 THEN
+  state.calcMode := 2 \! Statistical
+ELSE IF choice = 4 THEN
+  state.calcMode := 3 \! Programming
+ELSE IF choice = 5 THEN
+  IF state.angleMode = 0 THEN \! Toggle RAD/DEG
+    state.angleMode := 1
+  ELSE
+    state.angleMode := 0
+  ENDIF
+ELSE IF choice = 6 THEN
+  state.displayFormat := 0 \! Normal
+ELSE IF choice = 7 THEN
+  state.displayFormat := 1 \! Scientific
+ELSE IF choice = 8 THEN
+  state.displayFormat := 2 \! Engineering
+ELSE IF choice = 9 THEN
+  state.errorState := 0 \! Clear error
+ELSE \! choice = 0: return, no action
+ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
+
+END
+
+
+PROCEDURE evaluateInput
+(* Entry point for expression evaluation. Delegates to recursive descent    *)
+(* parser. Supports full operator precedence and parentheses grouping.      *)
+(* Updates state.currentValue, state.errorState, lastExpr on return.        *)
+
+TYPE calcState = currentValue: REAL; memoryValue: REAL; lastResult: REAL; angleMode: BYTE; displayFormat: BYTE; decimalPlaces: BYTE; calcMode: BYTE; errorState: BYTE; historyCount: INTEGER
+
+PARAM expr: STRING[80]; state: calcState; lastExpr: STRING[80]
+
+DIM position: INTEGER
+DIM result: REAL
+DIM errCode: BYTE
+
+position     := 1
+result  := 0.0
+errCode := 0
+
+ON ERROR GOTO 900 \ ! 900
+
+RUN parseExpr(expr, position, result, errCode)
+
+IF errCode <> 0 THEN
+  state.errorState   := errCode
+  state.currentValue := 0.0
+  lastExpr           := expr + " *** ERR " + STR$(errCode) + " ***"
+ELSE
+  state.lastResult   := state.currentValue
+  state.currentValue := result
+  state.errorState   := 0
+  lastExpr           := expr + " = " + STR$(result)
+  state.historyCount := state.historyCount + 1
+ENDIF
+
+END
+
+900 state.errorState   := 6 \! errSyntaxError: unexpected system error
+    state.currentValue := 0.0
+    lastExpr           := expr + " *** SYNTAX ERR ***"
+END
+
+
+PROCEDURE parseExpr
+(* Parses addition and subtraction: lowest precedence, left-associative.    *)
+(* Calls parseTerm for each operand. Returns result and errCode by ref.     *)
+
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
+
+DIM right: REAL
+DIM op: STRING[1]
+
+right := 0.0
+op    := ""
+
+RUN parseTerm(expr, position, result, errCode)
+
+LOOP
+  EXITIF errCode <> 0 THEN
+  ENDEXIT
+  RUN skipSpaces(expr, position)
+  EXITIF position > LEN(expr) THEN
+  ENDEXIT
+  op := MID$(expr, position, 1)
+  EXITIF op <> "+" AND op <> "-" THEN
+  ENDEXIT
+  position   := position + 1
+  right := 0.0
+  RUN parseTerm(expr, position, right, errCode)
+  IF errCode = 0 THEN
+    IF op = "+" THEN
+      result := result + right
+    ELSE
+      result := result - right
+    ENDIF
+  ENDIF
+ENDLOOP
+
+END
+
+
+PROCEDURE parseTerm
+(* Parses multiplication and division: higher precedence than +/-.          *)
+(* Calls parseFactor for each operand. Returns result and errCode by ref.   *)
+
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
+
+DIM right: REAL
+DIM op: STRING[1]
+
+right := 0.0
+op    := ""
+
+RUN parseFactor(expr, position, result, errCode)
+
+LOOP
+  EXITIF errCode <> 0 THEN
+  ENDEXIT
+  RUN skipSpaces(expr, position)
+  EXITIF position > LEN(expr) THEN
+  ENDEXIT
+  op := MID$(expr, position, 1)
+  EXITIF op <> "*" AND op <> "/" THEN
+  ENDEXIT
+  position   := position + 1
+  right := 0.0
+  RUN parseFactor(expr, position, right, errCode)
+  IF errCode = 0 THEN
+    IF op = "*" THEN
+      result := result * right
+    ELSE IF op = "/" THEN
+      IF right = 0.0 THEN
+        errCode := 1 \! errDivideZero
+      ELSE
+        result := result / right
+      ENDIF
+    ENDIF \ENDIF
+  ENDIF
+ENDLOOP
+
+END
+
+
+PROCEDURE parseFactor
+(* Handles unary minus, parenthesised sub-expressions, and numeric atoms.   *)
+(* Recursively calls parseExpr for parenthesised groups.                    *)
+
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
+
+DIM ch: STRING[1]
+DIM inner: REAL
+
+ch    := ""
+inner := 0.0
+
+RUN skipSpaces(expr, position)
+
+IF position > LEN(expr) THEN
+  errCode := 6 \! errSyntaxError: unexpected end of expression
+ELSE
+  ch := MID$(expr, position, 1)
+  IF ch = "(" THEN
+    position := position + 1
+    RUN parseExpr(expr, position, result, errCode)
+    IF errCode = 0 THEN
+      RUN skipSpaces(expr, position)
+      IF position > LEN(expr) OR MID$(expr, position, 1) <> ")" THEN
+        errCode := 6 \! errSyntaxError: missing closing parenthesis
+      ELSE
+        position := position + 1
+      ENDIF
+    ENDIF
+  ELSE IF ch = "-" THEN \! unary minus
+    position := position + 1
+    RUN parseFactor(expr, position, inner, errCode)
+    IF errCode = 0 THEN
+      result := 0.0 - inner
+    ENDIF
+  ELSE
+    RUN parseNumber(expr, position, result, errCode)
+  ENDIF \ENDIF
+ENDIF
+
+END
+
+
+PROCEDURE parseNumber
+(* Extracts a numeric literal from expr at position, advancing position past it.     *)
+(* Accepts digits and a single decimal point. Converts via VAL().           *)
+(* Sets errCode := 6 if no valid number is found at position.                    *)
+
+PARAM expr: STRING[80]; position: INTEGER; result: REAL; errCode: BYTE
+
+DIM numStr: STRING[40]
+DIM ch: STRING[1]
+DIM dotSeen: BOOLEAN
+
+numStr  := ""
+ch      := ""
+result  := 0.0
+errCode := 0
+dotSeen := FALSE
+
+RUN skipSpaces(expr, position)
+
+LOOP
+  EXITIF position > LEN(expr) THEN
+  ENDEXIT
+  ch := MID$(expr, position, 1)
+  EXITIF (ch < "0" OR ch > "9") AND ch <> "." THEN
+  ENDEXIT
+  EXITIF ch = "." AND dotSeen THEN
+  ENDEXIT
+  IF ch = "." THEN
+    dotSeen := TRUE
+  ENDIF
+  numStr := numStr + ch
+  position    := position + 1
+ENDLOOP
+
+IF numStr = "" THEN
+  errCode := 6 \! errSyntaxError: no numeric literal found at position
+ELSE
+  ON ERROR GOTO 900 \ ! 900
+  result := VAL(numStr)
+ENDIF
+
+END
+
+900 errCode := 6 \! errSyntaxError: VAL() conversion failure
+END
+
+
+PROCEDURE skipSpaces
+(* Advances position past any space characters in expr.                          *)
+
+PARAM expr: STRING[80]; position: INTEGER
+
+LOOP
+  EXITIF position > LEN(expr) THEN
+  ENDEXIT
+  EXITIF MID$(expr, position, 1) <> " " THEN
+  ENDEXIT
+  position := position + 1
+ENDLOOP
+
+END

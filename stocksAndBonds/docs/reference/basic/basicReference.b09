@@ -1,0 +1,573 @@
+PROCEDURE README
+! README - Documentation for Basic09 File Manager Module
+PRINT
+PRINT "=== BASIC09 FILE MANAGER MODULE DOCUMENTATION ==="
+PRINT
+PRINT "This module demonstrates various Basic09 programming techniques:"
+PRINT
+PRINT "MAIN PROCEDURES:"
+PRINT "- FILEMGR: Main file management demonstration procedure"
+PRINT "  Contains the main program loop using structured programming"
+PRINT "  Uses ON GOTO for menu selection - cleaner than nested IF statements"
+PRINT
+PRINT "- displayMenu: Display the main menu - no parameters needed"
+PRINT
+PRINT "- createFile: Demonstrate file creation with error handling"
+PRINT "  Uses structured error handling and validates input"
+PRINT "  Uses INTEGER counter for optimal FOR/NEXT performance"
+PRINT "  Uses WRITE for sequential text file - adds CR automatically"
+PRINT
+PRINT "- readFile: Demonstrate file reading with EOF handling"
+PRINT "  Basic09 will trigger error 211 at EOF"
+PRINT "  EOF is expected - not a real error"
+PRINT
+PRINT "- listDirectory: Demonstrate directory listing using OS-9 shell command"
+PRINT "  Use SHELL to execute OS-9 commands - more efficient than"
+PRINT "  trying to implement directory reading in Basic09"
+PRINT
+PRINT "ADDITIONAL TEMPLATE EXAMPLES:"
+PRINT "- dataStructureDemo: Demonstrate TYPE definitions and complex data structures"
+PRINT "- binaryIODemo: Demonstrate efficient binary I/O with GET/PUT"
+PRINT "  Binary I/O is much faster than text I/O"
+PRINT "  PUT writes exact binary representation - very fast"
+PRINT "  GET reads exact binary representation"
+PRINT "- optimizationDemo: Demonstrate performance optimization techniques"
+PRINT "  INTEGER faster than REAL"
+PRINT "  INTEGER loop counter is fastest"
+PRINT "  Use addition instead of multiplication by constants"
+PRINT "  BAD: x := x + SQRT(100) / 2    <- calculated every time"
+PRINT "  GOOD: x := x + 5               <- pre-calculated"
+PRINT "  Use appropriate data types"
+PRINT "  1 byte vs 2 for INTEGER"
+PRINT "  Only when range exceeds INTEGER"
+PRINT "  For TRUE/FALSE values"
+PRINT
+PRINT "TO RUN: Execute 'RUN FILEMGR' to start the main program"
+PRINT
+END
+
+
+PROCEDURE FILEMGR
+! Main file management demonstration procedure
+
+! Variable declarations - all variables are local to this procedure
+DIM done:BOOLEAN
+DIM choice,timer:INTEGER
+DIM errorCode:INTEGER
+DIM key:STRING[1]
+
+! Initialize variables
+done := FALSE
+choice := 0
+
+! Set up error handling
+ON ERROR GOTO 900 \ ! 900
+
+! Main program loop using structured programming
+REPEAT
+  RUN displayMenu
+
+  PRINT "Enter choice (1-4): ";
+  REPEAT
+    GET #0,key
+  UNTIL VAL(key)>0 AND VAL(key)<5
+  choice = VAL(key)
+  PRINT \! Move cursor to next line
+
+  IF choice >= 1 AND choice <= 4 THEN
+    ! Use ON GOSUB for menu selection - cleaner than nested IF statements
+    ON choice GOSUB 100, 200, 300, 400 \ ! 100,200,300,400
+  ELSE
+    ! Invalid choice handling
+    PRINT "Invalid choice. Please enter 1-4."
+    FOR timer:=1 TO 10000 \NEXT timer
+  ENDIF
+
+UNTIL done
+
+PRINT "File Manager terminated."
+END
+
+! Menu option 1: Create file
+100 RUN createFile
+RETURN
+
+! Menu option 2: Read file
+200 RUN readFile  
+RETURN
+
+! Menu option 3: List directory
+300 RUN listDirectory
+RETURN
+
+! Menu option 4: Exit
+400 done := TRUE
+RETURN
+
+! Error handler
+900 errorCode := ERR
+PRINT "Error"; errorCode; "occurred."
+PRINT "File Manager terminated."
+END
+
+
+PROCEDURE displayMenu
+DIM cls:BYTE
+
+cls := 12 \! Clear screen code
+
+PUT #1,cls \! Clear the screen when the loop repeats
+
+! Display the main menu - no parameters needed
+PRINT
+PRINT "=== Basic09 File Manager ==="
+PRINT "1. Create a text file"
+PRINT "2. Read a text file" 
+PRINT "3. List current directory"
+PRINT "4. Exit"
+PRINT
+END
+
+
+PROCEDURE createFile
+! Demonstrate file creation with error handling
+
+DIM path:BYTE
+DIM pathOpen:BOOLEAN
+DIM fileName,lineData:STRING[80]
+DIM lineCount:INTEGER
+DIM anyKey:STRING[1]
+
+pathOpen := FALSE
+
+INPUT "Enter file name to create: ", fileName
+REPEAT
+  PRINT "How many lines to write: "
+  INPUT lineCount
+  ! Validate input - use INTEGER for loop efficiency
+  IF lineCount < 1 OR lineCount > 100 THEN
+    PRINT "Line count must be 1-100"
+  ENDIF
+UNTIL lineCount >= 1 AND lineCount <= 100
+
+
+! Create file using structured error handling
+ON ERROR GOTO 110 \ ! 110
+CREATE #path, fileName:WRITE \pathOpen := TRUE
+
+PRINT "Enter"; lineCount; "lines of text:"
+
+! Use INTEGER counter for optimal FOR/NEXT performance
+FOR i := 1 TO lineCount
+  PRINT "Line"; i; ": ";
+  INPUT lineData
+  ! Use WRITE for sequential text file - adds CR automatically
+  WRITE #path, lineData
+NEXT i
+
+CLOSE #path
+
+PRINT "File '"; fileName; "' created successfully."
+PRINT
+PRINT "Press any to continue...";
+GET #0, anyKey
+PRINT \! Move cursor to next line
+END
+
+! Local error handler
+110 PRINT "Error creating file: "; ERR
+    IF pathOpen THEN CLOSE #path \ENDIF
+    END
+
+
+PROCEDURE readFile
+! Demonstrate file reading with EOF handling
+
+DIM path:BYTE  
+DIM pathOpen:BOOLEAN
+DIM fileName:STRING[80]
+DIM lineData:STRING[80]
+DIM lineNum:INTEGER
+DIM anyKey:STRING[1]
+
+pathOpen := FALSE
+
+INPUT "Enter file name to read: ", fileName
+
+ON ERROR GOTO 210 \ ! 210
+OPEN #path, fileName: READ \pathOpen := TRUE
+
+PRINT
+PRINT "Contents of '"; fileName; "':"
+PRINT "----------------------------------------"
+
+lineNum := 1
+
+! Read until EOF - Basic09 will trigger error 211 at EOF
+WHILE NOT(EOF(#path)) DO
+  READ #path, lineData
+  PRINT lineNum; ": "; lineData
+  lineNum := lineNum + 1
+ENDWHILE
+
+CLOSE #path
+
+PRINT "----------------------------------------"
+PRINT
+PRINT "Press any to continue...";
+GET #0, anyKey
+PRINT \! Move cursor to next line
+END
+
+210 ! Error handler - check for EOF
+    IF ERR = 211 THEN
+      ! EOF is expected - not a real error
+      PRINT "----------------------------------------"
+      PRINT "End of file reached."
+    ELSE
+      PRINT "Error reading file: "; ERR
+    ENDIF
+    
+    IF pathOpen THEN CLOSE #path \ENDIF
+    END
+
+
+PROCEDURE listDirectory
+! Demonstrate directory listing using OS-9 shell command
+
+DIM anyKey:STRING[1]
+
+PRINT "Current directory contents:"
+PRINT
+
+! Use SHELL to execute OS-9 commands - more efficient than
+! trying to implement directory reading in Basic09
+RUN readDirectory("/d1")
+
+PRINT
+PRINT "Press any to continue...";
+GET #0, anyKey
+END
+
+
+PROCEDURE readDirectory
+PARAM dirName:STRING[80]
+TYPE DirEntry = fileName:STRING[29]; LSN(3):BYTE
+DIM path:BYTE; count,count2:INTEGER; entry:DirEntry
+DIM char:STRING[1]; name:STRING[29]
+
+OPEN #path,dirName:READ+DIR
+count:=1
+WHILE NOT(EOF(#path)) DO
+  GET #path,entry
+  IF count>2 THEN \! The first two entries are . and ..
+    name:=""
+    count2:=1
+    REPEAT
+      char:=MID$(entry.fileName,count2,1)
+      IF ASC(char)>127 THEN 
+        name:=name+CHR$(LAND(ASC(char),127))
+      ELSE
+        name:=name+char
+      ENDIF
+      count2:=count2+1
+    UNTIL ASC(char)>127
+    PRINT name
+  ENDIF
+  count:=count+1
+ENDWHILE
+CLOSE #path
+END
+
+
+PROCEDURE devName
+! Demonstrate getting device name for terminal window - WIP
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM DeviceId:BYTE
+DeviceId := 1
+DIM regs:Register
+DIM callCode,winPacket(32):BYTE
+DIM count:INTEGER
+DIM winName:STRING
+
+winName:=""
+callCode:=$8D
+regs.a:=DeviceId
+regs.b:=$0E
+regs.x:=ADDR(winPacket)
+RUN SysCall(callCode,regs)
+
+count:=0
+REPEAT
+  count:=count+1
+  winName:=winName+CHR$(LAND(winPacket(count),127))
+UNTIL winPacket(count)>127
+PRINT winName
+END
+
+
+PROCEDURE dataStructureDemo
+! Demonstrate TYPE definitions and complex data structures
+
+! Define a record type for file information
+TYPE FileRecord = name:STRING; fileSize:INTEGER; date:STRING[8]
+
+! Create array of records
+DIM fileList(50):FileRecord
+DIM count:INTEGER
+DIM index:INTEGER
+
+! Initialize using structured approach
+FOR index := 1 TO 50
+  fileList(index).name := ""
+  fileList(index).fileSize := 0
+  fileList(index).date := ""
+NEXT index
+
+PRINT "Data structure initialized"
+END
+
+
+PROCEDURE binaryIODemo
+! Demonstrate efficient binary I/O with GET/PUT
+
+TYPE DataBlock = id:INTEGER; binaryData:STRING[64]; checksum:BYTE
+DIM record:DataBlock
+DIM path:INTEGER
+
+! Binary I/O is much faster than text I/O
+CREATE #path, "BINDATA.DAT": UPDATE
+
+! Initialize record
+record.id := 1001
+record.binaryData := "Sample binary data block"
+record.checksum := ASC("X")
+
+! PUT writes exact binary representation - very fast
+PUT #path, record
+
+! Seek to beginning for read
+SEEK #path, 0
+
+! GET reads exact binary representation
+GET #path, record
+
+CLOSE #path
+
+PRINT "Binary I/O completed"
+PRINT "ID:"; record.id
+PRINT "Data: "; record.binaryData  
+PRINT "Checksum:"; record.checksum
+END
+
+
+PROCEDURE optimizationDemo
+! Demonstrate performance optimization techniques
+
+DIM counter:INTEGER        \! INTEGER faster than REAL
+DIM result:INTEGER
+DIM temp:INTEGER
+DIM startTime:REAL
+
+PRINT "Performance optimization examples:"
+
+! Use INTEGER arithmetic when possible
+result := 0
+FOR counter := 1 TO 1000   \! INTEGER loop counter is fastest
+  ! Use addition instead of multiplication by constants
+  temp := counter + counter  \! Faster than counter * 2
+  result := result + temp
+NEXT counter
+
+PRINT "Integer optimization result:"; result
+
+! Demonstrate constant expression optimization
+! BAD: x := x + SQRT(100) / 2    <- calculated every time
+! GOOD: x := x + 5               <- pre-calculated
+
+! Use appropriate data types
+DIM flags:BYTE             \! 1 byte vs 2 for INTEGER
+DIM largeNumber:REAL      \! Only when range exceeds INTEGER
+DIM status:BOOLEAN         \! For TRUE/FALSE values
+
+PRINT "Data type examples completed"
+END
+
+
+PROCEDURE parseSimpleExpression
+! Demonstrates a very basic string parsing approach for expressions like "NUM OP NUM"
+! Basic09 lacks direct SPLIT. This example assumes a single operator (+, -, *, /).
+! For a full calculator, a more robust parsing algorithm (e.g., Shunting-Yard)
+! would be required, built up from these primitives.
+
+DIM expression:STRING[80]
+DIM opPos:INTEGER
+DIM operator:STRING[1]
+DIM operand1Str, operand2Str:STRING[80]
+DIM operand1, operand2, result:REAL
+DIM foundOp:BOOLEAN
+DIM errCode:BYTE \! Using custom error codes
+
+INPUT "Enter a simple expression (e.g., 12+34): ", expression
+
+! Initialize
+foundOp := FALSE
+errCode := 0
+
+! Find the first occurrence of an operator using the built-in SUBSTR function
+opPos := SUBSTR("+", expression)
+IF opPos = 0 THEN
+  opPos := SUBSTR("-", expression)
+ENDIF
+IF opPos = 0 THEN
+  opPos := SUBSTR("*", expression)
+ENDIF
+IF opPos = 0 THEN
+  opPos := SUBSTR("/", expression)
+ENDIF
+
+IF opPos > 0 THEN
+  ! Operator found
+  operator := MID$(expression, opPos, 1)
+  operand1Str := LEFT$(expression, opPos - 1)
+  operand2Str := RIGHT$(expression, LEN(expression) - opPos)
+  
+  ! Convert operands to REAL
+  operand1 := VAL(operand1Str)
+  operand2 := VAL(operand2Str)
+
+  ! Perform calculation based on operator
+  ON ERROR GOTO 900 \! Local error handling for division by zero \ ! 900
+  IF operator = "+" THEN
+    result := operand1 + operand2
+  ENDIF
+  IF operator = "-" THEN
+    result := operand1 - operand2
+  ENDIF
+  IF operator = "*" THEN
+    result := operand1 * operand2
+  ENDIF
+  IF operator = "/" THEN
+    IF operand2 = 0 THEN
+      errCode := 1 \! Simulate ErrDivideZero
+    ELSE
+      result := operand1 / operand2
+    ENDIF
+  ENDIF
+
+  IF errCode = 0 THEN
+    PRINT "Result: "; result
+  ELSE
+    PRINT "Calculation Error: "; errCode \! Report simulated error
+  ENDIF
+
+ELSE
+  PRINT "Error: No valid operator found or invalid expression format."
+  errCode := 6 \! Simulate ErrSyntaxError
+ENDIF
+
+END
+
+! Local error handler for parseSimpleExpression
+900 PRINT "System Error during calculation: "; ERR
+    errCode := ERR \! Store actual Basic09 error
+END
+
+
+
+PROCEDURE getFormattedTimestamp
+! Returns the current system date and time as a string "yy/mm/dd hh:mm:ss"
+! This directly uses the DATE$ function provided by Basic09.
+
+DIM timeStampString:STRING[19]
+
+timeStampString := DATE$
+PRINT "Current Timestamp: "; timeStampString
+END
+
+
+
+PROCEDURE clearScreen
+! Clears the entire terminal screen.
+! This uses the PUT #1,12 method, where 12 is the ASCII form feed character,
+! commonly used in Basic09 to clear the screen via I/O path #1 (console output).
+
+DIM clsChar:BYTE
+
+clsChar := 12 \! ASCII Form Feed character for clear screen
+
+PUT #1, clsChar
+PRINT \! Move cursor to beginning of next line after clearing
+END
+
+
+PROCEDURE stringFunctions
+(* This procedure demonstrates various string functions in Basic09 *)
+DIM charVal : INTEGER
+DIM test_string, temp_string : STRING
+DIM number_val : REAL
+
+PRINT "--- Basic09 String Function Test ---"
+PRINT
+
+(* 1. Test CHR$() - Convert integer to ASCII character *)
+PRINT "--- Testing CHR$() ---"
+PRINT "Printing characters for ASCII 65 through 70:"
+FOR charVal = 65 TO 70
+  PRINT "CHR$(";charVal;") = "; CHR$(charVal)
+NEXT charVal
+PRINT
+
+(* 2. Test DATE$ - Get current date and time *)
+PRINT "--- Testing DATE$ ---"
+temp_string := DATE$
+PRINT "The current date and time is: "; temp_string
+PRINT
+
+(* 3. Test LEFT$(), RIGHT$(), and MID$() *)
+test_string := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+PRINT "--- Testing LEFT$, RIGHT$, and MID$ ---"
+PRINT "Original string: "; test_string
+temp_string := LEFT$(test_string, 5)
+PRINT "LEFT$(test_string, 5) = "; temp_string
+temp_string := RIGHT$(test_string, 5)
+PRINT "RIGHT$(test_string, 5) = "; temp_string
+temp_string := MID$(test_string, 11, 5)
+PRINT "MID$(test_string, 11, 5) = "; temp_string
+PRINT
+
+(* 4. Test STR$() - Convert a number to a string *)
+PRINT "--- Testing STR$() ---"
+number_val := 123.456
+temp_string := STR$(number_val)
+PRINT "The number is:"; number_val
+PRINT "STR$(number_val) = '"; temp_string; "'"
+PRINT
+
+(* 5. Test TRIM$() - Remove white spaces *)
+PRINT "--- Testing TRIM$() ---"
+test_string := "   This string has extra spaces...   "
+PRINT "Original string with spaces: '"; test_string; "'"
+temp_string := TRIM$(test_string)
+PRINT "TRIM$(test_string) =       '"; temp_string; "'"
+PRINT
+
+PRINT "--- Test Complete ---"
+END
+
+
+PROCEDURE deleteFile
+  PARAM targetFilePath$:STRING
+
+  ON ERROR GOTO 900 \ ! Error handler for target file exists check \ ! 900
+  ! We have to delete the existing file, as replacing it with a smaller file will result in garbage at the end of file
+  DELETE targetFilePath$
+
+  END
+
+  900 \ ! Error for target file when it does not exist
+    IF ERR = 216 THEN \ ! File not found error code
+      PRINT "File not found: '"; targetFilePath$; "'."
+    ELSE
+      PRINT "System Error ("; ERR; ") deleting '"; targetFilePath$; "'."
+    ENDIF
