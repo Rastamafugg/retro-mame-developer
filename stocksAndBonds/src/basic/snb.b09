@@ -23,6 +23,10 @@ TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
 
+! CardRec: 3xINTEGER + 4xINTEGER(efxStk) + 4xINTEGER(efxDlt) = 22 bytes
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+
 ON ERROR GOTO 900
 END
 
@@ -264,6 +268,94 @@ DATA   8,  -2,   7,   4,   3,   5,   4,   6,  -4,  -4,  -7
 900 ERROR(ERR)
 END
 
+PROCEDURE getCard
+(* ============================================================ *)
+(* PROCEDURE : getCard                                          *)
+(* PURPOSE   : Populate a CardRec from the encoded card table   *)
+(*             for a given card ID (1..36).                     *)
+(* PARAMS    : cardId - card number 1..36                       *)
+(*             card   - receives all card fields (by ref)       *)
+(* SIDE EFX  : Repositions the internal DATA pointer via        *)
+(*             RESTORE. Caller must not depend on DATA pointer  *)
+(*             state after this call.                           *)
+(* NOTE      : CardRec TYPE must be declared in every procedure *)
+(*             that calls getCard or passes a CardRec param.    *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM cardId : INTEGER
+PARAM card   : CardRec
+DIM skipCnt : INTEGER
+DIM i       : INTEGER
+DIM tmp     : INTEGER
+
+ON ERROR GOTO 900
+
+! Each card occupies 11 fixed-width slots:
+!   crdType, efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
+! Unused effect slots are encoded as 0,0.
+skipCnt := (cardId - 1) * 11
+RESTORE 100
+
+FOR i := 1 TO skipCnt
+  READ tmp
+NEXT i
+
+READ card.crdType
+READ card.efxCnt
+READ card.efxStk(1), card.efxDlt(1)
+READ card.efxStk(2), card.efxDlt(2)
+READ card.efxStk(3), card.efxDlt(3)
+READ card.efxStk(4), card.efxDlt(4)
+READ card.divBonus
+END
+
+! ---- Situation card table (spec Section 4.3) ----------------
+! Stock IDs: 1=Growth Corp  2=Metro Props  3=Pioneer Mutual
+!            4=Shady Brooks 5=Stryker      6=Tri-City Transport
+!            7=United Auto  8=Uranium Ent  9=Valley Power
+! crdType: 1=Bull  2=Bear
+! crdType,efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
+100 DATA 2, 1,  1,  10,  0,   0,  0,   0,  0,   0,  2
+DATA     1, 1,  1,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  1,   8,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  1,  -8,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  2,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  4,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  4,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  5,  17,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  5, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  5, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  6,  15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  6,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6, -25,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  8, -25,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  9, -14,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 2,  3,   3,  9,   4,  0,   0,  0,   0,  0
+DATA     1, 4,  1,   8,  2,   5,  3,   5,  7,   7,  0
+DATA     1, 3,  3,  -8,  5,   8,  8,   5,  0,   0,  0
+DATA     2, 3,  1,  -8,  2,  -5,  7,  -7,  0,   0,  0
+
+900 ERROR(ERR)
+END
+
 PROCEDURE TSTMKT
 (* ============================================================ *)
 (* PROCEDURE : TSTMKT                                           *)
@@ -361,4 +453,243 @@ END
     RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTMKT"
+    END
+
+PROCEDURE TSTCARD
+(* ============================================================ *)
+(* PROCEDURE : TSTCARD                                          *)
+(* PURPOSE   : Confirmation tests for getCard (Task 2.2).      *)
+(*             Runs five test cases covering boundary cards,    *)
+(*             anomaly classifications, multi-stock cards, and  *)
+(*             divBonus. Prints per-field FAIL detail and a     *)
+(*             final pass/fail summary.                         *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+DIM card   : CardRec
+DIM passed : INTEGER
+DIM failed : INTEGER
+DIM ok     : BOOLEAN
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! Test 1: Card 1 - Bear anomaly, Growth Corp +10, divBonus=2
+RUN getCard(1, card)
+GOSUB 100
+
+! Test 2: Card 5 - Bull anomaly, Growth Corp -10, divBonus=0
+RUN getCard(5, card)
+GOSUB 200
+
+! Test 3: Card 8 - Bear anomaly, Metro Properties +10, divBonus=0
+RUN getCard(8, card)
+GOSUB 300
+
+! Test 4: Card 34 - Bull, 4 stocks, correct deltas
+RUN getCard(34, card)
+GOSUB 400
+
+! Test 5: Card 36 - Bear, 3 stocks, correct deltas
+RUN getCard(36, card)
+GOSUB 500
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1: Card 1 Bear, stk=1 dlt=10, divBonus=2
+    ok := TRUE
+    IF card.crdType <> 2 THEN
+      PRINT "Test 1 FAIL crdType: exp=2 got="; card.crdType
+      ok := FALSE
+    ENDIF
+    IF card.efxCnt <> 1 THEN
+      PRINT "Test 1 FAIL efxCnt: exp=1 got="; card.efxCnt
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(1) <> 1 THEN
+      PRINT "Test 1 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(1) <> 10 THEN
+      PRINT "Test 1 FAIL efxDlt(1): exp=10 got="; card.efxDlt(1)
+      ok := FALSE
+    ENDIF
+    IF card.divBonus <> 2 THEN
+      PRINT "Test 1 FAIL divBonus: exp=2 got="; card.divBonus
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 1 PASS  Card 1 Bear Growth+10 divBonus=2"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test 2: Card 5 Bull, stk=1 dlt=-10, divBonus=0
+    ok := TRUE
+    IF card.crdType <> 1 THEN
+      PRINT "Test 2 FAIL crdType: exp=1 got="; card.crdType
+      ok := FALSE
+    ENDIF
+    IF card.efxCnt <> 1 THEN
+      PRINT "Test 2 FAIL efxCnt: exp=1 got="; card.efxCnt
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(1) <> 1 THEN
+      PRINT "Test 2 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(1) <> -10 THEN
+      PRINT "Test 2 FAIL efxDlt(1): exp=-10 got="; card.efxDlt(1)
+      ok := FALSE
+    ENDIF
+    IF card.divBonus <> 0 THEN
+      PRINT "Test 2 FAIL divBonus: exp=0 got="; card.divBonus
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 2 PASS  Card 5 Bull Growth-10 divBonus=0"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+300 ! Test 3: Card 8 Bear, stk=2 dlt=10, divBonus=0
+    ok := TRUE
+    IF card.crdType <> 2 THEN
+      PRINT "Test 3 FAIL crdType: exp=2 got="; card.crdType
+      ok := FALSE
+    ENDIF
+    IF card.efxCnt <> 1 THEN
+      PRINT "Test 3 FAIL efxCnt: exp=1 got="; card.efxCnt
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(1) <> 2 THEN
+      PRINT "Test 3 FAIL efxStk(1): exp=2 got="; card.efxStk(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(1) <> 10 THEN
+      PRINT "Test 3 FAIL efxDlt(1): exp=10 got="; card.efxDlt(1)
+      ok := FALSE
+    ENDIF
+    IF card.divBonus <> 0 THEN
+      PRINT "Test 3 FAIL divBonus: exp=0 got="; card.divBonus
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 3 PASS  Card 8 Bear Metro+10 divBonus=0"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+400 ! Test 4: Card 34 Bull, 4 stocks
+    ok := TRUE
+    IF card.crdType <> 1 THEN
+      PRINT "Test 4 FAIL crdType: exp=1 got="; card.crdType
+      ok := FALSE
+    ENDIF
+    IF card.efxCnt <> 4 THEN
+      PRINT "Test 4 FAIL efxCnt: exp=4 got="; card.efxCnt
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(1) <> 1 THEN
+      PRINT "Test 4 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(1) <> 8 THEN
+      PRINT "Test 4 FAIL efxDlt(1): exp=8 got="; card.efxDlt(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(2) <> 2 THEN
+      PRINT "Test 4 FAIL efxStk(2): exp=2 got="; card.efxStk(2)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(2) <> 5 THEN
+      PRINT "Test 4 FAIL efxDlt(2): exp=5 got="; card.efxDlt(2)
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(3) <> 3 THEN
+      PRINT "Test 4 FAIL efxStk(3): exp=3 got="; card.efxStk(3)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(3) <> 5 THEN
+      PRINT "Test 4 FAIL efxDlt(3): exp=5 got="; card.efxDlt(3)
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(4) <> 7 THEN
+      PRINT "Test 4 FAIL efxStk(4): exp=7 got="; card.efxStk(4)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(4) <> 7 THEN
+      PRINT "Test 4 FAIL efxDlt(4): exp=7 got="; card.efxDlt(4)
+      ok := FALSE
+    ENDIF
+    IF card.divBonus <> 0 THEN
+      PRINT "Test 4 FAIL divBonus: exp=0 got="; card.divBonus
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 4 PASS  Card 34 Bull 4-stock deltas correct"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+500 ! Test 5: Card 36 Bear, 3 stocks
+    ok := TRUE
+    IF card.crdType <> 2 THEN
+      PRINT "Test 5 FAIL crdType: exp=2 got="; card.crdType
+      ok := FALSE
+    ENDIF
+    IF card.efxCnt <> 3 THEN
+      PRINT "Test 5 FAIL efxCnt: exp=3 got="; card.efxCnt
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(1) <> 1 THEN
+      PRINT "Test 5 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(1) <> -8 THEN
+      PRINT "Test 5 FAIL efxDlt(1): exp=-8 got="; card.efxDlt(1)
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(2) <> 2 THEN
+      PRINT "Test 5 FAIL efxStk(2): exp=2 got="; card.efxStk(2)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(2) <> -5 THEN
+      PRINT "Test 5 FAIL efxDlt(2): exp=-5 got="; card.efxDlt(2)
+      ok := FALSE
+    ENDIF
+    IF card.efxStk(3) <> 7 THEN
+      PRINT "Test 5 FAIL efxStk(3): exp=7 got="; card.efxStk(3)
+      ok := FALSE
+    ENDIF
+    IF card.efxDlt(3) <> -7 THEN
+      PRINT "Test 5 FAIL efxDlt(3): exp=-7 got="; card.efxDlt(3)
+      ok := FALSE
+    ENDIF
+    IF card.divBonus <> 0 THEN
+      PRINT "Test 5 FAIL divBonus: exp=0 got="; card.divBonus
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 5 PASS  Card 36 Bear 3-stock deltas correct"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTCARD"
     END
