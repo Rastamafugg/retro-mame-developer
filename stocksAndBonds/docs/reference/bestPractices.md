@@ -176,6 +176,8 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 ### Variables and Data Types
 
+* **Variable, Param, and Type Attribute names must be unique within a Procedure** It is a syntax error when a variable or parameter shares the same name as a type attribute.
+
 * **Declare `STRING` variables with an explicit length when the default is insufficient.** Without a length specifier, `STRING` defaults to 32 characters. Use `DIM name:STRING[40]` to declare a longer string.
 
 * **Account for the 32K variable memory limit.** Basic09 has only 32 KB available for variable storage. Size arrays with this constraint in mind.
