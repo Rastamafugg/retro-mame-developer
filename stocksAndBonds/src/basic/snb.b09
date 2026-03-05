@@ -193,51 +193,172 @@ END
     ERROR(ERR)
 END
 
-PROCEDURE TSTAIPROF
-(* ================================================= *)
-(* PROCEDURE: TSTAIPROF                              *)
-(* PURPOSE  : Confirmation Test 1.4.                 *)
-(*            Calls initAIProf for tiers 1, 2, 3    *)
-(*            and prints all AIProfile fields.       *)
-(*            Verify each output column against      *)
-(*            ai-difficulty-tiers.md Section 4.      *)
-(* PARAMS   : None.                                  *)
-(* SIDE FX  : Writes to stdout.                      *)
-(* ================================================= *)
-
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
-
-DIM prof: AIProfile
-DIM t:    INTEGER
+PROCEDURE getMktDelta
+(* ============================================================ *)
+(* PROCEDURE : getMktDelta                                      *)
+(* PURPOSE   : Return stock price delta from the Bull or Bear   *)
+(*             market table for a given stock, market type,     *)
+(*             and 2d6 roll result.                             *)
+(* PARAMS    : stockId - stock index 1..9                       *)
+(*             mktType - market type: 1=Bull, 2=Bear            *)
+(*             roll    - 2d6 result 2..12                       *)
+(*             delta   - receives the price change (INTEGER)    *)
+(* SIDE EFX  : Repositions the internal DATA pointer via        *)
+(*             RESTORE. Caller must not depend on DATA pointer   *)
+(*             state after this call.                           *)
+(* ============================================================ *)
+PARAM stockId : INTEGER
+PARAM mktType : INTEGER
+PARAM roll    : INTEGER
+PARAM delta   : INTEGER
+DIM skipCnt : INTEGER
+DIM i       : INTEGER
+DIM tmp     : INTEGER
 
 ON ERROR GOTO 900
 
-FOR t := 1 TO 3
-    RUN initAIProf(t, prof)
-    PRINT "--- Tier "; t; " ---"
-    PRINT "tier=";       prof.tier
-    PRINT "concenCap=";  prof.concenCap
-    PRINT "spltSlPct=";  prof.spltSlPct
-    PRINT "distSlPrc=";  prof.distSlPrc
-    PRINT "mgnMaxExpo="; prof.mgnMaxExpo
-    PRINT "mgnBuffer=";  prof.mgnBuffer
-    PRINT "mgnResvPct="; prof.mgnResvPct
-    PRINT "repayFrac=";  prof.repayFrac
-    PRINT "mgnClrYear="; prof.mgnClrYear
-    PRINT "endgameYr=";  prof.endgameYr
-    PRINT "spltSlPcE=";  prof.spltSlPcE
-    PRINT "repayFrcE=";  prof.repayFrcE
-    PRINT "bondIdlCsh="; prof.bondIdlCsh
-    PRINT "bndIdlCsE=";  prof.bndIdlCsE
-    PRINT "zeroDivEl=";  prof.zeroDivEl
-    PRINT "useYldScr=";  prof.useYldScr
-    PRINT "useMargin=";  prof.useMargin
-    PRINT "bondPriory="; prof.bondPriory
-NEXT t
+! Offset into the flat table: (stockId-1)*11 columns per stock
+! plus (roll-2) for 0-based roll index within that row.
+skipCnt := ((stockId - 1) * 11) + (roll - 2)
 
+IF mktType = 1 THEN
+  RESTORE 100 \ ! Bull table
+ELSE
+  RESTORE 200 \ ! Bear table
+ENDIF
+
+FOR i := 1 TO skipCnt
+  READ tmp
+NEXT i
+READ delta
 END
 
-900 ! Error handler
-    PRINT "Error: "; ERR
+! ---- Bull market table (spec Section 5.1) -------------------
+! Stock order: Growth Corp, Metro Props, Pioneer Mutual,
+!   Shady Brooks, Stryker Drilling, Tri-City Transport,
+!   United Auto, Uranium Enterprises, Valley Power
+! Rolls:          2    3    4    5    6    7    8    9   10   11   12
+100 DATA  -2,  26,  18,  23,  20,  17,  19,  11,  13,  14,  24
+DATA -10,  16,  23,  28,  15,  21,  24,  18,  31,  -8,  24
+DATA  -7,  25,  11,  -2,  15,  13,  17,  14,   1,  19,  23
+DATA  -9,   8,  12,  11,   7,  -2,   9,  11,  14,  -1,  20
+DATA  -2, -14,  46,  56, -20,  37,  -5,  67, -11,  -9,  51
+DATA  -9,  21,  18,  19,  15,  23,  26,  15,  18,  25,  27
+DATA  -7,  14,  -5,  30,  13,  23,  13,  22,  18, -10,  38
+DATA -16,  -4,  34,  29, -10,  19,  -7,  18, -14,  13,  33
+DATA  -4,  17,  15,  14,  12,  14,  15,  13,  10,  19,  18
+
+! ---- Bear market table (spec Section 5.2) -------------------
+! Same stock order as Bull table above.
+! Rolls:          2    3    4    5    6    7    8    9   10   11   12
+200 DATA  12,   7,   9,   7,   8,   6,   5,  -2,  11,  -5,  -8
+DATA  14,  -6,  10,   8,   6,   4,   7,   6,  11,  13, -10
+DATA  13,  10,   7,   5,   4,   3,  -1,  -3,  -5,  -8, -10
+DATA  10, -10,  -5,  -6,  -4,   3,  -3,  -8,  -7,   6, -15
+DATA  10,  30, -20, -40,  40, -15,  45, -20,  30,  25, -20
+DATA  20,   6,  12,   3,   8,   5,   6,   7,  10,   4, -20
+DATA  21, -19,  21,  16,   4,   8, -10,  10, -11,  18, -23
+DATA  25,  22,  18, -14, -12,  -8,  10,  14, -18, -22, -25
+DATA   8,  -2,   7,   4,   3,   5,   4,   6,  -4,  -4,  -7
+
+900 ERROR(ERR)
 END
+
+PROCEDURE TSTMKT
+(* ============================================================ *)
+(* PROCEDURE : TSTMKT                                           *)
+(* PURPOSE   : Confirmation tests for getMktDelta (Task 2.1).  *)
+(*             Runs five test cases, prints PASS or FAIL with  *)
+(*             expected and actual values on failure.           *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+DIM delta    : INTEGER
+DIM passed   : INTEGER
+DIM failed   : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! ---- Test 1: Stryker Drilling, Bull, roll=9, expected=67 ----
+RUN getMktDelta(5, 1, 9, delta)
+GOSUB 100
+
+! ---- Test 2: Stryker Drilling, Bear, roll=4, expected=-20 ---
+RUN getMktDelta(5, 2, 4, delta)
+GOSUB 200
+
+! ---- Test 3: Valley Power, Bull, roll=7, expected=14 --------
+RUN getMktDelta(9, 1, 7, delta)
+GOSUB 300
+
+! ---- Test 4: Valley Power, Bear, roll=2, expected=8 ---------
+RUN getMktDelta(9, 2, 2, delta)
+GOSUB 400
+
+! ---- Test 5: Growth Corp, Bull, roll=2, expected=-2 ---------
+RUN getMktDelta(1, 1, 2, delta)
+GOSUB 500
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 check
+    IF delta = 67 THEN
+      PRINT "Test 1 PASS  getMktDelta(5,1,9) = 67"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  getMktDelta(5,1,9)"
+      PRINT "  expected=67  actual="; delta
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test 2 check
+    IF delta = -20 THEN
+      PRINT "Test 2 PASS  getMktDelta(5,2,4) = -20"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  getMktDelta(5,2,4)"
+      PRINT "  expected=-20  actual="; delta
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+300 ! Test 3 check
+    IF delta = 14 THEN
+      PRINT "Test 3 PASS  getMktDelta(9,1,7) = 14"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  getMktDelta(9,1,7)"
+      PRINT "  expected=14  actual="; delta
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+400 ! Test 4 check
+    IF delta = 8 THEN
+      PRINT "Test 4 PASS  getMktDelta(9,2,2) = 8"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 4 FAIL  getMktDelta(9,2,2)"
+      PRINT "  expected=8  actual="; delta
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+500 ! Test 5 check
+    IF delta = -2 THEN
+      PRINT "Test 5 PASS  getMktDelta(1,1,2) = -2"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 5 FAIL  getMktDelta(1,1,2)"
+      PRINT "  expected=-2  actual="; delta
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMKT"
+    END
