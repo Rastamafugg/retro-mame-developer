@@ -63,6 +63,8 @@ TYPE AIProfile
     splitSellPct        : BYTE      ! pct of shares to sell at split threshold
     distressSellPrice   : BYTE      ! sell stock at or below this price
     zeroDivEligible     : BOOLEAN   ! allow zero-dividend stock purchases
+    useYieldScoring     : BOOLEAN   ! apply yield scoring to buy candidates
+                                    ! FALSE = all eligible stocks score equally
     useMargin           : BOOLEAN   ! allow margin purchases
     marginMaxExposure   : BYTE      ! max margin as pct of portfolio value
     marginBuffer        : BYTE      ! price points above MarginCallPrice required
@@ -86,6 +88,7 @@ TYPE AIProfile
 | `splitSellPct`       | 20   | 50     | 30   | Percent of shares sold at price >= 150   |
 | `distressSellPrice`  | 50   | 50     | 60   | Sell stock at or below this price        |
 | `zeroDivEligible`    | TRUE | TRUE   | FALSE| Hard excludes zero-dividend stocks       |
+| `useYieldScoring`    | FALSE| TRUE   | TRUE | Easy treats all stocks equally           |
 | `useMargin`          | FALSE| FALSE  | TRUE | Hard may purchase on margin              |
 | `marginMaxExposure`  | 0    | 0      | 30   | Percent; Hard caps margin at 30% of portfolio |
 | `marginBuffer`       | 0    | 0      | 30   | Hard requires price >= $55 for margin buy|
@@ -112,6 +115,9 @@ consistently underperform due to poor capital allocation.
 Key mistakes:
 - Puts up to 70% of available cash into the first eligible stock,
   leaving little for diversification.
+- Does not apply yield scoring (`useYieldScoring = FALSE`). All eligible
+  stocks are treated as equal candidates, processed in ascending stock
+  ID order.
 - Buys bonds after every turn regardless of stock availability
   (`bondPriority = TRUE`, `bondIdleCash = 1000`).
 - Holds distressed stocks until price reaches the dividend cutoff ($50),
@@ -262,7 +268,7 @@ price falls below $50).
 |----------------------------------|------------------|------------------|-----------------------|
 | Concentration cap                | 70% per stock    | 40% per stock    | 25% per stock         |
 | Zero-dividend stocks             | Eligible         | Eligible         | Ineligible (endgame+) |
-| Yield scoring                    | No (all equal)   | Yes              | Yes                   |
+| Yield scoring (`useYieldScoring`)| No (all equal)   | Yes              | Yes                   |
 | Margin purchases                 | Never            | Never            | Yes (with controls)   |
 | Margin repayment threshold       | 20% burden       | 10% burden       | 5% burden             |
 | Cash applied to repayment        | 25%              | 50%              | 75%                   |

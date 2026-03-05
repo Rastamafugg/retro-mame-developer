@@ -67,6 +67,7 @@ Parameters used in this document:
 | `bondIdleCash`       | INTEGER | Buy Step 5  | Minimum cash before bond purchase considered    |
 | `bondPriority`       | BOOLEAN | Buy Step 5  | Buy bonds even when stocks were purchased       |
 | `endgameYear`        | BYTE    | Sections 3–5| Year at which endgame overrides activate        |
+| `useYieldScoring`    | BOOLEAN | Buy Step 3  | Whether yield scoring is applied to candidates  |
 
 All fractional parameters (`concentrationCap`, `splitSellPct`,
 `marginReservePct`, `repayFraction`, `marginMaxExposure`) are stored as
@@ -99,10 +100,11 @@ bondIdleCashW    := aiProfile.bondIdleCash
 
 IF aiProfile.endgameYear > 0 THEN
     IF currentYear >= aiProfile.endgameYear THEN
-        splitSellPctW    := 70
+        ! Override values are defined in ai-difficulty-tiers.md Section 6.
+        splitSellPctW    := aiProfile.splitSellPct    ! endgame value from tiers
         zeroDivEligibleW := FALSE
-        repayFractionW   := 90
-        bondIdleCashW    := 5000
+        repayFractionW   := aiProfile.repayFraction   ! endgame value from tiers
+        bondIdleCashW    := aiProfile.bondIdleCash    ! endgame value from tiers
     ENDIF
 ENDIF
 
@@ -114,9 +116,9 @@ ENDIF
 ! bondPriority, marginClearYear.
 ```
 
-Endgame overrides only activate for Hard tier (`endgameYear = 7`).
-Easy and Medium have `endgameYear = 0`, so the override block is never
-entered.
+Endgame override values are defined in `ai-difficulty-tiers.md` Section 6.
+Easy and Medium have `endgameYear = 0` (see Section 4), so the override
+block is never entered.
 
 ---
 
@@ -156,15 +158,13 @@ FOR each stock i where sharesOwned[i] > 0:
             ENDIF
             ! splitSellPctW is the working copy of aiProfile.splitSellPct
             ! with endgame override applied if applicable.
-            ! Easy=20%, Medium=50%, Hard=30% normal / 70% endgame.
+            ! See ai-difficulty-tiers.md Sections 4 and 6.
 
     RULE 4 — Suspended dividend, price at or below distress threshold:
         ELSE IF dividendsSuspended[i] AND
                 currentPrice[i] <= aiProfile.distressSellPrice THEN
             SELL all shares[i]
-            ! distressSellPrice: Easy=50, Medium=50, Hard=60.
-            ! Hard exits before dividend suspension triggers ($50);
-            ! Easy and Medium hold until price drops below $50.
+            ! See ai-difficulty-tiers.md Section 4.
 
     RULE 5 — Default:
         ELSE
@@ -290,10 +290,9 @@ IF marginTotal > 0 THEN
 ENDIF
 ```
 
-`marginReservePct`: Easy=20, Medium=10, Hard=5. A lower threshold means
-repayment triggers sooner. `repayFractionW` (working copy of
-`repayFraction`) applies the endgame override: Hard uses 90% in endgame
-versus 75% in normal play.
+A lower `marginReservePct` means repayment triggers sooner. `repayFractionW`
+is the working copy of `aiProfile.repayFraction`, subject to endgame
+override. See `ai-difficulty-tiers.md` Sections 4 and 6.
 
 ### 5.2 Step 2 — Margin Eligibility
 
@@ -311,10 +310,8 @@ IF aiProfile.useMargin THEN
 ENDIF
 ```
 
-`useMargin = FALSE` for Easy and Medium; `marginAllowed` is always FALSE
-for those tiers regardless of year or prior purchases. Hard sets
-`useMargin = TRUE` but `marginClearYear = 8`, so no new margin purchases
-are made from Year 8 onward.
+Per-tier values for `useMargin` and `marginClearYear` are defined in
+`ai-difficulty-tiers.md` Section 4.
 
 ### 5.3 Step 3 — Stock Candidate Scoring
 
@@ -355,8 +352,7 @@ The score is multiplied by 1000 to keep all arithmetic in integers. Sort order i
 
 Easy AI (`tier = 1`) does not differentiate stocks by yield. All eligible
 stocks receive `score[i] := 0` regardless of `dividendPerShare`. Stocks
-are processed in ascending `stockId` order. This is not currently
-captured as an `AIProfile` field. See Section 7.1 for the known gap.
+are processed in ascending `stockId` order. Governed by `aiProfile.useYieldScoring`. See `ai-difficulty-tiers.md` Section 4.
 
 #### Scoring Reference — Stocks at Starting Price ($100)
 
@@ -408,9 +404,8 @@ FOR each candidate stock i in score-descending order:
 NEXT i
 ```
 
-`concentrationCap`: Easy=70, Medium=40, Hard=25. Easy puts up to 70%
-of available cash into its first candidate; Hard caps at 25%, forcing
-broader allocation across more candidates.
+Per-tier values for `concentrationCap` are defined in
+`ai-difficulty-tiers.md` Section 4.
 
 ### 5.5 Step 4b — Margin Stock Purchase Allocation
 
@@ -501,10 +496,9 @@ IF bondBuyAllowed THEN
 ENDIF
 ```
 
-`bondIdleCashW` uses the working copy; endgame overrides this to 5000
-for Hard (from 10000), preserving bond income in final years.
-`bondPriority = TRUE` for Easy only: Easy buys a bond on every turn it
-can afford one, regardless of whether stocks were purchased.
+`bondIdleCashW` is the working copy of `aiProfile.bondIdleCash`, subject
+to endgame override. `bondPriority = TRUE` for Easy only. Per-tier values
+are defined in `ai-difficulty-tiers.md` Sections 4 and 6.
 
 ---
 
@@ -530,7 +524,7 @@ in ascending `stockId` order for deterministic output.
 
 ## 7. Known Gaps
 
-### 7.1 Easy Tier Yield Scoring Not Parameterized
+### ~~7.1 Easy Tier Yield Scoring Not Parameterized~~ — RESOLVED
 
 Whether yield scoring is applied is not currently a field in `AIProfile`.
 Easy AI's "all stocks equal" behavior (Section 5.3) requires an inline
