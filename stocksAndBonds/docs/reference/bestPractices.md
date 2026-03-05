@@ -182,6 +182,13 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **`FOR` incrementer variable must be of type INTEGER** BYTE incrementer variables will cause a syntax error.
 
+  ```basic09
+  DIM i: INTEGER
+  FOR i := 1 TO 9
+    ! Logic here
+  NEXT i
+  ```
+
 ### File I/O
 
 * **Isolate file I/O in dedicated procedures.** This enables I/O-specific error handling and allows callers to fail gracefully on I/O errors.
