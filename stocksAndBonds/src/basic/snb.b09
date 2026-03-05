@@ -19,9 +19,9 @@ TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGE
 ! MktState: 9xINTEGER + 9xBOOLEAN = 27 bytes
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 
-! AIProfile: 10xBYTE + 1xINTEGER + 3xBOOLEAN = 15 bytes
+! AIProfile: 12xBYTE + 2xINTEGER + 4xBOOLEAN = 20 bytes
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr:BYTE;bondIdlCsh:INTEGER;zeroDivEl,useMargin,bondPriory:BOOLEAN
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
 
 ON ERROR GOTO 900
 END
@@ -105,31 +105,136 @@ END
     ERROR(ERR)
 END
 
-PROCEDURE TSTMKT
+PROCEDURE initAIProf
 (* ================================================= *)
-(* PROCEDURE: TSTMKT                                 *)
-(* PURPOSE  : Confirmation Test 1.3.                 *)
-(*            Calls initMkt and prints stckPrice and *)
-(*            divSuspnd for all 9 stocks.            *)
-(*            Expected output per stock:             *)
-(*              stckPrice=100 divSuspnd=FALSE        *)
+(* PROCEDURE: initAIProf                             *)
+(* PURPOSE  : Initialize an AIProfile record with   *)
+(*            tier-specific parameter values per     *)
+(*            ai-difficulty-tiers.md Section 4.      *)
+(*            Tier 1=Easy, 2=Medium, 3=Hard.         *)
+(*            Invalid tier jumps to error handler.   *)
+(* PARAMS   : tier - difficulty tier (1/2/3)         *)
+(*            prof - AIProfile to populate (by ref)  *)
+(* SIDE FX  : Modifies prof in place.                *)
+(* ================================================= *)
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+
+PARAM tNum: INTEGER
+PARAM prof: AIProfile
+
+ON ERROR GOTO 900
+
+IF tNum = 1 THEN \ ! Easy
+    prof.tier       := 1
+    prof.concenCap  := 70
+    prof.spltSlPct  := 20
+    prof.distSlPrc  := 50
+    prof.mgnMaxExpo := 0
+    prof.mgnBuffer  := 0
+    prof.mgnResvPct := 20
+    prof.repayFrac  := 25
+    prof.mgnClrYear := 9
+    prof.endgameYr  := 0
+    prof.spltSlPcE  := 20
+    prof.repayFrcE  := 25
+    prof.bondIdlCsh := 1000
+    prof.bndIdlCsE  := 1000
+    prof.zeroDivEl  := TRUE
+    prof.useYldScr  := FALSE
+    prof.useMargin  := FALSE
+    prof.bondPriory := TRUE
+ELSE IF tNum = 2 THEN \ ! Medium
+    prof.tier       := 2
+    prof.concenCap  := 40
+    prof.spltSlPct  := 50
+    prof.distSlPrc  := 50
+    prof.mgnMaxExpo := 0
+    prof.mgnBuffer  := 0
+    prof.mgnResvPct := 10
+    prof.repayFrac  := 50
+    prof.mgnClrYear := 9
+    prof.endgameYr  := 0
+    prof.spltSlPcE  := 50
+    prof.repayFrcE  := 50
+    prof.bondIdlCsh := 5000
+    prof.bndIdlCsE  := 5000
+    prof.zeroDivEl  := TRUE
+    prof.useYldScr  := TRUE
+    prof.useMargin  := FALSE
+    prof.bondPriory := FALSE
+ELSE IF tNum = 3 THEN \ ! Hard
+    prof.tier       := 3
+    prof.concenCap  := 25
+    prof.spltSlPct  := 30
+    prof.distSlPrc  := 60
+    prof.mgnMaxExpo := 30
+    prof.mgnBuffer  := 30
+    prof.mgnResvPct := 5
+    prof.repayFrac  := 75
+    prof.mgnClrYear := 8
+    prof.endgameYr  := 7
+    prof.spltSlPcE  := 70
+    prof.repayFrcE  := 90
+    prof.bondIdlCsh := 10000
+    prof.bndIdlCsE  := 5000
+    prof.zeroDivEl  := FALSE
+    prof.useYldScr  := TRUE
+    prof.useMargin  := TRUE
+    prof.bondPriory := FALSE
+ELSE
+    GOTO 900 \ ! Invalid tier; programming error
+ENDIF \ENDIF \ENDIF
+
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+PROCEDURE TSTAIPROF
+(* ================================================= *)
+(* PROCEDURE: TSTAIPROF                              *)
+(* PURPOSE  : Confirmation Test 1.4.                 *)
+(*            Calls initAIProf for tiers 1, 2, 3    *)
+(*            and prints all AIProfile fields.       *)
+(*            Verify each output column against      *)
+(*            ai-difficulty-tiers.md Section 4.      *)
 (* PARAMS   : None.                                  *)
 (* SIDE FX  : Writes to stdout.                      *)
 (* ================================================= *)
 
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
 
-DIM mkt: MktState
-DIM i:   INTEGER
+DIM prof: AIProfile
+DIM t:    INTEGER
 
 ON ERROR GOTO 900
 
-RUN initMkt(mkt)
-
-FOR i := 1 TO 9
-    PRINT "Stock "; i; ": stckPrice="; mkt.stckPrice(i);
-    PRINT " divSuspnd="; mkt.divSuspnd(i)
-NEXT i
+FOR t := 1 TO 3
+    RUN initAIProf(t, prof)
+    PRINT "--- Tier "; t; " ---"
+    PRINT "tier=";       prof.tier
+    PRINT "concenCap=";  prof.concenCap
+    PRINT "spltSlPct=";  prof.spltSlPct
+    PRINT "distSlPrc=";  prof.distSlPrc
+    PRINT "mgnMaxExpo="; prof.mgnMaxExpo
+    PRINT "mgnBuffer=";  prof.mgnBuffer
+    PRINT "mgnResvPct="; prof.mgnResvPct
+    PRINT "repayFrac=";  prof.repayFrac
+    PRINT "mgnClrYear="; prof.mgnClrYear
+    PRINT "endgameYr=";  prof.endgameYr
+    PRINT "spltSlPcE=";  prof.spltSlPcE
+    PRINT "repayFrcE=";  prof.repayFrcE
+    PRINT "bondIdlCsh="; prof.bondIdlCsh
+    PRINT "bndIdlCsE=";  prof.bndIdlCsE
+    PRINT "zeroDivEl=";  prof.zeroDivEl
+    PRINT "useYldScr=";  prof.useYldScr
+    PRINT "useMargin=";  prof.useMargin
+    PRINT "bondPriory="; prof.bondPriory
+NEXT t
 
 END
 
