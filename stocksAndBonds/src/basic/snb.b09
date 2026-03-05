@@ -356,6 +356,90 @@ DATA     2, 3,  1,  -8,  2,  -5,  7,  -7,  0,   0,  0
 900 ERROR(ERR)
 END
 
+PROCEDURE applyDivInt
+(* ============================================================ *)
+(* PROCEDURE : applyDivInt                                      *)
+(* PURPOSE   : Apply stock dividends and bond interest to all  *)
+(*             active players for one year (spec Section 8).   *)
+(*             Skips suspended-dividend stocks. Skips bankrupt  *)
+(*             players. No-ops for Year 1 and Year 10.         *)
+(* PARAMS    : currYear - current game year (1..10)            *)
+(*             plyrCnt  - number of active players (1..6)      *)
+(*             plyrs    - player record array (modified)        *)
+(*             mkt      - market state; divSuspnd flags read    *)
+(* SIDE EFX  : Modifies plyrs(p).cashBal for each active,      *)
+(*             non-bankrupt player. Repositions DATA pointer.  *)
+(* NOTE      : Card dividend bonus (Card 1) is NOT applied     *)
+(*             here. That is handled during card resolution.   *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM currYear : INTEGER
+PARAM plyrCnt  : INTEGER
+PARAM plyrs(6) : PlyrRec
+PARAM mkt      : MktState
+DIM divRate(9) : INTEGER
+DIM bndInt(3)  : INTEGER
+DIM p          : INTEGER
+DIM s          : INTEGER
+DIM b          : INTEGER
+
+ON ERROR GOTO 900
+
+! Guard: caller should not invoke in Year 1 or 10 per spec
+! Section 6, but procedure is safe if called anyway.
+IF currYear = 1 OR currYear = 10 THEN
+  END
+ENDIF
+
+! Load per-stock dividend rates once before player loop.
+RESTORE 100
+FOR s := 1 TO 9
+  READ divRate(s)
+NEXT s
+
+! Load per-bond interest rates once before player loop.
+RESTORE 200
+FOR b := 1 TO 3
+  READ bndInt(b)
+NEXT b
+
+FOR p := 1 TO plyrCnt
+  IF NOT plyrs(p).isBankrupt THEN
+
+    ! Stock dividends: skip suspended stocks and zero-yield stocks.
+    FOR s := 1 TO 9
+      IF NOT mkt.divSuspnd(s) THEN
+        IF divRate(s) > 0 THEN
+          plyrs(p).cashBal := plyrs(p).cashBal + (divRate(s) * plyrs(p).stckShrs(s))
+        ENDIF
+      ENDIF
+    NEXT s
+
+    ! Bond interest: all denominations held earn fixed annual interest.
+    FOR b := 1 TO 3
+      IF plyrs(p).bondUnts(b) > 0 THEN
+        plyrs(p).cashBal := plyrs(p).cashBal + (bndInt(b) * plyrs(p).bondUnts(b))
+      ENDIF
+    NEXT b
+
+  ENDIF
+NEXT p
+
+END
+
+! Dividend per share for stocks 1..9 (spec Section 2.1)
+! GrwCorp Metro Pioneer Shady Stryker TriCity UAuto Uranium ValleyP
+100 DATA 1, 0, 4, 7, 0, 0, 2, 6, 3
+
+! Annual interest per bond unit for bonds 1..3 (spec Section 2.2)
+! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
+200 DATA 50, 250, 500
+
+900 ERROR(ERR)
+END
+
 PROCEDURE TSTMKT
 (* ============================================================ *)
 (* PROCEDURE : TSTMKT                                           *)
@@ -692,4 +776,134 @@ END
     RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTCARD"
+    END
+
+PROCEDURE TSTDIVINT
+(* ============================================================ *)
+(* PROCEDURE : TSTDIVINT                                        *)
+(* PURPOSE   : Confirmation tests for applyDivInt (Task 3.1).  *)
+(*             Five tests covering: spec confirmation case,     *)
+(*             Year 1 guard, Year 10 guard, bankrupt player     *)
+(*             skip, and suspended dividend stock.              *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyrs(6) : PlyrRec
+DIM mkt      : MktState
+DIM passed   : INTEGER
+DIM failed   : INTEGER
+DIM p        : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! Initialize all six player slots to prevent garbage reads.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+NEXT p
+RUN initMkt(mkt)
+
+! ---- Test 1: spec confirmation case -------------------------
+! Year 2, 100 shares Shady Brooks (stock 4, $7/share),
+! 1 medium bond ($250 interest). Expected: 5000+700+250=5950.
+plyrs(1).stckShrs(4) := 100
+plyrs(1).bondUnts(2) := 1
+RUN applyDivInt(2, 1, plyrs, mkt)
+GOSUB 100
+
+! ---- Test 2: Year 1 guard -----------------------------------
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+plyrs(1).stckShrs(4) := 100
+plyrs(1).bondUnts(2) := 1
+RUN applyDivInt(1, 1, plyrs, mkt)
+GOSUB 200
+
+! ---- Test 3: Year 10 guard ----------------------------------
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+plyrs(1).stckShrs(4) := 100
+plyrs(1).bondUnts(2) := 1
+RUN applyDivInt(10, 1, plyrs, mkt)
+GOSUB 300
+
+! ---- Test 4: bankrupt player skipped -----------------------
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+plyrs(1).stckShrs(4) := 100
+plyrs(1).bondUnts(2) := 1
+plyrs(1).isBankrupt  := TRUE
+RUN applyDivInt(2, 1, plyrs, mkt)
+GOSUB 400
+
+! ---- Test 5: suspended dividend — bond interest only --------
+! Shady Brooks suspended; only medium bond interest applies.
+! Expected: 5000 + 250 = 5250.
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+plyrs(1).stckShrs(4) := 100
+plyrs(1).bondUnts(2) := 1
+mkt.divSuspnd(4)     := TRUE
+RUN applyDivInt(2, 1, plyrs, mkt)
+GOSUB 500
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1: 100 Shady + 1 med bond, Year 2 → 5950
+    IF plyrs(1).cashBal = 5950 THEN
+      PRINT "Test 1 PASS  Year2 100xShady+1med bond cashBal=5950"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  exp=5950 got="; plyrs(1).cashBal
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test 2: Year 1 guard → cashBal unchanged
+    IF plyrs(1).cashBal = 5000 THEN
+      PRINT "Test 2 PASS  Year1 guard cashBal unchanged=5000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  exp=5000 got="; plyrs(1).cashBal
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+300 ! Test 3: Year 10 guard → cashBal unchanged
+    IF plyrs(1).cashBal = 5000 THEN
+      PRINT "Test 3 PASS  Year10 guard cashBal unchanged=5000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  exp=5000 got="; plyrs(1).cashBal
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+400 ! Test 4: bankrupt player → cashBal unchanged
+    IF plyrs(1).cashBal = 5000 THEN
+      PRINT "Test 4 PASS  bankrupt player skipped cashBal=5000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 4 FAIL  exp=5000 got="; plyrs(1).cashBal
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+500 ! Test 5: Shady suspended → bond interest only → 5250
+    IF plyrs(1).cashBal = 5250 THEN
+      PRINT "Test 5 PASS  suspended div bond-only cashBal=5250"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 5 FAIL  exp=5250 got="; plyrs(1).cashBal
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTDIVINT"
     END
