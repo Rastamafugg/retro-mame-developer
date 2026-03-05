@@ -101,10 +101,10 @@ bondIdleCashW    := aiProfile.bondIdleCash
 IF aiProfile.endgameYear > 0 THEN
     IF currentYear >= aiProfile.endgameYear THEN
         ! Override values are defined in ai-difficulty-tiers.md Section 6.
-        splitSellPctW    := aiProfile.splitSellPct    ! endgame value from tiers
+        splitSellPctW    := aiProfile.splitSellPctEnd    ! endgame value from tiers
         zeroDivEligibleW := FALSE
-        repayFractionW   := aiProfile.repayFraction   ! endgame value from tiers
-        bondIdleCashW    := aiProfile.bondIdleCash    ! endgame value from tiers
+        repayFractionW   := aiProfile.repayFractionEnd   ! endgame value from tiers
+        bondIdleCashW    := aiProfile.bondIdleCashEnd    ! endgame value from tiers
     ENDIF
 ENDIF
 
@@ -526,20 +526,10 @@ in ascending `stockId` order for deterministic output.
 
 ### ~~7.1 Easy Tier Yield Scoring Not Parameterized~~ — RESOLVED
 
-Whether yield scoring is applied is not currently a field in `AIProfile`.
-Easy AI's "all stocks equal" behavior (Section 5.3) requires an inline
-tier check rather than a profile parameter. A `useYieldScoring : BOOLEAN`
-field should be added to the `AIProfile` TYPE in `ai-difficulty-tiers.md`
-with the following values:
-
-| Tier   | `useYieldScoring` |
-|--------|-------------------|
-| Easy   | FALSE             |
-| Medium | TRUE              |
-| Hard   | TRUE              |
-
-Until that field is added, procedures must check `aiProfile.tier = 1`
-directly when deciding whether to apply yield scoring.
+`useYieldScoring : BOOLEAN` added to `AIProfile` TYPE and Section 4
+values table in `ai-difficulty-tiers.md`. Section 5.3 updated to
+reference `aiProfile.useYieldScoring`. Section 5.1 Easy behavioral
+note updated.
 
 ### 7.2 Zero-Dividend Stock Volatility Scoring
 

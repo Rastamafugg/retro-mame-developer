@@ -75,6 +75,9 @@ TYPE AIProfile
     bondPriority        : BOOLEAN   ! buy bonds even when stocks were purchased
     endgameYear         : BYTE      ! year at which late-game behavior activates
                                     ! 0 = no endgame mode
+    splitSellPctEnd     : BYTE      ! endgame override for splitSellPct
+    repayFractionEnd    : BYTE      ! endgame override for repayFraction
+    bondIdleCashEnd     : INTEGER   ! endgame override for bondIdleCash
 ```
 
 ---
@@ -98,6 +101,9 @@ TYPE AIProfile
 | `bondIdleCash`       | 1000 | 5000   | 10000| Min cash before bond considered          |
 | `bondPriority`       | TRUE | FALSE  | FALSE| Easy buys bonds even if stocks purchased |
 | `endgameYear`        | 0    | 0      | 7    | Easy/Medium have no endgame mode         |
+| `splitSellPctEnd`    | 20   | 50     | 70   | Easy/Medium match base; never activated |
+| `repayFractionEnd`   | 25   | 50     | 90   | Easy/Medium match base; never activated |
+| `bondIdleCashEnd`    | 1000 | 5000   | 5000 | Easy/Medium match base; never activated |
 
 ---
 
@@ -169,10 +175,10 @@ remainder of the game.
 ! Endgame overrides applied when currentYear >= aiProfile.endgameYear
 ! and aiProfile.tier = 3
 
-splitSellPct      := 70    ! Sell aggressively before split; lock in gains
-zeroDivEligible   := FALSE ! Stop all speculative zero-dividend purchases
-repayFraction     := 90    ! Clear margin as fast as possible
-bondIdleCash      := 5000  ! Resume normal bond threshold (endgame cash matters)
+splitSellPctW    := aiProfile.splitSellPctEnd  ! Sell aggressively before split; lock in gains
+zeroDivEligibleW := FALSE                      ! Stop all speculative zero-dividend purchases
+repayFractionW   := aiProfile.repayFractionEnd ! Clear margin as fast as possible
+bondIdleCashW    := aiProfile.bondIdleCashEnd  ! Resume normal bond threshold (endgame cash matters)
 ```
 
 Rationale per override:
@@ -308,6 +314,6 @@ tier values throughout the game.
 ### Memory Budget
 
 One AIProfile record per computer-controlled player. With up to 6
-players and a TYPE of approximately 15 bytes, total AIProfile storage
+players and a TYPE of approximately 19 bytes, total AIProfile storage
 is under 90 bytes. This is negligible within the 32KB variable memory
 budget (spec Section 15).
