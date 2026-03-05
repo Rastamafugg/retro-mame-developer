@@ -75,36 +75,60 @@ END
     ERROR(ERR)
 END
 
-PROCEDURE TSTINIT
+PROCEDURE initMkt
 (* ================================================= *)
-(* PROCEDURE: TSTINIT                               *)
-(* PURPOSE  : Confirmation Test 1.2.                *)
-(*            Calls initPlayer for slots 1-6.       *)
-(*            Prints cashBal, marginTot, isBankrupt  *)
-(*            for each slot.                         *)
-(*            Expected output per slot:             *)
-(*              cashBal=5000 marginTot=0            *)
-(*              isBankrupt=FALSE                    *)
-(* PARAMS   : None.                                 *)
-(* SIDE FX  : Writes to stdout.                     *)
+(* PROCEDURE: initMkt                                *)
+(* PURPOSE  : Initialize MktState to game-start     *)
+(*            values per spec Section 2.1.           *)
+(*            All stckPrice set to StockStartPrice   *)
+(*            (100). All divSuspnd set to FALSE.     *)
+(* PARAMS   : mkt - MktState to initialize (by ref) *)
+(* SIDE FX  : Modifies mkt in place.                 *)
 (* ================================================= *)
 
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 
-DIM plyrs(6): PlyrRec
+PARAM mkt: MktState
+
 DIM i: INTEGER
 
 ON ERROR GOTO 900
 
-FOR i := 1 TO 6
-    RUN initPlayer(plyrs(i))
+FOR i := 1 TO 9
+    mkt.stckPrice(i) := 100
+    mkt.divSuspnd(i) := FALSE
 NEXT i
 
-FOR i := 1 TO 6
-    PRINT "Slot "; i; ": cashBal="; plyrs(i).cashBal;
-    PRINT " marginTot="; plyrs(i).marginTot;
-    PRINT " isBankrupt="; plyrs(i).isBankrupt
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+PROCEDURE TSTMKT
+(* ================================================= *)
+(* PROCEDURE: TSTMKT                                 *)
+(* PURPOSE  : Confirmation Test 1.3.                 *)
+(*            Calls initMkt and prints stckPrice and *)
+(*            divSuspnd for all 9 stocks.            *)
+(*            Expected output per stock:             *)
+(*              stckPrice=100 divSuspnd=FALSE        *)
+(* PARAMS   : None.                                  *)
+(* SIDE FX  : Writes to stdout.                      *)
+(* ================================================= *)
+
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+DIM mkt: MktState
+DIM i:   INTEGER
+
+ON ERROR GOTO 900
+
+RUN initMkt(mkt)
+
+FOR i := 1 TO 9
+    PRINT "Stock "; i; ": stckPrice="; mkt.stckPrice(i);
+    PRINT " divSuspnd="; mkt.divSuspnd(i)
 NEXT i
 
 END
