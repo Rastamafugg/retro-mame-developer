@@ -174,9 +174,11 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **Never use a reserved word (see table above) as a variable name, TYPE attribute name, array name, or procedure name.**
 
-### Variables and Data Types
+### Parameters, Variables, and Types
 
 * **Variable, Param, and Type Attribute names must be unique within a Procedure** It is a syntax error when a variable or parameter shares the same name as a type attribute.
+
+* **Calling and Called Parameters must match data type** For example, if the calling procedure is passing an INTEGER, the called procedure must expect an INTEGER. BYTE PARAMs must never receive integer literals from a caller. Use INTEGER PARAMs for any value that callers will pass as a literal. Reserve BYTE for TYPE record fields and BYTE arrays only.
 
 * **Declare `STRING` variables with an explicit length when the default is insufficient.** Without a length specifier, `STRING` defaults to 32 characters. Use `DIM name:STRING[40]` to declare a longer string.
 
