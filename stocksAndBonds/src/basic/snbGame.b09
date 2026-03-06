@@ -1,0 +1,82 @@
+PROCEDURE clrScr
+(* ================================================== *)
+(* PROCEDURE: clrScr                                  *)
+(* PURPOSE:   Clear the terminal screen via path 1.  *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Sends ASCII form-feed (12) to path 1.  *)
+(*            Cursor moves to top-left of terminal.  *)
+(* ================================================== *)
+DIM clsChar:BYTE
+
+ON ERROR GOTO 900
+
+clsChar := 12 \ ! ASCII form-feed clears terminal screen
+PUT #1, clsChar
+END
+
+900 \ ! Error handler
+PRINT "clrScr error ("; ERR; ")"
+END
+
+PROCEDURE printAt
+(* ================================================== *)
+(* PROCEDURE: printAt                                 *)
+(* PURPOSE:   Position cursor and print text.        *)
+(* PARAMS:    row - target row offset (0-based)      *)
+(*            col - target column (1-based, per TAB) *)
+(*            txt - text to display                  *)
+(* EFFECTS:   Prints row newlines then TAB to col.   *)
+(*            Intended for use after clrScr.         *)
+(* NOTE:      row/col are INTEGER per bestPractices; *)
+(*            callers pass integer literals.         *)
+(* ================================================== *)
+PARAM row, col:INTEGER
+PARAM txt:STRING
+
+DIM r:INTEGER
+
+ON ERROR GOTO 900
+
+FOR r := 1 TO row
+  PRINT
+NEXT r
+PRINT TAB(col); txt
+END
+
+900 \ ! Error handler
+PRINT "printAt error ("; ERR; ")"
+END
+
+PROCEDURE TSTDISP
+(* ================================================== *)
+(* PROCEDURE: TSTDISP                                *)
+(* PURPOSE:   Confirmation test for Task 6.1.        *)
+(*            Verifies clrScr and printAt.           *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM anyKey:STRING[1]
+
+ON ERROR GOTO 900
+
+! --- Test 1: clrScr ---
+RUN clrScr
+PRINT "clrScr called. Verify terminal cleared."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+
+! --- Test 2: printAt ---
+RUN clrScr
+RUN printAt(5, 10, "TEST")
+PRINT
+PRINT "printAt(5, 10, TEST) called."
+PRINT "Verify TEST appears at row 5, column 10."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+
+RUN clrScr
+PRINT "Task 6.1 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testDisp error ("; ERR; ")"
+END
