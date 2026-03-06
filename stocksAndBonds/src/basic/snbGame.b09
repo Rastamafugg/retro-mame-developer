@@ -106,6 +106,45 @@ END
 PRINT "waitKey error ("; ERR; ")"
 END
 
+PROCEDURE getMenuKey
+(* ================================================== *)
+(* PROCEDURE: getMenuKey                              *)
+(* PURPOSE:   Block until a key in [minKey,maxKey]   *)
+(*            is pressed. Returns its numeric value. *)
+(* PARAMS:    minKey - lowest valid choice (INTEGER) *)
+(*            maxKey - highest valid choice (INTEGER)*)
+(*            choice - receives validated value      *)
+(* EFFECTS:   Reads path 0 raw. Invalid keys are    *)
+(*            silently discarded (no echo).          *)
+(* NOTE:      minKey/maxKey are INTEGER per          *)
+(*            bestPractices; callers pass literals.  *)
+(* ================================================== *)
+PARAM minKey, maxKey, choice:INTEGER
+
+DIM k:STRING[1]
+DIM kVal:INTEGER
+
+ON ERROR GOTO 900
+
+k    := ""
+kVal := 0
+
+REPEAT
+  GET #0, k
+  IF k >= "1" AND k <= "9" THEN \ ! guard: digits only, skip VAL on other input
+    kVal := VAL(k)
+  ELSE
+    kVal := 0 \ ! non-digit: force fail, loop continues silently
+  ENDIF
+UNTIL kVal >= minKey AND kVal <= maxKey
+
+choice := kVal
+END
+
+900 \ ! Error handler
+PRINT "getMenuKey error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -204,4 +243,42 @@ END
 
 900 \ ! Error handler
 PRINT "testWaitK error ("; ERR; ")"
+END
+
+PROCEDURE TSTGMK
+(* ================================================== *)
+(* PROCEDURE: TSTGMK                                 *)
+(* PURPOSE:   Confirmation test for Task 6.4.        *)
+(*            Verifies getMenuKey range enforcement. *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM choice:INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "--- testGMK: getMenuKey ---"
+PRINT
+
+PRINT "Test 1: range 1-3."
+PRINT "Press '5' - verify no response."
+PRINT "Then press '2' - verify returns immediately."
+PRINT
+RUN getMenuKey(1, 3, choice)
+PRINT "choice = "; choice
+PRINT "Expected: 2"
+PRINT
+
+PRINT "Test 2: range 1-4."
+PRINT "Press any invalid key, then press '4'."
+PRINT
+RUN getMenuKey(1, 4, choice)
+PRINT "choice = "; choice
+PRINT "Expected: 4"
+PRINT
+
+PRINT "Task 6.4 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testGMK error ("; ERR; ")"
 END
