@@ -611,7 +611,7 @@ Example:
 
 PACK causes an extra compiler pass on the procedure(s) specified which removes names, line numbers, non-executable statements, etc. The result is a smaller, faster procedure(s) that CANNOT be edited or debugged but can be executed by Basic09 or by the Basic09 run-time-only program called "RunB". If a pathlist is not given, the name of the first procedure in the list will be used as a default pathname. The procedure is written to the file/device specified in OS-9 memory module format suitable for loading in ROM or RAM OUTSIDE the workspace. THE RESULTING FILE CANNOT BE LOADED INTO THE WORKSPACE LATER ON, so you should always perform a regular SAVE before PACKing a procedure!
 
-Basic09 will automatically load the éacked procedure when you try to run it later on. Here is an example sequence that demonstrates packing a procedure:
+Basic09 will automatically load the packed procedure when you try to run it later on. Here is an example sequence that demonstrates packing a procedure:
 
 | Example   | Description                                 |
 |-----------|---------------------------------------------|
