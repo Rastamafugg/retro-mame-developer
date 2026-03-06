@@ -1036,3 +1036,96 @@ RETURN
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTDRWCRD
+(* ============================================================ *)
+(* PROCEDURE : TSTDRWCRD                                      *)
+(* PURPOSE   : Confirmation test for Task 4.2.                 *)
+(*             Verifies: all 36 cards drawn exactly once,       *)
+(*             draw 37 triggers reshuffle and resets deckPos,   *)
+(*             card drawn after reshuffle is valid (1..36).     *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Advances RND sequence. Output to stdout.        *)
+(* ============================================================ *)
+DIM deckOrd(36) : BYTE
+DIM chkArr(36)  : BYTE
+DIM deckPos     : BYTE
+DIM cardId      : INTEGER
+DIM i           : INTEGER
+DIM errCnt      : INTEGER
+DIM rSeed       : REAL
+
+ON ERROR GOTO 900
+
+! Seed RNG from current seconds; +1 ensures non-zero seed.
+rSeed := RND(-(VAL(MID$(DATE$, 16, 2)) + 1))
+
+PRINT "=== tstDrawCard ==="
+PRINT
+
+! --- Part 1: load a known sequential deck, draw all 36 ---
+! Bypass shuffleDeck to get a predictable order for boundary test.
+PRINT "Part 1: draw all 36 from sequential deck."
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+deckPos := 1
+
+FOR i := 1 TO 36
+  chkArr(i) := 0
+NEXT i
+
+FOR i := 1 TO 36
+  RUN drawCard(deckOrd, deckPos, cardId)
+  IF cardId >= 1 AND cardId <= 36 THEN
+    chkArr(cardId) := chkArr(cardId) + 1
+  ELSE
+    PRINT "  ERROR: draw "; i; " returned out-of-range cardId="; cardId
+  ENDIF
+NEXT i
+
+errCnt := 0
+FOR i := 1 TO 36
+  IF chkArr(i) <> 1 THEN
+    PRINT "  ERROR: card "; i; " count="; chkArr(i)
+    errCnt := errCnt + 1
+  ENDIF
+NEXT i
+IF errCnt = 0 THEN
+  PRINT "  PASS: all 36 cards drawn exactly once."
+ELSE
+  PRINT "  FAIL: "; errCnt; " error(s) in draw pass."
+ENDIF
+PRINT
+
+! --- Part 2: verify state after draw 36 ---
+! After drawing card 36, drawCard increments deckPos to 37,
+! triggers reshuffle, and resets deckPos to 1.
+PRINT "Part 2: verify deckPos reset after draw 36."
+IF deckPos = 1 THEN
+  PRINT "  PASS: deckPos = 1 after reshuffle."
+ELSE
+  PRINT "  FAIL: deckPos = "; deckPos; " (expected 1)."
+ENDIF
+PRINT
+
+! --- Part 3: draw 37th card from reshuffled deck ---
+PRINT "Part 3: draw card 37 (first from reshuffled deck)."
+RUN drawCard(deckOrd, deckPos, cardId)
+IF cardId >= 1 AND cardId <= 36 THEN
+  PRINT "  PASS: cardId="; cardId; " is valid (1..36)."
+ELSE
+  PRINT "  FAIL: cardId="; cardId; " is out of range."
+ENDIF
+IF deckPos = 2 THEN
+  PRINT "  PASS: deckPos advanced to 2."
+ELSE
+  PRINT "  FAIL: deckPos = "; deckPos; " (expected 2)."
+ENDIF
+PRINT
+
+PRINT "=== tstDrawCard complete ==="
+END
+
+900 ERROR(ERR)
+END
