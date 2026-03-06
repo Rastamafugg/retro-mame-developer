@@ -247,6 +247,76 @@ END
 PRINT "scrSetup error ("; ERR; ")"
 END
 
+PROCEDURE scrConfirm
+(* ================================================== *)
+(* PROCEDURE: scrConfirm                              *)
+(* PURPOSE:   Display S7 setup confirmation screen.  *)
+(*            Show setup summary. Return player      *)
+(*            choice to proceed or go back.          *)
+(* PARAMS:    plyrCount  - number of players (1-6)   *)
+(*            plyrType   - type per player            *)
+(*                         1=Human  2=Computer       *)
+(*            plyrName   - name per player            *)
+(*            rollMode   - market roll mode           *)
+(*                         1=A  2=B  3=C             *)
+(*            action     - receives selection:        *)
+(*                         1=Confirm  2=Back         *)
+(* NOTES:     plyrType is INTEGER array matching     *)
+(*            scrSetup output. Callers copy to       *)
+(*            PlyrRec.plyrType (BYTE) on confirm.    *)
+(* ================================================== *)
+PARAM plyrCount:INTEGER
+PARAM plyrType(6):INTEGER
+PARAM plyrName(6):STRING[20]
+PARAM rollMode:INTEGER
+PARAM action:INTEGER
+
+DIM i:INTEGER
+DIM modeLabel:STRING[1]
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  CONFIRM SETUP"
+PRINT "  ============="
+PRINT
+
+FOR i := 1 TO plyrCount
+  PRINT "  Player "; i; ":  "; plyrName(i); "  ";
+  IF plyrType(i) = 1 THEN
+    PRINT "(Human)"
+  ELSE
+    PRINT "(Computer)"
+  ENDIF
+NEXT i
+
+PRINT
+
+IF rollMode = 1 THEN
+  modeLabel := "A"
+ELSE IF rollMode = 2 THEN
+  modeLabel := "B"
+ELSE
+  modeLabel := "C"
+ENDIF \ENDIF
+
+PRINT "  Roll Mode:  "; modeLabel
+PRINT
+PRINT "  1. Confirm"
+PRINT "  2. Back"
+PRINT
+PRINT "  Select (1-2): ";
+
+RUN getMenuKey(1, 2, action)
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "scrConfirm error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -484,4 +554,59 @@ END
 
 900 \ ! Error handler
 PRINT "testScrSu error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRCF
+(* ================================================== *)
+(* PROCEDURE: TSTSCRCF                               *)
+(* PURPOSE:   Confirmation test for Task 7.3.        *)
+(*            Verifies scrConfirm display and return. *)
+(* TEST 1:    Pre-set Task 7.2 values. Press 2.      *)
+(*            Verify action = 2 (Back).              *)
+(* TEST 2:    Change plyrName(2)/plyrType(2). Press 1*)
+(*            Verify action = 1 (Confirm).           *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM plyrCount:INTEGER
+DIM plyrType(6):INTEGER
+DIM plyrName(6):STRING[20]
+DIM rollMode:INTEGER
+DIM action:INTEGER
+
+ON ERROR GOTO 900
+
+! --- Pre-set Task 7.2 values ---
+plyrCount  := 2
+plyrName(1) := "ALICE"
+plyrType(1) := 1
+plyrName(2) := "BOT"
+plyrType(2) := 2
+rollMode   := 2
+
+! --- Test 1: press 2 (Back) ---
+PRINT "testScrCf Test 1:"
+PRINT "Verify summary shows ALICE/Human, BOT/Computer, Mode B."
+PRINT "Press 2 for Back."
+PRINT
+RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
+PRINT "action = "; action; "  (expected 2)"
+PRINT
+
+! --- Test 2: update player 2, press 1 (Confirm) ---
+plyrName(2) := "CAROL"
+plyrType(2) := 1
+
+PRINT "testScrCf Test 2:"
+PRINT "Verify summary now shows CAROL/Human for player 2."
+PRINT "Press 1 for Confirm."
+PRINT
+RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
+PRINT "action = "; action; "  (expected 1)"
+PRINT
+
+PRINT "Task 7.3 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrCf error ("; ERR; ")"
 END
