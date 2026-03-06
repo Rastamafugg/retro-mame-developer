@@ -1932,7 +1932,7 @@ If the parameter is the name of a variable, array, or data structure it is passe
 
 *Calling External Procedures*
 
-If the procedure named by the RURN statement can't be found in the workspace, Basic09 will check to see if it was loaded by OS-9 outside the workspace. If it isn't found there, Basic09 will try to find a disk file having the same name in the current execution directory, load it, and run it. In either case, Basic09 checks to see if the called procedure is a Basic09 I-code module or a 6809 machine language module and executes it accordingly. If it is a 6809 machine language module, Basic09 executes a JSR instruction to its entry point and the module is executed as 6809 native code. The machine language routine can return to the original calling procedure by executing an RTS instruction. The diagram on the next page shows what the stack frame passed to machine-language subroutines looks like.
+If the procedure named by the RUN statement can't be found in the workspace, Basic09 will check to see if it was loaded by OS-9 outside the workspace. If it isn't found there, Basic09 will try to find a disk file having the same name in the current execution directory, load it, and run it. In either case, Basic09 checks to see if the called procedure is a Basic09 I-code module or a 6809 machine language module and executes it accordingly. If it is a 6809 machine language module, Basic09 executes a JSR instruction to its entry point and the module is executed as 6809 native code. The machine language routine can return to the original calling procedure by executing an RTS instruction. The diagram on the next page shows what the stack frame passed to machine-language subroutines looks like.
 
 After an external procedure has been called but is no longer needed, the KILL statement should be used to get rid of it so its memory space can be used for other purposes.
 
@@ -3046,7 +3046,7 @@ The subexpression "SQRT(100)/2" consists of constants only, so its result will n
 
 ### FAST INPUT AND OUTPUT FUNCTIONS
 
-Reading or writing data a line or record at a time is much faster than one character at a time. Also, the GET and PUT statements are much faster than READ and WRITE statements when dealing with disk files. This is because GET and POUT use the exact binary format used internally by Basic09. READ, WRITE, PRINT, and INPUT must perform binary-to-ASCII or ASCII-to-binary conversions which take time.
+Reading or writing data a line or record at a time is much faster than one character at a time. Also, the GET and PUT statements are much faster than READ and WRITE statements when dealing with disk files. This is because GET and PUT use the exact binary format used internally by Basic09. READ, WRITE, PRINT, and INPUT must perform binary-to-ASCII or ASCII-to-binary conversions which take time.
 
 ### PROFESSIONAL PROGRAMMING TECHNIQUES
 
