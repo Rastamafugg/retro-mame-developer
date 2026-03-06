@@ -1990,3 +1990,373 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTDISP
+(* ================================================== *)
+(* PROCEDURE: TSTDISP                                *)
+(* PURPOSE:   Confirmation test for Task 6.1.        *)
+(*            Verifies clrScr and printAt.           *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM anyKey:STRING[1]
+
+ON ERROR GOTO 900
+
+! --- Test 1: clrScr ---
+RUN clrScr
+PRINT "clrScr called. Verify terminal cleared."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+
+! --- Test 2: printAt ---
+RUN clrScr
+RUN printAt(5, 10, "TEST")
+PRINT
+PRINT "printAt(5, 10, TEST) called."
+PRINT "Verify TEST appears at row 5, column 10."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+
+RUN clrScr
+PRINT "Task 6.1 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testDisp error ("; ERR; ")"
+END
+
+PROCEDURE TSTFMTM
+(* ================================================== *)
+(* PROCEDURE: TSTFMTM                                *)
+(* PURPOSE:   Confirmation test for Task 6.2.        *)
+(*            Verifies fmtMoney against spec cases.  *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM result:STRING[8]
+DIM anyKey:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "--- testFmtM: fmtMoney ---"
+PRINT
+
+RUN fmtMoney(5000, result)
+PRINT "fmtMoney(5000)  -> '"; result; "'"
+PRINT "  expected      -> '   5000'"
+
+RUN fmtMoney(0, result)
+PRINT "fmtMoney(0)     -> '"; result; "'"
+PRINT "  expected      -> '      0'"
+
+RUN fmtMoney(-200, result)
+PRINT "fmtMoney(-200)  -> '"; result; "'"
+PRINT "  expected      -> '   -200'"
+
+RUN fmtMoney(32767, result)
+PRINT "fmtMoney(32767) -> '"; result; "'"
+PRINT "  expected      -> '  32767'"
+
+PRINT
+PRINT "Verify each result matches expected exactly."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "testFmtM error ("; ERR; ")"
+END
+
+PROCEDURE TSTWAITK
+(* ================================================== *)
+(* PROCEDURE: TSTWAITK                               *)
+(* PURPOSE:   Confirmation test for Task 6.3.        *)
+(*            Verifies waitKey prompt and unblocking. *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+ON ERROR GOTO 900
+
+PRINT "--- testWaitK: waitKey ---"
+PRINT
+PRINT "Calling waitKey. Verify prompt appears below."
+PRINT "Then press any key. Verify execution resumes."
+PRINT
+
+RUN waitKey
+
+PRINT "Execution resumed. Task 6.3 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testWaitK error ("; ERR; ")"
+END
+
+PROCEDURE TSTGMK
+(* ================================================== *)
+(* PROCEDURE: TSTGMK                                 *)
+(* PURPOSE:   Confirmation test for Task 6.4.        *)
+(*            Verifies getMenuKey range enforcement. *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM choice:INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "--- testGMK: getMenuKey ---"
+PRINT
+
+PRINT "Test 1: range 1-3."
+PRINT "Press '5' - verify no response."
+PRINT "Then press '2' - verify returns immediately."
+PRINT
+RUN getMenuKey(1, 3, choice)
+PRINT "choice = "; choice
+PRINT "Expected: 2"
+PRINT
+
+PRINT "Test 2: range 1-4."
+PRINT "Press any invalid key, then press '4'."
+PRINT
+RUN getMenuKey(1, 4, choice)
+PRINT "choice = "; choice
+PRINT "Expected: 4"
+PRINT
+
+PRINT "Task 6.4 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testGMK error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRST
+(* ================================================== *)
+(* PROCEDURE: TSTSCRST                               *)
+(* PURPOSE:   Confirmation test for Task 7.1.        *)
+(*            Verifies scrStart display and return.  *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM action:INTEGER
+
+ON ERROR GOTO 900
+
+! --- Test 1: press 1, verify action = 1 ---
+PRINT "testScrSt: press 1 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 1"
+PRINT
+
+! --- Test 2: press 2, verify action = 2 ---
+PRINT "testScrSt: press 2 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 2"
+PRINT
+
+! --- Test 3: press 3, verify action = 3 ---
+PRINT "testScrSt: press 3 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 3"
+PRINT
+
+! --- Test 4: invalid then valid key ---
+PRINT "testScrSt: press an invalid key then press 1."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 1"
+PRINT
+
+PRINT "Task 7.1 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrSt error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRSET
+(* ================================================== *)
+(* PROCEDURE: TSTSCRSET                               *)
+(* PURPOSE:   Confirmation test for Task 7.2.        *)
+(*            Verifies scrSetup output values.       *)
+(* EXPECTED INPUT SEQUENCE:                          *)
+(*   Player count: 2                                 *)
+(*   Player 1 name: ALICE                            *)
+(*   Player 1 type: 1 (Human)                        *)
+(*   Player 2 name: BOT                              *)
+(*   Player 2 type: 2 (Computer)                     *)
+(*   Roll mode: 2 (B)                                *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM plyrCount:INTEGER
+DIM plyrType(6):INTEGER
+DIM plyrName(6):STRING[20]
+DIM rollMode:INTEGER
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "testScrSu: follow the prompts."
+PRINT "Enter: 2 players, ALICE Human, BOT Computer, mode B."
+PRINT
+RUN waitKey
+
+RUN scrSetup(plyrCount, plyrType, plyrName, rollMode)
+
+PRINT
+PRINT "--- Results ---"
+PRINT "plyrCount = "; plyrCount; "  (expected 2)"
+PRINT
+
+FOR i := 1 TO plyrCount
+  PRINT "plyrName("; i; ") = "; plyrName(i)
+  PRINT "plyrType("; i; ") = "; plyrType(i)
+NEXT i
+
+PRINT
+PRINT "rollMode = "; rollMode; "  (expected 2)"
+PRINT
+PRINT "Expected:"
+PRINT "  plyrCount=2"
+PRINT "  plyrType(1)=1  plyrName(1)=ALICE"
+PRINT "  plyrType(2)=2  plyrName(2)=BOT"
+PRINT "  rollMode=2"
+PRINT
+PRINT "Task 7.2 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrSu error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRCF
+(* ================================================== *)
+(* PROCEDURE: TSTSCRCF                               *)
+(* PURPOSE:   Confirmation test for Task 7.3.        *)
+(*            Verifies scrConfirm display and return. *)
+(* TEST 1:    Pre-set Task 7.2 values. Press 2.      *)
+(*            Verify action = 2 (Back).              *)
+(* TEST 2:    Change plyrName(2)/plyrType(2). Press 1*)
+(*            Verify action = 1 (Confirm).           *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM plyrCount:INTEGER
+DIM plyrType(6):INTEGER
+DIM plyrName(6):STRING[20]
+DIM rollMode:INTEGER
+DIM action:INTEGER
+
+ON ERROR GOTO 900
+
+! --- Pre-set Task 7.2 values ---
+plyrCount  := 2
+plyrName(1) := "ALICE"
+plyrType(1) := 1
+plyrName(2) := "BOT"
+plyrType(2) := 2
+rollMode   := 2
+
+! --- Test 1: press 2 (Back) ---
+PRINT "testScrCf Test 1:"
+PRINT "Verify summary shows ALICE/Human, BOT/Computer, Mode B."
+PRINT "Press 2 for Back."
+PRINT
+RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
+PRINT "action = "; action; "  (expected 2)"
+PRINT
+
+! --- Test 2: update player 2, press 1 (Confirm) ---
+plyrName(2) := "CAROL"
+plyrType(2) := 1
+
+PRINT "testScrCf Test 2:"
+PRINT "Verify summary now shows CAROL/Human for player 2."
+PRINT "Press 1 for Confirm."
+PRINT
+RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
+PRINT "action = "; action; "  (expected 1)"
+PRINT
+
+PRINT "Task 7.3 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrCf error ("; ERR; ")"
+END
+
+PROCEDURE TSTSNBMN
+(* ================================================== *)
+(* PROCEDURE: TSTSNBMN                               *)
+(* PURPOSE:   Confirmation test for Task 7.4.        *)
+(*            Three manual test runs of SNBMAIN.     *)
+(* TEST 1 (New Game):                                *)
+(*   S1 -> press 1                                   *)
+(*   S2 -> 2 players, ALICE Human, BOT Computer      *)
+(*          Mode B                                   *)
+(*   S7 -> press 1 (Confirm)                         *)
+(*   Expected output: "STARTING GAME"               *)
+(* TEST 2 (Back then Confirm):                       *)
+(*   S1 -> press 1                                   *)
+(*   S2 -> any valid setup                           *)
+(*   S7 -> press 2 (Back)                            *)
+(*   S2 -> revise setup                              *)
+(*   S7 -> press 1 (Confirm)                         *)
+(*   Expected output: "STARTING GAME"               *)
+(* TEST 3 (Load, no file present):                   *)
+(*   S1 -> press 2                                   *)
+(*   Expected: error message from loadGame,          *)
+(*             then "Load failed." from SNBMAIN.     *)
+(* TEST 4 (Quit):                                    *)
+(*   S1 -> press 3                                   *)
+(*   Expected: clean exit, no further output.        *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+ON ERROR GOTO 900
+
+PRINT "testSNBMN: four test runs."
+PRINT
+
+PRINT "Test 1 - New Game (Confirm on first try):"
+PRINT "  S1: press 1"
+PRINT "  S2: 2 players, ALICE Human, BOT Computer, Mode B"
+PRINT "  S7: press 1 to Confirm"
+PRINT "  Expected: STARTING GAME"
+PRINT
+RUN waitKey
+RUN SNBMAIN
+PRINT
+
+PRINT "Test 2 - New Game (Back then Confirm):"
+PRINT "  S1: press 1"
+PRINT "  S2: enter any setup"
+PRINT "  S7: press 2 (Back)"
+PRINT "  S2: revise setup"
+PRINT "  S7: press 1 (Confirm)"
+PRINT "  Expected: STARTING GAME"
+PRINT
+RUN waitKey
+RUN SNBMAIN
+PRINT
+
+PRINT "Test 3 - Load Game (no save file present):"
+PRINT "  S1: press 2"
+PRINT "  Expected: error from loadGame, then load failed message"
+PRINT
+RUN waitKey
+RUN SNBMAIN
+PRINT
+
+PRINT "Test 4 - Quit:"
+PRINT "  S1: press 3"
+PRINT "  Expected: clean exit, no further output"
+PRINT
+RUN waitKey
+RUN SNBMAIN
+PRINT
+
+PRINT "Task 7.4 test complete."
+END
+
+900 PRINT "testSNBMN error ("; ERR; ")"
+END

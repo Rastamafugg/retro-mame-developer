@@ -1,3 +1,128 @@
+PROCEDURE initPlayer
+(* ================================================= *)
+(* PROCEDURE: initPlayer                             *)
+(* PURPOSE  : Initialize a single PlyrRec to game-  *)
+(*            start values per spec Section 3.       *)
+(*            cashBal=5000, all shares/bonds zero,   *)
+(*            marginTot=0, isBankrupt=FALSE,         *)
+(*            hadCashPur=FALSE. All other fields     *)
+(*            set to safe defaults.                  *)
+(* PARAMS   : plyr - PlyrRec to initialize (by ref) *)
+(* SIDE FX  : Modifies plyr in place.                *)
+(* ================================================= *)
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+
+PARAM plyr: PlyrRec
+
+DIM i: INTEGER
+
+ON ERROR GOTO 900
+
+plyr.plyrName   := ""
+plyr.plyrType   := 0
+plyr.aiTier     := 0
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+
+FOR i := 1 TO 9
+    plyr.stckShrs(i) := 0
+    plyr.mgnHeld(i)  := FALSE
+NEXT i
+
+FOR i := 1 TO 3
+    plyr.bondUnts(i) := 0
+NEXT i
+
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+PROCEDURE loadGame
+(* ============================================================ *)
+(* PROCEDURE : loadGame                                         *)
+(* PURPOSE   : Deserialize game state from a save file.        *)
+(*             Validates magic byte, format version, and       *)
+(*             checksum before returning state to caller.      *)
+(*             Returns loadOK=FALSE on any failure.            *)
+(* PARAMS    : savePath - source filename (max 20 chars)        *)
+(*             hdr      - receives SaveHdr on success           *)
+(*             deckOrd  - receives deck order array (36 BYTE)  *)
+(*             plyrs    - receives all 6 player records         *)
+(*             mkt      - receives market state                 *)
+(*             loadOK   - TRUE on success, FALSE on any error  *)
+(* SIDE EFX  : Prints diagnostic message on failure.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePath   : STRING[20]
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+PARAM loadOK     : BOOLEAN
+DIM path     : BYTE
+DIM pathOpen : BOOLEAN
+DIM chkExp   : INTEGER
+
+ON ERROR GOTO 900
+
+pathOpen := FALSE
+loadOK   := FALSE
+
+OPEN #path, savePath:READ
+pathOpen := TRUE
+
+GET #path, hdr
+GET #path, deckOrd
+GET #path, plyrs
+GET #path, mkt
+
+CLOSE #path
+pathOpen := FALSE
+
+! Validate magic byte before trusting any other field.
+IF hdr.magic <> $53 THEN
+  PRINT "Error: not a valid save file."
+  END
+ENDIF
+
+! Validate format version for forward-compatibility guard.
+IF hdr.fmtVersion <> 1 THEN
+  PRINT "Error: incompatible save file version."
+  END
+ENDIF
+
+! Recompute checksum; staged to keep lines within 79 chars.
+chkExp := hdr.magic + hdr.fmtVersion + hdr.currYear
+chkExp := chkExp + hdr.plyrCount + hdr.rollMode
+chkExp := chkExp + hdr.savedPhase + hdr.savedPlyr
+chkExp := chkExp + hdr.deckPos + hdr.obligation
+chkExp := LAND(chkExp, 255)
+
+IF chkExp <> hdr.checksum THEN
+  PRINT "Error: save file is corrupt."
+  END
+ENDIF
+
+loadOK := TRUE
+END
+
+900 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    PRINT "Error reading save file: "; ERR
+    loadOK := FALSE
+END
+
 PROCEDURE clrScr
 (* ================================================== *)
 (* PROCEDURE: clrScr                                  *)
@@ -317,296 +442,82 @@ END
 PRINT "scrConfirm error ("; ERR; ")"
 END
 
-PROCEDURE TSTDISP
+PROCEDURE SNBMAIN
 (* ================================================== *)
-(* PROCEDURE: TSTDISP                                *)
-(* PURPOSE:   Confirmation test for Task 6.1.        *)
-(*            Verifies clrScr and printAt.           *)
+(* PROCEDURE: SNBMAIN                                 *)
+(* PURPOSE:   Application entry point.               *)
+(*            Routes S1 -> S2 -> S7 -> game stub,    *)
+(*            or S1 -> Load -> game stub,             *)
+(*            or S1 -> Quit -> exit.                 *)
+(*            S2/S7 Back path loops until confirmed. *)
 (* PARAMS:    None                                    *)
+(* NOTES:     setupCnt, setupMode, setupTyp, setupNam *)
+(*            use distinct names to avoid collisions  *)
+(*            with SaveHdr and PlyrRec field names.  *)
+(*            Game loop entry is a stub PRINT.       *)
+(*            Phase 8 replaces stubs.                *)
 (* ================================================== *)
-DIM anyKey:STRING[1]
-
-ON ERROR GOTO 900
-
-! --- Test 1: clrScr ---
-RUN clrScr
-PRINT "clrScr called. Verify terminal cleared."
-PRINT "Press any key to continue...";
-GET #0, anyKey
-
-! --- Test 2: printAt ---
-RUN clrScr
-RUN printAt(5, 10, "TEST")
-PRINT
-PRINT "printAt(5, 10, TEST) called."
-PRINT "Verify TEST appears at row 5, column 10."
-PRINT "Press any key to continue...";
-GET #0, anyKey
-
-RUN clrScr
-PRINT "Task 6.1 test complete."
-END
-
-900 \ ! Error handler
-PRINT "testDisp error ("; ERR; ")"
-END
-
-PROCEDURE TSTFMTM
-(* ================================================== *)
-(* PROCEDURE: TSTFMTM                                *)
-(* PURPOSE:   Confirmation test for Task 6.2.        *)
-(*            Verifies fmtMoney against spec cases.  *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-DIM result:STRING[8]
-DIM anyKey:STRING[1]
-
-ON ERROR GOTO 900
-
-PRINT "--- testFmtM: fmtMoney ---"
-PRINT
-
-RUN fmtMoney(5000, result)
-PRINT "fmtMoney(5000)  -> '"; result; "'"
-PRINT "  expected      -> '   5000'"
-
-RUN fmtMoney(0, result)
-PRINT "fmtMoney(0)     -> '"; result; "'"
-PRINT "  expected      -> '      0'"
-
-RUN fmtMoney(-200, result)
-PRINT "fmtMoney(-200)  -> '"; result; "'"
-PRINT "  expected      -> '   -200'"
-
-RUN fmtMoney(32767, result)
-PRINT "fmtMoney(32767) -> '"; result; "'"
-PRINT "  expected      -> '  32767'"
-
-PRINT
-PRINT "Verify each result matches expected exactly."
-PRINT "Press any key to continue...";
-GET #0, anyKey
-PRINT
-END
-
-900 \ ! Error handler
-PRINT "testFmtM error ("; ERR; ")"
-END
-
-PROCEDURE TSTWAITK
-(* ================================================== *)
-(* PROCEDURE: TSTWAITK                               *)
-(* PURPOSE:   Confirmation test for Task 6.3.        *)
-(*            Verifies waitKey prompt and unblocking. *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-ON ERROR GOTO 900
-
-PRINT "--- testWaitK: waitKey ---"
-PRINT
-PRINT "Calling waitKey. Verify prompt appears below."
-PRINT "Then press any key. Verify execution resumes."
-PRINT
-
-RUN waitKey
-
-PRINT "Execution resumed. Task 6.3 test complete."
-END
-
-900 \ ! Error handler
-PRINT "testWaitK error ("; ERR; ")"
-END
-
-PROCEDURE TSTGMK
-(* ================================================== *)
-(* PROCEDURE: TSTGMK                                 *)
-(* PURPOSE:   Confirmation test for Task 6.4.        *)
-(*            Verifies getMenuKey range enforcement. *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-DIM choice:INTEGER
-
-ON ERROR GOTO 900
-
-PRINT "--- testGMK: getMenuKey ---"
-PRINT
-
-PRINT "Test 1: range 1-3."
-PRINT "Press '5' - verify no response."
-PRINT "Then press '2' - verify returns immediately."
-PRINT
-RUN getMenuKey(1, 3, choice)
-PRINT "choice = "; choice
-PRINT "Expected: 2"
-PRINT
-
-PRINT "Test 2: range 1-4."
-PRINT "Press any invalid key, then press '4'."
-PRINT
-RUN getMenuKey(1, 4, choice)
-PRINT "choice = "; choice
-PRINT "Expected: 4"
-PRINT
-
-PRINT "Task 6.4 test complete."
-END
-
-900 \ ! Error handler
-PRINT "testGMK error ("; ERR; ")"
-END
-
-PROCEDURE TSTSCRST
-(* ================================================== *)
-(* PROCEDURE: TSTSCRST                               *)
-(* PURPOSE:   Confirmation test for Task 7.1.        *)
-(*            Verifies scrStart display and return.  *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 DIM action:INTEGER
-
-ON ERROR GOTO 900
-
-! --- Test 1: press 1, verify action = 1 ---
-PRINT "testScrSt: press 1 at the menu."
-RUN scrStart(action)
-PRINT "action = "; action
-PRINT "Expected: 1"
-PRINT
-
-! --- Test 2: press 2, verify action = 2 ---
-PRINT "testScrSt: press 2 at the menu."
-RUN scrStart(action)
-PRINT "action = "; action
-PRINT "Expected: 2"
-PRINT
-
-! --- Test 3: press 3, verify action = 3 ---
-PRINT "testScrSt: press 3 at the menu."
-RUN scrStart(action)
-PRINT "action = "; action
-PRINT "Expected: 3"
-PRINT
-
-! --- Test 4: invalid then valid key ---
-PRINT "testScrSt: press an invalid key then press 1."
-RUN scrStart(action)
-PRINT "action = "; action
-PRINT "Expected: 1"
-PRINT
-
-PRINT "Task 7.1 test complete."
-END
-
-900 \ ! Error handler
-PRINT "testScrSt error ("; ERR; ")"
-END
-
-PROCEDURE TSTSCRSET
-(* ================================================== *)
-(* PROCEDURE: TSTSCRSET                               *)
-(* PURPOSE:   Confirmation test for Task 7.2.        *)
-(*            Verifies scrSetup output values.       *)
-(* EXPECTED INPUT SEQUENCE:                          *)
-(*   Player count: 2                                 *)
-(*   Player 1 name: ALICE                            *)
-(*   Player 1 type: 1 (Human)                        *)
-(*   Player 2 name: BOT                              *)
-(*   Player 2 type: 2 (Computer)                     *)
-(*   Roll mode: 2 (B)                                *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-DIM plyrCount:INTEGER
-DIM plyrType(6):INTEGER
-DIM plyrName(6):STRING[20]
-DIM rollMode:INTEGER
+DIM cfmAct:INTEGER
+DIM setupCnt:INTEGER
+DIM setupMode:INTEGER
+DIM setupTyp(6):INTEGER
+DIM setupNam(6):STRING[20]
+DIM hdr:SaveHdr
+DIM deckOrd(36):BYTE
+DIM plyrs(6):PlyrRec
+DIM mkt:MktState
+DIM loadOK:BOOLEAN
+DIM savPath:STRING[20]
 DIM i:INTEGER
 
 ON ERROR GOTO 900
 
-PRINT "testScrSu: follow the prompts."
-PRINT "Enter: 2 players, ALICE Human, BOT Computer, mode B."
-PRINT
-RUN waitKey
+action   := 0
+cfmAct   := 0
+setupCnt := 0
+setupMode := 0
+loadOK   := FALSE
 
-RUN scrSetup(plyrCount, plyrType, plyrName, rollMode)
+RUN scrStart(action)
 
-PRINT
-PRINT "--- Results ---"
-PRINT "plyrCount = "; plyrCount; "  (expected 2)"
-PRINT
-
-FOR i := 1 TO plyrCount
-  PRINT "plyrName("; i; ") = "; plyrName(i)
-  PRINT "plyrType("; i; ") = "; plyrType(i)
-NEXT i
-
-PRINT
-PRINT "rollMode = "; rollMode; "  (expected 2)"
-PRINT
-PRINT "Expected:"
-PRINT "  plyrCount=2"
-PRINT "  plyrType(1)=1  plyrName(1)=ALICE"
-PRINT "  plyrType(2)=2  plyrName(2)=BOT"
-PRINT "  rollMode=2"
-PRINT
-PRINT "Task 7.2 test complete."
+IF action = 1 THEN
+  ! New Game: S2->S7 with Back loop.
+  REPEAT
+    RUN scrSetup(setupCnt, setupTyp, setupNam, setupMode)
+    RUN scrConfirm(setupCnt, setupTyp, setupNam, setupMode, cfmAct)
+  UNTIL cfmAct = 1
+  ! Initialize all player records to starting values.
+  FOR i := 1 TO 6
+    RUN initPlayer(plyrs(i))
+  NEXT i
+  ! Copy confirmed setup into active player records.
+  FOR i := 1 TO setupCnt
+    plyrs(i).plyrName := setupNam(i)
+    plyrs(i).plyrType := setupTyp(i) \ ! INTEGER -> BYTE; values 1-2 safe
+  NEXT i
+  ! STUB: Phase 8 game loop entry replaces this PRINT.
+  PRINT
+  PRINT "STARTING GAME"
+ELSE IF action = 2 THEN
+  ! Load Game: attempt SNBGAME save file.
+  savPath := "SNBGAME"
+  RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
+  IF loadOK THEN
+    ! STUB: Phase 8 game loop resume replaces this PRINT.
+    PRINT
+    PRINT "STARTING GAME"
+  ELSE
+    PRINT "Load failed. No valid save file found."
+  ENDIF
+ENDIF \ENDIF
+! action = 3 (Quit): fall through to END.
 END
 
-900 \ ! Error handler
-PRINT "testScrSu error ("; ERR; ")"
-END
-
-PROCEDURE TSTSCRCF
-(* ================================================== *)
-(* PROCEDURE: TSTSCRCF                               *)
-(* PURPOSE:   Confirmation test for Task 7.3.        *)
-(*            Verifies scrConfirm display and return. *)
-(* TEST 1:    Pre-set Task 7.2 values. Press 2.      *)
-(*            Verify action = 2 (Back).              *)
-(* TEST 2:    Change plyrName(2)/plyrType(2). Press 1*)
-(*            Verify action = 1 (Confirm).           *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-DIM plyrCount:INTEGER
-DIM plyrType(6):INTEGER
-DIM plyrName(6):STRING[20]
-DIM rollMode:INTEGER
-DIM action:INTEGER
-
-ON ERROR GOTO 900
-
-! --- Pre-set Task 7.2 values ---
-plyrCount  := 2
-plyrName(1) := "ALICE"
-plyrType(1) := 1
-plyrName(2) := "BOT"
-plyrType(2) := 2
-rollMode   := 2
-
-! --- Test 1: press 2 (Back) ---
-PRINT "testScrCf Test 1:"
-PRINT "Verify summary shows ALICE/Human, BOT/Computer, Mode B."
-PRINT "Press 2 for Back."
-PRINT
-RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
-PRINT "action = "; action; "  (expected 2)"
-PRINT
-
-! --- Test 2: update player 2, press 1 (Confirm) ---
-plyrName(2) := "CAROL"
-plyrType(2) := 1
-
-PRINT "testScrCf Test 2:"
-PRINT "Verify summary now shows CAROL/Human for player 2."
-PRINT "Press 1 for Confirm."
-PRINT
-RUN scrConfirm(plyrCount, plyrType, plyrName, rollMode, action)
-PRINT "action = "; action; "  (expected 1)"
-PRINT
-
-PRINT "Task 7.3 test complete."
-END
-
-900 \ ! Error handler
-PRINT "testScrCf error ("; ERR; ")"
+900 PRINT "SNBMAIN error ("; ERR; ")"
 END
