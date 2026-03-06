@@ -47,6 +47,43 @@ END
 PRINT "printAt error ("; ERR; ")"
 END
 
+PROCEDURE fmtMoney
+(* ================================================== *)
+(* PROCEDURE: fmtMoney                                *)
+(* PURPOSE:   Right-justify an INTEGER into a 7-char *)
+(*            field, returned in result (STRING[8]). *)
+(* PARAMS:    amt    - value to format (INTEGER)      *)
+(*            result - receives formatted string      *)
+(* EFFECTS:   result is always exactly 7 characters. *)
+(*            Negative values include leading minus.  *)
+(* LIMITS:    Field width 7 holds -32767 to 32767.   *)
+(*            -32768 produces 8 chars and overflows. *)
+(* ================================================== *)
+PARAM amt:INTEGER
+PARAM result:STRING[8]
+
+DIM raw:STRING[8]
+DIM sLen:INTEGER
+DIM padLen:INTEGER
+DIM p:INTEGER
+
+ON ERROR GOTO 900
+
+raw := TRIM$(STR$(amt)) \ ! digit string, no trailing spaces
+sLen := LEN(raw)
+padLen := 7 - sLen
+
+result := ""
+FOR p := 1 TO padLen
+  result := result + " "
+NEXT p
+result := result + raw
+END
+
+900 \ ! Error handler
+PRINT "fmtMoney error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -79,4 +116,46 @@ END
 
 900 \ ! Error handler
 PRINT "testDisp error ("; ERR; ")"
+END
+
+PROCEDURE TSTFMTM
+(* ================================================== *)
+(* PROCEDURE: TSTFMTM                                *)
+(* PURPOSE:   Confirmation test for Task 6.2.        *)
+(*            Verifies fmtMoney against spec cases.  *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM result:STRING[8]
+DIM anyKey:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "--- testFmtM: fmtMoney ---"
+PRINT
+
+RUN fmtMoney(5000, result)
+PRINT "fmtMoney(5000)  -> '"; result; "'"
+PRINT "  expected      -> '   5000'"
+
+RUN fmtMoney(0, result)
+PRINT "fmtMoney(0)     -> '"; result; "'"
+PRINT "  expected      -> '      0'"
+
+RUN fmtMoney(-200, result)
+PRINT "fmtMoney(-200)  -> '"; result; "'"
+PRINT "  expected      -> '   -200'"
+
+RUN fmtMoney(32767, result)
+PRINT "fmtMoney(32767) -> '"; result; "'"
+PRINT "  expected      -> '  32767'"
+
+PRINT
+PRINT "Verify each result matches expected exactly."
+PRINT "Press any key to continue...";
+GET #0, anyKey
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "testFmtM error ("; ERR; ")"
 END
