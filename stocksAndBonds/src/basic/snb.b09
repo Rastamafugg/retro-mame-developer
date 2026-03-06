@@ -1,39 +1,3 @@
-PROCEDURE SNBTYPES
-(* ================================================= *)
-(* PROCEDURE: SNBTYPES                               *)
-(* PURPOSE  : Shared TYPE record definitions for     *)
-(*            Stocks and Bonds. No executable logic. *)
-(*            Compile to verify TYPE syntax before   *)i
-(*            use in consumer procedures.            *)
-(* SIDE FX  : None.                                  *)
-(* ================================================= *)
-
-! SaveHdr: 9xBYTE + 1xINTEGER = 11 bytes
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
-
-! PlyrRec: STRING[20]+BYTE+2xINTEGER+2xBOOLEAN+BYTE+9xINTEGER+9xBOOLEAN+3xINTEGER = 61 bytes
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-
-! MktState: 9xINTEGER + 9xBOOLEAN = 27 bytes
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-
-! AIProfile: 12xBYTE + 2xINTEGER + 4xBOOLEAN = 20 bytes
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
-
-! CardRec: 3xINTEGER + 4xINTEGER(efxStk) + 4xINTEGER(efxDlt) = 22 bytes
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
-
-ON ERROR GOTO 900
-END
-
-900 ! Error handler
-    ERROR(ERR)
-END
-
 PROCEDURE initPlayer
 (* ================================================= *)
 (* PROCEDURE: initPlayer                             *)
@@ -820,4 +784,293 @@ END
       CLOSE #path
     ENDIF
     ERROR(ERR)
+END
+
+PROCEDURE loadGame
+(* ============================================================ *)
+(* PROCEDURE : loadGame                                         *)
+(* PURPOSE   : Deserialize game state from a save file.        *)
+(*             Validates magic byte, format version, and       *)
+(*             checksum before returning state to caller.      *)
+(*             Returns loadOK=FALSE on any failure.            *)
+(* PARAMS    : savePath - source filename (max 20 chars)        *)
+(*             hdr      - receives SaveHdr on success           *)
+(*             deckOrd  - receives deck order array (36 BYTE)  *)
+(*             plyrs    - receives all 6 player records         *)
+(*             mkt      - receives market state                 *)
+(*             loadOK   - TRUE on success, FALSE on any error  *)
+(* SIDE EFX  : Prints diagnostic message on failure.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePath   : STRING[20]
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+PARAM loadOK     : BOOLEAN
+DIM path     : BYTE
+DIM pathOpen : BOOLEAN
+DIM chkExp   : INTEGER
+
+ON ERROR GOTO 900
+
+pathOpen := FALSE
+loadOK   := FALSE
+
+OPEN #path, savePath:READ
+pathOpen := TRUE
+
+GET #path, hdr
+GET #path, deckOrd
+GET #path, plyrs
+GET #path, mkt
+
+CLOSE #path
+pathOpen := FALSE
+
+! Validate magic byte before trusting any other field.
+IF hdr.magic <> $53 THEN
+  PRINT "Error: not a valid save file."
+  END
+ENDIF
+
+! Validate format version for forward-compatibility guard.
+IF hdr.fmtVersion <> 1 THEN
+  PRINT "Error: incompatible save file version."
+  END
+ENDIF
+
+! Recompute checksum; staged to keep lines within 79 chars.
+chkExp := hdr.magic + hdr.fmtVersion + hdr.currYear
+chkExp := chkExp + hdr.plyrCount + hdr.rollMode
+chkExp := chkExp + hdr.savedPhase + hdr.savedPlyr
+chkExp := chkExp + hdr.deckPos + hdr.obligation
+chkExp := LAND(chkExp, 255)
+
+IF chkExp <> hdr.checksum THEN
+  PRINT "Error: save file is corrupt."
+  END
+ENDIF
+
+loadOK := TRUE
+END
+
+900 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    PRINT "Error reading save file: "; ERR
+    loadOK := FALSE
+END
+
+PROCEDURE TSTLODGME
+(* ============================================================ *)
+(* PROCEDURE : TSTLODGME                                        *)
+(* PURPOSE   : Confirmation test for Task 5.2.                 *)
+(*             Part 1: round-trip verify fields survive save   *)
+(*                     and load unchanged.                     *)
+(*             Part 2: corrupt magic byte; verify loadOK=FALSE *)
+(*                     and "not a valid save file" message.    *)
+(*             Part 3: corrupt currYear byte; verify           *)
+(*                     loadOK=FALSE and "corrupt" message.     *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Creates and deletes SNBTEST in current dir.     *)
+(*             loadGame prints diagnostic messages for         *)
+(*             Parts 2 and 3; this is expected output.         *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM savNm      : STRING[20]
+DIM loadOK     : BOOLEAN
+DIM errCnt     : INTEGER
+DIM i          : INTEGER
+DIM path       : BYTE
+DIM badByte    : BYTE
+
+ON ERROR GOTO 900
+
+errCnt := 0
+savNm  := "SNBTEST"
+
+PRINT "=== tstLodGme ==="
+PRINT
+
+GOSUB 100
+GOSUB 200
+GOSUB 300
+
+GOTO 400
+
+100 ! --- Part 1: happy path round-trip ---
+PRINT "Part 1: round-trip save and load."
+
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+
+plyrs(1).plyrName    := "Alice"
+plyrs(1).plyrType    := 1
+plyrs(1).cashBal     := 7500
+plyrs(1).stckShrs(3) := 50
+plyrs(1).bondUnts(2) := 1
+
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.currYear   := 3
+hdr.plyrCount  := 2
+hdr.rollMode   := 2
+hdr.savedPhase := 1
+hdr.savedPlyr  := 2
+hdr.deckPos    := 7
+hdr.obligation := 0
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+! Clear fields to confirm readback is not stale.
+hdr.currYear         := 0
+hdr.savedPhase       := 99
+hdr.savedPlyr        := 0
+hdr.deckPos          := 0
+plyrs(1).cashBal     := 0
+plyrs(1).stckShrs(3) := 0
+plyrs(1).bondUnts(2) := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF loadOK THEN
+  PRINT "  PASS: loadOK = TRUE."
+ELSE
+  PRINT "  FAIL: loadOK = FALSE (unexpected)."
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.currYear = 3 THEN
+  PRINT "  PASS: hdr.currYear = 3."
+ELSE
+  PRINT "  FAIL: hdr.currYear = "; hdr.currYear
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.savedPhase = 1 THEN
+  PRINT "  PASS: hdr.savedPhase = 1."
+ELSE
+  PRINT "  FAIL: hdr.savedPhase = "; hdr.savedPhase
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.savedPlyr = 2 THEN
+  PRINT "  PASS: hdr.savedPlyr = 2."
+ELSE
+  PRINT "  FAIL: hdr.savedPlyr = "; hdr.savedPlyr
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.deckPos = 7 THEN
+  PRINT "  PASS: hdr.deckPos = 7."
+ELSE
+  PRINT "  FAIL: hdr.deckPos = "; hdr.deckPos
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).cashBal = 7500 THEN
+  PRINT "  PASS: plyrs(1).cashBal = 7500."
+ELSE
+  PRINT "  FAIL: plyrs(1).cashBal = "; plyrs(1).cashBal
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).stckShrs(3) = 50 THEN
+  PRINT "  PASS: plyrs(1).stckShrs(3) = 50."
+ELSE
+  PRINT "  FAIL: plyrs(1).stckShrs(3) = "; plyrs(1).stckShrs(3)
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).bondUnts(2) = 1 THEN
+  PRINT "  PASS: plyrs(1).bondUnts(2) = 1."
+ELSE
+  PRINT "  FAIL: plyrs(1).bondUnts(2) = "; plyrs(1).bondUnts(2)
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+200 ! --- Part 2: corrupt magic byte at offset 0 ---
+! Expected: loadGame prints "not a valid save file", loadOK=FALSE.
+PRINT "Part 2: corrupt magic byte (expect error message below)."
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+OPEN #path, savNm:UPDATE
+SEEK #path, 0
+badByte := 0
+PUT #path, badByte
+CLOSE #path
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  PASS: loadOK = FALSE after bad magic."
+ELSE
+  PRINT "  FAIL: loadOK = TRUE after bad magic (should be FALSE)."
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+300 ! --- Part 3: corrupt currYear at offset 2 ---
+! magic and fmtVersion intact; checksum will mismatch.
+! Expected: loadGame prints "save file is corrupt", loadOK=FALSE.
+PRINT "Part 3: corrupt currYear byte (expect error message below)."
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+OPEN #path, savNm:UPDATE
+SEEK #path, 2
+badByte := $FF
+PUT #path, badByte
+CLOSE #path
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  PASS: loadOK = FALSE after checksum mismatch."
+ELSE
+  PRINT "  FAIL: loadOK = TRUE after corrupt byte (should be FALSE)."
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+400 ! --- Summary and cleanup ---
+IF errCnt = 0 THEN
+  PRINT "PASS: all checks passed."
+ELSE
+  PRINT "FAIL: "; errCnt; " check(s) failed."
+ENDIF
+PRINT
+
+ON ERROR GOTO 500
+DELETE savNm
+500 ON ERROR GOTO 900
+END
+
+900 ERROR(ERR)
 END
