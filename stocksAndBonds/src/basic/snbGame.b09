@@ -84,6 +84,28 @@ END
 PRINT "fmtMoney error ("; ERR; ")"
 END
 
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -158,4 +180,28 @@ END
 
 900 \ ! Error handler
 PRINT "testFmtM error ("; ERR; ")"
+END
+
+PROCEDURE TSTWAITK
+(* ================================================== *)
+(* PROCEDURE: TSTWAITK                               *)
+(* PURPOSE:   Confirmation test for Task 6.3.        *)
+(*            Verifies waitKey prompt and unblocking. *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+ON ERROR GOTO 900
+
+PRINT "--- testWaitK: waitKey ---"
+PRINT
+PRINT "Calling waitKey. Verify prompt appears below."
+PRINT "Then press any key. Verify execution resumes."
+PRINT
+
+RUN waitKey
+
+PRINT "Execution resumed. Task 6.3 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testWaitK error ("; ERR; ")"
 END
