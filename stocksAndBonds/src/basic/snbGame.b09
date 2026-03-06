@@ -145,6 +145,43 @@ END
 PRINT "getMenuKey error ("; ERR; ")"
 END
 
+PROCEDURE scrStart
+(* ================================================== *)
+(* PROCEDURE: scrStart                                *)
+(* PURPOSE:   Display S1 start screen. Return player *)
+(*            menu selection.                        *)
+(* PARAMS:    action - receives selection on return: *)
+(*              1 = New Game                         *)
+(*              2 = Load Game                        *)
+(*              3 = Quit                             *)
+(* EFFECTS:   Clears screen. Blocks until valid key. *)
+(* NOTE:      action is INTEGER; must match          *)
+(*            getMenuKey choice:INTEGER.             *)
+(* ================================================== *)
+PARAM action:INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  STOCKS AND BONDS"
+PRINT "  ================"
+PRINT
+PRINT "  1. New Game"
+PRINT "  2. Load Game"
+PRINT "  3. Quit"
+PRINT
+PRINT "  Select (1-3): ";
+
+RUN getMenuKey(1, 3, action)
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "scrStart error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -281,4 +318,50 @@ END
 
 900 \ ! Error handler
 PRINT "testGMK error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRST
+(* ================================================== *)
+(* PROCEDURE: TSTSCRST                               *)
+(* PURPOSE:   Confirmation test for Task 7.1.        *)
+(*            Verifies scrStart display and return.  *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM action:INTEGER
+
+ON ERROR GOTO 900
+
+! --- Test 1: press 1, verify action = 1 ---
+PRINT "testScrSt: press 1 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 1"
+PRINT
+
+! --- Test 2: press 2, verify action = 2 ---
+PRINT "testScrSt: press 2 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 2"
+PRINT
+
+! --- Test 3: press 3, verify action = 3 ---
+PRINT "testScrSt: press 3 at the menu."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 3"
+PRINT
+
+! --- Test 4: invalid then valid key ---
+PRINT "testScrSt: press an invalid key then press 1."
+RUN scrStart(action)
+PRINT "action = "; action
+PRINT "Expected: 1"
+PRINT
+
+PRINT "Task 7.1 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrSt error ("; ERR; ")"
 END
