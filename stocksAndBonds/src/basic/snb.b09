@@ -440,470 +440,236 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE TSTMKT
+PROCEDURE applyMgnInt
 (* ============================================================ *)
-(* PROCEDURE : TSTMKT                                           *)
-(* PURPOSE   : Confirmation tests for getMktDelta (Task 2.1).  *)
-(*             Runs five test cases, prints PASS or FAIL with  *)
-(*             expected and actual values on failure.           *)
-(* PARAMS    : none                                             *)
-(* ============================================================ *)
-DIM delta    : INTEGER
-DIM passed   : INTEGER
-DIM failed   : INTEGER
-
-ON ERROR GOTO 900
-
-passed := 0
-failed := 0
-
-! ---- Test 1: Stryker Drilling, Bull, roll=9, expected=67 ----
-RUN getMktDelta(5, 1, 9, delta)
-GOSUB 100
-
-! ---- Test 2: Stryker Drilling, Bear, roll=4, expected=-20 ---
-RUN getMktDelta(5, 2, 4, delta)
-GOSUB 200
-
-! ---- Test 3: Valley Power, Bull, roll=7, expected=14 --------
-RUN getMktDelta(9, 1, 7, delta)
-GOSUB 300
-
-! ---- Test 4: Valley Power, Bear, roll=2, expected=8 ---------
-RUN getMktDelta(9, 2, 2, delta)
-GOSUB 400
-
-! ---- Test 5: Growth Corp, Bull, roll=2, expected=-2 ---------
-RUN getMktDelta(1, 1, 2, delta)
-GOSUB 500
-
-PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
-END
-
-100 ! Test 1 check
-    IF delta = 67 THEN
-      PRINT "Test 1 PASS  getMktDelta(5,1,9) = 67"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  getMktDelta(5,1,9)"
-      PRINT "  expected=67  actual="; delta
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-200 ! Test 2 check
-    IF delta = -20 THEN
-      PRINT "Test 2 PASS  getMktDelta(5,2,4) = -20"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  getMktDelta(5,2,4)"
-      PRINT "  expected=-20  actual="; delta
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-300 ! Test 3 check
-    IF delta = 14 THEN
-      PRINT "Test 3 PASS  getMktDelta(9,1,7) = 14"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  getMktDelta(9,1,7)"
-      PRINT "  expected=14  actual="; delta
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-400 ! Test 4 check
-    IF delta = 8 THEN
-      PRINT "Test 4 PASS  getMktDelta(9,2,2) = 8"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 4 FAIL  getMktDelta(9,2,2)"
-      PRINT "  expected=8  actual="; delta
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-500 ! Test 5 check
-    IF delta = -2 THEN
-      PRINT "Test 5 PASS  getMktDelta(1,1,2) = -2"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 5 FAIL  getMktDelta(1,1,2)"
-      PRINT "  expected=-2  actual="; delta
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTMKT"
-    END
-
-PROCEDURE TSTCARD
-(* ============================================================ *)
-(* PROCEDURE : TSTCARD                                          *)
-(* PURPOSE   : Confirmation tests for getCard (Task 2.2).      *)
-(*             Runs five test cases covering boundary cards,    *)
-(*             anomaly classifications, multi-stock cards, and  *)
-(*             divBonus. Prints per-field FAIL detail and a     *)
-(*             final pass/fail summary.                         *)
-(* PARAMS    : none                                             *)
+(* PROCEDURE : applyMgnInt                                      *)
+(* PURPOSE   : Deduct annual margin interest from each active   *)
+(*             player with outstanding margin (spec Sec 9.3).  *)
+(*             Sets forceLiq(p) TRUE if cashBal goes negative.  *)
+(*             Does not perform liquidation; caller handles it. *)
+(*             No-ops for Year 1 and Year 10.                   *)
+(* PARAMS    : currYear  - current game year (1..10)            *)
+(*             plyrCnt   - number of active players (1..6)      *)
+(*             plyrs     - player records array (modified)      *)
+(*             forceLiq  - per-player forced-liquidation flags  *)
+(*                         (caller must initialize to FALSE;    *)
+(*                          this procedure only sets TRUE)      *)
+(* SIDE EFX  : Modifies plyrs(p).cashBal for players with      *)
+(*             marginTot > 0. Sets forceLiq(p) where cashBal   *)
+(*             becomes negative.                                *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
-DIM card   : CardRec
-DIM passed : INTEGER
-DIM failed : INTEGER
-DIM ok     : BOOLEAN
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+PARAM currYear    : INTEGER
+PARAM plyrCnt     : INTEGER
+PARAM plyrs(6)    : PlyrRec
+PARAM forceLiq(6) : BOOLEAN
+DIM p          : INTEGER
+DIM mgnCharge  : INTEGER
 
 ON ERROR GOTO 900
 
-passed := 0
-failed := 0
+! Guard: caller should not invoke in Year 1 or 10 per spec
+! Section 6, but procedure is safe if called anyway.
+IF currYear = 1 OR currYear = 10 THEN
+  END
+ENDIF
 
-! Test 1: Card 1 - Bear anomaly, Growth Corp +10, divBonus=2
-RUN getCard(1, card)
-GOSUB 100
+FOR p := 1 TO plyrCnt
+  IF NOT plyrs(p).isBankrupt THEN
+    IF plyrs(p).marginTot > 0 THEN
 
-! Test 2: Card 5 - Bull anomaly, Growth Corp -10, divBonus=0
-RUN getCard(5, card)
-GOSUB 200
+      ! Integer arithmetic: 5% = marginTot * 5 / 100.
+      ! No floating-point per spec Section 15.
+      mgnCharge := plyrs(p).marginTot * 5 / 100
 
-! Test 3: Card 8 - Bear anomaly, Metro Properties +10, divBonus=0
-RUN getCard(8, card)
-GOSUB 300
+      plyrs(p).cashBal := plyrs(p).cashBal - mgnCharge
 
-! Test 4: Card 34 - Bull, 4 stocks, correct deltas
-RUN getCard(34, card)
-GOSUB 400
+      IF plyrs(p).cashBal < 0 THEN
+        forceLiq(p) := TRUE
+      ENDIF
 
-! Test 5: Card 36 - Bear, 3 stocks, correct deltas
-RUN getCard(36, card)
-GOSUB 500
+    ENDIF
+  ENDIF
+NEXT p
 
-PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: Card 1 Bear, stk=1 dlt=10, divBonus=2
-    ok := TRUE
-    IF card.crdType <> 2 THEN
-      PRINT "Test 1 FAIL crdType: exp=2 got="; card.crdType
-      ok := FALSE
-    ENDIF
-    IF card.efxCnt <> 1 THEN
-      PRINT "Test 1 FAIL efxCnt: exp=1 got="; card.efxCnt
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(1) <> 1 THEN
-      PRINT "Test 1 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(1) <> 10 THEN
-      PRINT "Test 1 FAIL efxDlt(1): exp=10 got="; card.efxDlt(1)
-      ok := FALSE
-    ENDIF
-    IF card.divBonus <> 2 THEN
-      PRINT "Test 1 FAIL divBonus: exp=2 got="; card.divBonus
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 1 PASS  Card 1 Bear Growth+10 divBonus=2"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
+900 ERROR(ERR)
+END
 
-200 ! Test 2: Card 5 Bull, stk=1 dlt=-10, divBonus=0
-    ok := TRUE
-    IF card.crdType <> 1 THEN
-      PRINT "Test 2 FAIL crdType: exp=1 got="; card.crdType
-      ok := FALSE
-    ENDIF
-    IF card.efxCnt <> 1 THEN
-      PRINT "Test 2 FAIL efxCnt: exp=1 got="; card.efxCnt
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(1) <> 1 THEN
-      PRINT "Test 2 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(1) <> -10 THEN
-      PRINT "Test 2 FAIL efxDlt(1): exp=-10 got="; card.efxDlt(1)
-      ok := FALSE
-    ENDIF
-    IF card.divBonus <> 0 THEN
-      PRINT "Test 2 FAIL divBonus: exp=0 got="; card.divBonus
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 2 PASS  Card 5 Bull Growth-10 divBonus=0"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-300 ! Test 3: Card 8 Bear, stk=2 dlt=10, divBonus=0
-    ok := TRUE
-    IF card.crdType <> 2 THEN
-      PRINT "Test 3 FAIL crdType: exp=2 got="; card.crdType
-      ok := FALSE
-    ENDIF
-    IF card.efxCnt <> 1 THEN
-      PRINT "Test 3 FAIL efxCnt: exp=1 got="; card.efxCnt
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(1) <> 2 THEN
-      PRINT "Test 3 FAIL efxStk(1): exp=2 got="; card.efxStk(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(1) <> 10 THEN
-      PRINT "Test 3 FAIL efxDlt(1): exp=10 got="; card.efxDlt(1)
-      ok := FALSE
-    ENDIF
-    IF card.divBonus <> 0 THEN
-      PRINT "Test 3 FAIL divBonus: exp=0 got="; card.divBonus
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 3 PASS  Card 8 Bear Metro+10 divBonus=0"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-400 ! Test 4: Card 34 Bull, 4 stocks
-    ok := TRUE
-    IF card.crdType <> 1 THEN
-      PRINT "Test 4 FAIL crdType: exp=1 got="; card.crdType
-      ok := FALSE
-    ENDIF
-    IF card.efxCnt <> 4 THEN
-      PRINT "Test 4 FAIL efxCnt: exp=4 got="; card.efxCnt
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(1) <> 1 THEN
-      PRINT "Test 4 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(1) <> 8 THEN
-      PRINT "Test 4 FAIL efxDlt(1): exp=8 got="; card.efxDlt(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(2) <> 2 THEN
-      PRINT "Test 4 FAIL efxStk(2): exp=2 got="; card.efxStk(2)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(2) <> 5 THEN
-      PRINT "Test 4 FAIL efxDlt(2): exp=5 got="; card.efxDlt(2)
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(3) <> 3 THEN
-      PRINT "Test 4 FAIL efxStk(3): exp=3 got="; card.efxStk(3)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(3) <> 5 THEN
-      PRINT "Test 4 FAIL efxDlt(3): exp=5 got="; card.efxDlt(3)
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(4) <> 7 THEN
-      PRINT "Test 4 FAIL efxStk(4): exp=7 got="; card.efxStk(4)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(4) <> 7 THEN
-      PRINT "Test 4 FAIL efxDlt(4): exp=7 got="; card.efxDlt(4)
-      ok := FALSE
-    ENDIF
-    IF card.divBonus <> 0 THEN
-      PRINT "Test 4 FAIL divBonus: exp=0 got="; card.divBonus
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 4 PASS  Card 34 Bull 4-stock deltas correct"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-500 ! Test 5: Card 36 Bear, 3 stocks
-    ok := TRUE
-    IF card.crdType <> 2 THEN
-      PRINT "Test 5 FAIL crdType: exp=2 got="; card.crdType
-      ok := FALSE
-    ENDIF
-    IF card.efxCnt <> 3 THEN
-      PRINT "Test 5 FAIL efxCnt: exp=3 got="; card.efxCnt
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(1) <> 1 THEN
-      PRINT "Test 5 FAIL efxStk(1): exp=1 got="; card.efxStk(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(1) <> -8 THEN
-      PRINT "Test 5 FAIL efxDlt(1): exp=-8 got="; card.efxDlt(1)
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(2) <> 2 THEN
-      PRINT "Test 5 FAIL efxStk(2): exp=2 got="; card.efxStk(2)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(2) <> -5 THEN
-      PRINT "Test 5 FAIL efxDlt(2): exp=-5 got="; card.efxDlt(2)
-      ok := FALSE
-    ENDIF
-    IF card.efxStk(3) <> 7 THEN
-      PRINT "Test 5 FAIL efxStk(3): exp=7 got="; card.efxStk(3)
-      ok := FALSE
-    ENDIF
-    IF card.efxDlt(3) <> -7 THEN
-      PRINT "Test 5 FAIL efxDlt(3): exp=-7 got="; card.efxDlt(3)
-      ok := FALSE
-    ENDIF
-    IF card.divBonus <> 0 THEN
-      PRINT "Test 5 FAIL divBonus: exp=0 got="; card.divBonus
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 5 PASS  Card 36 Bear 3-stock deltas correct"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTCARD"
-    END
-
-PROCEDURE TSTDIVINT
+PROCEDURE TSTMGNINT
 (* ============================================================ *)
-(* PROCEDURE : TSTDIVINT                                        *)
-(* PURPOSE   : Confirmation tests for applyDivInt (Task 3.1).  *)
-(*             Five tests covering: spec confirmation case,     *)
+(* PROCEDURE : TSTMGNINT                                        *)
+(* PURPOSE   : Confirmation tests for applyMgnInt (Task 3.2).  *)
+(*             Six tests covering: spec confirmation case,      *)
 (*             Year 1 guard, Year 10 guard, bankrupt player     *)
-(*             skip, and suspended dividend stock.              *)
+(*             skip, zero-margin player untouched, and charge   *)
+(*             that does not exhaust cash (no forceLiq).        *)
 (* PARAMS    : none                                             *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM plyrs(6) : PlyrRec
-DIM mkt      : MktState
-DIM passed   : INTEGER
-DIM failed   : INTEGER
-DIM p        : INTEGER
+DIM plyrs(6)    : PlyrRec
+DIM forceLiq(6) : BOOLEAN
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM p           : INTEGER
 
 ON ERROR GOTO 900
 
 passed := 0
 failed := 0
 
-! Initialize all six player slots to prevent garbage reads.
+! ---- Test 1: spec confirmation case -------------------------
+! marginTot=2000, cashBal=80.
+! charge = 2000*5/100 = 100. cashBal = 80-100 = -20. forceLiq=TRUE.
 FOR p := 1 TO 6
   RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
 NEXT p
-RUN initMkt(mkt)
-
-! ---- Test 1: spec confirmation case -------------------------
-! Year 2, 100 shares Shady Brooks (stock 4, $7/share),
-! 1 medium bond ($250 interest). Expected: 5000+700+250=5950.
-plyrs(1).stckShrs(4) := 100
-plyrs(1).bondUnts(2) := 1
-RUN applyDivInt(2, 1, plyrs, mkt)
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
 GOSUB 100
 
 ! ---- Test 2: Year 1 guard -----------------------------------
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-plyrs(1).stckShrs(4) := 100
-plyrs(1).bondUnts(2) := 1
-RUN applyDivInt(1, 1, plyrs, mkt)
+! No charge applied; cashBal and forceLiq unchanged.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(1, 1, plyrs, forceLiq)
 GOSUB 200
 
 ! ---- Test 3: Year 10 guard ----------------------------------
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-plyrs(1).stckShrs(4) := 100
-plyrs(1).bondUnts(2) := 1
-RUN applyDivInt(10, 1, plyrs, mkt)
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(10, 1, plyrs, forceLiq)
 GOSUB 300
 
 ! ---- Test 4: bankrupt player skipped -----------------------
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-plyrs(1).stckShrs(4) := 100
-plyrs(1).bondUnts(2) := 1
-plyrs(1).isBankrupt  := TRUE
-RUN applyDivInt(2, 1, plyrs, mkt)
+! isBankrupt=TRUE; cashBal and forceLiq must remain unchanged.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal    := 80
+plyrs(1).marginTot  := 2000
+plyrs(1).isBankrupt := TRUE
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
 GOSUB 400
 
-! ---- Test 5: suspended dividend — bond interest only --------
-! Shady Brooks suspended; only medium bond interest applies.
-! Expected: 5000 + 250 = 5250.
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-plyrs(1).stckShrs(4) := 100
-plyrs(1).bondUnts(2) := 1
-mkt.divSuspnd(4)     := TRUE
-RUN applyDivInt(2, 1, plyrs, mkt)
+! ---- Test 5: zero-margin player — no charge, no forceLiq ----
+! marginTot=0; cashBal unchanged, forceLiq stays FALSE.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 5000
+plyrs(1).marginTot := 0
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
 GOSUB 500
+
+! ---- Test 6: charge does not exhaust cash -------------------
+! marginTot=2000, cashBal=5000. charge=100. cashBal=4900.
+! forceLiq must remain FALSE.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 5000
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
+GOSUB 600
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: 100 Shady + 1 med bond, Year 2 → 5950
-    IF plyrs(1).cashBal = 5950 THEN
-      PRINT "Test 1 PASS  Year2 100xShady+1med bond cashBal=5950"
+100 ! Test 1: cashBal=-20, forceLiq=TRUE
+    IF plyrs(1).cashBal = -20 AND forceLiq(1) = TRUE THEN
+      PRINT "Test 1 PASS  mgnCharge=100 cashBal=-20 forceLiq=TRUE"
       passed := passed + 1
     ELSE
-      PRINT "Test 1 FAIL  exp=5950 got="; plyrs(1).cashBal
+      PRINT "Test 1 FAIL  exp cashBal=-20 got="; plyrs(1).cashBal
+      IF NOT forceLiq(1) THEN
+        PRINT "           exp forceLiq=TRUE got=FALSE"
+      ENDIF
       failed := failed + 1
     ENDIF
     RETURN
 
-200 ! Test 2: Year 1 guard → cashBal unchanged
-    IF plyrs(1).cashBal = 5000 THEN
-      PRINT "Test 2 PASS  Year1 guard cashBal unchanged=5000"
+200 ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 2 PASS  Year1 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
     ELSE
-      PRINT "Test 2 FAIL  exp=5000 got="; plyrs(1).cashBal
+      PRINT "Test 2 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
       failed := failed + 1
     ENDIF
     RETURN
 
-300 ! Test 3: Year 10 guard → cashBal unchanged
-    IF plyrs(1).cashBal = 5000 THEN
-      PRINT "Test 3 PASS  Year10 guard cashBal unchanged=5000"
+300 ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 3 PASS  Year10 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
     ELSE
-      PRINT "Test 3 FAIL  exp=5000 got="; plyrs(1).cashBal
+      PRINT "Test 3 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
       failed := failed + 1
     ENDIF
     RETURN
 
-400 ! Test 4: bankrupt player → cashBal unchanged
-    IF plyrs(1).cashBal = 5000 THEN
-      PRINT "Test 4 PASS  bankrupt player skipped cashBal=5000"
+400 ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 4 PASS  bankrupt skipped cashBal=80 forceLiq=FALSE"
       passed := passed + 1
     ELSE
-      PRINT "Test 4 FAIL  exp=5000 got="; plyrs(1).cashBal
+      PRINT "Test 4 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
       failed := failed + 1
     ENDIF
     RETURN
 
-500 ! Test 5: Shady suspended → bond interest only → 5250
-    IF plyrs(1).cashBal = 5250 THEN
-      PRINT "Test 5 PASS  suspended div bond-only cashBal=5250"
+500 ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
+    IF plyrs(1).cashBal = 5000 AND NOT forceLiq(1) THEN
+      PRINT "Test 5 PASS  zero margin cashBal=5000 forceLiq=FALSE"
       passed := passed + 1
     ELSE
-      PRINT "Test 5 FAIL  exp=5250 got="; plyrs(1).cashBal
+      PRINT "Test 5 FAIL  exp cashBal=5000 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
       failed := failed + 1
     ENDIF
     RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTDIVINT"
+600 ! Test 6: charge=100, cashBal=4900, forceLiq=FALSE
+    IF plyrs(1).cashBal = 4900 AND NOT forceLiq(1) THEN
+      PRINT "Test 6 PASS  charge=100 cashBal=4900 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 6 FAIL  exp cashBal=4900 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMGNINT"
     END
