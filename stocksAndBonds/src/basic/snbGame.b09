@@ -497,6 +497,111 @@ END
 900 ERROR(ERR)
 END
 
+PROCEDURE scrDivInt
+(* ============================================================ *)
+(* PROCEDURE : scrDivInt                                        *)
+(* PURPOSE   : Display dividend and interest summary (S9) for  *)
+(*             one player. Shows per-stock dividends and per-  *)
+(*             bond interest received this year, the total     *)
+(*             received, and cash before and after.            *)
+(*             Only stocks with divRcvd > 0 are listed.        *)
+(*             Only bonds with bndInt > 0 are listed.          *)
+(*             Sections show "(none)" when no amounts apply.   *)
+(*             Blocks on keypress via waitKey.                 *)
+(*                                                             *)
+(*             CALLER RESPONSIBILITY: must not be called in    *)
+(*             Year 1 or Year 10; those years have no          *)
+(*             dividends or bond interest.                     *)
+(* PARAMS    : currYear - current game year (2..9)             *)
+(*             plyrName - player name for display              *)
+(*             cashBef  - cash balance before dividends        *)
+(*             divRcvd  - dividends received per stock (1..9)  *)
+(*                        0 for no-yield or suspended stocks   *)
+(*             bndInt   - interest received per bond (1..3)    *)
+(*                        0 for bonds not held                 *)
+(*             totRcvd  - total dividends + interest received  *)
+(*             cashAft  - cash balance after dividends         *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress.             *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* ============================================================ *)
+PARAM currYear   : INTEGER
+PARAM plyrName   : STRING[20]
+PARAM cashBef    : INTEGER
+PARAM divRcvd(9) : INTEGER
+PARAM bndInt(3)  : INTEGER
+PARAM totRcvd    : INTEGER
+PARAM cashAft    : INTEGER
+PARAM action     : BYTE
+DIM s      : INTEGER
+DIM b      : INTEGER
+DIM sName  : STRING[12]
+DIM bName  : STRING[6]
+DIM anyDiv : BOOLEAN
+DIM anyBnd : BOOLEAN
+
+ON ERROR GOTO 900
+
+anyDiv := FALSE
+anyBnd := FALSE
+
+RUN clrScr
+PRINT
+PRINT "  DIVIDENDS AND INTEREST"
+PRINT "  "; plyrName; "  YEAR "; currYear
+PRINT
+
+! -- Dividends received ----------------------------------------
+PRINT "  DIVIDENDS RECEIVED:"
+RESTORE 100
+FOR s := 1 TO 9
+  READ sName
+  IF divRcvd(s) > 0 THEN
+    PRINT USING "'    ',S12<,'  $',I6>", sName, divRcvd(s)
+    anyDiv := TRUE
+  ENDIF
+NEXT s
+IF NOT anyDiv THEN
+  PRINT "    (none)"
+ENDIF
+PRINT
+
+! -- Bond interest ---------------------------------------------
+PRINT "  BOND INTEREST:"
+RESTORE 200
+FOR b := 1 TO 3
+  READ bName
+  IF bndInt(b) > 0 THEN
+    PRINT USING "'    ',S12<,'  $',I6>", bName, bndInt(b)
+    anyBnd := TRUE
+  ENDIF
+NEXT b
+IF NOT anyBnd THEN
+  PRINT "    (none)"
+ENDIF
+PRINT
+
+! -- Cash summary ----------------------------------------------
+PRINT USING "'  Total received:   $',I6>", totRcvd
+PRINT USING "'  Cash before:      $',I6>", cashBef
+PRINT USING "'  Cash after:       $',I6>", cashAft
+PRINT
+
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for dividend display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+! Bond names 1..3 for interest display (spec Section 2.2)
+200 DATA "Small","Medium","Large"
+
+900 ERROR(ERR)
+END
+
 PROCEDURE SNBMAIN
 (* ================================================== *)
 (* PROCEDURE: SNBMAIN                                 *)
@@ -577,56 +682,79 @@ END
 900 PRINT "SNBMAIN error ("; ERR; ")"
 END
 
-PROCEDURE TSTYRHDR
+PROCEDURE TSTDVINT
 (* ============================================================ *)
-(* PROCEDURE : TSTYRHDR                                         *)
-(* PURPOSE   : Confirmation tests for scrYearHdr (Task 8.1).   *)
-(*             Three visual test cases per spec 8.1:           *)
-(*               Test 1 — Year 1: no-dividends + no-sell shown *)
-(*               Test 2 — Year 5: no notices shown             *)
-(*               Test 3 — Year 10: no-dividends + no-margin    *)
+(* PROCEDURE : TSTDVINT                                         *)
+(* PURPOSE   : Confirmation tests for scrDivInt (Task 8.2).    *)
+(*             Two visual test cases per spec 8.2:             *)
+(*               Test 1 — spec confirmation case:              *)
+(*                 Shady Brooks 100 shares = $700,             *)
+(*                 1 medium bond = $250,                       *)
+(*                 cashBef=5000, totRcvd=950, cashAft=5950.    *)
+(*                 Verify all figures render correctly.        *)
+(*               Test 2 — all-zero case:                       *)
+(*                 All divRcvd=0, all bndInt=0.                *)
+(*                 Verify "(none)" shown in both sections.     *)
 (*             Visual output verified manually by tester.      *)
 (*             Machine check: action = 1 (CONTINUE) each call. *)
 (* PARAMS    : none                                             *)
-(* SIDE EFX  : Calls scrYearHdr 3 times; clears screen each.  *)
+(* SIDE EFX  : Calls scrDivInt twice; clears screen each call. *)
 (* ============================================================ *)
-DIM action : BYTE
-DIM passed : INTEGER
-DIM failed : INTEGER
+DIM divRcvd(9) : INTEGER
+DIM bndInt(3)  : INTEGER
+DIM action     : BYTE
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM s          : INTEGER
+DIM b          : INTEGER
 
 ON ERROR GOTO 900
 
 passed := 0
 failed := 0
 
-PRINT "=== TSTYRHDR ==="
-PRINT
-
-! ---- Test 1: Year 1 — no-dividends and no-sell notices ------
-PRINT "Test 1: Year 1 of 10."
-PRINT "Expect: no-dividends notice, no-sell notice."
-PRINT "Expect: no-margin notice absent."
+! -- Test 1: spec confirmation case ---------------------------
+! Year 2, player ALICE, 100 shares Shady Brooks (stock 4, $7)
+! = $700 dividend, 1 medium bond (bond 2) = $250 interest.
+! cashBef=5000, totRcvd=950, cashAft=5950.
+PRINT "Test 1: Year 2, Shady Brooks $700, medium bond $250."
+PRINT "Expect: Shady Brooks $   700 under DIVIDENDS RECEIVED."
+PRINT "Expect: Medium       $   250 under BOND INTEREST."
+PRINT "Expect: Total received $  950, cash 5000 -> 5950."
 PRINT "Press any key to launch screen."
 RUN waitKey
-RUN scrYearHdr(1, 10, 1, TRUE, FALSE, TRUE, action)
+
+FOR s := 1 TO 9
+  divRcvd(s) := 0
+NEXT s
+FOR b := 1 TO 3
+  bndInt(b) := 0
+NEXT b
+divRcvd(4) := 700
+bndInt(2)  := 250
+
+RUN scrDivInt(2, "ALICE", 5000, divRcvd, bndInt, 950, 5950, action)
 GOSUB 100
 
-! ---- Test 2: Year 5 — no notices ----------------------------
-PRINT "Test 2: Year 5 of 10."
-PRINT "Expect: no rule notices displayed."
+! -- Test 2: all-zero case ------------------------------------
+! No dividends received, no bond interest.
+! Expect "(none)" in both sections. totRcvd=0, cash unchanged.
+PRINT "Test 2: Year 5, no dividends, no bond interest."
+PRINT "Expect: (none) under DIVIDENDS RECEIVED."
+PRINT "Expect: (none) under BOND INTEREST."
+PRINT "Expect: Total received $     0, cash 3000 -> 3000."
 PRINT "Press any key to launch screen."
 RUN waitKey
-RUN scrYearHdr(5, 10, 1, FALSE, FALSE, FALSE, action)
-GOSUB 200
 
-! ---- Test 3: Year 10 — no-dividends and no-margin notices ---
-PRINT "Test 3: Year 10 of 10."
-PRINT "Expect: no-dividends notice, no-margin notice."
-PRINT "Expect: no-sell notice absent."
-PRINT "Press any key to launch screen."
-RUN waitKey
-RUN scrYearHdr(10, 10, 1, TRUE, TRUE, FALSE, action)
-GOSUB 300
+FOR s := 1 TO 9
+  divRcvd(s) := 0
+NEXT s
+FOR b := 1 TO 3
+  bndInt(b) := 0
+NEXT b
+
+RUN scrDivInt(5, "BOB", 3000, divRcvd, bndInt, 0, 3000, action)
+GOSUB 200
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
@@ -654,16 +782,5 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 action check
-    IF action = 1 THEN
-      PRINT "Test 3 PASS  action=1 (CONTINUE)"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  action: exp=1 got="; action
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTYRHDR"
+900 PRINT "Runtime error "; ERR; " in TSTDVINT"
     END
