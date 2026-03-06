@@ -90,6 +90,8 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **Write one program statement per line.** The backslash statement concatenation syntax (`\`) hides program structure and offers no speed advantage. Exceptions: inline comments (`\ ! comment`) and multi-`ENDIF` switch closures (`ENDIF \ENDIF \ENDIF`).
 
+* **Program statements cannot be extended across multiple lines** The `\` symbol, in particular, cannot be used to try to bridge a single statement across multiple lines.
+
 * **Use end-of-line comments to clarify, not narrate.** End-of-line comments use the syntax `\ ! comment text`. The `!` alone is only legal at the start of a line or after a `\`.
 
   ```basic09
