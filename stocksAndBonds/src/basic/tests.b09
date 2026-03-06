@@ -1508,3 +1508,485 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTLODGME
+(* ============================================================ *)
+(* PROCEDURE : TSTLODGME                                        *)
+(* PURPOSE   : Confirmation test for Task 5.2.                 *)
+(*             Part 1: round-trip verify fields survive save   *)
+(*                     and load unchanged.                     *)
+(*             Part 2: corrupt magic byte; verify loadOK=FALSE *)
+(*                     and "not a valid save file" message.    *)
+(*             Part 3: corrupt currYear byte; verify           *)
+(*                     loadOK=FALSE and "corrupt" message.     *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Creates and deletes SNBTEST in current dir.     *)
+(*             loadGame prints diagnostic messages for         *)
+(*             Parts 2 and 3; this is expected output.         *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM savNm      : STRING[20]
+DIM loadOK     : BOOLEAN
+DIM errCnt     : INTEGER
+DIM i          : INTEGER
+DIM path       : BYTE
+DIM badByte    : BYTE
+
+ON ERROR GOTO 900
+
+errCnt := 0
+savNm  := "SNBTEST"
+
+PRINT "=== tstLodGme ==="
+PRINT
+
+GOSUB 100
+GOSUB 200
+GOSUB 300
+
+GOTO 400
+
+100 ! --- Part 1: happy path round-trip ---
+PRINT "Part 1: round-trip save and load."
+
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+
+plyrs(1).plyrName    := "Alice"
+plyrs(1).plyrType    := 1
+plyrs(1).cashBal     := 7500
+plyrs(1).stckShrs(3) := 50
+plyrs(1).bondUnts(2) := 1
+
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.currYear   := 3
+hdr.plyrCount  := 2
+hdr.rollMode   := 2
+hdr.savedPhase := 1
+hdr.savedPlyr  := 2
+hdr.deckPos    := 7
+hdr.obligation := 0
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+! Clear fields to confirm readback is not stale.
+hdr.currYear         := 0
+hdr.savedPhase       := 99
+hdr.savedPlyr        := 0
+hdr.deckPos          := 0
+plyrs(1).cashBal     := 0
+plyrs(1).stckShrs(3) := 0
+plyrs(1).bondUnts(2) := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF loadOK THEN
+  PRINT "  PASS: loadOK = TRUE."
+ELSE
+  PRINT "  FAIL: loadOK = FALSE (unexpected)."
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.currYear = 3 THEN
+  PRINT "  PASS: hdr.currYear = 3."
+ELSE
+  PRINT "  FAIL: hdr.currYear = "; hdr.currYear
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.savedPhase = 1 THEN
+  PRINT "  PASS: hdr.savedPhase = 1."
+ELSE
+  PRINT "  FAIL: hdr.savedPhase = "; hdr.savedPhase
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.savedPlyr = 2 THEN
+  PRINT "  PASS: hdr.savedPlyr = 2."
+ELSE
+  PRINT "  FAIL: hdr.savedPlyr = "; hdr.savedPlyr
+  errCnt := errCnt + 1
+ENDIF
+
+IF hdr.deckPos = 7 THEN
+  PRINT "  PASS: hdr.deckPos = 7."
+ELSE
+  PRINT "  FAIL: hdr.deckPos = "; hdr.deckPos
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).cashBal = 7500 THEN
+  PRINT "  PASS: plyrs(1).cashBal = 7500."
+ELSE
+  PRINT "  FAIL: plyrs(1).cashBal = "; plyrs(1).cashBal
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).stckShrs(3) = 50 THEN
+  PRINT "  PASS: plyrs(1).stckShrs(3) = 50."
+ELSE
+  PRINT "  FAIL: plyrs(1).stckShrs(3) = "; plyrs(1).stckShrs(3)
+  errCnt := errCnt + 1
+ENDIF
+
+IF plyrs(1).bondUnts(2) = 1 THEN
+  PRINT "  PASS: plyrs(1).bondUnts(2) = 1."
+ELSE
+  PRINT "  FAIL: plyrs(1).bondUnts(2) = "; plyrs(1).bondUnts(2)
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+200 ! --- Part 2: corrupt magic byte at offset 0 ---
+! Expected: loadGame prints "not a valid save file", loadOK=FALSE.
+PRINT "Part 2: corrupt magic byte (expect error message below)."
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+OPEN #path, savNm:UPDATE
+SEEK #path, 0
+badByte := 0
+PUT #path, badByte
+CLOSE #path
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  PASS: loadOK = FALSE after bad magic."
+ELSE
+  PRINT "  FAIL: loadOK = TRUE after bad magic (should be FALSE)."
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+300 ! --- Part 3: corrupt currYear at offset 2 ---
+! magic and fmtVersion intact; checksum will mismatch.
+! Expected: loadGame prints "save file is corrupt", loadOK=FALSE.
+PRINT "Part 3: corrupt currYear byte (expect error message below)."
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+OPEN #path, savNm:UPDATE
+SEEK #path, 2
+badByte := $FF
+PUT #path, badByte
+CLOSE #path
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  PASS: loadOK = FALSE after checksum mismatch."
+ELSE
+  PRINT "  FAIL: loadOK = TRUE after corrupt byte (should be FALSE)."
+  errCnt := errCnt + 1
+ENDIF
+
+PRINT
+RETURN
+
+400 ! --- Summary and cleanup ---
+IF errCnt = 0 THEN
+  PRINT "PASS: all checks passed."
+ELSE
+  PRINT "FAIL: "; errCnt; " check(s) failed."
+ENDIF
+PRINT
+
+ON ERROR GOTO 500
+DELETE savNm
+500 ON ERROR GOTO 900
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE TSTCHKPTS
+(* ============================================================ *)
+(* PROCEDURE : TSTCHKPTS                                        *)
+(* PURPOSE   : Confirmation test for Task 5.3.                 *)
+(*             Verifies all four savedPhase values (0-3)       *)
+(*             write and reload correctly via saveGame and      *)
+(*             loadGame. Each subtest uses distinct field       *)
+(*             values to prevent false passes from stale data. *)
+(*             Phase 3 additionally verifies obligation field. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Creates and deletes SNBTEST in current dir.     *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM savNm      : STRING[20]
+DIM loadOK     : BOOLEAN
+DIM errCnt     : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+errCnt := 0
+savNm  := "SNBTEST"
+
+! Initialize shared arrays once; content is not under test here.
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+
+! Populate fixed header fields common to all four subtests.
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.plyrCount  := 2
+hdr.rollMode   := 1
+
+PRINT "=== tstChkPts ==="
+PRINT
+
+GOSUB 100
+GOSUB 200
+GOSUB 300
+GOSUB 400
+
+GOTO 500
+
+100 ! --- Phase 0: YEAR_START ---
+! savedPlyr=0, obligation=0 (both unused at this checkpoint).
+PRINT "Phase 0 (YEAR_START)."
+hdr.currYear   := 1
+hdr.savedPhase := 0
+hdr.savedPlyr  := 0
+hdr.deckPos    := 1
+hdr.obligation := 0
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+hdr.savedPhase := 99
+hdr.savedPlyr  := 99
+hdr.obligation := 999
+hdr.currYear   := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  FAIL: loadOK=FALSE."
+  errCnt := errCnt + 1
+  RETURN
+ENDIF
+IF hdr.savedPhase = 0 THEN
+  PRINT "  PASS: savedPhase=0."
+ELSE
+  PRINT "  FAIL: savedPhase="; hdr.savedPhase; " (exp 0)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.savedPlyr = 0 THEN
+  PRINT "  PASS: savedPlyr=0."
+ELSE
+  PRINT "  FAIL: savedPlyr="; hdr.savedPlyr; " (exp 0)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.obligation = 0 THEN
+  PRINT "  PASS: obligation=0."
+ELSE
+  PRINT "  FAIL: obligation="; hdr.obligation; " (exp 0)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.currYear = 1 THEN
+  PRINT "  PASS: currYear=1."
+ELSE
+  PRINT "  FAIL: currYear="; hdr.currYear; " (exp 1)."
+  errCnt := errCnt + 1
+ENDIF
+PRINT
+RETURN
+
+200 ! --- Phase 1: SELL_PHASE ---
+! savedPlyr=next player to sell; obligation unused (=0).
+PRINT "Phase 1 (SELL_PHASE)."
+hdr.currYear   := 4
+hdr.savedPhase := 1
+hdr.savedPlyr  := 2
+hdr.deckPos    := 14
+hdr.obligation := 0
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+hdr.savedPhase := 99
+hdr.savedPlyr  := 99
+hdr.obligation := 999
+hdr.currYear   := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  FAIL: loadOK=FALSE."
+  errCnt := errCnt + 1
+  RETURN
+ENDIF
+IF hdr.savedPhase = 1 THEN
+  PRINT "  PASS: savedPhase=1."
+ELSE
+  PRINT "  FAIL: savedPhase="; hdr.savedPhase; " (exp 1)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.savedPlyr = 2 THEN
+  PRINT "  PASS: savedPlyr=2."
+ELSE
+  PRINT "  FAIL: savedPlyr="; hdr.savedPlyr; " (exp 2)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.obligation = 0 THEN
+  PRINT "  PASS: obligation=0."
+ELSE
+  PRINT "  FAIL: obligation="; hdr.obligation; " (exp 0)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.deckPos = 14 THEN
+  PRINT "  PASS: deckPos=14."
+ELSE
+  PRINT "  FAIL: deckPos="; hdr.deckPos; " (exp 14)."
+  errCnt := errCnt + 1
+ENDIF
+PRINT
+RETURN
+
+300 ! --- Phase 2: BUY_PHASE ---
+! savedPlyr=next player to buy; obligation unused (=0).
+PRINT "Phase 2 (BUY_PHASE)."
+hdr.currYear   := 7
+hdr.savedPhase := 2
+hdr.savedPlyr  := 3
+hdr.deckPos    := 22
+hdr.obligation := 0
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+hdr.savedPhase := 99
+hdr.savedPlyr  := 99
+hdr.obligation := 999
+hdr.currYear   := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  FAIL: loadOK=FALSE."
+  errCnt := errCnt + 1
+  RETURN
+ENDIF
+IF hdr.savedPhase = 2 THEN
+  PRINT "  PASS: savedPhase=2."
+ELSE
+  PRINT "  FAIL: savedPhase="; hdr.savedPhase; " (exp 2)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.savedPlyr = 3 THEN
+  PRINT "  PASS: savedPlyr=3."
+ELSE
+  PRINT "  FAIL: savedPlyr="; hdr.savedPlyr; " (exp 3)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.obligation = 0 THEN
+  PRINT "  PASS: obligation=0."
+ELSE
+  PRINT "  FAIL: obligation="; hdr.obligation; " (exp 0)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.deckPos = 22 THEN
+  PRINT "  PASS: deckPos=22."
+ELSE
+  PRINT "  FAIL: deckPos="; hdr.deckPos; " (exp 22)."
+  errCnt := errCnt + 1
+ENDIF
+PRINT
+RETURN
+
+400 ! --- Phase 3: FORCED_LIQ ---
+! obligation carries the outstanding forced-liquidation amount.
+! This is the only checkpoint where obligation is non-zero.
+PRINT "Phase 3 (FORCED_LIQ)."
+hdr.currYear   := 9
+hdr.savedPhase := 3
+hdr.savedPlyr  := 1
+hdr.deckPos    := 31
+hdr.obligation := 1750
+
+RUN saveGame(savNm, hdr, deckOrd, plyrs, mkt)
+
+hdr.savedPhase := 99
+hdr.savedPlyr  := 99
+hdr.obligation := 0
+hdr.currYear   := 0
+
+RUN loadGame(savNm, hdr, deckOrd, plyrs, mkt, loadOK)
+
+IF NOT loadOK THEN
+  PRINT "  FAIL: loadOK=FALSE."
+  errCnt := errCnt + 1
+  RETURN
+ENDIF
+IF hdr.savedPhase = 3 THEN
+  PRINT "  PASS: savedPhase=3."
+ELSE
+  PRINT "  FAIL: savedPhase="; hdr.savedPhase; " (exp 3)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.savedPlyr = 1 THEN
+  PRINT "  PASS: savedPlyr=1."
+ELSE
+  PRINT "  FAIL: savedPlyr="; hdr.savedPlyr; " (exp 1)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.obligation = 1750 THEN
+  PRINT "  PASS: obligation=1750."
+ELSE
+  PRINT "  FAIL: obligation="; hdr.obligation; " (exp 1750)."
+  errCnt := errCnt + 1
+ENDIF
+IF hdr.deckPos = 31 THEN
+  PRINT "  PASS: deckPos=31."
+ELSE
+  PRINT "  FAIL: deckPos="; hdr.deckPos; " (exp 31)."
+  errCnt := errCnt + 1
+ENDIF
+PRINT
+RETURN
+
+500 ! --- Summary ---
+IF errCnt = 0 THEN
+  PRINT "PASS: all phase checks passed."
+ELSE
+  PRINT "FAIL: "; errCnt; " check(s) failed."
+ENDIF
+PRINT
+
+ON ERROR GOTO 600
+DELETE savNm
+600 ON ERROR GOTO 900
+END
+
+900 ERROR(ERR)
+END
