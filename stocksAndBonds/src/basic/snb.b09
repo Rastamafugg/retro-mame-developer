@@ -569,3 +569,121 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE applyMktYear
+(* ============================================================ *)
+(* PROCEDURE : applyMktYear                                     *)
+(* PURPOSE   : Apply full market price resolution for all 9    *)
+(*             stocks for one year (spec Sections 5–7).        *)
+(*             For each stock:                                  *)
+(*               - Looks up market table delta (getMktDelta)    *)
+(*               - Looks up card delta (getCard)                *)
+(*               - Resolves price, split, and dividend flags    *)
+(*                 (resolvePrice)                               *)
+(*               - Updates mkt.stckPrice and mkt.divSuspnd      *)
+(*               - Doubles stckShrs for all players on split    *)
+(*             Populates per-stock output arrays for S13–S15.  *)
+(* PARAMS    : cardId    - drawn card number (1..36)            *)
+(*             roll      - 2d6 result (2..12)                   *)
+(*             plyrCnt   - number of active players (1..6)      *)
+(*             plyrs     - player records; stckShrs modified    *)
+(*                         on split                             *)
+(*             mkt       - market state; stckPrice and          *)
+(*                         divSuspnd updated in place           *)
+(*             prcBefCrd - price after mkt table, before card   *)
+(*                         delta; unclamped; for S13 display    *)
+(*             mktDlta   - market table delta per stock         *)
+(*             crdDlta   - card delta per stock (0 if none)     *)
+(*             splitOcc  - TRUE per stock if split triggered    *)
+(*             divSuspd  - TRUE per stock if newly suspended    *)
+(*             divRnstd  - TRUE per stock if reinstated         *)
+(* SIDE EFX  : Repositions DATA pointer (via getMktDelta and   *)
+(*             getCard). Caller must not depend on DATA state.  *)
+(* NOTE      : Card divBonus (Card 1) is NOT applied here.     *)
+(*             Apply separately to player cashBal after return. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM cardId       : INTEGER
+PARAM roll         : INTEGER
+PARAM plyrCnt      : INTEGER
+PARAM plyrs(6)     : PlyrRec
+PARAM mkt          : MktState
+PARAM prcBefCrd(9) : INTEGER
+PARAM mktDlta(9)   : INTEGER
+PARAM crdDlta(9)   : INTEGER
+PARAM splitOcc(9)  : BOOLEAN
+PARAM divSuspd(9)  : BOOLEAN
+PARAM divRnstd(9)  : BOOLEAN
+DIM card   : CardRec
+DIM s      : INTEGER
+DIM p      : INTEGER
+DIM e      : INTEGER
+DIM curPrc : INTEGER
+DIM delta  : INTEGER
+DIM cDelta : INTEGER
+DIM tmpPrc : INTEGER
+DIM tmpShr : INTEGER
+DIM splt   : BOOLEAN
+DIM dNow   : BOOLEAN
+DIM dPrv   : BOOLEAN
+
+ON ERROR GOTO 900
+
+RUN getCard(cardId, card)
+
+FOR s := 1 TO 9
+
+  ! Market table delta for this stock and roll.
+  RUN getMktDelta(s, card.crdType, roll, delta)
+  mktDlta(s) := delta
+
+  ! Card delta: scan effects for this stock; default 0.
+  cDelta := 0
+  FOR e := 1 TO card.efxCnt
+    IF card.efxStk(e) = s THEN
+      cDelta := card.efxDlt(e)
+    ENDIF
+  NEXT e
+  crdDlta(s) := cDelta
+
+  ! Price before card delta: used by S13 for display only.
+  prcBefCrd(s) := mkt.stckPrice(s) + delta
+
+  ! Resolve price, split, and dividend suspension flags.
+  curPrc := mkt.stckPrice(s)
+  RUN resolvePrice(curPrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
+
+  ! Record display flags for S13/S14/S15.
+  splitOcc(s) := splt
+  IF NOT dPrv AND dNow THEN
+    divSuspd(s) := TRUE
+  ELSE
+    divSuspd(s) := FALSE
+  ENDIF
+  IF dPrv AND NOT dNow THEN
+    divRnstd(s) := TRUE
+  ELSE
+    divRnstd(s) := FALSE
+  ENDIF
+
+  ! Update market state in place.
+  mkt.stckPrice(s) := tmpPrc
+  mkt.divSuspnd(s) := dNow
+
+  ! On split: double all players' shares for this stock.
+  IF splt THEN
+    FOR p := 1 TO plyrCnt
+      plyrs(p).stckShrs(s) := plyrs(p).stckShrs(s) * 2
+    NEXT p
+  ENDIF
+
+NEXT s
+
+END
+
+900 ERROR(ERR)
+END

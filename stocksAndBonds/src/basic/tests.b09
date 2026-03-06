@@ -822,3 +822,143 @@ END
 
 900 PRINT "Runtime error "; ERR; " in TSTRSLVPRC"
     END
+
+PROCEDURE TSTMKTYR
+(* ============================================================ *)
+(* PROCEDURE : TSTMKTYR                                         *)
+(* PURPOSE   : Confirmation tests for applyMktYear (Task 3.4). *)
+(*             Card 13 (Stryker +17), Bull market, roll=5.     *)
+(*             Test 1: Stryker (stock 5) — split, delta flags, *)
+(*                     shares doubled for holder, zero for non *)
+(*             Test 2: Growth Corp (stock 1) — no card effect, *)
+(*                     correct price, no split, no div flags   *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyrs(6) : PlyrRec
+DIM mkt      : MktState
+DIM bCrd(9)  : INTEGER
+DIM mDlt(9)  : INTEGER
+DIM cDlt(9)  : INTEGER
+DIM splt(9)  : BOOLEAN
+DIM susp(9)  : BOOLEAN
+DIM rstd(9)  : BOOLEAN
+DIM passed   : INTEGER
+DIM failed   : INTEGER
+DIM p        : INTEGER
+DIM ok       : BOOLEAN
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! Initialize all player slots and market state.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+NEXT p
+RUN initMkt(mkt)
+
+! Player 1 holds 100 Stryker Drilling shares; player 2 holds none.
+plyrs(1).stckShrs(5) := 100
+
+! Card 13 = Stryker +17, Bull. Roll = 5.
+! Bull table roll=5 for Stryker = 56. rawPrice = 100+56+17 = 173.
+! Split: newPrice = (173+1)/2 = 87. Shares doubled for holders.
+RUN applyMktYear(13, 5, 2, plyrs, mkt, bCrd, mDlt, cDlt, splt, susp, rstd)
+
+GOSUB 100 \ ! Test 1: Stryker
+GOSUB 200 \ ! Test 2: Growth Corp
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1: Stryker Drilling (stock 5) — split and share doubling
+    ok := TRUE
+    IF mDlt(5) <> 56 THEN
+      PRINT "Test 1 FAIL  mDlt(5): exp=56 got="; mDlt(5)
+      ok := FALSE
+    ENDIF
+    IF cDlt(5) <> 17 THEN
+      PRINT "Test 1 FAIL  cDlt(5): exp=17 got="; cDlt(5)
+      ok := FALSE
+    ENDIF
+    IF bCrd(5) <> 156 THEN
+      PRINT "Test 1 FAIL  bCrd(5): exp=156 got="; bCrd(5)
+      ok := FALSE
+    ENDIF
+    IF mkt.stckPrice(5) <> 87 THEN
+      PRINT "Test 1 FAIL  stckPrice(5): exp=87 got="; mkt.stckPrice(5)
+      ok := FALSE
+    ENDIF
+    IF NOT splt(5) THEN
+      PRINT "Test 1 FAIL  splt(5): exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF susp(5) THEN
+      PRINT "Test 1 FAIL  susp(5): exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF rstd(5) THEN
+      PRINT "Test 1 FAIL  rstd(5): exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF plyrs(1).stckShrs(5) <> 200 THEN
+      PRINT "Test 1 FAIL  p1 shrs(5): exp=200 got="; plyrs(1).stckShrs(5)
+      ok := FALSE
+    ENDIF
+    IF plyrs(2).stckShrs(5) <> 0 THEN
+      PRINT "Test 1 FAIL  p2 shrs(5): exp=0 got="; plyrs(2).stckShrs(5)
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 1 PASS  Stryker split 173->87 shrs 100->200"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test 2: Growth Corp (stock 1) — no card effect, no split
+    ok := TRUE
+    IF mDlt(1) <> 23 THEN
+      PRINT "Test 2 FAIL  mDlt(1): exp=23 got="; mDlt(1)
+      ok := FALSE
+    ENDIF
+    IF cDlt(1) <> 0 THEN
+      PRINT "Test 2 FAIL  cDlt(1): exp=0 got="; cDlt(1)
+      ok := FALSE
+    ENDIF
+    IF bCrd(1) <> 123 THEN
+      PRINT "Test 2 FAIL  bCrd(1): exp=123 got="; bCrd(1)
+      ok := FALSE
+    ENDIF
+    IF mkt.stckPrice(1) <> 123 THEN
+      PRINT "Test 2 FAIL  stckPrice(1): exp=123 got="; mkt.stckPrice(1)
+      ok := FALSE
+    ENDIF
+    IF splt(1) THEN
+      PRINT "Test 2 FAIL  splt(1): exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF susp(1) THEN
+      PRINT "Test 2 FAIL  susp(1): exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF rstd(1) THEN
+      PRINT "Test 2 FAIL  rstd(1): exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test 2 PASS  GrowthCorp no-card 100->123 no split"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMKTYR"
+    END
