@@ -1,0 +1,137 @@
+PROCEDURE TSTPACK
+(* ============================================================ *)
+(* PROCEDURE : TSTPACK                                          *)
+(* PURPOSE   : Empirical test of PACK* multi-procedure file.   *)
+(*             Verifies three behaviours:                       *)
+(*             1. Individual packed proc callable by name.     *)
+(*             2. Second packed proc callable independently.   *)
+(*             3. Packed proc can RUN another packed proc      *)
+(*                within the same file (drawCard->shuffleDeck) *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Advances RND. Output to stdout.                 *)
+(* ============================================================ *)
+DIM newPrice   : INTEGER
+DIM newShares  : INTEGER
+DIM splitOccrd : BOOLEAN
+DIM divSuspNow : BOOLEAN
+DIM divSuspPrv : BOOLEAN
+DIM deckOrd(36): BYTE
+DIM chkArr(36) : BYTE
+DIM deckPos    : BYTE
+DIM cardId     : INTEGER
+DIM i          : INTEGER
+DIM errCnt     : INTEGER
+DIM rSeed      : REAL
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTPACK: PACK* empirical test ==="
+PRINT
+
+! -------------------------------------------------------
+! Test 1: resolvePrice no-split path
+! curPrice=100, mktDelta=20, cardDelta=0
+! Expected: newPrice=120, newShares=10, no split, no susp
+! -------------------------------------------------------
+PRINT "Test 1: resolvePrice no-split"
+RUN resolvePrice(100, 20, 0, 10, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+IF newPrice = 120 AND newShares = 10 AND NOT splitOccrd AND NOT divSuspNow THEN
+  PRINT "  PASS"
+  passed := passed + 1
+ELSE
+  PRINT "  FAIL newPrice="; newPrice; " newShares="; newShares
+  PRINT "       splitOccrd="; splitOccrd; " divSuspNow="; divSuspNow
+  failed := failed + 1
+ENDIF
+
+! -------------------------------------------------------
+! Test 2: resolvePrice split path
+! curPrice=100, mktDelta=60, cardDelta=0 -> raw=160
+! Expected: newPrice=80, newShares=20, splitOccrd=TRUE
+! -------------------------------------------------------
+PRINT "Test 2: resolvePrice split"
+RUN resolvePrice(100, 60, 0, 10, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+IF newPrice = 80 AND newShares = 20 AND splitOccrd AND NOT divSuspNow THEN
+  PRINT "  PASS"
+  passed := passed + 1
+ELSE
+  PRINT "  FAIL newPrice="; newPrice; " newShares="; newShares
+  PRINT "       splitOccrd="; splitOccrd
+  failed := failed + 1
+ENDIF
+
+! -------------------------------------------------------
+! Test 3: resolvePrice clamp-to-zero path
+! curPrice=10, mktDelta=-20, cardDelta=0 -> raw=-10 -> 0
+! Expected: newPrice=0, divSuspNow=TRUE
+! -------------------------------------------------------
+PRINT "Test 3: resolvePrice clamp zero"
+RUN resolvePrice(10, -20, 0, 5, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+IF newPrice = 0 AND NOT splitOccrd AND divSuspNow THEN
+  PRINT "  PASS"
+  passed := passed + 1
+ELSE
+  PRINT "  FAIL newPrice="; newPrice; " divSuspNow="; divSuspNow
+  failed := failed + 1
+ENDIF
+
+! -------------------------------------------------------
+! Test 4: shuffleDeck - 36 unique values
+! Tests second packed proc callable independently.
+! -------------------------------------------------------
+PRINT "Test 4: shuffleDeck 36 unique values"
+rSeed := RND(-(VAL(MID$(DATE$, 16, 2)) + 1))
+RUN shuffleDeck(deckOrd)
+FOR i := 1 TO 36
+  chkArr(i) := 0
+NEXT i
+FOR i := 1 TO 36
+  chkArr(deckOrd(i)) := chkArr(deckOrd(i)) + 1
+NEXT i
+errCnt := 0
+FOR i := 1 TO 36
+  IF chkArr(i) <> 1 THEN
+    errCnt := errCnt + 1
+  ENDIF
+NEXT i
+IF errCnt = 0 THEN
+  PRINT "  PASS"
+  passed := passed + 1
+ELSE
+  PRINT "  FAIL: "; errCnt; " duplicate or missing card(s)"
+  failed := failed + 1
+ENDIF
+
+! -------------------------------------------------------
+! Test 5: drawCard -> shuffleDeck cross-proc call.
+! Load sequential deck, draw all 36, verify deckPos
+! resets to 1 (drawCard internally called shuffleDeck).
+! This is the key test: packed proc calling packed proc.
+! -------------------------------------------------------
+PRINT "Test 5: drawCard->shuffleDeck cross-proc call"
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+deckPos := 1
+FOR i := 1 TO 36
+  RUN drawCard(deckOrd, deckPos, cardId)
+NEXT i
+IF deckPos = 1 THEN
+  PRINT "  PASS: deckPos reset to 1 after reshuffle"
+  passed := passed + 1
+ELSE
+  PRINT "  FAIL: deckPos="; deckPos; " (expected 1)"
+  failed := failed + 1
+ENDIF
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+900 PRINT "Runtime error "; ERR; " in TSTPACK"
+END
