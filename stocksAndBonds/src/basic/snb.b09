@@ -758,3 +758,66 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE saveGame
+(* ============================================================ *)
+(* PROCEDURE : saveGame                                         *)
+(* PURPOSE   : Serialize complete game state to disk.          *)
+(*             Computes and stores header checksum before       *)
+(*             writing. Overwrites existing file if present.   *)
+(* PARAMS    : savePath - target filename (max 20 chars)        *)
+(*             hdr      - populated SaveHdr; checksum set here  *)
+(*             deckOrd  - shuffled deck order array (36 BYTE)  *)
+(*             plyrs    - all 6 player records                  *)
+(*             mkt      - current market state                  *)
+(* SIDE EFX  : Creates or replaces savePath on disk.           *)
+(*             Modifies hdr.checksum before writing.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePath   : STRING[20]
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+DIM path     : BYTE
+DIM pathOpen : BOOLEAN
+DIM chkSum   : INTEGER
+
+ON ERROR GOTO 900
+
+pathOpen := FALSE
+
+! Compute checksum; staged to keep lines within 79 chars.
+chkSum := hdr.magic + hdr.fmtVersion + hdr.currYear
+chkSum := chkSum + hdr.plyrCount + hdr.rollMode
+chkSum := chkSum + hdr.savedPhase + hdr.savedPlyr
+chkSum := chkSum + hdr.deckPos + hdr.obligation
+hdr.checksum := LAND(chkSum, 255)
+
+! Delete existing file; ignore error if not present.
+ON ERROR GOTO 100
+DELETE savePath
+
+100 ON ERROR GOTO 900
+
+CREATE #path, savePath:WRITE
+pathOpen := TRUE
+
+PUT #path, hdr
+PUT #path, deckOrd
+PUT #path, plyrs
+PUT #path, mkt
+
+CLOSE #path
+pathOpen := FALSE
+END
+
+900 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    ERROR(ERR)
+END
