@@ -182,6 +182,71 @@ END
 PRINT "scrStart error ("; ERR; ")"
 END
 
+PROCEDURE scrSetup
+(* ================================================== *)
+(* PROCEDURE: scrSetup                                *)
+(* PURPOSE:   Display S2 new game setup screen.      *)
+(*            Collect player count, names, types,    *)
+(*            and market roll mode.                  *)
+(* PARAMS:    plyrCount  - receives player count 1-6 *)
+(*            plyrType   - receives type per player  *)
+(*                         1=Human  2=Computer       *)
+(*            plyrName   - receives name per player  *)
+(*            rollMode   - receives roll mode        *)
+(*                         1=A  2=B  3=C             *)
+(* NOTES:     plyrType is INTEGER array; callers     *)
+(*            copy to PlyrRec.plyrType (BYTE).       *)
+(*            getMenuKey result type requires        *)
+(*            INTEGER array elements.               *)
+(* ================================================== *)
+PARAM plyrCount:INTEGER
+PARAM plyrType(6):INTEGER
+PARAM plyrName(6):STRING[20]
+PARAM rollMode:INTEGER
+
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  NEW GAME SETUP"
+PRINT "  =============="
+PRINT
+PRINT "  Number of players (1-6): ";
+RUN getMenuKey(1, 6, plyrCount)
+PRINT plyrCount
+
+FOR i := 1 TO plyrCount
+  PRINT
+  PRINT "  Player "; i; ":"
+  INPUT "    Name: ", plyrName(i)
+  PRINT "    Type  1=Human  2=Computer: ";
+  RUN getMenuKey(1, 2, plyrType(i))
+  IF plyrType(i) = 1 THEN
+    PRINT "Human"
+  ELSE
+    PRINT "Computer"
+  ENDIF
+NEXT i
+
+PRINT
+PRINT "  Roll mode  1=A  2=B  3=C: ";
+RUN getMenuKey(1, 3, rollMode)
+IF rollMode = 1 THEN
+  PRINT "A"
+ELSE IF rollMode = 2 THEN
+  PRINT "B"
+ELSE
+  PRINT "C"
+ENDIF \ENDIF
+END
+
+900 \ ! Error handler
+PRINT "scrSetup error ("; ERR; ")"
+END
+
 PROCEDURE TSTDISP
 (* ================================================== *)
 (* PROCEDURE: TSTDISP                                *)
@@ -364,4 +429,59 @@ END
 
 900 \ ! Error handler
 PRINT "testScrSt error ("; ERR; ")"
+END
+
+PROCEDURE TSTSCRSET
+(* ================================================== *)
+(* PROCEDURE: TSTSCRSET                               *)
+(* PURPOSE:   Confirmation test for Task 7.2.        *)
+(*            Verifies scrSetup output values.       *)
+(* EXPECTED INPUT SEQUENCE:                          *)
+(*   Player count: 2                                 *)
+(*   Player 1 name: ALICE                            *)
+(*   Player 1 type: 1 (Human)                        *)
+(*   Player 2 name: BOT                              *)
+(*   Player 2 type: 2 (Computer)                     *)
+(*   Roll mode: 2 (B)                                *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM plyrCount:INTEGER
+DIM plyrType(6):INTEGER
+DIM plyrName(6):STRING[20]
+DIM rollMode:INTEGER
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "testScrSu: follow the prompts."
+PRINT "Enter: 2 players, ALICE Human, BOT Computer, mode B."
+PRINT
+RUN waitKey
+
+RUN scrSetup(plyrCount, plyrType, plyrName, rollMode)
+
+PRINT
+PRINT "--- Results ---"
+PRINT "plyrCount = "; plyrCount; "  (expected 2)"
+PRINT
+
+FOR i := 1 TO plyrCount
+  PRINT "plyrName("; i; ") = "; plyrName(i)
+  PRINT "plyrType("; i; ") = "; plyrType(i)
+NEXT i
+
+PRINT
+PRINT "rollMode = "; rollMode; "  (expected 2)"
+PRINT
+PRINT "Expected:"
+PRINT "  plyrCount=2"
+PRINT "  plyrType(1)=1  plyrName(1)=ALICE"
+PRINT "  plyrType(2)=2  plyrName(2)=BOT"
+PRINT "  rollMode=2"
+PRINT
+PRINT "Task 7.2 test complete."
+END
+
+900 \ ! Error handler
+PRINT "testScrSu error ("; ERR; ")"
 END
