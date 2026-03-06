@@ -66,9 +66,9 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 ### Line Numbers and Formatting
 
-* **Reserve line numbers for `GOSUB`, `ON ERROR`, and `ON...GOTO/GOSUB` targets.** Line numbers make programs harder to read and increase compile time. Use them only where required by syntax. Line numbers must increase in value within a procedure. Separate procedures' line numbering is independent.
+* **Reserve line numbers for `GOSUB`, `ON ERROR`, and `ON...GOTO/GOSUB` targets.** Line numbers make programs harder to read and increase compile time. Use them only where required by syntax. 
 
-  Start line numbers at 100, increment by 100. Reserve line number `900` for the end-of-procedure error handler, unless already taken.
+* **Line numbers must increase in value within a procedure.** Separate procedures' line numbering is independent.  Start line numbers at 100, increment by 100. Reserve line number `900` for the end-of-procedure error handler. Keep all other line numbers below this value and increasing in value as you progress down the procedure listing.
 
   ```basic09
   PROCEDURE ProcExample
