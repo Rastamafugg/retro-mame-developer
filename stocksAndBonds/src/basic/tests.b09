@@ -2360,3 +2360,94 @@ END
 
 900 PRINT "testSNBMN error ("; ERR; ")"
 END
+
+PROCEDURE TSTYRHDR
+(* ============================================================ *)
+(* PROCEDURE : TSTYRHDR                                         *)
+(* PURPOSE   : Confirmation tests for scrYearHdr (Task 8.1).   *)
+(*             Three visual test cases per spec 8.1:           *)
+(*               Test 1 — Year 1: no-dividends + no-sell shown *)
+(*               Test 2 — Year 5: no notices shown             *)
+(*               Test 3 — Year 10: no-dividends + no-margin    *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrYearHdr 3 times; clears screen each.  *)
+(* ============================================================ *)
+DIM action : BYTE
+DIM passed : INTEGER
+DIM failed : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTYRHDR ==="
+PRINT
+
+! ---- Test 1: Year 1 — no-dividends and no-sell notices ------
+PRINT "Test 1: Year 1 of 10."
+PRINT "Expect: no-dividends notice, no-sell notice."
+PRINT "Expect: no-margin notice absent."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN scrYearHdr(1, 10, 1, TRUE, FALSE, TRUE, action)
+GOSUB 100
+
+! ---- Test 2: Year 5 — no notices ----------------------------
+PRINT "Test 2: Year 5 of 10."
+PRINT "Expect: no rule notices displayed."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN scrYearHdr(5, 10, 1, FALSE, FALSE, FALSE, action)
+GOSUB 200
+
+! ---- Test 3: Year 10 — no-dividends and no-margin notices ---
+PRINT "Test 3: Year 10 of 10."
+PRINT "Expect: no-dividends notice, no-margin notice."
+PRINT "Expect: no-sell notice absent."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN scrYearHdr(10, 10, 1, TRUE, TRUE, FALSE, action)
+GOSUB 300
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 action check
+    IF action = 1 THEN
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTYRHDR"
+    END
