@@ -425,7 +425,7 @@ population before calling `saveGame`.
 | `hdr.currYear`    | Current year loop variable                           |
 | `hdr.plyrCount`   | Player count from setup                              |
 | `hdr.rollMode`    | Market roll mode from setup (1/2/3)                  |
-| `hdr.deckPos`     | Current deck position (next undrawn card index)      |
+| `hdr.deckPos`     | Current deck position (next undrawn card index). New game: set to 1 immediately after the initial shuffleDeck call in the game initialization procedure. Load: restored directly from hdr.deckPos by loadGame.      |
 | `hdr.checksum`    | Computed by saveGame; do not set before calling      |
 | `deckOrd(1..36)`  | Shuffled deck array (persists for full game)         |
 | `plyrs(1..n)`     | All PlyrRec fields for active players                |
