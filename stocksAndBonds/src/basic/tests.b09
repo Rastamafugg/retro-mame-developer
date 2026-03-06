@@ -962,3 +962,77 @@ END
 
 900 PRINT "Runtime error "; ERR; " in TSTMKTYR"
     END
+
+PROCEDURE TSTSHFLDCK
+(* ============================================================ *)
+(* PROCEDURE : TSTSHFLDCK                                       *)
+(* PURPOSE   : Confirmation test for Task 4.1. Seeds RND,      *)
+(*             calls shuffleDeck twice, prints all 36 values   *)
+(*             each time, and verifies all card IDs 1..36      *)
+(*             appear exactly once per shuffle.                 *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Advances RND sequence. Output to stdout.        *)
+(* ============================================================ *)
+DIM deckOrd(36) : BYTE
+DIM chkArr(36)  : BYTE
+DIM i           : INTEGER
+DIM errCnt      : INTEGER
+DIM rSeed       : REAL
+
+ON ERROR GOTO 900
+
+! Seed RNG from current seconds field; +1 ensures non-zero seed.
+rSeed := RND(-(VAL(MID$(DATE$, 16, 2)) + 1))
+
+PRINT "=== tstShuffleDeck ==="
+PRINT
+
+! --- Shuffle 1 ---
+PRINT "Shuffle 1:"
+RUN shuffleDeck(deckOrd)
+GOSUB 100  \ ! print deck
+GOSUB 200  \ ! verify deck
+PRINT
+
+! --- Shuffle 2 ---
+PRINT "Shuffle 2:"
+RUN shuffleDeck(deckOrd)
+GOSUB 100  \ ! print deck
+GOSUB 200  \ ! verify deck
+PRINT
+
+PRINT "Visual check: confirm sequences differ."
+END
+
+! ---- GOSUB 100: print all 36 values, 9 per line ----
+100 FOR i := 1 TO 36
+      PRINT deckOrd(i);
+      IF MOD(i, 9) = 0 THEN
+        PRINT
+      ENDIF
+    NEXT i
+RETURN
+
+! ---- GOSUB 200: verify all card IDs 1..36 exactly once ----
+200 FOR i := 1 TO 36
+      chkArr(i) := 0
+    NEXT i
+    FOR i := 1 TO 36
+      chkArr(deckOrd(i)) := chkArr(deckOrd(i)) + 1
+    NEXT i
+    errCnt := 0
+    FOR i := 1 TO 36
+      IF chkArr(i) <> 1 THEN
+        PRINT "  ERROR: card "; i; " count="; chkArr(i)
+        errCnt := errCnt + 1
+      ENDIF
+    NEXT i
+    IF errCnt = 0 THEN
+      PRINT "  PASS: all 36 cards present exactly once."
+    ELSE
+      PRINT "  FAIL: "; errCnt; " error(s)."
+    ENDIF
+RETURN
+
+900 ERROR(ERR)
+END
