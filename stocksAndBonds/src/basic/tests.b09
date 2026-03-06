@@ -466,3 +466,359 @@ END
 
 900 PRINT "Runtime error "; ERR; " in TSTDIVINT"
     END
+
+PROCEDURE TSTMGNINT
+(* ============================================================ *)
+(* PROCEDURE : TSTMGNINT                                        *)
+(* PURPOSE   : Confirmation tests for applyMgnInt (Task 3.2).  *)
+(*             Six tests covering: spec confirmation case,      *)
+(*             Year 1 guard, Year 10 guard, bankrupt player     *)
+(*             skip, zero-margin player untouched, and charge   *)
+(*             that does not exhaust cash (no forceLiq).        *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+DIM plyrs(6)    : PlyrRec
+DIM forceLiq(6) : BOOLEAN
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM p           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! ---- Test 1: spec confirmation case -------------------------
+! marginTot=2000, cashBal=80.
+! charge = 2000*5/100 = 100. cashBal = 80-100 = -20. forceLiq=TRUE.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
+GOSUB 100
+
+! ---- Test 2: Year 1 guard -----------------------------------
+! No charge applied; cashBal and forceLiq unchanged.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(1, 1, plyrs, forceLiq)
+GOSUB 200
+
+! ---- Test 3: Year 10 guard ----------------------------------
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 80
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(10, 1, plyrs, forceLiq)
+GOSUB 300
+
+! ---- Test 4: bankrupt player skipped -----------------------
+! isBankrupt=TRUE; cashBal and forceLiq must remain unchanged.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal    := 80
+plyrs(1).marginTot  := 2000
+plyrs(1).isBankrupt := TRUE
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
+GOSUB 400
+
+! ---- Test 5: zero-margin player — no charge, no forceLiq ----
+! marginTot=0; cashBal unchanged, forceLiq stays FALSE.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 5000
+plyrs(1).marginTot := 0
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
+GOSUB 500
+
+! ---- Test 6: charge does not exhaust cash -------------------
+! marginTot=2000, cashBal=5000. charge=100. cashBal=4900.
+! forceLiq must remain FALSE.
+FOR p := 1 TO 6
+  RUN initPlayer(plyrs(p))
+  forceLiq(p) := FALSE
+NEXT p
+plyrs(1).cashBal   := 5000
+plyrs(1).marginTot := 2000
+RUN applyMgnInt(2, 1, plyrs, forceLiq)
+GOSUB 600
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1: cashBal=-20, forceLiq=TRUE
+    IF plyrs(1).cashBal = -20 AND forceLiq(1) = TRUE THEN
+      PRINT "Test 1 PASS  mgnCharge=100 cashBal=-20 forceLiq=TRUE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  exp cashBal=-20 got="; plyrs(1).cashBal
+      IF NOT forceLiq(1) THEN
+        PRINT "           exp forceLiq=TRUE got=FALSE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 2 PASS  Year1 guard cashBal=80 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+300 ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 3 PASS  Year10 guard cashBal=80 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+400 ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
+    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
+      PRINT "Test 4 PASS  bankrupt skipped cashBal=80 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 4 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+500 ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
+    IF plyrs(1).cashBal = 5000 AND NOT forceLiq(1) THEN
+      PRINT "Test 5 PASS  zero margin cashBal=5000 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 5 FAIL  exp cashBal=5000 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+600 ! Test 6: charge=100, cashBal=4900, forceLiq=FALSE
+    IF plyrs(1).cashBal = 4900 AND NOT forceLiq(1) THEN
+      PRINT "Test 6 PASS  charge=100 cashBal=4900 forceLiq=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 6 FAIL  exp cashBal=4900 got="; plyrs(1).cashBal
+      IF forceLiq(1) THEN
+        PRINT "           exp forceLiq=FALSE got=TRUE"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMGNINT"
+    END
+
+PROCEDURE TSTRSLVPRC
+(* ============================================================ *)
+(* PROCEDURE : TSTRSLVPRC                                       *)
+(* PURPOSE   : Confirmation tests for resolvePrice (Task 3.3). *)
+(*             Four tests per spec Section 7:                   *)
+(*               A — split triggered, rounding verified         *)
+(*               B — bankruptcy floor clamp                     *)
+(*               C — dividend suspension boundary               *)
+(*               D — dividend reinstatement                     *)
+(* PARAMS    : none                                             *)
+(* ============================================================ *)
+DIM newPrice   : INTEGER
+DIM newShares  : INTEGER
+DIM splitOccrd : BOOLEAN
+DIM divSuspNow : BOOLEAN
+DIM divSuspPrv : BOOLEAN
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM ok         : BOOLEAN
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! ---- Test A: split triggered --------------------------------
+! curPrice=130, mktDelta=25, cardDelta=0, sharesOwnd=100.
+! rawPrice = 155. Split: newPrice=(155+1)/2=78, newShares=200.
+! divSuspPrv = FALSE (130 >= 50).
+! divSuspNow = FALSE (155 >= 50, pre-split price used).
+! splitOccrd = TRUE.
+RUN resolvePrice(130, 25, 0, 100, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+GOSUB 100
+
+! ---- Test B: bankruptcy floor clamp ------------------------
+! curPrice=5, mktDelta=-10, cardDelta=0, sharesOwnd=50.
+! rawPrice = -5 → clamped to 0.
+! divSuspPrv = TRUE (5 < 50).
+! divSuspNow = TRUE (0 < 50).
+! splitOccrd = FALSE.
+RUN resolvePrice(5, -10, 0, 50, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+GOSUB 200
+
+! ---- Test C: dividend suspension boundary ------------------
+! curPrice=55, mktDelta=-10, cardDelta=0, sharesOwnd=100.
+! rawPrice = 45. No clamp, no split.
+! divSuspPrv = FALSE (55 >= 50).
+! divSuspNow = TRUE  (45 < 50).
+! splitOccrd = FALSE.
+RUN resolvePrice(55, -10, 0, 100, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+GOSUB 300
+
+! ---- Test D: dividend reinstatement ------------------------
+! curPrice=45, mktDelta=10, cardDelta=0, sharesOwnd=100.
+! rawPrice = 55. No clamp, no split.
+! divSuspPrv = TRUE  (45 < 50).
+! divSuspNow = FALSE (55 >= 50).
+! splitOccrd = FALSE.
+RUN resolvePrice(45, 10, 0, 100, newPrice, newShares, splitOccrd, divSuspNow, divSuspPrv)
+GOSUB 400
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test A: split at 155 → price=78, shares=200, splitOccrd=TRUE
+    ok := TRUE
+    IF newPrice <> 78 THEN
+      PRINT "Test A FAIL  newPrice: exp=78 got="; newPrice
+      ok := FALSE
+    ENDIF
+    IF newShares <> 200 THEN
+      PRINT "Test A FAIL  newShares: exp=200 got="; newShares
+      ok := FALSE
+    ENDIF
+    IF NOT splitOccrd THEN
+      PRINT "Test A FAIL  splitOccrd: exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF divSuspNow THEN
+      PRINT "Test A FAIL  divSuspNow: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF divSuspPrv THEN
+      PRINT "Test A FAIL  divSuspPrv: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test A PASS  split 155->78 shares 100->200"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 ! Test B: clamp -5→0, divSuspNow=TRUE, divSuspPrv=TRUE
+    ok := TRUE
+    IF newPrice <> 0 THEN
+      PRINT "Test B FAIL  newPrice: exp=0 got="; newPrice
+      ok := FALSE
+    ENDIF
+    IF newShares <> 50 THEN
+      PRINT "Test B FAIL  newShares: exp=50 got="; newShares
+      ok := FALSE
+    ENDIF
+    IF splitOccrd THEN
+      PRINT "Test B FAIL  splitOccrd: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF NOT divSuspNow THEN
+      PRINT "Test B FAIL  divSuspNow: exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF NOT divSuspPrv THEN
+      PRINT "Test B FAIL  divSuspPrv: exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test B PASS  floor clamp 0 divSuspNow=TRUE divSuspPrv=TRUE"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+300 ! Test C: 55→45, divSuspPrv=FALSE, divSuspNow=TRUE
+    ok := TRUE
+    IF newPrice <> 45 THEN
+      PRINT "Test C FAIL  newPrice: exp=45 got="; newPrice
+      ok := FALSE
+    ENDIF
+    IF splitOccrd THEN
+      PRINT "Test C FAIL  splitOccrd: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF NOT divSuspNow THEN
+      PRINT "Test C FAIL  divSuspNow: exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF divSuspPrv THEN
+      PRINT "Test C FAIL  divSuspPrv: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test C PASS  55->45 suspension triggered"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+400 ! Test D: 45→55, divSuspPrv=TRUE, divSuspNow=FALSE
+    ok := TRUE
+    IF newPrice <> 55 THEN
+      PRINT "Test D FAIL  newPrice: exp=55 got="; newPrice
+      ok := FALSE
+    ENDIF
+    IF splitOccrd THEN
+      PRINT "Test D FAIL  splitOccrd: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF divSuspNow THEN
+      PRINT "Test D FAIL  divSuspNow: exp=FALSE got=TRUE"
+      ok := FALSE
+    ENDIF
+    IF NOT divSuspPrv THEN
+      PRINT "Test D FAIL  divSuspPrv: exp=TRUE got=FALSE"
+      ok := FALSE
+    ENDIF
+    IF ok THEN
+      PRINT "Test D PASS  45->55 reinstatement detected"
+      passed := passed + 1
+    ELSE
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTRSLVPRC"
+    END

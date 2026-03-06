@@ -498,178 +498,74 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE TSTMGNINT
+PROCEDURE resolvePrice
 (* ============================================================ *)
-(* PROCEDURE : TSTMGNINT                                        *)
-(* PURPOSE   : Confirmation tests for applyMgnInt (Task 3.2).  *)
-(*             Six tests covering: spec confirmation case,      *)
-(*             Year 1 guard, Year 10 guard, bankrupt player     *)
-(*             skip, zero-margin player untouched, and charge   *)
-(*             that does not exhaust cash (no forceLiq).        *)
-(* PARAMS    : none                                             *)
+(* PROCEDURE : resolvePrice                                     *)
+(* PURPOSE   : Resolve the new price and share count for one   *)
+(*             stock after market table and card deltas are     *)
+(*             applied (spec Section 7).                        *)
+(*             Execution order per spec:                        *)
+(*               1. Sum deltas.                                 *)
+(*               2. Clamp at 0 (BankruptcyPrice).              *)
+(*               3. Set divSuspndNow (DividendCutoff = 50).    *)
+(*               4. Apply split if >= 150 (round price up).    *)
+(* PARAMS    : curPrice   - stock price before this year        *)
+(*             mktDelta   - market table delta for this roll    *)
+(*             cardDelta  - situation card delta (0 if none)    *)
+(*             sharesOwnd - shares held by this player          *)
+(*             newPrice   - resolved price after all steps      *)
+(*             newShares  - shares after possible split         *)
+(*             splitOccrd - TRUE if a 2-for-1 split triggered  *)
+(*             divSuspNow - TRUE if dividends suspended at      *)
+(*                          newPrice (pre-split price used per  *)
+(*                          spec; split price always >= 75)     *)
+(*             divSuspPrv - TRUE if dividends were suspended at *)
+(*                          curPrice; derived here so caller    *)
+(*                          can detect suspension transitions   *)
+(*                          without external state.             *)
+(* SIDE EFX  : None. All outputs are via PARAM.                *)
 (* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-DIM plyrs(6)    : PlyrRec
-DIM forceLiq(6) : BOOLEAN
-DIM passed      : INTEGER
-DIM failed      : INTEGER
-DIM p           : INTEGER
+PARAM curPrice   : INTEGER
+PARAM mktDelta   : INTEGER
+PARAM cardDelta  : INTEGER
+PARAM sharesOwnd : INTEGER
+PARAM newPrice   : INTEGER
+PARAM newShares  : INTEGER
+PARAM splitOccrd : BOOLEAN
+PARAM divSuspNow : BOOLEAN
+PARAM divSuspPrv : BOOLEAN
+DIM rawPrice : INTEGER
 
 ON ERROR GOTO 900
 
-passed := 0
-failed := 0
+! Step 1: sum deltas.
+rawPrice := curPrice + mktDelta + cardDelta
 
-! ---- Test 1: spec confirmation case -------------------------
-! marginTot=2000, cashBal=80.
-! charge = 2000*5/100 = 100. cashBal = 80-100 = -20. forceLiq=TRUE.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal   := 80
-plyrs(1).marginTot := 2000
-RUN applyMgnInt(2, 1, plyrs, forceLiq)
-GOSUB 100
+! Step 2: clamp at BankruptcyPrice (0).
+IF rawPrice < 0 THEN
+  rawPrice := 0
+ENDIF
 
-! ---- Test 2: Year 1 guard -----------------------------------
-! No charge applied; cashBal and forceLiq unchanged.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal   := 80
-plyrs(1).marginTot := 2000
-RUN applyMgnInt(1, 1, plyrs, forceLiq)
-GOSUB 200
+! Derive previous suspension state from entry price.
+divSuspPrv := (curPrice < 50)
 
-! ---- Test 3: Year 10 guard ----------------------------------
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal   := 80
-plyrs(1).marginTot := 2000
-RUN applyMgnInt(10, 1, plyrs, forceLiq)
-GOSUB 300
+! Step 3: set dividend suspension from clamped pre-split price.
+divSuspNow := (rawPrice < 50)
 
-! ---- Test 4: bankrupt player skipped -----------------------
-! isBankrupt=TRUE; cashBal and forceLiq must remain unchanged.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal    := 80
-plyrs(1).marginTot  := 2000
-plyrs(1).isBankrupt := TRUE
-RUN applyMgnInt(2, 1, plyrs, forceLiq)
-GOSUB 400
+! Step 4: apply split or pass through.
+IF rawPrice >= 150 THEN
+  ! Round halved price up: (rawPrice + 1) / 2 handles odd prices.
+  ! e.g. 155 → (155+1)/2 = 78.  154 → (154+1)/2 = 77.
+  newPrice   := (rawPrice + 1) / 2
+  newShares  := sharesOwnd * 2
+  splitOccrd := TRUE
+ELSE
+  newPrice   := rawPrice
+  newShares  := sharesOwnd
+  splitOccrd := FALSE
+ENDIF
 
-! ---- Test 5: zero-margin player — no charge, no forceLiq ----
-! marginTot=0; cashBal unchanged, forceLiq stays FALSE.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal   := 5000
-plyrs(1).marginTot := 0
-RUN applyMgnInt(2, 1, plyrs, forceLiq)
-GOSUB 500
-
-! ---- Test 6: charge does not exhaust cash -------------------
-! marginTot=2000, cashBal=5000. charge=100. cashBal=4900.
-! forceLiq must remain FALSE.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-  forceLiq(p) := FALSE
-NEXT p
-plyrs(1).cashBal   := 5000
-plyrs(1).marginTot := 2000
-RUN applyMgnInt(2, 1, plyrs, forceLiq)
-GOSUB 600
-
-PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: cashBal=-20, forceLiq=TRUE
-    IF plyrs(1).cashBal = -20 AND forceLiq(1) = TRUE THEN
-      PRINT "Test 1 PASS  mgnCharge=100 cashBal=-20 forceLiq=TRUE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  exp cashBal=-20 got="; plyrs(1).cashBal
-      IF NOT forceLiq(1) THEN
-        PRINT "           exp forceLiq=TRUE got=FALSE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-200 ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
-    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
-      PRINT "Test 2 PASS  Year1 guard cashBal=80 forceLiq=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
-      IF forceLiq(1) THEN
-        PRINT "           exp forceLiq=FALSE got=TRUE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-300 ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
-    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
-      PRINT "Test 3 PASS  Year10 guard cashBal=80 forceLiq=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
-      IF forceLiq(1) THEN
-        PRINT "           exp forceLiq=FALSE got=TRUE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-400 ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
-    IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
-      PRINT "Test 4 PASS  bankrupt skipped cashBal=80 forceLiq=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 4 FAIL  exp cashBal=80 got="; plyrs(1).cashBal
-      IF forceLiq(1) THEN
-        PRINT "           exp forceLiq=FALSE got=TRUE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-500 ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
-    IF plyrs(1).cashBal = 5000 AND NOT forceLiq(1) THEN
-      PRINT "Test 5 PASS  zero margin cashBal=5000 forceLiq=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 5 FAIL  exp cashBal=5000 got="; plyrs(1).cashBal
-      IF forceLiq(1) THEN
-        PRINT "           exp forceLiq=FALSE got=TRUE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-600 ! Test 6: charge=100, cashBal=4900, forceLiq=FALSE
-    IF plyrs(1).cashBal = 4900 AND NOT forceLiq(1) THEN
-      PRINT "Test 6 PASS  charge=100 cashBal=4900 forceLiq=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 6 FAIL  exp cashBal=4900 got="; plyrs(1).cashBal
-      IF forceLiq(1) THEN
-        PRINT "           exp forceLiq=FALSE got=TRUE"
-      ENDIF
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTMGNINT"
-    END
+900 ERROR(ERR)
+END
