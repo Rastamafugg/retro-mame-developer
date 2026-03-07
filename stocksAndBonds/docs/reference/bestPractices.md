@@ -146,6 +146,8 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **MOD is a function, not an infix operator.** Correct usage: MOD(num1, num2). Wrong: num1 MOD num2.
 
+* **Numeric INPUT logic should handle non-numeric edge cases** INPUT + VAL validation pattern. Always guard with: (1) IF qIn = "" THEN treat as zero/default. (2) ELSE IF VAL(qIn) = 0 AND qIn <> "0" THEN reject as non-numeric.
+
 ### Procedure Calls and Parameters
 
 * **Use `RUN` to execute a procedure.** `CALL` is not a valid keyword.

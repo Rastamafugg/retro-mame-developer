@@ -43,6 +43,36 @@ END
     ERROR(ERR)
 END
 
+PROCEDURE initMkt
+(* ================================================= *)
+(* PROCEDURE: initMkt                                *)
+(* PURPOSE  : Initialize MktState to game-start     *)
+(*            values per spec Section 2.1.           *)
+(*            All stckPrice set to StockStartPrice   *)
+(*            (100). All divSuspnd set to FALSE.     *)
+(* PARAMS   : mkt - MktState to initialize (by ref) *)
+(* SIDE FX  : Modifies mkt in place.                 *)
+(* ================================================= *)
+
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+PARAM mkt: MktState
+
+DIM i: INTEGER
+
+ON ERROR GOTO 900
+
+FOR i := 1 TO 9
+    mkt.stckPrice(i) := 100
+    mkt.divSuspnd(i) := FALSE
+NEXT i
+
+END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
 PROCEDURE loadGame
 (* ============================================================ *)
 (* PROCEDURE : loadGame                                         *)
@@ -1087,20 +1117,25 @@ LOOP
       PRINT " avail @ $"; pStr; ")"
       valid := FALSE
       WHILE NOT valid DO
-        INPUT "  Sell qty (0=skip, mult of 10): ", qIn
-        qty := VAL(qIn)
-        IF qty = 0 THEN
+        INPUT "  Sell qty (0/Enter=skip, mult of 10): ", qIn
+        IF qIn = "" THEN
+          qty := 0
           valid := TRUE
-        ELSE IF qty < 0 THEN
-          PRINT "  Invalid: enter 0 or positive mult of 10."
-        ELSE IF MOD(qty, 10) <> 0 THEN
-          PRINT "  Invalid: must be a multiple of 10."
-        ELSE IF qty > plyr.stckShrs(s) THEN
-          PRINT "  Invalid: you hold only ";
-          PRINT plyr.stckShrs(s); " shares."
         ELSE
-          valid := TRUE
-        ENDIF \ENDIF \ENDIF \ENDIF
+          qty := VAL(qIn)
+          IF qty = 0 AND qIn <> "0" THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or positive mult of 10."
+          ELSE IF MOD(qty, 10) <> 0 THEN
+            PRINT "  Invalid: must be a multiple of 10."
+          ELSE IF qty > plyr.stckShrs(s) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.stckShrs(s); " shares."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF \ENDIF
+        ENDIF
       ENDWHILE
       IF qty > 0 THEN
         ordCnt := ordCnt + 1
@@ -1118,16 +1153,23 @@ LOOP
       PRINT " ("; plyr.bondUnts(b); " unit(s) held)"
       valid := FALSE
       WHILE NOT valid DO
-        INPUT "  Units to sell (0=skip): ", qIn
-        qty := VAL(qIn)
-        IF qty < 0 THEN
-          PRINT "  Invalid: enter 0 or a positive number."
-        ELSE IF qty > plyr.bondUnts(b) THEN
-          PRINT "  Invalid: you hold only ";
-          PRINT plyr.bondUnts(b); " unit(s)."
-        ELSE
+        INPUT "  Units to sell (0/Enter=skip): ", qIn
+        IF qIn = "" THEN
+          qty := 0
           valid := TRUE
-        ENDIF \ENDIF
+        ELSE
+          qty := VAL(qIn)
+          IF qty = 0 AND qIn <> "0" THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or a positive number."
+          ELSE IF qty > plyr.bondUnts(b) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.bondUnts(b); " unit(s)."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF
+        ENDIF
       ENDWHILE
       IF qty > 0 THEN
         ordCnt := ordCnt + 1
