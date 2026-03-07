@@ -2819,3 +2819,127 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTDICE"
     END
+
+
+PROCEDURE TSTMKTBRD
+(* ============================================================ *)
+(* PROCEDURE : TSTMKTBRD                                        *)
+(* PURPOSE   : Confirmation tests for scrMktBoard (Task 8.5).  *)
+(*             One visual test case per spec 8.5:              *)
+(*               Stock 5 (Stryker Drlg): split. prcBefCrd=173, *)
+(*                 mktDlta=+73, crdDlta=0, newPrc=87.          *)
+(*                 Expect flag SPLT.                            *)
+(*               Stock 2 (Metro Props): suspended. prcBefCrd=40*)
+(*                 mktDlta=-60, crdDlta=0, newPrc=40.          *)
+(*                 Expect flag SUSP.                            *)
+(*               Stock 8 (Uranium Ent): reinstated. prcBefCrd= *)
+(*                 60, mktDlta=+20, crdDlta=0, newPrc=60.      *)
+(*                 Expect flag RSTD.                            *)
+(*               Stock 3 (Pioneer Mut): bankruptcy. prcBefCrd= *)
+(*                 -5, mktDlta=-15, crdDlta=0, newPrc=0.       *)
+(*                 Expect flag BKRT.                            *)
+(*               Stocks 1,4,6,7,9: neutral. prcBefCrd=100,    *)
+(*                 mktDlta=0, crdDlta=0, newPrc=100, no flag.  *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE).           *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrMktBoard; clears screen.               *)
+(* ============================================================ *)
+DIM prcBefCrd(9) : INTEGER
+DIM mktDlta(9)   : INTEGER
+DIM crdDlta(9)   : INTEGER
+DIM newPrc(9)    : INTEGER
+DIM splitOcc(9)  : BOOLEAN
+DIM divSuspd(9)  : BOOLEAN
+DIM divRnstd(9)  : BOOLEAN
+DIM action       : BYTE
+DIM passed       : INTEGER
+DIM failed       : INTEGER
+DIM s            : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTMKTBRD ==="
+PRINT
+
+! ---- Initialise all stocks to neutral ----------------------
+FOR s := 1 TO 9
+  prcBefCrd(s) := 100
+  mktDlta(s)   := 0
+  crdDlta(s)   := 0
+  newPrc(s)    := 100
+  splitOcc(s)  := FALSE
+  divSuspd(s)  := FALSE
+  divRnstd(s)  := FALSE
+NEXT s
+
+! ---- Stock 2 (Metro Props): suspended ----------------------
+! Original price ~100, mktDlta=-60 → prcBefCrd=40, newPrc=40.
+! 40 < DividendCutoff(50) → divSuspd=TRUE.
+prcBefCrd(2) := 40
+mktDlta(2)   := -60
+crdDlta(2)   := 0
+newPrc(2)    := 40
+divSuspd(2)  := TRUE
+
+! ---- Stock 3 (Pioneer Mut): bankruptcy floor ---------------
+! Original ~10, mktDlta=-15 → prcBefCrd=-5 (unclamped).
+! newPrc clamped to 0. Flag = BKRT (overrides all others).
+prcBefCrd(3) := -5
+mktDlta(3)   := -15
+crdDlta(3)   := 0
+newPrc(3)    := 0
+divSuspd(3)  := TRUE
+
+! ---- Stock 5 (Stryker Drlg): split ------------------------
+! Original 100, mktDlta=+73 → prcBefCrd=173.
+! resolvePrice: 173 >= 150 → split to (173+1)/2=87.
+prcBefCrd(5) := 173
+mktDlta(5)   := 73
+crdDlta(5)   := 0
+newPrc(5)    := 87
+splitOcc(5)  := TRUE
+
+! ---- Stock 8 (Uranium Ent): reinstated --------------------
+! Original price ~40 (was suspended), mktDlta=+20 → prcBefCrd=60.
+! 60 >= DividendCutoff(50) → reinstated.
+prcBefCrd(8) := 60
+mktDlta(8)   := 20
+crdDlta(8)   := 0
+newPrc(8)    := 60
+divRnstd(8)  := TRUE
+
+! ---- Expected output summary to guide tester ---------------
+PRINT "Expected board layout:"
+PRINT "  Stock 2  Metro Props:   PREV  40  MKT -60  NEW  40  SUSP"
+PRINT "  Stock 3  Pioneer Mut:   PREV  -5  MKT -15  NEW   0  BKRT"
+PRINT "  Stock 5  Stryker Drlg:  PREV 173  MKT +73  NEW  87  SPLT"
+PRINT "  Stock 8  Uranium Ent:   PREV  60  MKT +20  NEW  60  RSTD"
+PRINT "  All other stocks:       PREV 100  MKT   0  NEW 100  (blank)"
+PRINT
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+RUN scrMktBoard(prcBefCrd, mktDlta, crdDlta, newPrc, splitOcc, divSuspd, divRnstd, action)
+GOSUB 100
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Action check
+    IF action = 1 THEN
+      PRINT "PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMKTBRD"
+    END

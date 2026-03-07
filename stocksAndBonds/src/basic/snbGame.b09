@@ -854,6 +854,110 @@ END
 900 ERROR(ERR)
 END
 
+PROCEDURE scrDivFlag
+(* ============================================================ *)
+(* PROCEDURE : scrDivFlag                                       *)
+(* PURPOSE   : Display the dividend suspension or reinstatement*)
+(*             notice (S15) for one threshold-crossing event.  *)
+(*             Shows event type (SUSPENDED / REINSTATED), stock *)
+(*             name, resolved price, and dividend cutoff price. *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName - stock name for display                *)
+(*             evtType - 1 = SUSPENDED   2 = REINSTATED        *)
+(*             newPrc  - resolved stock price this year        *)
+(*             cutPrc  - dividend cutoff price (always 50)     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName : STRING[12]
+PARAM evtType : INTEGER
+PARAM newPrc  : INTEGER
+PARAM cutPrc  : INTEGER
+PARAM action  : BYTE
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+IF evtType = 1 THEN
+  PRINT "  DIVIDEND SUSPENDED"
+ELSE
+  PRINT "  DIVIDEND REINSTATED"
+ENDIF
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Current price:  $',I4>", newPrc
+PRINT USING "'  Cutoff price:   $',I4>", cutPrc
+PRINT
+IF evtType = 1 THEN
+  PRINT "  Dividends suspended until price recovers."
+ELSE
+  PRINT "  Dividends reinstated."
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrSplit
+(* ============================================================ *)
+(* PROCEDURE : scrSplit                                         *)
+(* PURPOSE   : Display the stock split notification (S14) for  *)
+(*             one split event. Shows the stock name, old and  *)
+(*             new price, and one row per player who held       *)
+(*             shares before the split (shrBef > 0). Players   *)
+(*             with zero shares before the split are skipped.  *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName  - stock name for display               *)
+(*             oldPrc   - price before split                    *)
+(*             newPrc   - price after split                     *)
+(*             plyrCnt  - number of active players (1..6)      *)
+(*             plyrName - player name per slot (1..plyrCnt)    *)
+(*             shrBef   - shares held before split per player  *)
+(*             shrAft   - shares held after split per player   *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName     : STRING[12]
+PARAM oldPrc      : INTEGER
+PARAM newPrc      : INTEGER
+PARAM plyrCnt     : INTEGER
+PARAM plyrName(6) : STRING[20]
+PARAM shrBef(6)   : INTEGER
+PARAM shrAft(6)   : INTEGER
+PARAM action      : BYTE
+DIM p : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  STOCK SPLIT  2 FOR 1"
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Old price:  $',I4>", oldPrc
+PRINT USING "'  New price:  $',I4>", newPrc
+PRINT
+PRINT "  PLAYER               BEFORE   AFTER"
+PRINT "  -------------------  ------  ------"
+FOR p := 1 TO plyrCnt
+  IF shrBef(p) > 0 THEN
+    PRINT USING "'  ',S20<,I6>,X2,I6>", plyrName(p), shrBef(p), shrAft(p)
+  ENDIF
+NEXT p
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
 PROCEDURE SNBMAIN
 (* ================================================== *)
 (* PROCEDURE: SNBMAIN                                 *)
@@ -934,125 +1038,142 @@ END
 900 PRINT "SNBMAIN error ("; ERR; ")"
 END
 
-PROCEDURE TSTMKTBRD
+PROCEDURE TSTSPLTDV
 (* ============================================================ *)
-(* PROCEDURE : TSTMKTBRD                                        *)
-(* PURPOSE   : Confirmation tests for scrMktBoard (Task 8.5).  *)
-(*             One visual test case per spec 8.5:              *)
-(*               Stock 5 (Stryker Drlg): split. prcBefCrd=173, *)
-(*                 mktDlta=+73, crdDlta=0, newPrc=87.          *)
-(*                 Expect flag SPLT.                            *)
-(*               Stock 2 (Metro Props): suspended. prcBefCrd=40*)
-(*                 mktDlta=-60, crdDlta=0, newPrc=40.          *)
-(*                 Expect flag SUSP.                            *)
-(*               Stock 8 (Uranium Ent): reinstated. prcBefCrd= *)
-(*                 60, mktDlta=+20, crdDlta=0, newPrc=60.      *)
-(*                 Expect flag RSTD.                            *)
-(*               Stock 3 (Pioneer Mut): bankruptcy. prcBefCrd= *)
-(*                 -5, mktDlta=-15, crdDlta=0, newPrc=0.       *)
-(*                 Expect flag BKRT.                            *)
-(*               Stocks 1,4,6,7,9: neutral. prcBefCrd=100,    *)
-(*                 mktDlta=0, crdDlta=0, newPrc=100, no flag.  *)
+(* PROCEDURE : TSTSPLTDV                                        *)
+(* PURPOSE   : Confirmation tests for scrSplit and scrDivFlag  *)
+(*             (Task 8.6). Three visual test cases per spec:   *)
+(*               Test 1 — scrSplit: Stryker Drlg split.        *)
+(*                 oldPrc=173, newPrc=87.                       *)
+(*                 Player ALICE: 100 shares -> 200.             *)
+(*                 Player BOB: 0 shares -> not shown.           *)
+(*                 Expect: split header, prices, ALICE row only *)
+(*               Test 2 — scrDivFlag SUSPENDED: Metro Props.   *)
+(*                 newPrc=45, cutPrc=50.                        *)
+(*                 Expect: "DIVIDEND SUSPENDED" header,         *)
+(*                   current price 45, cutoff 50,              *)
+(*                   suspended notice line.                     *)
+(*               Test 3 — scrDivFlag REINSTATED: Uranium Ent.  *)
+(*                 newPrc=55, cutPrc=50.                        *)
+(*                 Expect: "DIVIDEND REINSTATED" header,        *)
+(*                   current price 55, cutoff 50,              *)
+(*                   reinstated notice line.                    *)
 (*             Visual output verified manually by tester.      *)
-(*             Machine check: action = 1 (CONTINUE).           *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
 (* PARAMS    : none                                             *)
-(* SIDE EFX  : Calls scrMktBoard; clears screen.               *)
+(* SIDE EFX  : Calls scrSplit once, scrDivFlag twice.          *)
+(*             Clears screen each call.                        *)
 (* ============================================================ *)
-DIM prcBefCrd(9) : INTEGER
-DIM mktDlta(9)   : INTEGER
-DIM crdDlta(9)   : INTEGER
-DIM newPrc(9)    : INTEGER
-DIM splitOcc(9)  : BOOLEAN
-DIM divSuspd(9)  : BOOLEAN
-DIM divRnstd(9)  : BOOLEAN
-DIM action       : BYTE
-DIM passed       : INTEGER
-DIM failed       : INTEGER
-DIM s            : INTEGER
+DIM plyrName(6) : STRING[20]
+DIM shrBef(6)   : INTEGER
+DIM shrAft(6)   : INTEGER
+DIM action      : BYTE
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM p           : INTEGER
 
 ON ERROR GOTO 900
 
 passed := 0
 failed := 0
 
-PRINT "=== TSTMKTBRD ==="
+! ---- Test 1: scrSplit — Stryker Drlg, 2-for-1 split ---------
+! oldPrc=173, newPrc=87.
+! ALICE held 100 shares before split, doubled to 200 after.
+! BOB held 0 shares — must not appear in player list.
+PRINT "=== TSTSPLTDV ==="
 PRINT
-
-! ---- Initialise all stocks to neutral ----------------------
-FOR s := 1 TO 9
-  prcBefCrd(s) := 100
-  mktDlta(s)   := 0
-  crdDlta(s)   := 0
-  newPrc(s)    := 100
-  splitOcc(s)  := FALSE
-  divSuspd(s)  := FALSE
-  divRnstd(s)  := FALSE
-NEXT s
-
-! ---- Stock 2 (Metro Props): suspended ----------------------
-! Original price ~100, mktDlta=-60 → prcBefCrd=40, newPrc=40.
-! 40 < DividendCutoff(50) → divSuspd=TRUE.
-prcBefCrd(2) := 40
-mktDlta(2)   := -60
-crdDlta(2)   := 0
-newPrc(2)    := 40
-divSuspd(2)  := TRUE
-
-! ---- Stock 3 (Pioneer Mut): bankruptcy floor ---------------
-! Original ~10, mktDlta=-15 → prcBefCrd=-5 (unclamped).
-! newPrc clamped to 0. Flag = BKRT (overrides all others).
-prcBefCrd(3) := -5
-mktDlta(3)   := -15
-crdDlta(3)   := 0
-newPrc(3)    := 0
-divSuspd(3)  := TRUE
-
-! ---- Stock 5 (Stryker Drlg): split ------------------------
-! Original 100, mktDlta=+73 → prcBefCrd=173.
-! resolvePrice: 173 >= 150 → split to (173+1)/2=87.
-prcBefCrd(5) := 173
-mktDlta(5)   := 73
-crdDlta(5)   := 0
-newPrc(5)    := 87
-splitOcc(5)  := TRUE
-
-! ---- Stock 8 (Uranium Ent): reinstated --------------------
-! Original price ~40 (was suspended), mktDlta=+20 → prcBefCrd=60.
-! 60 >= DividendCutoff(50) → reinstated.
-prcBefCrd(8) := 60
-mktDlta(8)   := 20
-crdDlta(8)   := 0
-newPrc(8)    := 60
-divRnstd(8)  := TRUE
-
-! ---- Expected output summary to guide tester ---------------
-PRINT "Expected board layout:"
-PRINT "  Stock 2  Metro Props:   PREV  40  MKT -60  NEW  40  SUSP"
-PRINT "  Stock 3  Pioneer Mut:   PREV  -5  MKT -15  NEW   0  BKRT"
-PRINT "  Stock 5  Stryker Drlg:  PREV 173  MKT +73  NEW  87  SPLT"
-PRINT "  Stock 8  Uranium Ent:   PREV  60  MKT +20  NEW  60  RSTD"
-PRINT "  All other stocks:       PREV 100  MKT   0  NEW 100  (blank)"
-PRINT
+PRINT "Test 1: scrSplit — Stryker Drlg split."
+PRINT "Expect: STOCK SPLIT  2 FOR 1"
+PRINT "Expect: Stryker Drlg"
+PRINT "Expect: Old price:  $ 173"
+PRINT "Expect: New price:  $  87"
+PRINT "Expect: ALICE row: before=100  after=200"
+PRINT "Expect: BOB row: NOT shown (zero shares before)"
 PRINT "Press any key to launch screen."
 RUN waitKey
 
-RUN scrMktBoard(prcBefCrd, mktDlta, crdDlta, newPrc, splitOcc, divSuspd, divRnstd, action)
+FOR p := 1 TO 6
+  plyrName(p) := ""
+  shrBef(p)   := 0
+  shrAft(p)   := 0
+NEXT p
+plyrName(1) := "ALICE"
+shrBef(1)   := 100
+shrAft(1)   := 200
+plyrName(2) := "BOB"
+shrBef(2)   := 0
+shrAft(2)   := 0
+
+RUN scrSplit("Stryker Drlg", 173, 87, 2, plyrName, shrBef, shrAft, action)
 GOSUB 100
+
+! ---- Test 2: scrDivFlag — SUSPENDED -------------------------
+! Metro Props, newPrc=45, cutPrc=50.
+! 45 < 50 → newly suspended this year.
+PRINT "Test 2: scrDivFlag SUSPENDED — Metro Props."
+PRINT "Expect: DIVIDEND SUSPENDED"
+PRINT "Expect: Metro Props"
+PRINT "Expect: Current price:  $  45"
+PRINT "Expect: Cutoff price:   $  50"
+PRINT "Expect: suspended notice line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+RUN scrDivFlag("Metro Props", 1, 45, 50, action)
+GOSUB 200
+
+! ---- Test 3: scrDivFlag — REINSTATED ------------------------
+! Uranium Ent, newPrc=55, cutPrc=50.
+! 55 >= 50 → reinstated after prior suspension.
+PRINT "Test 3: scrDivFlag REINSTATED — Uranium Ent."
+PRINT "Expect: DIVIDEND REINSTATED"
+PRINT "Expect: Uranium Ent"
+PRINT "Expect: Current price:  $  55"
+PRINT "Expect: Cutoff price:   $  50"
+PRINT "Expect: reinstated notice line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+RUN scrDivFlag("Uranium Ent", 2, 55, 50, action)
+GOSUB 300
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Action check
+100 ! Test 1 action check
     IF action = 1 THEN
-      PRINT "PASS  action=1 (CONTINUE)"
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  action: exp=1 got="; action
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
       failed := failed + 1
     ENDIF
     PRINT
 RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTMKTBRD"
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTSPLTDV"
     END
