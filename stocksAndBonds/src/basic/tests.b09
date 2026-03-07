@@ -3235,3 +3235,279 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTSELL"
     END
+
+PROCEDURE TSTAPPLY
+(* ============================================================ *)
+(* PROCEDURE : TSTAPPLY                                         *)
+(* PURPOSE   : Confirmation tests for applySells (Task 9.2).   *)
+(*             Four machine-checked tests:                     *)
+(*               Test 1 — cash stock + bond sell               *)
+(*                 50 Growth Corp @ $120 + 1 med bond          *)
+(*                 exp cashBal=16000, stckShrs(1)=50,          *)
+(*                     bondUnts(2)=0                           *)
+(*               Test 2 — full margin sell, proceeds>marginTot *)
+(*                 100 Stryker @ $80, marginTot=5000           *)
+(*                 proceeds=8000, repay=5000                   *)
+(*                 exp cashBal=8000, marginTot=0,              *)
+(*                     stckShrs(5)=0, mgnHeld(5)=FALSE         *)
+(*               Test 3 — partial margin sell, proceeds<marginTot*)
+(*                 50 Stryker @ $80, marginTot=8000            *)
+(*                 proceeds=4000, repay=4000                   *)
+(*                 exp cashBal=5000 (unchanged), marginTot=4000*)
+(*                     stckShrs(5)=50, mgnHeld(5)=TRUE         *)
+(*               Test 4 — ordCnt=0 (pass turn)                 *)
+(*                 exp all fields unchanged                    *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : None. No screen output from applySells.         *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr        : PlyrRec
+DIM mkt         : MktState
+DIM ordType(12) : INTEGER
+DIM ordId(12)   : INTEGER
+DIM ordQty(12)  : INTEGER
+DIM ordCnt      : INTEGER
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTAPPLY  Task 9.2 ==="
+PRINT
+
+! ---- Test 1: cash stock sell + bond sell --------------------
+! 100 Growth Corp (stock 1) cash @ $120
+! 50  Shady Brooks (stock 4) cash @ $85 (not sold)
+! 1 medium bond (bond 2) held
+! Orders: sell 50 Growth Corp, sell 1 medium bond
+! Expected: cashBal = 5000 + (50*120) + (1*5000) = 16000
+!           stckShrs(1) = 50, stckShrs(4) = 50 (unchanged)
+!           bondUnts(2) = 0
+!           mgnHeld(1) = FALSE (was already FALSE; shares remain)
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.stckShrs(1) := 100
+plyr.stckShrs(4) := 50
+plyr.bondUnts(2) := 1
+mkt.stckPrice(1) := 120
+mkt.stckPrice(4) := 85
+
+FOR i := 1 TO 12
+  ordType(i) := 0
+  ordId(i)   := 0
+  ordQty(i)  := 0
+NEXT i
+ordType(1) := 1 \ ordId(1) := 1 \ ordQty(1) := 50
+ordType(2) := 2 \ ordId(2) := 2 \ ordQty(2) := 1
+ordCnt := 2
+
+RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+GOSUB 100
+
+! ---- Test 2: full margin sell, proceeds > marginTot ---------
+! 100 Stryker (stock 5) on margin @ $80, marginTot=5000
+! Sell 100 shares: proceeds=8000, repay=5000
+! Expected: cashBal = 5000 + (8000-5000) = 8000
+!           marginTot = 0
+!           stckShrs(5) = 0, mgnHeld(5) = FALSE
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.stckShrs(5) := 100
+plyr.mgnHeld(5)  := TRUE
+plyr.marginTot   := 5000
+mkt.stckPrice(5) := 80
+
+FOR i := 1 TO 12
+  ordType(i) := 0
+  ordId(i)   := 0
+  ordQty(i)  := 0
+NEXT i
+ordType(1) := 1 \ ordId(1) := 5 \ ordQty(1) := 100
+ordCnt := 1
+
+RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+GOSUB 200
+
+! ---- Test 3: partial margin sell, proceeds < marginTot ------
+! 100 Stryker (stock 5) on margin @ $80, marginTot=8000
+! Sell 50 shares: proceeds=4000, repay=4000 (all proceeds)
+! Expected: cashBal = 5000 (unchanged; all proceeds to margin)
+!           marginTot = 4000
+!           stckShrs(5) = 50, mgnHeld(5) = TRUE (partial)
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.stckShrs(5) := 100
+plyr.mgnHeld(5)  := TRUE
+plyr.marginTot   := 8000
+mkt.stckPrice(5) := 80
+
+FOR i := 1 TO 12
+  ordType(i) := 0
+  ordId(i)   := 0
+  ordQty(i)  := 0
+NEXT i
+ordType(1) := 1 \ ordId(1) := 5 \ ordQty(1) := 50
+ordCnt := 1
+
+RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+GOSUB 300
+
+! ---- Test 4: ordCnt=0, pass turn — no changes ---------------
+! Expected: cashBal=5000, marginTot=0, all shares/bonds zero
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+FOR i := 1 TO 12
+  ordType(i) := 0
+  ordId(i)   := 0
+  ordQty(i)  := 0
+NEXT i
+ordCnt := 0
+
+RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+GOSUB 400
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1: cash sell + bond sell
+    GOSUB 500
+    IF plyr.cashBal = 16000 THEN
+      PRINT "Test 1 PASS  cashBal=16000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  cashBal exp=16000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.stckShrs(1) = 50 THEN
+      PRINT "Test 1 PASS  stckShrs(1)=50"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  stckShrs(1) exp=50 got="; plyr.stckShrs(1)
+      failed := failed + 1
+    ENDIF
+    IF plyr.bondUnts(2) = 0 THEN
+      PRINT "Test 1 PASS  bondUnts(2)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  bondUnts(2) exp=0 got="; plyr.bondUnts(2)
+      failed := failed + 1
+    ENDIF
+    IF NOT plyr.mgnHeld(1) THEN
+      PRINT "Test 1 PASS  mgnHeld(1)=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  mgnHeld(1) exp=FALSE got=TRUE"
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2: full margin sell
+    GOSUB 500
+    IF plyr.cashBal = 8000 THEN
+      PRINT "Test 2 PASS  cashBal=8000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  cashBal exp=8000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 0 THEN
+      PRINT "Test 2 PASS  marginTot=0"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  marginTot exp=0 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    IF plyr.stckShrs(5) = 0 THEN
+      PRINT "Test 2 PASS  stckShrs(5)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  stckShrs(5) exp=0 got="; plyr.stckShrs(5)
+      failed := failed + 1
+    ENDIF
+    IF NOT plyr.mgnHeld(5) THEN
+      PRINT "Test 2 PASS  mgnHeld(5)=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  mgnHeld(5) exp=FALSE got=TRUE"
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3: partial margin sell
+    GOSUB 500
+    IF plyr.cashBal = 5000 THEN
+      PRINT "Test 3 PASS  cashBal=5000 (unchanged)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  cashBal exp=5000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 4000 THEN
+      PRINT "Test 3 PASS  marginTot=4000"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  marginTot exp=4000 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    IF plyr.stckShrs(5) = 50 THEN
+      PRINT "Test 3 PASS  stckShrs(5)=50"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  stckShrs(5) exp=50 got="; plyr.stckShrs(5)
+      failed := failed + 1
+    ENDIF
+    IF plyr.mgnHeld(5) THEN
+      PRINT "Test 3 PASS  mgnHeld(5)=TRUE"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  mgnHeld(5) exp=TRUE got=FALSE"
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+400 ! Test 4: pass turn — no changes
+    GOSUB 500
+    IF plyr.cashBal = 5000 THEN
+      PRINT "Test 4 PASS  cashBal=5000 (unchanged)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 4 FAIL  cashBal exp=5000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 0 THEN
+      PRINT "Test 4 PASS  marginTot=0 (unchanged)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 4 FAIL  marginTot exp=0 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+500 ! Print state for inspection
+     PRINT "  cashBal="; plyr.cashBal;
+     PRINT "  marginTot="; plyr.marginTot;
+     PRINT "  stckShrs(1)="; plyr.stckShrs(1);
+     PRINT "  stckShrs(5)="; plyr.stckShrs(5)
+     PRINT "  bondUnts(2)="; plyr.bondUnts(2);
+     PRINT "  mgnHeld(1)="; plyr.mgnHeld(1);
+     PRINT "  mgnHeld(5)="; plyr.mgnHeld(5)
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTAPPLY"
+    END

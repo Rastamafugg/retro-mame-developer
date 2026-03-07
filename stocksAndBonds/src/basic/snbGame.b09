@@ -847,6 +847,350 @@ END
 900 ERROR(ERR)
 END
 
+PROCEDURE scrBuy
+(* ============================================================ *)
+(* PROCEDURE : scrBuy                                           *)
+(* PURPOSE   : S17 Human Buy Phase screen.                     *)
+(*             Displays cash, margin, eligibility flags, stock *)
+(*             prices, and bond options. Accepts buy orders    *)
+(*             with per-order purchase type (CASH or MARGIN).  *)
+(*             Includes inline margin repayment via scrMgnRepay.*)
+(*             Validates all orders against simulated cash.    *)
+(*             Does NOT modify plyr; caller applies via        *)
+(*             applyBuys. mgnRepay returned for caller to apply*)
+(*             before applyBuys is called.                     *)
+(*             Bankrupt stocks (price=0) excluded from display.*)
+(* PARAMS    : currYear   - current year (1..10)               *)
+(*             plyr       - player record (read-only)          *)
+(*             mkt        - market state; stckPrice read-only  *)
+(*             mgnElig    - margin purchase eligible           *)
+(*                          (plyr.hadCashPur from caller)      *)
+(*             mgnYrOk    - margin allowed this year           *)
+(*                          (FALSE for Year 10)               *)
+(*             ordType    - output: 1=STOCK 2=BOND per order   *)
+(*             ordId      - output: asset index per order      *)
+(*             ordQty     - output: quantity per order         *)
+(*             ordPurch   - output: 1=CASH 2=MARGIN per order  *)
+(*             ordCnt     - output: number of orders (0..12)   *)
+(*             mgnRepay   - output: repayment amount (0=none)  *)
+(*             action     - output: 1=CONFIRM 2=PASS           *)
+(* SIDE EFX  : Clears screen. Calls scrMgnRepay if repayment  *)
+(*             selected. Uses INPUT for order quantities.      *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM currYear      : INTEGER
+PARAM plyr          : PlyrRec
+PARAM mkt           : MktState
+PARAM mgnElig       : BOOLEAN
+PARAM mgnYrOk       : BOOLEAN
+PARAM ordType(12)   : INTEGER
+PARAM ordId(12)     : INTEGER
+PARAM ordQty(12)    : INTEGER
+PARAM ordPurch(12)  : INTEGER
+PARAM ordCnt        : INTEGER
+PARAM mgnRepay      : INTEGER
+PARAM action        : BYTE
+DIM sNam(9)  : STRING[14]
+DIM bPar(3)  : INTEGER
+DIM simCash  : INTEGER
+DIM simMgn   : INTEGER
+DIM i        : INTEGER
+DIM s        : INTEGER
+DIM b        : INTEGER
+DIM qty      : INTEGER
+DIM key      : INTEGER
+DIM passKey  : INTEGER
+DIM purch    : INTEGER
+DIM cashCost : INTEGER
+DIM repayAmt : INTEGER
+DIM maxRpy   : INTEGER
+DIM qIn      : STRING[8]
+DIM pStr     : STRING[8]
+DIM valid    : BOOLEAN
+DIM numOk    : BOOLEAN
+DIM canMgn   : BOOLEAN
+
+ON ERROR GOTO 900
+
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+
+! canMgn: TRUE only when both eligibility conditions met.
+canMgn   := mgnElig AND mgnYrOk
+mgnRepay := 0
+simCash  := plyr.cashBal
+simMgn   := plyr.marginTot
+
+! ============================================================
+! Phase 1: repayment and enter/pass decision.
+! Loop redisplays after each repayment so updated cash/margin
+! are visible before the player commits to order entry.
+! ============================================================
+LOOP
+
+  RUN clrScr
+  PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
+  PRINT "Player: "; plyr.plyrName
+  RUN fmtMoney(simCash, pStr)
+  PRINT "Cash: $"; pStr;
+  RUN fmtMoney(simMgn, pStr)
+  PRINT "  Margin: $"; pStr
+  IF NOT mgnElig THEN
+    PRINT "  (No margin: no prior cash purchase)"
+  ENDIF
+  IF NOT mgnYrOk THEN
+    PRINT "  (No margin: Year 10)"
+  ENDIF
+  PRINT
+
+  PRINT "STOCKS:"
+  FOR s := 1 TO 9
+    IF mkt.stckPrice(s) > 0 THEN
+      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      PRINT " "; s; " "; sNam(s); "  $"; pStr
+    ENDIF
+  NEXT s
+
+  PRINT
+  PRINT "BONDS:"
+  PRINT " 1  Small  par=$1000   int=$50"
+  PRINT " 2  Medium par=$5000   int=$250"
+  PRINT " 3  Large  par=$10000  int=$500"
+  PRINT
+
+  ! Build menu based on margin total and simCash.
+  IF simMgn > 0 AND simCash > 0 THEN
+    PRINT "1=Enter orders  2=Repay margin  3=Pass"
+    passKey := 3
+    RUN getMenuKey(1, 3, key)
+  ELSE
+    PRINT "1=Enter orders  2=Pass"
+    passKey := 2
+    RUN getMenuKey(1, 2, key)
+  ENDIF
+
+  IF key = passKey THEN
+    ordCnt := 0
+    action := 2
+    END
+  ENDIF
+
+  EXITIF key = 1 THEN
+  ENDEXIT
+
+  ! key = 2 with simMgn > 0: call margin repayment sub-screen.
+  maxRpy := simMgn
+  IF simCash < maxRpy THEN
+    maxRpy := simCash
+  ENDIF
+  repayAmt := 0
+  RUN scrMgnRepay(simMgn, simCash, maxRpy, repayAmt)
+  mgnRepay := mgnRepay + repayAmt
+  simCash  := simCash  - repayAmt
+  simMgn   := simMgn   - repayAmt
+
+ENDLOOP
+
+! ============================================================
+! Phase 2: order entry + summary + confirm/revise loop.
+! ============================================================
+LOOP
+
+  ordCnt := 0
+  FOR i := 1 TO 12
+    ordType(i)  := 0
+    ordId(i)    := 0
+    ordQty(i)   := 0
+    ordPurch(i) := 0
+  NEXT i
+
+  ! Reinitialise simCash to post-repayment balance for this
+  ! entry pass. mgnRepay is already final from Phase 1.
+  simCash := plyr.cashBal - mgnRepay
+
+  RUN clrScr
+  PRINT "BUY ORDERS  YEAR "; currYear; "  "; plyr.plyrName
+  RUN fmtMoney(simCash, pStr)
+  PRINT "Available cash: $"; pStr
+  PRINT
+
+  ! --- Stock entries ----------------------------------------
+  FOR s := 1 TO 9
+    IF mkt.stckPrice(s) > 0 THEN
+      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      PRINT sNam(s); " @ $"; pStr
+      RUN fmtMoney(simCash, pStr)
+      PRINT "  (cash avail: $"; pStr; ")"
+
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
+        IF qIn = "" THEN
+          qty   := 0
+          valid := TRUE
+        ELSE
+          RUN getNumIn(qIn, qty, numOk)
+          IF NOT numOk THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or positive mult of 10."
+          ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+            PRINT "  Invalid: must be a multiple of 10."
+          ELSE IF qty > 0 THEN
+            ! Determine purchase type.
+            IF canMgn THEN
+              PRINT "  1=Cash  2=Margin"
+              RUN getMenuKey(1, 2, purch)
+            ELSE
+              purch := 1
+            ENDIF
+            ! Compute cost based on type.
+            IF purch = 1 THEN
+              cashCost := qty * mkt.stckPrice(s)
+            ELSE
+              ! Margin: player pays 50% cash upfront.
+              cashCost := (qty * mkt.stckPrice(s)) / 2
+            ENDIF
+            IF cashCost > simCash THEN
+              IF purch = 1 THEN
+                PRINT "  Insufficient cash (need $"; cashCost; ")."
+              ELSE
+                PRINT "  Insufficient cash for margin (need $";
+                PRINT cashCost; ")."
+              ENDIF
+            ELSE
+              simCash := simCash - cashCost
+              valid   := TRUE
+            ENDIF
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF \ENDIF
+        ENDIF
+      ENDWHILE
+
+      IF qty > 0 THEN
+        ordCnt              := ordCnt + 1
+        ordType(ordCnt)     := 1
+        ordId(ordCnt)       := s
+        ordQty(ordCnt)      := qty
+        ordPurch(ordCnt)    := purch
+      ENDIF
+
+    ENDIF
+  NEXT s
+
+  ! --- Bond entries -----------------------------------------
+  FOR b := 1 TO 3
+    PRINT "$"; bPar(b); " bond  (int=$";
+    IF b = 1 THEN PRINT "50)"
+    ELSE IF b = 2 THEN PRINT "250)"
+    ELSE PRINT "500)"
+    ENDIF \ENDIF
+    RUN fmtMoney(simCash, pStr)
+    PRINT "  (cash avail: $"; pStr; ")"
+
+    valid := FALSE
+    WHILE NOT valid DO
+      INPUT "  Units to buy (0/Enter=skip): ", qIn
+      IF qIn = "" THEN
+        qty   := 0
+        valid := TRUE
+      ELSE
+        RUN getNumIn(qIn, qty, numOk)
+        IF NOT numOk THEN
+          PRINT "  Invalid: enter a number."
+        ELSE IF qty < 0 THEN
+          PRINT "  Invalid: enter 0 or a positive number."
+        ELSE IF qty > 0 THEN
+          cashCost := qty * bPar(b)
+          IF cashCost > simCash THEN
+            PRINT "  Insufficient cash (need $"; cashCost; ")."
+          ELSE
+            simCash := simCash - cashCost
+            valid   := TRUE
+          ENDIF
+        ELSE
+          valid := TRUE
+        ENDIF \ENDIF \ENDIF
+      ENDIF
+    ENDWHILE
+
+    IF qty > 0 THEN
+      ordCnt           := ordCnt + 1
+      ordType(ordCnt)  := 2
+      ordId(ordCnt)    := b
+      ordQty(ordCnt)   := qty
+      ordPurch(ordCnt) := 1
+    ENDIF
+
+  NEXT b
+
+  ! --- Summary and confirm ----------------------------------
+  RUN clrScr
+  PRINT "BUY SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT
+  IF mgnRepay > 0 THEN
+    RUN fmtMoney(mgnRepay, pStr)
+    PRINT "  Margin repayment: $"; pStr
+  ENDIF
+  IF ordCnt = 0 AND mgnRepay = 0 THEN
+    PRINT "  (no orders entered)"
+  ELSE IF ordCnt = 0 THEN
+    PRINT "  (no buy orders; repayment only)"
+  ELSE
+    FOR i := 1 TO ordCnt
+      IF ordType(i) = 1 THEN
+        s := ordId(i)
+        RUN fmtMoney(mkt.stckPrice(s), pStr)
+        PRINT "  Buy "; ordQty(i); " "; sNam(s);
+        PRINT " @ $"; pStr;
+        IF ordPurch(i) = 2 THEN
+          PRINT " [MARGIN]"
+        ELSE
+          PRINT
+        ENDIF
+      ELSE IF ordType(i) = 2 THEN
+        b := ordId(i)
+        PRINT "  Buy "; ordQty(i); " $"; bPar(b); " bond";
+        IF ordQty(i) > 1 THEN
+          PRINT "s"
+        ELSE
+          PRINT
+        ENDIF
+      ENDIF \ENDIF
+    NEXT i
+  ENDIF \ENDIF
+  PRINT
+  RUN fmtMoney(simCash, pStr)
+  PRINT "Remaining cash after orders: $"; pStr
+  PRINT
+  PRINT "1=Confirm  2=Revise orders"
+  RUN getMenuKey(1, 2, key)
+
+  EXITIF key = 1 THEN
+  ENDEXIT
+
+ENDLOOP
+
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
 PROCEDURE SNBMAIN
 (* ================================================== *)
 (* PROCEDURE: SNBMAIN                                 *)
@@ -927,29 +1271,65 @@ END
 900 PRINT "SNBMAIN error ("; ERR; ")"
 END
 
-PROCEDURE TSTAPPLY
+PROCEDURE TSTBUY
 (* ============================================================ *)
-(* PROCEDURE : TSTAPPLY                                         *)
-(* PURPOSE   : Confirmation tests for applySells (Task 9.2).   *)
-(*             Four machine-checked tests:                     *)
-(*               Test 1 — cash stock + bond sell               *)
-(*                 50 Growth Corp @ $120 + 1 med bond          *)
-(*                 exp cashBal=16000, stckShrs(1)=50,          *)
-(*                     bondUnts(2)=0                           *)
-(*               Test 2 — full margin sell, proceeds>marginTot *)
-(*                 100 Stryker @ $80, marginTot=5000           *)
-(*                 proceeds=8000, repay=5000                   *)
-(*                 exp cashBal=8000, marginTot=0,              *)
-(*                     stckShrs(5)=0, mgnHeld(5)=FALSE         *)
-(*               Test 3 — partial margin sell, proceeds<marginTot*)
-(*                 50 Stryker @ $80, marginTot=8000            *)
-(*                 proceeds=4000, repay=4000                   *)
-(*                 exp cashBal=5000 (unchanged), marginTot=4000*)
-(*                     stckShrs(5)=50, mgnHeld(5)=TRUE         *)
-(*               Test 4 — ordCnt=0 (pass turn)                 *)
-(*                 exp all fields unchanged                    *)
-(* PARAMS    : none                                             *)
-(* SIDE EFX  : None. No screen output from applySells.         *)
+(* PROCEDURE : TSTBUY                                          *)
+(* PURPOSE   : Confirmation test for scrBuy (Task 9.3).        *)
+(*             Tests are interactive: scrBuy uses INPUT and    *)
+(*             cannot be driven without terminal input.        *)
+(*             Each subtest prints its setup, required input   *)
+(*             sequence, and expected outcome. The tester      *)
+(*             follows the sequence and then confirms the      *)
+(*             machine-checked assertions match.               *)
+(*                                                             *)
+(*             Subtest 1 — margin ineligible, cash purchases   *)
+(*               Setup: cashBal=3000, mgnElig=FALSE            *)
+(*               Input sequence:                               *)
+(*                 Menu: 1 (Enter orders)                      *)
+(*                 Growth Corp qty: 20  purch type: N/A (cash) *)
+(*                 Verify rejection of qty=20 if cost rejected,*)
+(*                 confirm qty accepted (cost=$2000)           *)
+(*                 Growth Corp qty: 20 again → reject          *)
+(*                   (simCash=1000 < 2000)                     *)
+(*                 Growth Corp qty: 0 (skip)                   *)
+(*                 [Stocks 2-9: Enter/skip]                    *)
+(*                 Small bond qty: 1 (cost=$1000, accepted)    *)
+(*                 Med/Large bond: 0/Enter                     *)
+(*                 Summary: 1 (Confirm)                        *)
+(*               Checks: ordCnt=2, ord1 stock 1 qty 20 cash,  *)
+(*                 ord2 bond 1 qty 1, mgnRepay=0, action=1,   *)
+(*                 simCash after=0                            *)
+(*                                                             *)
+(*             Subtest 2 — pass turn                           *)
+(*               Setup: cashBal=5000, mgnElig=FALSE            *)
+(*               Input sequence: Menu: 2 (Pass)                *)
+(*               Checks: ordCnt=0, action=2, mgnRepay=0        *)
+(*                                                             *)
+(*             Subtest 3 — margin eligible, one margin buy     *)
+(*               Setup: cashBal=4000, marginTot=1000,          *)
+(*                 mgnElig=TRUE, mgnYrOk=TRUE                  *)
+(*               Input sequence:                               *)
+(*                 Menu: 1 (Enter orders)                      *)
+(*                 Growth Corp qty: 20, type: 2 (Margin)       *)
+(*                   cost=50% of 20*100=$1000 cash             *)
+(*                 [remaining stocks: 0/Enter]                 *)
+(*                 [bonds: 0/Enter]                            *)
+(*                 Summary: 1 (Confirm)                        *)
+(*               Checks: ordCnt=1, ord1 stock 1 qty 20        *)
+(*                 ordPurch=2 (MARGIN), mgnRepay=0, action=1   *)
+(*                                                             *)
+(*             Subtest 4 — margin repayment then buy           *)
+(*               Setup: cashBal=5000, marginTot=2000,          *)
+(*                 mgnElig=TRUE, mgnYrOk=TRUE                  *)
+(*               Input sequence:                               *)
+(*                 Menu: 2 (Repay margin)                      *)
+(*                 scrMgnRepay: enter 1000                     *)
+(*                 Menu (redisplay): 1 (Enter orders)          *)
+(*                 [all stocks/bonds: 0/Enter]                 *)
+(*                 Summary: 1 (Confirm)                        *)
+(*               Checks: mgnRepay=1000, ordCnt=0, action=1     *)
+(* PARAMS    : none                                            *)
+(* SIDE EFX  : Calls scrBuy which clears screen and uses INPUT.*)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
@@ -959,9 +1339,13 @@ DIM mkt         : MktState
 DIM ordType(12) : INTEGER
 DIM ordId(12)   : INTEGER
 DIM ordQty(12)  : INTEGER
+DIM ordPurch(12): INTEGER
 DIM ordCnt      : INTEGER
+DIM mgnRepay    : INTEGER
+DIM action      : BYTE
 DIM passed      : INTEGER
 DIM failed      : INTEGER
+DIM s           : INTEGER
 DIM i           : INTEGER
 
 ON ERROR GOTO 900
@@ -969,387 +1353,258 @@ ON ERROR GOTO 900
 passed := 0
 failed := 0
 
-PRINT "=== TSTAPPLY  Task 9.2 ==="
+PRINT "=== TSTBUY  Task 9.3 ==="
+PRINT "Interactive test: follow each input sequence exactly."
 PRINT
 
-! ---- Test 1: cash stock sell + bond sell --------------------
-! 100 Growth Corp (stock 1) cash @ $120
-! 50  Shady Brooks (stock 4) cash @ $85 (not sold)
-! 1 medium bond (bond 2) held
-! Orders: sell 50 Growth Corp, sell 1 medium bond
-! Expected: cashBal = 5000 + (50*120) + (1*5000) = 16000
-!           stckShrs(1) = 50, stckShrs(4) = 50 (unchanged)
-!           bondUnts(2) = 0
-!           mgnHeld(1) = FALSE (was already FALSE; shares remain)
-
+! ---- Subtest 1: margin ineligible, cash buys ----------------
 RUN initPlayer(plyr)
 RUN initMkt(mkt)
-plyr.stckShrs(1) := 100
-plyr.stckShrs(4) := 50
-plyr.bondUnts(2) := 1
-mkt.stckPrice(1) := 120
-mkt.stckPrice(4) := 85
+plyr.plyrName    := "ALICE"
+plyr.cashBal     := 3000
+plyr.hadCashPur  := FALSE
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 100
+NEXT s
 
-FOR i := 1 TO 12
-  ordType(i) := 0
-  ordId(i)   := 0
-  ordQty(i)  := 0
-NEXT i
-ordType(1) := 1 \ ordId(1) := 1 \ ordQty(1) := 50
-ordType(2) := 2 \ ordId(2) := 2 \ ordQty(2) := 1
-ordCnt := 2
+PRINT "--- Subtest 1: mgnElig=FALSE, cashBal=3000 ---"
+PRINT "Input sequence:"
+PRINT "  Menu: 1 (Enter orders)"
+PRINT "  Growth Corp qty: 20  [cost=2000, accepted, cash type]"
+PRINT "  Metro Props qty: 20  [expect reject: simCash=1000]"
+PRINT "  Metro Props qty: 0   [skip]"
+PRINT "  Stocks 2-9: Enter (skip each)"
+PRINT "  Small bond qty: 1    [cost=1000, accepted]"
+PRINT "  Med/Large bond: Enter (skip each)"
+PRINT "  Summary: 1 (Confirm)"
+PRINT
+INPUT "Press Enter to launch Subtest 1...", plyr.plyrName
+plyr.plyrName := "ALICE"
 
-RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrBuy(1, plyr, mkt, FALSE, TRUE, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay, action)
+
 GOSUB 100
 
-! ---- Test 2: full margin sell, proceeds > marginTot ---------
-! 100 Stryker (stock 5) on margin @ $80, marginTot=5000
-! Sell 100 shares: proceeds=8000, repay=5000
-! Expected: cashBal = 5000 + (8000-5000) = 8000
-!           marginTot = 0
-!           stckShrs(5) = 0, mgnHeld(5) = FALSE
-
+! ---- Subtest 2: pass turn -----------------------------------
 RUN initPlayer(plyr)
 RUN initMkt(mkt)
-plyr.stckShrs(5) := 100
-plyr.mgnHeld(5)  := TRUE
-plyr.marginTot   := 5000
-mkt.stckPrice(5) := 80
+plyr.plyrName   := "BOB"
+plyr.cashBal    := 5000
+plyr.hadCashPur := FALSE
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 100
+NEXT s
 
-FOR i := 1 TO 12
-  ordType(i) := 0
-  ordId(i)   := 0
-  ordQty(i)  := 0
-NEXT i
-ordType(1) := 1 \ ordId(1) := 5 \ ordQty(1) := 100
-ordCnt := 1
+PRINT "--- Subtest 2: pass turn ---"
+PRINT "Input sequence:"
+PRINT "  Menu: 2 (Pass)"
+PRINT
+INPUT "Press Enter to launch Subtest 2...", plyr.plyrName
+plyr.plyrName := "BOB"
 
-RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrBuy(3, plyr, mkt, FALSE, TRUE, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay, action)
+
 GOSUB 200
 
-! ---- Test 3: partial margin sell, proceeds < marginTot ------
-! 100 Stryker (stock 5) on margin @ $80, marginTot=8000
-! Sell 50 shares: proceeds=4000, repay=4000 (all proceeds)
-! Expected: cashBal = 5000 (unchanged; all proceeds to margin)
-!           marginTot = 4000
-!           stckShrs(5) = 50, mgnHeld(5) = TRUE (partial)
-
+! ---- Subtest 3: margin eligible, margin buy -----------------
 RUN initPlayer(plyr)
 RUN initMkt(mkt)
-plyr.stckShrs(5) := 100
-plyr.mgnHeld(5)  := TRUE
-plyr.marginTot   := 8000
-mkt.stckPrice(5) := 80
+plyr.plyrName   := "CAROL"
+plyr.cashBal    := 4000
+plyr.marginTot  := 1000
+plyr.hadCashPur := TRUE
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 100
+NEXT s
 
-FOR i := 1 TO 12
-  ordType(i) := 0
-  ordId(i)   := 0
-  ordQty(i)  := 0
-NEXT i
-ordType(1) := 1 \ ordId(1) := 5 \ ordQty(1) := 50
-ordCnt := 1
+PRINT "--- Subtest 3: mgnElig=TRUE, margin buy Growth Corp ---"
+PRINT "Input sequence:"
+PRINT "  Menu: 1 (Enter orders)"
+PRINT "  Growth Corp qty: 20  type: 2 (Margin)  [cash cost=$1000]"
+PRINT "  Stocks 2-9: Enter (skip each)"
+PRINT "  All bonds: Enter (skip each)"
+PRINT "  Summary: 1 (Confirm)"
+PRINT
+INPUT "Press Enter to launch Subtest 3...", plyr.plyrName
+plyr.plyrName := "CAROL"
 
-RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrBuy(2, plyr, mkt, TRUE, TRUE, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay, action)
+
 GOSUB 300
 
-! ---- Test 4: ordCnt=0, pass turn — no changes ---------------
-! Expected: cashBal=5000, marginTot=0, all shares/bonds zero
-
+! ---- Subtest 4: repayment then enter orders -----------------
 RUN initPlayer(plyr)
 RUN initMkt(mkt)
+plyr.plyrName   := "DAVE"
+plyr.cashBal    := 5000
+plyr.marginTot  := 2000
+plyr.hadCashPur := TRUE
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 100
+NEXT s
 
-FOR i := 1 TO 12
-  ordType(i) := 0
-  ordId(i)   := 0
-  ordQty(i)  := 0
-NEXT i
-ordCnt := 0
+PRINT "--- Subtest 4: repay $1000 then enter no buy orders ---"
+PRINT "Input sequence:"
+PRINT "  Menu: 2 (Repay margin)"
+PRINT "  scrMgnRepay: enter 1000"
+PRINT "  Menu (redisplay): 1 (Enter orders)"
+PRINT "  All stocks/bonds: Enter (skip each)"
+PRINT "  Summary: 1 (Confirm)"
+PRINT
+INPUT "Press Enter to launch Subtest 4...", plyr.plyrName
+plyr.plyrName := "DAVE"
 
-RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrBuy(5, plyr, mkt, TRUE, TRUE, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay, action)
+
 GOSUB 400
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: cash sell + bond sell
-    GOSUB 500
-    IF plyr.cashBal = 16000 THEN
-      PRINT "Test 1 PASS  cashBal=16000"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  cashBal exp=16000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(1) = 50 THEN
-      PRINT "Test 1 PASS  stckShrs(1)=50"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  stckShrs(1) exp=50 got="; plyr.stckShrs(1)
-      failed := failed + 1
-    ENDIF
-    IF plyr.bondUnts(2) = 0 THEN
-      PRINT "Test 1 PASS  bondUnts(2)=0"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  bondUnts(2) exp=0 got="; plyr.bondUnts(2)
-      failed := failed + 1
-    ENDIF
-    IF NOT plyr.mgnHeld(1) THEN
-      PRINT "Test 1 PASS  mgnHeld(1)=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 1 FAIL  mgnHeld(1) exp=FALSE got=TRUE"
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
-
-200 ! Test 2: full margin sell
-    GOSUB 500
-    IF plyr.cashBal = 8000 THEN
-      PRINT "Test 2 PASS  cashBal=8000"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  cashBal exp=8000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 0 THEN
-      PRINT "Test 2 PASS  marginTot=0"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  marginTot exp=0 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(5) = 0 THEN
-      PRINT "Test 2 PASS  stckShrs(5)=0"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  stckShrs(5) exp=0 got="; plyr.stckShrs(5)
-      failed := failed + 1
-    ENDIF
-    IF NOT plyr.mgnHeld(5) THEN
-      PRINT "Test 2 PASS  mgnHeld(5)=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 2 FAIL  mgnHeld(5) exp=FALSE got=TRUE"
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
-
-300 ! Test 3: partial margin sell
-    GOSUB 500
-    IF plyr.cashBal = 5000 THEN
-      PRINT "Test 3 PASS  cashBal=5000 (unchanged)"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  cashBal exp=5000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 4000 THEN
-      PRINT "Test 3 PASS  marginTot=4000"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  marginTot exp=4000 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(5) = 50 THEN
-      PRINT "Test 3 PASS  stckShrs(5)=50"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  stckShrs(5) exp=50 got="; plyr.stckShrs(5)
-      failed := failed + 1
-    ENDIF
-    IF plyr.mgnHeld(5) THEN
-      PRINT "Test 3 PASS  mgnHeld(5)=TRUE"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 3 FAIL  mgnHeld(5) exp=TRUE got=FALSE"
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
-
-400 ! Test 4: pass turn — no changes
-    GOSUB 500
-    IF plyr.cashBal = 5000 THEN
-      PRINT "Test 4 PASS  cashBal=5000 (unchanged)"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 4 FAIL  cashBal exp=5000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 0 THEN
-      PRINT "Test 4 PASS  marginTot=0 (unchanged)"
-      passed := passed + 1
-    ELSE
-      PRINT "Test 4 FAIL  marginTot exp=0 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
-
-500 ! Print state for inspection
-     PRINT "  cashBal="; plyr.cashBal;
-     PRINT "  marginTot="; plyr.marginTot;
-     PRINT "  stckShrs(1)="; plyr.stckShrs(1);
-     PRINT "  stckShrs(5)="; plyr.stckShrs(5)
-     PRINT "  bondUnts(2)="; plyr.bondUnts(2);
-     PRINT "  mgnHeld(1)="; plyr.mgnHeld(1);
-     PRINT "  mgnHeld(5)="; plyr.mgnHeld(5)
-RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTAPPLY"
-    END
-
-PROCEDURE TSTSELL
-(* ============================================================ *)
-(* PROCEDURE : TSTSELL                                          *)
-(* PURPOSE   : Confirmation tests for scrSell (Task 9.1).      *)
-(*             Interactive test: tester supplies specific       *)
-(*             input at each prompt per the sequence below.    *)
-(*             Machine checks: ordCnt, ordType, ordId, ordQty. *)
-(*                                                             *)
-(* SETUP:                                                      *)
-(*   Player ALICE holds:                                       *)
-(*     100 Growth Corp (stock 1) at $120                       *)
-(*      50 Shady Brooks (stock 4) at $85                       *)
-(*       1 medium bond (bond 2)                               *)
-(*                                                             *)
-(* REQUIRED INPUT SEQUENCE:                                    *)
-(*   Initial menu  : press 1 (enter orders)                    *)
-(*   Growth Corp   : enter 15  -> verify rejection msg         *)
-(*   Growth Corp   : enter 150 -> verify rejection msg         *)
-(*   Growth Corp   : enter 50  -> accepted                     *)
-(*   Shady Brooks  : enter 0   (skip)                          *)
-(*   Medium bond   : enter 1   -> accepted                     *)
-(*   Summary screen: press 1   (Confirm)                       *)
-(*                                                             *)
-(* EXPECTED:                                                   *)
-(*   ordCnt = 2                                               *)
-(*   ordType(1)=1, ordId(1)=1, ordQty(1)=50  (Growth Corp)   *)
-(*   ordType(2)=2, ordId(2)=2, ordQty(2)=1   (medium bond)   *)
-(*   Proceeds: 50*120 + 1*5000 = 11000                        *)
-(*   cashBal update verified by TSTAPPLY (Task 9.2)           *)
-(* PARAMS    : none                                             *)
-(* SIDE EFX  : Calls scrSell; clears screen multiple times.   *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM plyr        : PlyrRec
-DIM mkt         : MktState
-DIM ordType(12) : INTEGER
-DIM ordId(12)   : INTEGER
-DIM ordQty(12)  : INTEGER
-DIM ordCnt      : INTEGER
-DIM action      : BYTE
-DIM passed      : INTEGER
-DIM failed      : INTEGER
-DIM i           : INTEGER
-
-ON ERROR GOTO 900
-
-passed := 0
-failed := 0
-
-! --- Initialize player record --------------------------------
-RUN initPlayer(plyr)
-plyr.plyrName    := "ALICE"
-plyr.stckShrs(1) := 100
-plyr.stckShrs(4) := 50
-plyr.bondUnts(2) := 1
-
-! --- Initialize market state ---------------------------------
-RUN initMkt(mkt)
-mkt.stckPrice(1) := 120
-mkt.stckPrice(4) := 85
-
-! --- Initialize order arrays ---------------------------------
-FOR i := 1 TO 12
-  ordType(i) := 0
-  ordId(i)   := 0
-  ordQty(i)  := 0
-NEXT i
-ordCnt := 0
-action := 0
-
-! --- Test instructions ---------------------------------------
-PRINT "=== TSTSELL  Task 9.1 ==="
-PRINT
-PRINT "Player ALICE holds:"
-PRINT "  100 Growth Corp  @ $120"
-PRINT "   50 Shady Brooks @ $ 85"
-PRINT "    1 medium bond"
-PRINT
-PRINT "REQUIRED INPUT SEQUENCE:"
-PRINT "  Initial menu  : press 1 (enter orders)"
-PRINT "  Growth Corp   : enter 15  -> verify rejected"
-PRINT "  Growth Corp   : enter 150 -> verify rejected"
-PRINT "  Growth Corp   : enter 50  -> accepted"
-PRINT "  Shady Brooks  : enter 0   (skip)"
-PRINT "  Medium bond   : enter 1"
-PRINT "  Summary screen: press 1   (Confirm)"
-PRINT
-PRINT "Press any key to launch scrSell."
-RUN waitKey
-
-RUN scrSell(2, plyr, mkt, ordType, ordId, ordQty, ordCnt, action)
-GOSUB 100
-
-PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
-END
-
-100 ! --- Check returned values ---
-    PRINT
-    PRINT "ordCnt = "; ordCnt; "  (exp 2)"
-    PRINT "action = "; action; "  (exp 1)"
-    PRINT
+100 ! Subtest 1 assertions
+    PRINT "--- Subtest 1 results ---"
     IF ordCnt = 2 THEN
-      PRINT "ordCnt PASS"
+      PRINT "PASS  ordCnt=2"
       passed := passed + 1
     ELSE
-      PRINT "ordCnt FAIL  exp=2 got="; ordCnt
+      PRINT "FAIL  ordCnt exp=2 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 20 THEN
+      IF ordPurch(1) = 1 THEN
+        PRINT "PASS  ord1: stock 1 qty=20 CASH"
+        passed := passed + 1
+      ELSE
+        PRINT "FAIL  ord1 ordPurch exp=1 got="; ordPurch(1)
+        failed := failed + 1
+      ENDIF
+    ELSE
+      PRINT "FAIL  ord1 exp stock1 qty20 got type="; ordType(1);
+      PRINT " id="; ordId(1); " qty="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+    IF ordType(2) = 2 AND ordId(2) = 1 AND ordQty(2) = 1 THEN
+      PRINT "PASS  ord2: bond 1 qty=1"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ord2 exp bond1 qty1 got type="; ordType(2);
+      PRINT " id="; ordId(2); " qty="; ordQty(2)
+      failed := failed + 1
+    ENDIF
+    IF mgnRepay = 0 THEN
+      PRINT "PASS  mgnRepay=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  mgnRepay exp=0 got="; mgnRepay
       failed := failed + 1
     ENDIF
     IF action = 1 THEN
-      PRINT "action PASS  (CONFIRM)"
+      PRINT "PASS  action=1 (CONFIRM)"
       passed := passed + 1
     ELSE
-      PRINT "action FAIL  exp=1 got="; action
+      PRINT "FAIL  action exp=1 got="; action
       failed := failed + 1
     ENDIF
-    ! Check order 1: STOCK id=1 qty=50 (Growth Corp)
-    IF ordCnt >= 1 THEN
-      IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 50 THEN
-        PRINT "ord1 PASS  STOCK#1 qty=50"
-        passed := passed + 1
-      ELSE
-        PRINT "ord1 FAIL  exp STOCK#1 qty=50"
-        PRINT "  got type="; ordType(1); " id=";
-        PRINT ordId(1); " qty="; ordQty(1)
-        failed := failed + 1
-      ENDIF
-    ENDIF
-    ! Check order 2: BOND id=2 qty=1 (medium bond)
-    IF ordCnt >= 2 THEN
-      IF ordType(2) = 2 AND ordId(2) = 2 AND ordQty(2) = 1 THEN
-        PRINT "ord2 PASS  BOND#2 qty=1"
-        passed := passed + 1
-      ELSE
-        PRINT "ord2 FAIL  exp BOND#2 qty=1"
-        PRINT "  got type="; ordType(2); " id=";
-        PRINT ordId(2); " qty="; ordQty(2)
-        failed := failed + 1
-      ENDIF
-    ENDIF
-    ! Expected proceeds (cashBal update verified in Task 9.2)
     PRINT
-    PRINT "Expected proceeds: 50*120 + 1*5000 = 11000"
-    PRINT "cashBal update verified by TSTAPPLY (Task 9.2)."
 RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTSELL"
+200 ! Subtest 2 assertions
+    PRINT "--- Subtest 2 results ---"
+    IF ordCnt = 0 THEN
+      PRINT "PASS  ordCnt=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ordCnt exp=0 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF action = 2 THEN
+      PRINT "PASS  action=2 (PASS)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  action exp=2 got="; action
+      failed := failed + 1
+    ENDIF
+    IF mgnRepay = 0 THEN
+      PRINT "PASS  mgnRepay=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  mgnRepay exp=0 got="; mgnRepay
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Subtest 3 assertions
+    PRINT "--- Subtest 3 results ---"
+    IF ordCnt = 1 THEN
+      PRINT "PASS  ordCnt=1"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ordCnt exp=1 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 20 THEN
+      PRINT "PASS  ord1: stock 1 qty=20"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ord1 exp stock1 qty20 got type="; ordType(1);
+      PRINT " id="; ordId(1); " qty="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+    IF ordPurch(1) = 2 THEN
+      PRINT "PASS  ordPurch(1)=2 (MARGIN)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ordPurch(1) exp=2 got="; ordPurch(1)
+      failed := failed + 1
+    ENDIF
+    IF mgnRepay = 0 THEN
+      PRINT "PASS  mgnRepay=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  mgnRepay exp=0 got="; mgnRepay
+      failed := failed + 1
+    ENDIF
+    IF action = 1 THEN
+      PRINT "PASS  action=1 (CONFIRM)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  action exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+400 ! Subtest 4 assertions
+    PRINT "--- Subtest 4 results ---"
+    IF mgnRepay = 1000 THEN
+      PRINT "PASS  mgnRepay=1000"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  mgnRepay exp=1000 got="; mgnRepay
+      failed := failed + 1
+    ENDIF
+    IF ordCnt = 0 THEN
+      PRINT "PASS  ordCnt=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  ordCnt exp=0 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF action = 1 THEN
+      PRINT "PASS  action=1 (CONFIRM)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  action exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTBUY"
     END
