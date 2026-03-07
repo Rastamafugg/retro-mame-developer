@@ -2451,3 +2451,106 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTYRHDR"
     END
+
+PROCEDURE TSTDVINT
+(* ============================================================ *)
+(* PROCEDURE : TSTDVINT                                         *)
+(* PURPOSE   : Confirmation tests for scrDivInt (Task 8.2).    *)
+(*             Two visual test cases per spec 8.2:             *)
+(*               Test 1 — spec confirmation case:              *)
+(*                 Shady Brooks 100 shares = $700,             *)
+(*                 1 medium bond = $250,                       *)
+(*                 cashBef=5000, totRcvd=950, cashAft=5950.    *)
+(*                 Verify all figures render correctly.        *)
+(*               Test 2 — all-zero case:                       *)
+(*                 All divRcvd=0, all bndInt=0.                *)
+(*                 Verify "(none)" shown in both sections.     *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrDivInt twice; clears screen each call. *)
+(* ============================================================ *)
+DIM divRcvd(9) : INTEGER
+DIM bndInt(3)  : INTEGER
+DIM action     : BYTE
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM s          : INTEGER
+DIM b          : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! -- Test 1: spec confirmation case ---------------------------
+! Year 2, player ALICE, 100 shares Shady Brooks (stock 4, $7)
+! = $700 dividend, 1 medium bond (bond 2) = $250 interest.
+! cashBef=5000, totRcvd=950, cashAft=5950.
+PRINT "Test 1: Year 2, Shady Brooks $700, medium bond $250."
+PRINT "Expect: Shady Brooks $   700 under DIVIDENDS RECEIVED."
+PRINT "Expect: Medium       $   250 under BOND INTEREST."
+PRINT "Expect: Total received $  950, cash 5000 -> 5950."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+FOR s := 1 TO 9
+  divRcvd(s) := 0
+NEXT s
+FOR b := 1 TO 3
+  bndInt(b) := 0
+NEXT b
+divRcvd(4) := 700
+bndInt(2)  := 250
+
+RUN scrDivInt(2, "ALICE", 5000, divRcvd, bndInt, 950, 5950, action)
+GOSUB 100
+
+! -- Test 2: all-zero case ------------------------------------
+! No dividends received, no bond interest.
+! Expect "(none)" in both sections. totRcvd=0, cash unchanged.
+PRINT "Test 2: Year 5, no dividends, no bond interest."
+PRINT "Expect: (none) under DIVIDENDS RECEIVED."
+PRINT "Expect: (none) under BOND INTEREST."
+PRINT "Expect: Total received $     0, cash 3000 -> 3000."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+FOR s := 1 TO 9
+  divRcvd(s) := 0
+NEXT s
+FOR b := 1 TO 3
+  bndInt(b) := 0
+NEXT b
+
+RUN scrDivInt(5, "BOB", 3000, divRcvd, bndInt, 0, 3000, action)
+GOSUB 200
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 action check
+    IF action = 1 THEN
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTDVINT"
+    END

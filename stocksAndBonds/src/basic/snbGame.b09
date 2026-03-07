@@ -602,6 +602,86 @@ END
 900 ERROR(ERR)
 END
 
+PROCEDURE scrCard
+(* ============================================================ *)
+(* PROCEDURE : scrCard                                          *)
+(* PURPOSE   : Display the situation card screen (S11). Shows  *)
+(*             card number, market type (Bull/Bear), flavour   *)
+(*             text, each affected stock and its price delta,  *)
+(*             and a dividend bonus notice when applicable.    *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : crdNum  - card number (1..36) for display       *)
+(*             card    - populated CardRec from getCard        *)
+(*               card.crdType  - 1=Bull 2=Bear                 *)
+(*               card.efxCnt  - number of affected stocks      *)
+(*               card.efxStk  - stock IDs for each effect      *)
+(*               card.efxDlt  - price deltas for each effect   *)
+(*               card.divBonus - dividend bonus (0 if none)    *)
+(*             flavTxt - flavour text string for this card     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* NOTE      : Flavour text longer than ~76 chars will wrap    *)
+(*             at the terminal width. Basic09 does not provide *)
+(*             word-wrap; this is accepted behaviour.          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM crdNum  : INTEGER
+PARAM card    : CardRec
+PARAM flavTxt : STRING[160]
+PARAM action  : BYTE
+DIM sName : STRING[12]
+DIM sign   : STRING[1]
+DIM e     : INTEGER
+DIM s     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  SITUATION CARD #"; crdNum
+PRINT
+IF card.crdType = 1 THEN
+  PRINT "  BULL MARKET"
+ELSE
+  PRINT "  BEAR MARKET"
+ENDIF
+PRINT
+PRINT "  "; flavTxt
+PRINT
+PRINT "  STOCKS AFFECTED:"
+FOR e := 1 TO card.efxCnt
+  ! Read stock names in order from DATA until reaching the
+  ! target stock ID; sName holds the matching name on exit.
+  RESTORE 100
+  FOR s := 1 TO card.efxStk(e)
+    READ sName
+  NEXT s
+  IF card.efxDlt(e) >= 0 THEN
+    sign := "+"
+  ELSE
+    sign := ""
+  ENDIF
+  PRINT "    "; sName; TAB(20); sign; card.efxDlt(e)
+NEXT e
+IF card.divBonus > 0 THEN
+  PRINT
+  PRINT "  DIVIDEND BONUS: $"; card.divBonus; " per share"
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for effect display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 ERROR(ERR)
+END
+
 PROCEDURE SNBMAIN
 (* ================================================== *)
 (* PROCEDURE: SNBMAIN                                 *)
@@ -682,79 +762,86 @@ END
 900 PRINT "SNBMAIN error ("; ERR; ")"
 END
 
-PROCEDURE TSTDVINT
+PROCEDURE TSTCRDSCR
 (* ============================================================ *)
-(* PROCEDURE : TSTDVINT                                         *)
-(* PURPOSE   : Confirmation tests for scrDivInt (Task 8.2).    *)
-(*             Two visual test cases per spec 8.2:             *)
-(*               Test 1 — spec confirmation case:              *)
-(*                 Shady Brooks 100 shares = $700,             *)
-(*                 1 medium bond = $250,                       *)
-(*                 cashBef=5000, totRcvd=950, cashAft=5950.    *)
-(*                 Verify all figures render correctly.        *)
-(*               Test 2 — all-zero case:                       *)
-(*                 All divRcvd=0, all bndInt=0.                *)
-(*                 Verify "(none)" shown in both sections.     *)
+(* PROCEDURE : TSTCRDSCR                                        *)
+(* PURPOSE   : Confirmation tests for scrCard (Task 8.3).      *)
+(*             Three visual test cases per spec 8.3:           *)
+(*               Test 1 — Card 1 (Bear, Growth Corp +10,       *)
+(*                         divBonus=$2): verify market type,   *)
+(*                         flavour text, delta, bonus line.    *)
+(*               Test 2 — Card 34 (Bull, 4 stocks): verify all *)
+(*                         four stocks and positive deltas.    *)
+(*               Test 3 — Card 36 (Bear, 3 stocks): verify     *)
+(*                         negative deltas render with sign.   *)
 (*             Visual output verified manually by tester.      *)
 (*             Machine check: action = 1 (CONTINUE) each call. *)
 (* PARAMS    : none                                             *)
-(* SIDE EFX  : Calls scrDivInt twice; clears screen each call. *)
+(* SIDE EFX  : Calls scrCard 3 times; clears screen each call. *)
+(*             Calls getCard 3 times; repositions DATA pointer.*)
 (* ============================================================ *)
-DIM divRcvd(9) : INTEGER
-DIM bndInt(3)  : INTEGER
-DIM action     : BYTE
-DIM passed     : INTEGER
-DIM failed     : INTEGER
-DIM s          : INTEGER
-DIM b          : INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+DIM card    : CardRec
+DIM flavTxt : STRING[160]
+DIM action  : BYTE
+DIM passed  : INTEGER
+DIM failed  : INTEGER
 
 ON ERROR GOTO 900
 
 passed := 0
 failed := 0
 
-! -- Test 1: spec confirmation case ---------------------------
-! Year 2, player ALICE, 100 shares Shady Brooks (stock 4, $7)
-! = $700 dividend, 1 medium bond (bond 2) = $250 interest.
-! cashBef=5000, totRcvd=950, cashAft=5950.
-PRINT "Test 1: Year 2, Shady Brooks $700, medium bond $250."
-PRINT "Expect: Shady Brooks $   700 under DIVIDENDS RECEIVED."
-PRINT "Expect: Medium       $   250 under BOND INTEREST."
-PRINT "Expect: Total received $  950, cash 5000 -> 5950."
+PRINT "=== TSTCRDSCR ==="
+PRINT
+
+! ---- Test 1: Card 1 — Bear, Growth Corp +10, divBonus=2 -----
+PRINT "Test 1: Card 1 (Bear, Growth Corp +10, divBonus=2)."
+PRINT "Expect: SITUATION CARD #1"
+PRINT "Expect: BEAR MARKET"
+PRINT "Expect: flavour text re: year-end dividend."
+PRINT "Expect: Growth Corp   +10"
+PRINT "Expect: DIVIDEND BONUS: $2 per share"
 PRINT "Press any key to launch screen."
 RUN waitKey
-
-FOR s := 1 TO 9
-  divRcvd(s) := 0
-NEXT s
-FOR b := 1 TO 3
-  bndInt(b) := 0
-NEXT b
-divRcvd(4) := 700
-bndInt(2)  := 250
-
-RUN scrDivInt(2, "ALICE", 5000, divRcvd, bndInt, 950, 5950, action)
+RUN getCard(1, card)
+flavTxt := "Extra year-end dividend of $2 per share declared by the Board of Directors."
+RUN scrCard(1, card, flavTxt, action)
 GOSUB 100
 
-! -- Test 2: all-zero case ------------------------------------
-! No dividends received, no bond interest.
-! Expect "(none)" in both sections. totRcvd=0, cash unchanged.
-PRINT "Test 2: Year 5, no dividends, no bond interest."
-PRINT "Expect: (none) under DIVIDENDS RECEIVED."
-PRINT "Expect: (none) under BOND INTEREST."
-PRINT "Expect: Total received $     0, cash 3000 -> 3000."
+! ---- Test 2: Card 34 — Bull, 4 stocks -----------------------
+PRINT "Test 2: Card 34 (Bull, 4 stocks)."
+PRINT "Expect: SITUATION CARD #34"
+PRINT "Expect: BULL MARKET"
+PRINT "Expect: flavour text re: general market rise."
+PRINT "Expect: Growth Corp   +8"
+PRINT "Expect: Metro Props   +5"
+PRINT "Expect: Pioneer Mut   +5"
+PRINT "Expect: United Auto   +7"
+PRINT "Expect: no dividend bonus line."
 PRINT "Press any key to launch screen."
 RUN waitKey
-
-FOR s := 1 TO 9
-  divRcvd(s) := 0
-NEXT s
-FOR b := 1 TO 3
-  bndInt(b) := 0
-NEXT b
-
-RUN scrDivInt(5, "BOB", 3000, divRcvd, bndInt, 0, 3000, action)
+RUN getCard(34, card)
+flavTxt := "General market rise over the last two months."
+RUN scrCard(34, card, flavTxt, action)
 GOSUB 200
+
+! ---- Test 3: Card 36 — Bear, 3 stocks, negative deltas ------
+PRINT "Test 3: Card 36 (Bear, 3 stocks, negative deltas)."
+PRINT "Expect: SITUATION CARD #36"
+PRINT "Expect: BEAR MARKET"
+PRINT "Expect: flavour text re: profit taking."
+PRINT "Expect: Growth Corp   -8"
+PRINT "Expect: Metro Props   -5"
+PRINT "Expect: United Auto   -7"
+PRINT "Expect: no dividend bonus line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN getCard(36, card)
+flavTxt := "Surge of profit taking drops stock market."
+RUN scrCard(36, card, flavTxt, action)
+GOSUB 300
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
@@ -782,5 +869,16 @@ RETURN
     PRINT
 RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTDVINT"
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTCRDSCR"
     END
