@@ -3084,3 +3084,154 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTSPLTDV"
     END
+
+PROCEDURE TSTSELL
+(* ============================================================ *)
+(* PROCEDURE : TSTSELL                                          *)
+(* PURPOSE   : Confirmation tests for scrSell (Task 9.1).      *)
+(*             Interactive test: tester supplies specific       *)
+(*             input at each prompt per the sequence below.    *)
+(*             Machine checks: ordCnt, ordType, ordId, ordQty. *)
+(*                                                             *)
+(* SETUP:                                                      *)
+(*   Player ALICE holds:                                       *)
+(*     100 Growth Corp (stock 1) at $120                       *)
+(*      50 Shady Brooks (stock 4) at $85                       *)
+(*       1 medium bond (bond 2)                               *)
+(*                                                             *)
+(* REQUIRED INPUT SEQUENCE:                                    *)
+(*   Initial menu  : press 1 (enter orders)                    *)
+(*   Growth Corp   : enter 15  -> verify rejection msg         *)
+(*   Growth Corp   : enter 150 -> verify rejection msg         *)
+(*   Growth Corp   : enter 50  -> accepted                     *)
+(*   Shady Brooks  : enter 0   (skip)                          *)
+(*   Medium bond   : enter 1   -> accepted                     *)
+(*   Summary screen: press 1   (Confirm)                       *)
+(*                                                             *)
+(* EXPECTED:                                                   *)
+(*   ordCnt = 2                                               *)
+(*   ordType(1)=1, ordId(1)=1, ordQty(1)=50  (Growth Corp)   *)
+(*   ordType(2)=2, ordId(2)=2, ordQty(2)=1   (medium bond)   *)
+(*   Proceeds: 50*120 + 1*5000 = 11000                        *)
+(*   cashBal update verified by TSTAPPLY (Task 9.2)           *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrSell; clears screen multiple times.   *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr        : PlyrRec
+DIM mkt         : MktState
+DIM ordType(12) : INTEGER
+DIM ordId(12)   : INTEGER
+DIM ordQty(12)  : INTEGER
+DIM ordCnt      : INTEGER
+DIM action      : BYTE
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! --- Initialize player record --------------------------------
+RUN initPlayer(plyr)
+plyr.plyrName    := "ALICE"
+plyr.stckShrs(1) := 100
+plyr.stckShrs(4) := 50
+plyr.bondUnts(2) := 1
+
+! --- Initialize market state ---------------------------------
+RUN initMkt(mkt)
+mkt.stckPrice(1) := 120
+mkt.stckPrice(4) := 85
+
+! --- Initialize order arrays ---------------------------------
+FOR i := 1 TO 12
+  ordType(i) := 0
+  ordId(i)   := 0
+  ordQty(i)  := 0
+NEXT i
+ordCnt := 0
+action := 0
+
+! --- Test instructions ---------------------------------------
+PRINT "=== TSTSELL  Task 9.1 ==="
+PRINT
+PRINT "Player ALICE holds:"
+PRINT "  100 Growth Corp  @ $120"
+PRINT "   50 Shady Brooks @ $ 85"
+PRINT "    1 medium bond"
+PRINT
+PRINT "REQUIRED INPUT SEQUENCE:"
+PRINT "  Initial menu  : press 1 (enter orders)"
+PRINT "  Growth Corp   : enter 15  -> verify rejected"
+PRINT "  Growth Corp   : enter 150 -> verify rejected"
+PRINT "  Growth Corp   : enter 50  -> accepted"
+PRINT "  Shady Brooks  : enter 0   (skip)"
+PRINT "  Medium bond   : enter 1"
+PRINT "  Summary screen: press 1   (Confirm)"
+PRINT
+PRINT "Press any key to launch scrSell."
+RUN waitKey
+
+RUN scrSell(2, plyr, mkt, ordType, ordId, ordQty, ordCnt, action)
+GOSUB 100
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! --- Check returned values ---
+    PRINT
+    PRINT "ordCnt = "; ordCnt; "  (exp 2)"
+    PRINT "action = "; action; "  (exp 1)"
+    PRINT
+    IF ordCnt = 2 THEN
+      PRINT "ordCnt PASS"
+      passed := passed + 1
+    ELSE
+      PRINT "ordCnt FAIL  exp=2 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF action = 1 THEN
+      PRINT "action PASS  (CONFIRM)"
+      passed := passed + 1
+    ELSE
+      PRINT "action FAIL  exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    ! Check order 1: STOCK id=1 qty=50 (Growth Corp)
+    IF ordCnt >= 1 THEN
+      IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 50 THEN
+        PRINT "ord1 PASS  STOCK#1 qty=50"
+        passed := passed + 1
+      ELSE
+        PRINT "ord1 FAIL  exp STOCK#1 qty=50"
+        PRINT "  got type="; ordType(1); " id=";
+        PRINT ordId(1); " qty="; ordQty(1)
+        failed := failed + 1
+      ENDIF
+    ENDIF
+    ! Check order 2: BOND id=2 qty=1 (medium bond)
+    IF ordCnt >= 2 THEN
+      IF ordType(2) = 2 AND ordId(2) = 2 AND ordQty(2) = 1 THEN
+        PRINT "ord2 PASS  BOND#2 qty=1"
+        passed := passed + 1
+      ELSE
+        PRINT "ord2 FAIL  exp BOND#2 qty=1"
+        PRINT "  got type="; ordType(2); " id=";
+        PRINT ordId(2); " qty="; ordQty(2)
+        failed := failed + 1
+      ENDIF
+    ENDIF
+    ! Expected proceeds (cashBal update verified in Task 9.2)
+    PRINT
+    PRINT "Expected proceeds: 50*120 + 1*5000 = 11000"
+    PRINT "cashBal update verified by TSTAPPLY (Task 9.2)."
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTSELL"
+    END
