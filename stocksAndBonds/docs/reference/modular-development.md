@@ -40,44 +40,153 @@ There are some things to note, once you decide to start developing with modules.
 - Running your new modularized procedure is as simple as calling it from the command line. Parameters passed to your procedure MUST be strings, with spaces between the procedure name and the first parameter, as well as between each parameter accepted by the procedure. For example: `mymodule param1 param2`
 - Modules can be called from other modules, allowing you to add and remove library calls as you need them.  The Basic09 syntax for calling a procedure in this manner is that same as procedure-to-procedure calls in the Basic09 environment. For example: `RUN myOtherProc(param1, "stringLiteral", 2)`
 - Ensure that you `KILL` any modular procedure loaded in this way after you no longer need it, in order to free up memory.  For example: `KILL myOtherProc`
-- TO TEST: If a procedure is loaded from a module that contains multiple procedures, you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
+- **NOT CONFIRMED**: If a procedure is loaded from a module that contains multiple procedures, you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
 
 ### Basic09 Example of Loading and Unloading Modular Procedures
 
+This example demonstrates 3 types of modules:
+- A single procedure module
+- A single-entry module where the entry procedure calls other procedures within the module
+- A multiple-entry module, with several procedures that can all be called independently.
+
+#### Single Procedure Module
+
 ```basic09
-       (* Load part 1 *)
-       part:="udecode"
-       RUN part(filePath,er,tpVars,verbose,execOff,descOff,symTabOff,dataOff,dataDir,modName)
-       KILL part
-       SHELL "ex UnLink ulSort"
-       IF er>0 THEN 100
- 
-       (* Load part 2 *)
-       part:="udefVars"
-       RUN part(filePath,er,tpVars,verbose,modSize,execOff,descOff,symTabOff,dataDir)
-       KILL part
-       SHELL "ex UnLink ufSort"
-       SHELL "ex UnLink uvSort"
-       IF er>0 THEN 100
- 
-       (* Load part 3 *)
-       part:="usymTabVal"
-       RUN part(filePath,er,verbose,modSize,symTabOff,dataDir)
-       KILL part
-       IF er>0 THEN 100
- 
-       (* Load part 4 *)
-       part:="ubuildSrc"
-       RUN part(filePath,outPath,er,maxData,outExists,verbose,descOff,symTabOff,dataDir,outFile)
-       KILL part
-       SHELL "ex UnLink udsSort"
-       IF er>0 THEN 100
- 
-       (* Load part 5 *)
-       part:="uinstruction"
-       RUN part(filePath,outPath,er,outExists,verbose,execOff,descOff,dataOff,dataDir)
-       KILL part
-       SHELL "ex UnLink uDRPN"
-       SHELL "ex UnLink uhex$"
-       IF er>0 THEN 100
+PROCEDURE singleProc
+    PRINT "Single procedure executed."
+END
 ```
+
+#### Multiple Procedure Module
+
+```basic09
+PROCEDURE multiProc1
+    PRINT "Multi procedure 1 executed."
+    RUN multiProc2
+END
+
+PROCEDURE multiProc2
+    PRINT "Multi procedure 2 executed."
+END
+```
+
+#### Independently Called Procedure Module
+
+*NOTE:* To be able to call all procedures within a module, you need to begin with the additional step of loading the module into memory. One way to do this is the command `SHELL "ex LOAD moduleFileName"`.
+
+```basic09
+PROCEDURE indepProc1
+    PRINT "Independent procedure 1 executed."
+END
+
+PROCEDURE indepProc2
+    PRINT "Independent procedure 2 executed."
+END
+
+PROCEDURE indepProc3
+    PRINT "Independent procedure 3 executed."
+END
+```
+
+#### Main Test Module
+
+```basic09
+PROCEDURE moduleTest
+    DIM procName:STRING
+
+    (* Test single procedure module *)
+    procName = "singleProc"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT "Killing " + procName
+    KILL procName
+    PRINT ""
+
+    (* Test multiple procedure module *)
+    procName = "multiProc1"
+    PRINT "Loading and calling " + procName + " (which calls " + "multiProc2)"
+    RUN procName
+    PRINT "Killing " + procName
+    KILL procName
+    procName = "multiProc2"
+    PRINT "Killing " + procName
+    SHELL "ex UnLink " + procName
+    PRINT ""
+
+    procName = "indepProc1"
+    PRINT "Loading independent procedure module " + procName
+    SHELL "ex LOAD " + procName
+    (* Test independent procedures module *)
+    PRINT "Loading and calling " + procName
+    RUN procName
+    procName = "indepProc2"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    procName = "indepProc3"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT ""
+    procName = "indepProc1"
+    PRINT "Killing " + procName
+    KILL procName
+    procName = "indepProc2"
+    PRINT "Killing " + procName
+    KILL procName
+    procName = "indepProc3"
+    PRINT "Killing " + procName
+    KILL procName
+    PRINT ""
+    PRINT "Test completed."
+END
+```
+
+#### Preparing the modules to be run in NitrOS9
+
+This are the system commands that you need to run for each module in Basic09, before you can run the test. 
+
+##### Single Procedure Module
+
+```
+LOAD /path/to/singleProc.b09
+PACK
+KILL singleProc
+```
+
+##### Multiple Procedure Module
+
+```
+LOAD /path/to/multiProc1.b09
+PACK* > multiProc1
+KILL multiProc1,multiProc2
+```
+
+##### Independently Called Procedure Module
+
+```
+LOAD /path/to/indepProc1.b09
+PACK* > indepProc1
+KILL indepProc1,indepProc2,indepProc3
+```
+
+##### Main Test Module
+
+```
+LOAD /path/to/moduleTest.b09
+PACK
+KILL moduleTest
+```
+
+##### Making the Modules Executable
+
+Basic09 will create the module files in the executable directory, but the executable flag **will not** be set.  You will need to run the following commands to turn this flag on (Change file path if `/d0/cmds/` is not your executable folder).
+
+```
+ATTR /d0/cmds/singleProc perm e
+ATTR /d0/cmds/multiProc1 perm e
+ATTR /d0/cmds/indepProc1 perm e
+ATTR /d0/cmds/moduleTest perm e
+```
+
+#### Running the Test
+
+Once everything is setup correctly, you will just need to run the following command at the SHELL: `moduleTest`
