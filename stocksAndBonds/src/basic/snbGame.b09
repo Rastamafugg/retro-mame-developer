@@ -824,163 +824,679 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE TSTMGNCALL
+PROCEDURE applyLiqOrdr
 (* ============================================================ *)
-(* PROCEDURE : TSTMGNCALL                                       *)
-(* PURPOSE   : Confirmation tests for scrMgnCall (Task 10.1).  *)
-(*             scrMgnCall is display-only. Visual verification *)
-(*             of rendered output is the primary check.        *)
-(*             Machine assertions confirm:                     *)
-(*               - All input params unmodified after call      *)
-(*               - Procedure returns without runtime error     *)
+(* PROCEDURE : applyLiqOrdr                                     *)
+(* PURPOSE   : Apply forced liquidation sell orders from S21   *)
+(*             to the player record. Recalculates cashBal and  *)
+(*             oblgRem after each order.                       *)
+(*             Stock sell (spec 11.1 + 11.3):                  *)
+(*               prcd := qty * stckPrice(s)                    *)
+(*               If mgnHeld(s): repay := MIN(marginTot, prcd)  *)
+(*                   (inline; MIN does not exist in Basic09)   *)
+(*                   marginTot -= repay                        *)
+(*                   cashBal   += prcd - repay                 *)
+(*               Else: cashBal += prcd                         *)
+(*               stckShrs(s) -= qty                            *)
+(*               mgnHeld(s) cleared only when stckShrs(s) = 0  *)
+(*             Bond sell (spec 11.2):                           *)
+(*               cashBal += bPar(b)  (parValue per unit)       *)
+(*               bondUnts(b) -= qty                            *)
+(*             oblgRem reduced by full proceeds, clamped at 0. *)
+(*             ordCnt = 0 is a safe no-op.                     *)
+(* PARAMS    : plyr      - player record (modified)            *)
+(*             mkt       - market state (read-only)            *)
+(*             ordType   - 1=STOCK 2=BOND per order            *)
+(*             ordId     - asset index per order               *)
+(*             ordQty    - quantity per order                  *)
+(*             ordCnt    - number of orders (0..12)            *)
+(*             oblgRem   - obligation remaining (modified)     *)
+(* SIDE EFX  : Modifies plyr.cashBal, plyr.marginTot,         *)
+(*             plyr.stckShrs, plyr.mgnHeld, plyr.bondUnts.     *)
+(*             Reduces oblgRem; clamps to 0.                   *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+PARAM oblgRem     : INTEGER
+DIM bPar(3) : INTEGER
+DIM i       : INTEGER
+DIM s       : INTEGER
+DIM b       : INTEGER
+DIM qty     : INTEGER
+DIM prcd    : INTEGER
+DIM repay   : INTEGER
+
+ON ERROR GOTO 900
+
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+
+FOR i := 1 TO ordCnt
+
+  s   := ordId(i)
+  b   := ordId(i)
+  qty := ordQty(i)
+
+  IF ordType(i) = 1 THEN
+
+    ! Stock sell
+    prcd := qty * mkt.stckPrice(s)
+
+    IF plyr.mgnHeld(s) THEN
+      ! Repay margin from proceeds (spec 11.3)
+      ! Inline MIN: repay := MIN(plyr.marginTot, prcd)
+      repay := plyr.marginTot
+      IF prcd < repay THEN
+        repay := prcd
+      ENDIF
+      plyr.marginTot := plyr.marginTot - repay
+      plyr.cashBal   := plyr.cashBal + (prcd - repay)
+    ELSE
+      plyr.cashBal := plyr.cashBal + prcd
+    ENDIF
+
+    plyr.stckShrs(s) := plyr.stckShrs(s) - qty
+    IF plyr.stckShrs(s) = 0 THEN
+      plyr.mgnHeld(s) := FALSE
+    ENDIF
+
+  ELSE IF ordType(i) = 2 THEN
+
+    ! Bond sell
+    prcd := qty * bPar(b)
+    plyr.cashBal    := plyr.cashBal + prcd
+    plyr.bondUnts(b) := plyr.bondUnts(b) - qty
+
+  ENDIF \ENDIF
+
+  ! Reduce obligation by full proceeds; clamp at 0.
+  oblgRem := oblgRem - prcd
+  IF oblgRem < 0 THEN
+    oblgRem := 0
+  ENDIF
+
+NEXT i
+
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrForceLiq
+(* ============================================================ *)
+(* PROCEDURE : scrForceLiq                                      *)
+(* PURPOSE   : S21 Forced Liquidation screen.                  *)
+(*             Displays outstanding obligation, current cash,  *)
+(*             and all held assets. Accepts sell orders to     *)
+(*             meet the obligation. Returns orders and action  *)
+(*             to caller; caller applies via applyLiqOrdr and  *)
+(*             re-enters this screen if obligation remains.    *)
+(*             Two bankruptcy paths: initial menu (before any  *)
+(*             order entry) and summary menu (after review).   *)
+(*             Zero qty / bare Enter = skip asset this round.  *)
+(*             Stock qty: mult of 10, <=stckShrs. Bond qty:    *)
+(*             positive integer <=bondUnts. Zero is valid.     *)
+(*             Uses getNumIn for all INPUT→INTEGER conversion.  *)
+(*             Bankrupt stocks (stckShrs>0 implies price>0;    *)
+(*             spec 9.4 zeroes shares at $0 price).            *)
+(*             Does NOT modify plyr or oblgRem; caller handles *)
+(*             via applyLiqOrdr.                               *)
+(* PARAMS    : plyrNam    - player name for display            *)
+(*             oblgRem    - current obligation remaining       *)
+(*             plyr       - player record (read-only)          *)
+(*             mkt        - market state (read-only)           *)
+(*             ordType    - OUT: 1=STOCK 2=BOND per order      *)
+(*             ordId      - OUT: asset index per order         *)
+(*             ordQty     - OUT: quantity per order            *)
+(*             ordCnt     - OUT: number of orders (0..12)      *)
+(*             action     - OUT: 1=SUBMIT 2=DECLARE_BANKRUPTCY *)
+(* SIDE EFX  : Clears screen. Uses INPUT for order quantities. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM plyrNam     : STRING[20]
+PARAM oblgRem     : INTEGER
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+PARAM action      : BYTE
+DIM sNam(9) : STRING[14]
+DIM bPar(3) : INTEGER
+DIM i       : INTEGER
+DIM s       : INTEGER
+DIM b       : INTEGER
+DIM qty     : INTEGER
+DIM key     : INTEGER
+DIM qIn     : STRING[8]
+DIM pStr    : STRING[8]
+DIM valid   : BOOLEAN
+DIM numOk   : BOOLEAN
+
+ON ERROR GOTO 900
+
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+
+LOOP
+
+  ! Reset output arrays at top of each entry pass.
+  ordCnt := 0
+  FOR i := 1 TO 12
+    ordType(i) := 0
+    ordId(i)   := 0
+    ordQty(i)  := 0
+  NEXT i
+
+  RUN clrScr
+  PRINT "*** FORCED LIQUIDATION ***"
+  PRINT "Player: "; plyrNam
+  PRINT
+  RUN fmtMoney(oblgRem, pStr)
+  PRINT "Obligation remaining : $"; pStr
+  RUN fmtMoney(plyr.cashBal, pStr)
+  PRINT "Current cash         : $"; pStr
+  PRINT
+
+  PRINT "HOLDINGS:"
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 THEN
+      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      PRINT "  "; sNam(s); "  "; plyr.stckShrs(s); " shrs @ $"; pStr;
+      IF plyr.mgnHeld(s) THEN
+        PRINT " [M]"
+      ELSE
+        PRINT
+      ENDIF
+    ENDIF
+  NEXT s
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      RUN fmtMoney(bPar(b), pStr)
+      PRINT "  $"; pStr; " bond  "; plyr.bondUnts(b); " unit(s)"
+    ENDIF
+  NEXT b
+  PRINT
+  PRINT "1=Enter sell orders  2=Declare Bankruptcy"
+  RUN getMenuKey(1, 2, key)
+
+  IF key = 2 THEN
+    action := 2
+    ordCnt := 0
+    END
+  ENDIF
+
+  ! --- Stock entries -----------------------------------------
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 THEN
+      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      PRINT sNam(s); "  "; plyr.stckShrs(s); " shrs @ $"; pStr
+      IF plyr.mgnHeld(s) THEN
+        PRINT "  [margin-held]"
+      ENDIF
+
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Sell qty (0/Enter=skip, mult of 10): ", qIn
+        IF qIn = "" THEN
+          qty   := 0
+          valid := TRUE
+        ELSE
+          RUN getNumIn(qIn, qty, numOk)
+          IF NOT numOk THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or positive mult of 10."
+          ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+            PRINT "  Invalid: must be a multiple of 10."
+          ELSE IF qty > plyr.stckShrs(s) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.stckShrs(s); " shares."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF \ENDIF
+        ENDIF
+      ENDWHILE
+
+      IF qty > 0 THEN
+        ordCnt           := ordCnt + 1
+        ordType(ordCnt)  := 1
+        ordId(ordCnt)    := s
+        ordQty(ordCnt)   := qty
+      ENDIF
+
+    ENDIF
+  NEXT s
+
+  ! --- Bond entries ------------------------------------------
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      RUN fmtMoney(bPar(b), pStr)
+      PRINT "$"; pStr; " bond  "; plyr.bondUnts(b); " unit(s) held"
+
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Sell units (0/Enter=skip): ", qIn
+        IF qIn = "" THEN
+          qty   := 0
+          valid := TRUE
+        ELSE
+          RUN getNumIn(qIn, qty, numOk)
+          IF NOT numOk THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or a positive number."
+          ELSE IF qty > plyr.bondUnts(b) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.bondUnts(b); " unit(s)."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF
+        ENDIF
+      ENDWHILE
+
+      IF qty > 0 THEN
+        ordCnt           := ordCnt + 1
+        ordType(ordCnt)  := 2
+        ordId(ordCnt)    := b
+        ordQty(ordCnt)   := qty
+      ENDIF
+
+    ENDIF
+  NEXT b
+
+  ! --- Summary and confirm -----------------------------------
+  RUN clrScr
+  PRINT "LIQUIDATION ORDERS  "; plyrNam
+  PRINT
+  IF ordCnt = 0 THEN
+    PRINT "  (no orders entered)"
+  ELSE
+    FOR i := 1 TO ordCnt
+      IF ordType(i) = 1 THEN
+        s := ordId(i)
+        RUN fmtMoney(mkt.stckPrice(s), pStr)
+        PRINT "  Sell "; ordQty(i); " "; sNam(s); " @ $"; pStr
+      ELSE IF ordType(i) = 2 THEN
+        b := ordId(i)
+        RUN fmtMoney(bPar(b), pStr)
+        PRINT "  Sell "; ordQty(i); " $"; pStr; " bond";
+        IF ordQty(i) > 1 THEN
+          PRINT "s"
+        ELSE
+          PRINT
+        ENDIF
+      ENDIF \ENDIF
+    NEXT i
+  ENDIF
+  PRINT
+  PRINT "1=Submit  2=Revise  3=Declare Bankruptcy"
+  RUN getMenuKey(1, 3, key)
+
+  IF key = 3 THEN
+    action := 2
+    END
+  ENDIF
+
+  EXITIF key = 1 THEN
+  ENDEXIT
+
+  ! key=2: revise — loop back to top.
+
+ENDLOOP
+
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE TSTFORCELIQ
+(* ============================================================ *)
+(* PROCEDURE : TSTFORCELIQ                                      *)
+(* PURPOSE   : Confirmation tests for applyLiqOrdr (machine)   *)
+(*             and scrForceLiq (visual), Task 10.2.            *)
 (*                                                             *)
-(*             Subtest 1 — spec confirmation case              *)
-(*               Stryker at $22, callPrice=$25, amtDue=$3000.  *)
-(*               Expected display (tester verifies):           *)
-(*                 *** MARGIN CALL ***                         *)
-(*                 Player  : ALICE                             *)
-(*                 Stock   : Stryker Drlg                      *)
-(*                 Current price     : $22                     *)
-(*                 Margin call at    : $25                     *)
-(*                 Amount due        : $3000                   *)
-(*                 [liquidation message]                       *)
-(*               Machine checks: all params unmodified         *)
+(*   Machine tests (applyLiqOrdr):                             *)
+(*   Test 1 — spec case, two sequential rounds                 *)
+(*     Obligation=3000. Holds: 50 Metro@$50, 1 small bond.     *)
+(*     cashBal=5000, marginTot=0.                              *)
+(*     Round 1: sell 50 Metro→prcd=2500, cashBal=7500,         *)
+(*              oblgRem=500.                                   *)
+(*     Round 2: sell 1 small bond→prcd=1000, cashBal=8500,     *)
+(*              oblgRem=0.                                     *)
+(*     Assert: cashBal=8500, oblgRem=0, stckShrs(2)=0,        *)
+(*             bondUnts(1)=0.                                  *)
 (*                                                             *)
-(*             Subtest 2 — different stock, higher obligation  *)
-(*               Shady Brooks at $20, callPrice=$25,           *)
-(*               amtDue=$7500.                                 *)
-(*               Expected display (tester verifies):           *)
-(*                 Stock   : Shady Brooks                      *)
-(*                 Current price     : $20                     *)
-(*                 Amount due        : $7500                   *)
-(*               Machine checks: all params unmodified         *)
+(*   Test 2 — margin stock sell                                *)
+(*     100 Stryker@$80, mgnHeld=TRUE, marginTot=5000,          *)
+(*     cashBal=0, oblgRem=8000.                                *)
+(*     Sell 100: prcd=8000, repay=MIN(5000,8000)=5000.         *)
+(*     After: marginTot=0, cashBal=3000, stckShrs(5)=0,        *)
+(*            mgnHeld(5)=FALSE, oblgRem=0.                     *)
+(*                                                             *)
+(*   Test 3 — oblgRem clamped at 0                             *)
+(*     cashBal=0, oblgRem=500, bondUnts(3)=1 ($10000 bond).    *)
+(*     Sell 1: prcd=10000. oblgRem→0 (not -9500).              *)
+(*     cashBal=10000.                                          *)
+(*                                                             *)
+(*   Test 4 — ordCnt=0 no-op                                   *)
+(*     No fields modified.                                     *)
+(*                                                             *)
+(*   Visual test (scrForceLiq):                                *)
+(*   Subtest 5 — interactive display check                     *)
+(*     Obligation=2500, holds 100 Growth Corp@$30 (margin),   *)
+(*     50 Shady Brooks@$60, 1 medium bond.                     *)
+(*     Tester verifies display, exercises order entry,         *)
+(*     selects Submit. Machine checks action=1 on return.      *)
 (* PARAMS    : none                                            *)
-(* SIDE EFX  : Calls scrMgnCall which clears screen and waits  *)
-(*             for keypress.                                   *)
+(* SIDE EFX  : Subtest 5 clears screen and waits for input.    *)
 (* ============================================================ *)
-DIM tPlyrNam  : STRING[20]
-DIM tStckNam  : STRING[14]
-DIM tCurPrice : INTEGER
-DIM tCallPrc  : INTEGER
-DIM tAmtDue   : INTEGER
-DIM passed    : INTEGER
-DIM failed    : INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr      : PlyrRec
+DIM mkt       : MktState
+DIM ordType(12): INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordCnt     : INTEGER
+DIM oblgRem    : INTEGER
+DIM action     : BYTE
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM i          : INTEGER
 
 ON ERROR GOTO 900
 
 passed := 0
 failed := 0
 
-PRINT "=== TSTMGNCALL  Task 10.1 ==="
-PRINT "Visual verification required for each subtest."
+PRINT "=== TSTFORCELIQ  Task 10.2 ==="
 PRINT
 
-! ---- Subtest 1: spec confirmation case ----------------------
-tPlyrNam  := "ALICE"
-tStckNam  := "Stryker Drlg"
-tCurPrice := 22
-tCallPrc  := 25
-tAmtDue   := 3000
+! ---- Shared mkt setup --------------------------------------
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(2) := 50  \ ! Metro Props
+mkt.stckPrice(5) := 80  \ ! Stryker
+mkt.stckPrice(1) := 30  \ ! Growth Corp (visual test)
+mkt.stckPrice(4) := 60  \ ! Shady Brooks (visual test)
 
-PRINT "--- Subtest 1: Stryker $22, amtDue=$3000 ---"
-PRINT "Expected: MARGIN CALL header, player=ALICE,"
-PRINT "  stock=Stryker Drlg, price=$22, call=$25, due=$3000."
-PRINT
+! ---- Test 1: spec case, two rounds -------------------------
+PRINT "--- Test 1: spec case (50 Metro + 1 small bond) ---"
+GOSUB 600
+plyr.cashBal     := 5000
+plyr.marginTot   := 0
+plyr.stckShrs(2) := 50
+plyr.bondUnts(1) := 1
+oblgRem          := 3000
 
-RUN scrMgnCall(tPlyrNam, tStckNam, tCurPrice, tCallPrc, tAmtDue)
+! Round 1: sell 50 Metro
+ordCnt     := 1
+ordType(1) := 1
+ordId(1)   := 2
+ordQty(1)  := 50
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+! Round 2: sell 1 small bond
+ordCnt     := 1
+ordType(1) := 2
+ordId(1)   := 1
+ordQty(1)  := 1
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
 GOSUB 100
 
-! ---- Subtest 2: different stock, larger obligation ----------
-tPlyrNam  := "BOB"
-tStckNam  := "Shady Brooks"
-tCurPrice := 20
-tCallPrc  := 25
-tAmtDue   := 7500
+! ---- Test 2: margin stock sell -----------------------------
+PRINT "--- Test 2: full margin sell (Stryker @80, mgnTot=5000) ---"
+GOSUB 600
+plyr.cashBal     := 0
+plyr.marginTot   := 5000
+plyr.stckShrs(5) := 100
+plyr.mgnHeld(5)  := TRUE
+oblgRem          := 8000
 
-PRINT "--- Subtest 2: Shady Brooks $20, amtDue=$7500 ---"
-PRINT "Expected: player=BOB, stock=Shady Brooks,"
-PRINT "  price=$20, call=$25, due=$7500."
+ordCnt     := 1
+ordType(1) := 1
+ordId(1)   := 5
+ordQty(1)  := 100
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 200
+
+! ---- Test 3: oblgRem clamped at 0 --------------------------
+PRINT "--- Test 3: oblgRem clamp (1 large bond, oblgRem=500) ---"
+GOSUB 600
+plyr.cashBal     := 0
+plyr.bondUnts(3) := 1
+oblgRem          := 500
+
+ordCnt     := 1
+ordType(1) := 2
+ordId(1)   := 3
+ordQty(1)  := 1
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 300
+
+! ---- Test 4: ordCnt=0 no-op --------------------------------
+PRINT "--- Test 4: ordCnt=0 no-op ---"
+GOSUB 600
+plyr.cashBal     := 2000
+plyr.marginTot   := 1000
+plyr.stckShrs(1) := 50
+plyr.bondUnts(2) := 2
+oblgRem          := 1500
+ordCnt           := 0
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 400
+
+! ---- Subtest 5: scrForceLiq visual -------------------------
+PRINT "--- Subtest 5: scrForceLiq visual + action check ---"
+PRINT "Obligation=$2500, 100 Growth Corp@$30 [M],"
+PRINT "  50 Shady Brooks@$60, 1 medium bond."
+PRINT "Enter some orders, select Submit. Verify action=1."
 PRINT
 
-RUN scrMgnCall(tPlyrNam, tStckNam, tCurPrice, tCallPrc, tAmtDue)
-GOSUB 200
+GOSUB 600
+plyr.plyrName    := "ALICE"
+plyr.cashBal     := 500
+plyr.marginTot   := 1200
+plyr.stckShrs(1) := 100
+plyr.mgnHeld(1)  := TRUE
+plyr.stckShrs(4) := 50
+plyr.bondUnts(2) := 1
+oblgRem          := 2500
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrForceLiq(plyr.plyrName, oblgRem, plyr, mkt, ordType, ordId, ordQty, ordCnt, action)
+
+GOSUB 500
 
 PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1: params unmodified
-    PRINT "--- Subtest 1 machine checks ---"
-    IF tPlyrNam = "ALICE" THEN
-      PRINT "PASS  tPlyrNam unmodified"
+100 ! Test 1 assertions
+    IF plyr.cashBal = 8500 THEN
+      PRINT "PASS  T1 cashBal=8500"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tPlyrNam modified"
+      PRINT "FAIL  T1 cashBal exp=8500 got="; plyr.cashBal
       failed := failed + 1
     ENDIF
-    IF tStckNam = "Stryker Drlg" THEN
-      PRINT "PASS  tStckNam unmodified"
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T1 oblgRem=0"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tStckNam modified"
+      PRINT "FAIL  T1 oblgRem exp=0 got="; oblgRem
       failed := failed + 1
     ENDIF
-    IF tCurPrice = 22 THEN
-      PRINT "PASS  tCurPrice=22 unmodified"
+    IF plyr.stckShrs(2) = 0 THEN
+      PRINT "PASS  T1 stckShrs(2)=0"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tCurPrice exp=22 got="; tCurPrice
+      PRINT "FAIL  T1 stckShrs(2) exp=0 got="; plyr.stckShrs(2)
       failed := failed + 1
     ENDIF
-    IF tCallPrc = 25 THEN
-      PRINT "PASS  tCallPrc=25 unmodified"
+    IF plyr.bondUnts(1) = 0 THEN
+      PRINT "PASS  T1 bondUnts(1)=0"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tCallPrc exp=25 got="; tCallPrc
-      failed := failed + 1
-    ENDIF
-    IF tAmtDue = 3000 THEN
-      PRINT "PASS  tAmtDue=3000 unmodified"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  tAmtDue exp=3000 got="; tAmtDue
+      PRINT "FAIL  T1 bondUnts(1) exp=0 got="; plyr.bondUnts(1)
       failed := failed + 1
     ENDIF
     PRINT
 RETURN
 
-200 ! Subtest 2: params unmodified
-    PRINT "--- Subtest 2 machine checks ---"
-    IF tPlyrNam = "BOB" THEN
-      PRINT "PASS  tPlyrNam unmodified"
+200 ! Test 2 assertions
+    IF plyr.cashBal = 3000 THEN
+      PRINT "PASS  T2 cashBal=3000"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tPlyrNam modified"
+      PRINT "FAIL  T2 cashBal exp=3000 got="; plyr.cashBal
       failed := failed + 1
     ENDIF
-    IF tStckNam = "Shady Brooks" THEN
-      PRINT "PASS  tStckNam unmodified"
+    IF plyr.marginTot = 0 THEN
+      PRINT "PASS  T2 marginTot=0"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tStckNam modified"
+      PRINT "FAIL  T2 marginTot exp=0 got="; plyr.marginTot
       failed := failed + 1
     ENDIF
-    IF tCurPrice = 20 THEN
-      PRINT "PASS  tCurPrice=20 unmodified"
+    IF plyr.stckShrs(5) = 0 THEN
+      PRINT "PASS  T2 stckShrs(5)=0"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tCurPrice exp=20 got="; tCurPrice
+      PRINT "FAIL  T2 stckShrs(5) exp=0 got="; plyr.stckShrs(5)
       failed := failed + 1
     ENDIF
-    IF tAmtDue = 7500 THEN
-      PRINT "PASS  tAmtDue=7500 unmodified"
+    IF NOT plyr.mgnHeld(5) THEN
+      PRINT "PASS  T2 mgnHeld(5)=FALSE"
       passed := passed + 1
     ELSE
-      PRINT "FAIL  tAmtDue exp=7500 got="; tAmtDue
+      PRINT "FAIL  T2 mgnHeld(5) exp=FALSE got=TRUE"
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T2 oblgRem=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 oblgRem exp=0 got="; oblgRem
       failed := failed + 1
     ENDIF
     PRINT
 RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTMGNCALL"
+300 ! Test 3 assertions
+    IF plyr.cashBal = 10000 THEN
+      PRINT "PASS  T3 cashBal=10000"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 cashBal exp=10000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T3 oblgRem=0 (clamped)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 oblgRem exp=0 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    IF plyr.bondUnts(3) = 0 THEN
+      PRINT "PASS  T3 bondUnts(3)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 bondUnts(3) exp=0 got="; plyr.bondUnts(3)
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+400 ! Test 4 assertions
+    IF plyr.cashBal = 2000 THEN
+      PRINT "PASS  T4 cashBal=2000 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 cashBal exp=2000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 1000 THEN
+      PRINT "PASS  T4 marginTot=1000 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 marginTot exp=1000 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 1500 THEN
+      PRINT "PASS  T4 oblgRem=1500 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 oblgRem exp=1500 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+500 ! Subtest 5 assertion
+    IF action = 1 THEN
+      PRINT "PASS  Subtest5 action=1 (SUBMIT)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  Subtest5 action exp=1 got="; action
+      PRINT "      (2=DECLARE_BANKRUPTCY — was that intended?)"
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+600 ! Reset plyr record to clean state
+    plyr.plyrName  := ""
+    plyr.plyrType  := 0
+    plyr.aiTier    := 0
+    plyr.cashBal   := 0
+    plyr.marginTot := 0
+    plyr.isBankrupt   := FALSE
+    plyr.hadCashPur   := FALSE
+    FOR i := 1 TO 9
+      plyr.stckShrs(i) := 0
+      plyr.mgnHeld(i)  := FALSE
+    NEXT i
+    FOR i := 1 TO 3
+      plyr.bondUnts(i) := 0
+    NEXT i
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTFORCELIQ"
     END

@@ -4255,3 +4255,164 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTAITURN"
     END
+
+PROCEDURE TSTMGNCALL
+(* ============================================================ *)
+(* PROCEDURE : TSTMGNCALL                                       *)
+(* PURPOSE   : Confirmation tests for scrMgnCall (Task 10.1).  *)
+(*             scrMgnCall is display-only. Visual verification *)
+(*             of rendered output is the primary check.        *)
+(*             Machine assertions confirm:                     *)
+(*               - All input params unmodified after call      *)
+(*               - Procedure returns without runtime error     *)
+(*                                                             *)
+(*             Subtest 1 — spec confirmation case              *)
+(*               Stryker at $22, callPrice=$25, amtDue=$3000.  *)
+(*               Expected display (tester verifies):           *)
+(*                 *** MARGIN CALL ***                         *)
+(*                 Player  : ALICE                             *)
+(*                 Stock   : Stryker Drlg                      *)
+(*                 Current price     : $22                     *)
+(*                 Margin call at    : $25                     *)
+(*                 Amount due        : $3000                   *)
+(*                 [liquidation message]                       *)
+(*               Machine checks: all params unmodified         *)
+(*                                                             *)
+(*             Subtest 2 — different stock, higher obligation  *)
+(*               Shady Brooks at $20, callPrice=$25,           *)
+(*               amtDue=$7500.                                 *)
+(*               Expected display (tester verifies):           *)
+(*                 Stock   : Shady Brooks                      *)
+(*                 Current price     : $20                     *)
+(*                 Amount due        : $7500                   *)
+(*               Machine checks: all params unmodified         *)
+(* PARAMS    : none                                            *)
+(* SIDE EFX  : Calls scrMgnCall which clears screen and waits  *)
+(*             for keypress.                                   *)
+(* ============================================================ *)
+DIM tPlyrNam  : STRING[20]
+DIM tStckNam  : STRING[14]
+DIM tCurPrice : INTEGER
+DIM tCallPrc  : INTEGER
+DIM tAmtDue   : INTEGER
+DIM passed    : INTEGER
+DIM failed    : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTMGNCALL  Task 10.1 ==="
+PRINT "Visual verification required for each subtest."
+PRINT
+
+! ---- Subtest 1: spec confirmation case ----------------------
+tPlyrNam  := "ALICE"
+tStckNam  := "Stryker Drlg"
+tCurPrice := 22
+tCallPrc  := 25
+tAmtDue   := 3000
+
+PRINT "--- Subtest 1: Stryker $22, amtDue=$3000 ---"
+PRINT "Expected: MARGIN CALL header, player=ALICE,"
+PRINT "  stock=Stryker Drlg, price=$22, call=$25, due=$3000."
+PRINT
+
+RUN scrMgnCall(tPlyrNam, tStckNam, tCurPrice, tCallPrc, tAmtDue)
+GOSUB 100
+
+! ---- Subtest 2: different stock, larger obligation ----------
+tPlyrNam  := "BOB"
+tStckNam  := "Shady Brooks"
+tCurPrice := 20
+tCallPrc  := 25
+tAmtDue   := 7500
+
+PRINT "--- Subtest 2: Shady Brooks $20, amtDue=$7500 ---"
+PRINT "Expected: player=BOB, stock=Shady Brooks,"
+PRINT "  price=$20, call=$25, due=$7500."
+PRINT
+
+RUN scrMgnCall(tPlyrNam, tStckNam, tCurPrice, tCallPrc, tAmtDue)
+GOSUB 200
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Subtest 1: params unmodified
+    PRINT "--- Subtest 1 machine checks ---"
+    IF tPlyrNam = "ALICE" THEN
+      PRINT "PASS  tPlyrNam unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tPlyrNam modified"
+      failed := failed + 1
+    ENDIF
+    IF tStckNam = "Stryker Drlg" THEN
+      PRINT "PASS  tStckNam unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tStckNam modified"
+      failed := failed + 1
+    ENDIF
+    IF tCurPrice = 22 THEN
+      PRINT "PASS  tCurPrice=22 unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tCurPrice exp=22 got="; tCurPrice
+      failed := failed + 1
+    ENDIF
+    IF tCallPrc = 25 THEN
+      PRINT "PASS  tCallPrc=25 unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tCallPrc exp=25 got="; tCallPrc
+      failed := failed + 1
+    ENDIF
+    IF tAmtDue = 3000 THEN
+      PRINT "PASS  tAmtDue=3000 unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tAmtDue exp=3000 got="; tAmtDue
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Subtest 2: params unmodified
+    PRINT "--- Subtest 2 machine checks ---"
+    IF tPlyrNam = "BOB" THEN
+      PRINT "PASS  tPlyrNam unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tPlyrNam modified"
+      failed := failed + 1
+    ENDIF
+    IF tStckNam = "Shady Brooks" THEN
+      PRINT "PASS  tStckNam unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tStckNam modified"
+      failed := failed + 1
+    ENDIF
+    IF tCurPrice = 20 THEN
+      PRINT "PASS  tCurPrice=20 unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tCurPrice exp=20 got="; tCurPrice
+      failed := failed + 1
+    ENDIF
+    IF tAmtDue = 7500 THEN
+      PRINT "PASS  tAmtDue=7500 unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  tAmtDue exp=7500 got="; tAmtDue
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTMGNCALL"
+    END
