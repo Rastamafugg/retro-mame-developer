@@ -144,6 +144,8 @@ DIR       EXEC      READ      UPDATE    WRITE
   ENDIF \ENDIF \ENDIF
   ```
 
+* **MOD is a function, not an infix operator.** Correct usage: MOD(num1, num2). Wrong: num1 MOD num2.
+
 ### Procedure Calls and Parameters
 
 * **Use `RUN` to execute a procedure.** `CALL` is not a valid keyword.

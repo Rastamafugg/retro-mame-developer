@@ -1093,7 +1093,7 @@ LOOP
           valid := TRUE
         ELSE IF qty < 0 THEN
           PRINT "  Invalid: enter 0 or positive mult of 10."
-        ELSE IF (qty MOD 10) <> 0 THEN
+        ELSE IF MOD(qty, 10) <> 0 THEN
           PRINT "  Invalid: must be a multiple of 10."
         ELSE IF qty > plyr.stckShrs(s) THEN
           PRINT "  Invalid: you hold only ";
