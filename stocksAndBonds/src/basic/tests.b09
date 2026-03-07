@@ -2675,3 +2675,147 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTCRDSCR"
     END
+
+PROCEDURE TSTDICE
+(* ============================================================ *)
+(* PROCEDURE : TSTDICE                                          *)
+(* PURPOSE   : Confirmation tests for scrDice (Task 8.4).      *)
+(*             Three visual test cases:                        *)
+(*               Test 1 — Mode A: single roll die1=3 die2=4   *)
+(*                         total=7. Verify "ROLL MODE A" label  *)
+(*                         and three die/total lines.           *)
+(*               Test 2 — Mode B: single roll die1=5 die2=5   *)
+(*                         total=10. Verify "ROLL MODE B" label *)
+(*                         and distinct values from Test 1.    *)
+(*               Test 3 — Mode C: 9 rolls (one per stock).     *)
+(*                         Verify "ROLL MODE C" label and all   *)
+(*                         9 stock rows with correct totals.   *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrDice 3 times; clears screen each call. *)
+(* ============================================================ *)
+DIM dieOne(9)  : BYTE
+DIM dieTwo(9)  : BYTE
+DIM rollTot(9) : BYTE
+DIM action     : BYTE
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! ---- Test 1: Mode A — single roll, total=7 ------------------
+PRINT "Test 1: Mode A. Single roll, die1=3, die2=4, total=7."
+PRINT "Expect: ROLL MODE A"
+PRINT "Expect: Die 1:  3"
+PRINT "Expect: Die 2:  4"
+PRINT "Expect: Total:  7"
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+FOR i := 1 TO 9
+  dieOne(i)  := 0
+  dieTwo(i)  := 0
+  rollTot(i) := 0
+NEXT i
+dieOne(1)  := 3
+dieTwo(1)  := 4
+rollTot(1) := 7
+
+RUN scrDice(1, 1, dieOne, dieTwo, rollTot, action)
+GOSUB 100
+
+! ---- Test 2: Mode B — single roll, total=10 -----------------
+PRINT "Test 2: Mode B. Single roll, die1=5, die2=5, total=10."
+PRINT "Expect: ROLL MODE B"
+PRINT "Expect: Die 1:  5"
+PRINT "Expect: Die 2:  5"
+PRINT "Expect: Total:  10"
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+FOR i := 1 TO 9
+  dieOne(i)  := 0
+  dieTwo(i)  := 0
+  rollTot(i) := 0
+NEXT i
+dieOne(1)  := 5
+dieTwo(1)  := 5
+rollTot(1) := 10
+
+RUN scrDice(2, 1, dieOne, dieTwo, rollTot, action)
+GOSUB 200
+
+! ---- Test 3: Mode C — 9 rolls, one per stock ----------------
+PRINT "Test 3: Mode C. 9 per-stock rolls."
+PRINT "Expect: ROLL MODE C  (per stock)"
+PRINT "Expect: 9 rows, one per stock."
+PRINT "Expected totals by stock:"
+PRINT "  Growth Corp   1+2=  3"
+PRINT "  Metro Props   2+3=  5"
+PRINT "  Pioneer Mut   3+4=  7"
+PRINT "  Shady Brooks  4+5=  9"
+PRINT "  Stryker Drlg  5+6= 11"
+PRINT "  Tri-City Trn  6+6= 12"
+PRINT "  United Auto   1+1=  2"
+PRINT "  Uranium Ent   2+4=  6"
+PRINT "  Valley Power  3+5=  8"
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+dieOne(1) := 1 \ dieTwo(1) := 2 \ rollTot(1) := 3
+dieOne(2) := 2 \ dieTwo(2) := 3 \ rollTot(2) := 5
+dieOne(3) := 3 \ dieTwo(3) := 4 \ rollTot(3) := 7
+dieOne(4) := 4 \ dieTwo(4) := 5 \ rollTot(4) := 9
+dieOne(5) := 5 \ dieTwo(5) := 6 \ rollTot(5) := 11
+dieOne(6) := 6 \ dieTwo(6) := 6 \ rollTot(6) := 12
+dieOne(7) := 1 \ dieTwo(7) := 1 \ rollTot(7) := 2
+dieOne(8) := 2 \ dieTwo(8) := 4 \ rollTot(8) := 6
+dieOne(9) := 3 \ dieTwo(9) := 5 \ rollTot(9) := 8
+
+RUN scrDice(3, 9, dieOne, dieTwo, rollTot, action)
+GOSUB 300
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 action check
+    IF action = 1 THEN
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTDICE"
+    END
