@@ -4,7 +4,7 @@ Here is a list of rules and general tips for writing Basic09 code.
 
 ## Reserved Words
 
-The following identifiers are reserved by Basic09 and **must not** be used as variable names, TYPE attribute names, array names, or procedure names.
+The following identifiers are reserved by Basic09 and **must not** be used as variable names, TYPE attribute names, array names, or procedure names. This includes lowercase or mixed case versions of the identifiers.
 
 ### Statements & Control Flow
 
