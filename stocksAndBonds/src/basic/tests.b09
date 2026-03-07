@@ -2554,3 +2554,124 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTDVINT"
     END
+
+PROCEDURE TSTCRDSCR
+(* ============================================================ *)
+(* PROCEDURE : TSTCRDSCR                                        *)
+(* PURPOSE   : Confirmation tests for scrCard (Task 8.3).      *)
+(*             Three visual test cases per spec 8.3:           *)
+(*               Test 1 — Card 1 (Bear, Growth Corp +10,       *)
+(*                         divBonus=$2): verify market type,   *)
+(*                         flavour text, delta, bonus line.    *)
+(*               Test 2 — Card 34 (Bull, 4 stocks): verify all *)
+(*                         four stocks and positive deltas.    *)
+(*               Test 3 — Card 36 (Bear, 3 stocks): verify     *)
+(*                         negative deltas render with sign.   *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrCard 3 times; clears screen each call. *)
+(*             Calls getCard 3 times; repositions DATA pointer.*)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+DIM card    : CardRec
+DIM flavTxt : STRING[160]
+DIM action  : BYTE
+DIM passed  : INTEGER
+DIM failed  : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTCRDSCR ==="
+PRINT
+
+! ---- Test 1: Card 1 — Bear, Growth Corp +10, divBonus=2 -----
+PRINT "Test 1: Card 1 (Bear, Growth Corp +10, divBonus=2)."
+PRINT "Expect: SITUATION CARD #1"
+PRINT "Expect: BEAR MARKET"
+PRINT "Expect: flavour text re: year-end dividend."
+PRINT "Expect: Growth Corp   +10"
+PRINT "Expect: DIVIDEND BONUS: $2 per share"
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN getCard(1, card)
+flavTxt := "Extra year-end dividend of $2 per share declared by the Board of Directors."
+RUN scrCard(1, card, flavTxt, action)
+GOSUB 100
+
+! ---- Test 2: Card 34 — Bull, 4 stocks -----------------------
+PRINT "Test 2: Card 34 (Bull, 4 stocks)."
+PRINT "Expect: SITUATION CARD #34"
+PRINT "Expect: BULL MARKET"
+PRINT "Expect: flavour text re: general market rise."
+PRINT "Expect: Growth Corp   +8"
+PRINT "Expect: Metro Props   +5"
+PRINT "Expect: Pioneer Mut   +5"
+PRINT "Expect: United Auto   +7"
+PRINT "Expect: no dividend bonus line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN getCard(34, card)
+flavTxt := "General market rise over the last two months."
+RUN scrCard(34, card, flavTxt, action)
+GOSUB 200
+
+! ---- Test 3: Card 36 — Bear, 3 stocks, negative deltas ------
+PRINT "Test 3: Card 36 (Bear, 3 stocks, negative deltas)."
+PRINT "Expect: SITUATION CARD #36"
+PRINT "Expect: BEAR MARKET"
+PRINT "Expect: flavour text re: profit taking."
+PRINT "Expect: Growth Corp   -8"
+PRINT "Expect: Metro Props   -5"
+PRINT "Expect: United Auto   -7"
+PRINT "Expect: no dividend bonus line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+RUN getCard(36, card)
+flavTxt := "Surge of profit taking drops stock market."
+RUN scrCard(36, card, flavTxt, action)
+GOSUB 300
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 action check
+    IF action = 1 THEN
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTCRDSCR"
+    END
