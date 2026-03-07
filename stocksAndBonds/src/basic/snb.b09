@@ -3157,3 +3157,312 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE aiSell
+(* ============================================================ *)
+(* PROCEDURE : aiSell                                           *)
+(* PURPOSE   : AI sell phase decision engine (Medium baseline) *)
+(*             Implements ai-player-logic.md Section 4 with    *)
+(*             hardcoded Medium tier parameter values from      *)
+(*             ai-difficulty-tiers.md Section 4.               *)
+(*             Produces sell order arrays for the caller to     *)
+(*             pass unchanged to applySells.                   *)
+(*             Does NOT modify plyr. Caller applies orders.    *)
+(*                                                             *)
+(*             Phase 13 wires in AIProfile; hardcoded values   *)
+(*             map directly to AIProfile fields:               *)
+(*               splitSellPW  = splitSellPct    = 50           *)
+(*               distSellPW   = distressSellPrice = 50         *)
+(*               marginClrYr  = marginClearYear = 9            *)
+(*               endgameYear                    = 0 (none)     *)
+(*                                                             *)
+(*             Sell logic order (ai-player-logic.md Sec 6):    *)
+(*               1. Stock Rules 1-4 (ascending stockId)        *)
+(*               2. Emergency bond sell (cashBal < 0)          *)
+(*               3. Proactive margin clearance (Year >= 9)     *)
+(*                                                             *)
+(* PARAMS    : currYear      - current game year (1..10)       *)
+(*             plyr          - player record (READ ONLY)       *)
+(*             mkt           - market state (READ ONLY)        *)
+(*             ordType(12)   - output: 1=STOCK 2=BOND          *)
+(*             ordId(12)     - output: asset index (1-9 / 1-3) *)
+(*             ordQty(12)    - output: quantity per order       *)
+(*             ordCnt        - output: number of orders (0..12)*)
+(* SIDE EFX  : None. plyr and mkt are not modified.            *)
+(* NOTE      : ordCnt=0 is a valid output (all rules pass).   *)
+(*             Array slots cap at 12; orders beyond limit are  *)
+(*             silently dropped.                               *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM currYear    : INTEGER
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+
+! Medium hardcoded working parameters (ai-difficulty-tiers.md Sec 4)
+! Phase 13 replaces these with aiProfile field references.
+DIM splitSellPW : INTEGER \ ! splitSellPct = 50
+DIM distSellPW  : INTEGER \ ! distressSellPrice = 50
+DIM marginClrYr : INTEGER \ ! marginClearYear = 9
+
+DIM divPer(9)   : INTEGER \ ! dividend per share (spec Section 2.1)
+DIM bPar(3)     : INTEGER \ ! bond par values
+DIM pendQty(9)  : INTEGER \ ! shares already queued in sell orders
+DIM pendBnd(3)  : INTEGER \ ! bond units already queued in sell orders
+DIM clrIdx(9)   : INTEGER \ ! stock indices for clearance sort
+DIM clrSco(9)   : INTEGER \ ! yield scores for clearance sort
+DIM i           : INTEGER
+DIM j           : INTEGER
+DIM s           : INTEGER
+DIM b           : INTEGER
+DIM sellLots    : INTEGER
+DIM needed      : INTEGER
+DIM avail       : INTEGER
+DIM prcd        : INTEGER
+DIM tmp         : INTEGER
+DIM holdCnt     : INTEGER
+DIM minPos      : INTEGER
+DIM simCash     : INTEGER \ ! simulated cashBal for bond emergency check
+
+ON ERROR GOTO 900
+
+! --- Hardcoded Medium working parameters --------------------
+splitSellPW := 50
+distSellPW  := 50
+marginClrYr := 9
+
+! --- Dividend per share (spec Section 2.1) -----------------
+divPer(1) := 1 \ ! Growth Corp
+divPer(2) := 0 \ ! Metro Props    (no yield)
+divPer(3) := 4 \ ! Pioneer Mut
+divPer(4) := 7 \ ! Shady Brooks
+divPer(5) := 0 \ ! Stryker Drlg   (no yield)
+divPer(6) := 0 \ ! Tri-City Trn   (no yield)
+divPer(7) := 2 \ ! United Auto
+divPer(8) := 6 \ ! Uranium Ent
+divPer(9) := 3 \ ! Valley Power
+
+! --- Bond par values ----------------------------------------
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+
+! --- Init output and tracking arrays -----------------------
+ordCnt := 0
+FOR i := 1 TO 9
+  pendQty(i) := 0
+NEXT i
+FOR i := 1 TO 3
+  pendBnd(i) := 0
+NEXT i
+
+! ============================================================
+! Section 4.1: Stock sell rules. Ascending stockId order.
+! Rules are IF/ELSE IF; first match governs each stock.
+!   Rule 1: price = 0               → SELL all
+!   Rule 2: price <= 25, mgnHeld    → SELL all
+!   Rule 3: price >= 150            → SELL splitSellPW % (lots)
+!   Rule 4: divSuspnd AND price<=50 → SELL all
+!   Rule 5: default                 → PASS
+! ============================================================
+
+FOR s := 1 TO 9
+  IF plyr.stckShrs(s) > 0 THEN
+
+    IF mkt.stckPrice(s) = 0 THEN
+      ! Rule 1 — Bankrupt; explicitly clear the position.
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ELSE IF mkt.stckPrice(s) <= 25 AND plyr.mgnHeld(s) THEN
+      ! Rule 2 — Margin call imminent (MarginCallPrice = 25).
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ELSE IF mkt.stckPrice(s) >= 150 THEN
+      ! Rule 3 — Split threshold (StockSplitThreshold = 150).
+      ! sellLots = floor(shares * splitSellPW% / 10) * 10
+      sellLots := plyr.stckShrs(s) * splitSellPW / 100
+      sellLots := (sellLots / 10) * 10
+      IF sellLots >= 10 AND ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := sellLots
+        pendQty(s)      := sellLots
+      ENDIF
+
+    ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellPW THEN
+      ! Rule 4 — Distressed suspended-dividend stock.
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ENDIF \ENDIF \ENDIF \ENDIF
+    ! Rule 5 (default PASS) requires no action.
+
+  ENDIF
+NEXT s
+
+! ============================================================
+! Section 4.3: Emergency bond sell.
+! Sell minimum bond units to bring simulated cashBal >= 0.
+! Uses plyr.cashBal directly (orders not yet applied).
+! Ascending denomination order (smallest first).
+! ============================================================
+
+simCash := plyr.cashBal
+IF simCash < 0 THEN
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF simCash >= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt          := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      simCash         := simCash + bPar(b)
+    ENDLOOP
+  NEXT b
+ENDIF
+
+! ============================================================
+! Section 4.4: Proactive margin clearance.
+! Active when currYear >= marginClrYr (9 for Medium).
+! Sells held assets in ascending yield-score order until
+! marginTot is covered. Stocks before bonds.
+! Skips positions already queued in Rules 1-4 (via pendQty).
+! ============================================================
+
+IF plyr.marginTot > 0 AND currYear >= marginClrYr THEN
+  needed := plyr.marginTot
+
+  ! Score unheld/unqueued stocks for clearance sort.
+  ! Score: suspended → -1; zero div → 0; yielding → div*1000/price
+  holdCnt := 0
+  FOR s := 1 TO 9
+    avail := plyr.stckShrs(s) - pendQty(s)
+    IF avail > 0 THEN
+      holdCnt         := holdCnt + 1
+      clrIdx(holdCnt) := s
+      IF mkt.divSuspnd(s) THEN
+        clrSco(holdCnt) := -1
+      ELSE IF divPer(s) = 0 THEN
+        clrSco(holdCnt) := 0
+      ELSE
+        clrSco(holdCnt) := divPer(s) * 1000 / mkt.stckPrice(s)
+      ENDIF \ENDIF
+    ENDIF
+  NEXT s
+
+  ! Selection sort: ascending clrSco, tie-break ascending stockId.
+  FOR i := 1 TO holdCnt - 1
+    minPos := i
+    FOR j := i + 1 TO holdCnt
+      IF clrSco(j) < clrSco(minPos) THEN
+        minPos := j
+      ELSE IF clrSco(j) = clrSco(minPos) THEN
+        IF clrIdx(j) < clrIdx(minPos) THEN
+          minPos := j
+        ENDIF
+      ENDIF \ENDIF
+    NEXT j
+    IF minPos <> i THEN
+      tmp            := clrSco(i)
+      clrSco(i)      := clrSco(minPos)
+      clrSco(minPos) := tmp
+      tmp            := clrIdx(i)
+      clrIdx(i)      := clrIdx(minPos)
+      clrIdx(minPos) := tmp
+    ENDIF
+  NEXT i
+
+  ! Pass 1 — sell stocks, weakest first, until needed <= 0.
+  FOR i := 1 TO holdCnt
+    IF needed > 0 THEN
+      s     := clrIdx(i)
+      avail := plyr.stckShrs(s) - pendQty(s)
+      IF avail > 0 THEN
+        prcd := avail * mkt.stckPrice(s)
+        IF prcd <= needed THEN
+          ! Full position: does not exceed needed.
+          IF ordCnt < 12 THEN
+            ordCnt          := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := avail
+            pendQty(s)      := pendQty(s) + avail
+            needed          := needed - prcd
+          ENDIF
+        ELSE
+          ! Partial sell: ceiling lots to cover remainder.
+          ! sellLots := ceil(needed / price), rounded to 10.
+          sellLots := (needed + mkt.stckPrice(s) - 1)
+          sellLots := sellLots / mkt.stckPrice(s)
+          sellLots := ((sellLots + 9) / 10) * 10
+          ! Clamp to available (inline MIN).
+          IF sellLots > avail THEN
+            sellLots := avail
+          ENDIF
+          IF sellLots >= 10 AND ordCnt < 12 THEN
+            ordCnt          := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := sellLots
+            pendQty(s)      := pendQty(s) + sellLots
+            needed          := needed - (sellLots * mkt.stckPrice(s))
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  NEXT i
+
+  ! Pass 2 — supplement with bonds if still needed > 0.
+  ! Sell smallest denomination first; one unit at a time.
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF needed <= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt          := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      needed          := needed - bPar(b)
+    ENDLOOP
+  NEXT b
+
+ENDIF
+
+END
+
+900 ERROR(ERR)
+END

@@ -5396,3 +5396,297 @@ END
 
 900 PRINT "TSTEND error ("; ERR; ")"
 END
+
+PROCEDURE TSTAISELL
+(* ============================================================ *)
+(* PROCEDURE : TSTAISELL                                        *)
+(* PURPOSE   : Confirmation tests for aiSell (Task 12.1).      *)
+(*             Machine-checks all confirmation cases from      *)
+(*             project-timeline.md Phase 12 Task 12.1.         *)
+(*                                                             *)
+(* Test A — Combined rules scenario (currYear=5, no margin)    *)
+(*   stock 1: price=45, divSuspnd=TRUE, shrs=20                *)
+(*            → Rule 4, SELL 20                                *)
+(*   stock 2: price=0, shrs=50                                 *)
+(*            → Rule 1, SELL 50                                *)
+(*   stock 3: price=110, divSuspnd=FALSE, shrs=30              *)
+(*            → Rule 5, PASS                                   *)
+(*   stock 4: price=155, shrs=100                              *)
+(*            → Rule 3, SELL 50 (50% of 100)                  *)
+(*   stock 5: price=20, mgnHeld=TRUE, shrs=100                 *)
+(*            → Rule 2, SELL 100                               *)
+(*   cashBal=5000 (positive) → no bond sell.                  *)
+(*   Verify: ordCnt=4, orders in ascending stockId order.      *)
+(*   Stock 3 absent from order array.                          *)
+(*                                                             *)
+(* Test B — Bond emergency (currYear=5)                        *)
+(*   cashBal=-100, 1 small bond held, no stocks.               *)
+(*   Verify: ordCnt=1, ordType(1)=2, ordId(1)=1, ordQty(1)=1  *)
+(*                                                             *)
+(* Test C — Bond pass when cashBal >= 0                        *)
+(*   cashBal=5000, 1 small bond held, no stocks.               *)
+(*   Verify: ordCnt=0 (no bond sell).                          *)
+(*                                                             *)
+(* Test D — Margin clearance (currYear=9)                      *)
+(*   marginTot=2000, stock 2 (Metro, div=0) 30@$100,           *)
+(*   stock 4 (Shady, div=7) 50@$100. No other holdings.        *)
+(*   clrSco(Metro)=0, clrSco(Shady)=70.                       *)
+(*   Sort: Metro first (score 0 < 70).                         *)
+(*   needed=2000. Partial sell Metro:                          *)
+(*     sellLots = ceil(2000/100)=20, rounded to 20. SELL 20.   *)
+(*     needed = 2000-2000 = 0. Shady skipped.                  *)
+(*   Verify: ordCnt=1, ordType(1)=1, ordId(1)=2, ordQty(1)=20 *)
+(*                                                             *)
+(* Test E — Margin clearance below marginClrYr (currYear=5)    *)
+(*   Same state as Test D but currYear=5 < 9.                  *)
+(*   Verify: ordCnt=0 (clearance block skipped).               *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr        : PlyrRec
+DIM mkt         : MktState
+DIM ordType(12) : INTEGER
+DIM ordId(12)   : INTEGER
+DIM ordQty(12)  : INTEGER
+DIM ordCnt      : INTEGER
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTAISELL  Phase 12 Task 12.1 ==="
+PRINT
+
+! ============================================================
+! Test A — Combined stock rules, no bond sell
+! ============================================================
+PRINT "--- Test A: Combined stock rules ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+! stock 1: Rule 4 (divSuspnd=TRUE, price=45 <= 50)
+plyr.stckShrs(1)  := 20
+mkt.stckPrice(1)  := 45
+mkt.divSuspnd(1)  := TRUE
+
+! stock 2: Rule 1 (price=0)
+plyr.stckShrs(2)  := 50
+mkt.stckPrice(2)  := 0
+
+! stock 3: Rule 5 (price=110, divSuspnd=FALSE) — should NOT appear
+plyr.stckShrs(3)  := 30
+mkt.stckPrice(3)  := 110
+mkt.divSuspnd(3)  := FALSE
+
+! stock 4: Rule 3 (price=155 >= 150, shares=100 → sell 50)
+plyr.stckShrs(4)  := 100
+mkt.stckPrice(4)  := 155
+
+! stock 5: Rule 2 (price=20 <= 25, mgnHeld=TRUE)
+plyr.stckShrs(5)  := 100
+mkt.stckPrice(5)  := 20
+plyr.mgnHeld(5)   := TRUE
+
+plyr.cashBal      := 5000 \ ! positive; no bond emergency
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+! ordCnt must be 4 (stocks 1, 2, 4, 5)
+GOSUB 100
+
+! ord 1: stock 1, Rule 4, sell all 20
+GOSUB 200
+
+! ord 2: stock 2, Rule 1, sell all 50
+GOSUB 300
+
+! ord 3: stock 4, Rule 3, sell 50
+GOSUB 400
+
+! ord 4: stock 5, Rule 2, sell all 100
+GOSUB 500
+
+PRINT
+
+! ============================================================
+! Test B — Bond emergency: cashBal=-100
+! ============================================================
+PRINT "--- Test B: Bond emergency cashBal=-100 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal     := -100
+plyr.bondUnts(1) := 1 \ ! small bond $1000
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 1 THEN
+  PRINT "Test B PASS  ordCnt=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test B FAIL  ordCnt exp=1 got="; ordCnt
+  failed := failed + 1
+ENDIF
+IF ordType(1) = 2 AND ordId(1) = 1 AND ordQty(1) = 1 THEN
+  PRINT "Test B PASS  BOND#1 qty=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test B FAIL  exp BOND#1 qty=1, got type="; ordType(1);
+  PRINT " id="; ordId(1); " qty="; ordQty(1)
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test C — Bond pass: cashBal >= 0
+! ============================================================
+PRINT "--- Test C: Bond pass cashBal=5000 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal     := 5000
+plyr.bondUnts(1) := 1
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 0 THEN
+  PRINT "Test C PASS  ordCnt=0 (no bond sell)"
+  passed := passed + 1
+ELSE
+  PRINT "Test C FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test D — Margin clearance active (currYear=9)
+! stock 2 Metro (div=0, score=0), stock 4 Shady (div=7, score=70)
+! needed=2000; partial sell 20 Metro covers exactly.
+! ============================================================
+PRINT "--- Test D: Margin clearance Year 9 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.marginTot   := 2000
+plyr.cashBal     := 5000
+plyr.stckShrs(2) := 30 \ ! Metro Props, div=0
+mkt.stckPrice(2) := 100
+plyr.stckShrs(4) := 50 \ ! Shady Brooks, div=7
+mkt.stckPrice(4) := 100
+
+RUN aiSell(9, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 1 THEN
+  PRINT "Test D PASS  ordCnt=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test D FAIL  ordCnt exp=1 got="; ordCnt
+  failed := failed + 1
+ENDIF
+IF ordType(1) = 1 AND ordId(1) = 2 AND ordQty(1) = 20 THEN
+  PRINT "Test D PASS  STK#2 qty=20 (Metro, partial)"
+  passed := passed + 1
+ELSE
+  PRINT "Test D FAIL  exp STK#2 qty=20, got type="; ordType(1);
+  PRINT " id="; ordId(1); " qty="; ordQty(1)
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test E — Margin clearance blocked (currYear=5 < 9)
+! Same holdings as Test D; clearance block must not fire.
+! ============================================================
+PRINT "--- Test E: Margin clearance blocked Year 5 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.marginTot   := 2000
+plyr.cashBal     := 5000
+plyr.stckShrs(2) := 30
+mkt.stckPrice(2) := 100
+plyr.stckShrs(4) := 50
+mkt.stckPrice(4) := 100
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 0 THEN
+  PRINT "Test E PASS  ordCnt=0 (clearance blocked)"
+  passed := passed + 1
+ELSE
+  PRINT "Test E FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+! ---- Test A subtests ----------------------------------------
+
+100 \ ! Check ordCnt = 4
+    IF ordCnt = 4 THEN
+      PRINT "Test A PASS  ordCnt=4"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ordCnt exp=4 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+RETURN
+
+200 \ ! ord1: stock 1, Rule 4, qty=20
+    IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 20 THEN
+      PRINT "Test A PASS  ord1=STK#1 qty=20 (Rule 4)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord1 exp STK#1 qty=20";
+      PRINT " got type="; ordType(1); " id="; ordId(1);
+      PRINT " qty="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+300 \ ! ord2: stock 2, Rule 1, qty=50
+    IF ordType(2) = 1 AND ordId(2) = 2 AND ordQty(2) = 50 THEN
+      PRINT "Test A PASS  ord2=STK#2 qty=50 (Rule 1)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord2 exp STK#2 qty=50";
+      PRINT " got type="; ordType(2); " id="; ordId(2);
+      PRINT " qty="; ordQty(2)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+400 \ ! ord3: stock 4, Rule 3, qty=50
+    IF ordType(3) = 1 AND ordId(3) = 4 AND ordQty(3) = 50 THEN
+      PRINT "Test A PASS  ord3=STK#4 qty=50 (Rule 3)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord3 exp STK#4 qty=50";
+      PRINT " got type="; ordType(3); " id="; ordId(3);
+      PRINT " qty="; ordQty(3)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+500 \ ! ord4: stock 5, Rule 2, qty=100
+    IF ordType(4) = 1 AND ordId(4) = 5 AND ordQty(4) = 100 THEN
+      PRINT "Test A PASS  ord4=STK#5 qty=100 (Rule 2)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord4 exp STK#5 qty=100";
+      PRINT " got type="; ordType(4); " id="; ordId(4);
+      PRINT " qty="; ordQty(4)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+900 PRINT "TSTAISELL error ("; ERR; ")"
+    END
