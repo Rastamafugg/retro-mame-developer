@@ -1,57 +1,68 @@
 PROCEDURE testMain
     DIM memCmd:STRING
+    DIM procName:STRING
     memCmd = "mem"
     PRINT "Initial memory:"
-    SHELL memCmd
+!    SHELL "ex " + memCmd
     PRINT ""
 
     (* Test single procedure module *)
-    PRINT "Loading and calling singleProc"
-    RUN singleProc
-    PRINT "Memory after loading singleProc:"
-    SHELL memCmd
+    procName = "singleProc"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT "Memory after loading " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    KILL singleProc
-    PRINT "Memory after killing singleProc:"
-    SHELL memCmd
+    KILL procName
+    PRINT "Memory after killing " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
 
     (* Test multiple procedure module *)
-    PRINT "Loading and calling multiProc1 (which calls multiProc2)"
-    RUN multiProc1
-    PRINT "Memory after loading multiProc1:"
-    SHELL memCmd
+    procName = "multiProc1"
+    PRINT "Loading and calling " + procName + " (which calls " + "multiProc2)"
+    RUN procName
+    PRINT "Memory after loading " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    KILL multiProc1
-    PRINT "Memory after killing multiProc1:"
-    SHELL memCmd
+    KILL procName
+    PRINT "Memory after killing " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    SHELL "ex UnLink multiProc2"
-    PRINT "Memory after unlinking multiProc2:"
-    SHELL memCmd
+    procName = "multiProc2"
+    SHELL "ex UnLink " + procName
+    PRINT "Memory after unlinking " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
 
+    procName = "indepProc1"
+    SHELL "ex LOAD " + procName
     (* Test independent procedures module *)
-    PRINT "Loading and calling indepProc1"
-    RUN indepProc1
-    PRINT "Memory after loading indepProc1:"
-    SHELL memCmd
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT "Memory after loading " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    PRINT "Loading and calling indepProc2"
-    RUN indepProc2
-    PRINT "Memory after loading indepProc2:"
-    SHELL memCmd
+    procName = "indepProc2"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT "Memory after loading " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    PRINT "Loading and calling indepProc3"
-    RUN indepProc3
-    PRINT "Memory after loading indepProc3:"
-    SHELL memCmd
+    procName = "indepProc3"
+    PRINT "Loading and calling " + procName
+    RUN procName
+    PRINT "Memory after loading " + procName + ":"
+!    SHELL "ex " + memCmd
     PRINT ""
-    KILL indepProc1
-    KILL indepProc2
-    KILL indepProc3
+    procName = "indepProc1"
+    KILL procName
+    procName = "indepProc2"
+    KILL procName
+    procName = "indepProc3"
+    KILL procName
     PRINT "Memory after killing all independent procedures:"
-    SHELL memCmd
+!    SHELL "ex " + memCmd
     PRINT ""
 
     PRINT "Test completed."
