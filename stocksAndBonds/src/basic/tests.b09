@@ -2943,3 +2943,144 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTMKTBRD"
     END
+
+
+PROCEDURE TSTSPLTDV
+(* ============================================================ *)
+(* PROCEDURE : TSTSPLTDV                                        *)
+(* PURPOSE   : Confirmation tests for scrSplit and scrDivFlag  *)
+(*             (Task 8.6). Three visual test cases per spec:   *)
+(*               Test 1 - scrSplit: Stryker Drlg split.        *)
+(*                 oldPrc=173, newPrc=87.                       *)
+(*                 Player ALICE: 100 shares -> 200.             *)
+(*                 Player BOB: 0 shares -> not shown.           *)
+(*                 Expect: split header, prices, ALICE row only *)
+(*               Test 2 - scrDivFlag SUSPENDED: Metro Props.   *)
+(*                 newPrc=45, cutPrc=50.                        *)
+(*                 Expect: "DIVIDEND SUSPENDED" header,         *)
+(*                   current price 45, cutoff 50,              *)
+(*                   suspended notice line.                     *)
+(*               Test 3 - scrDivFlag REINSTATED: Uranium Ent.  *)
+(*                 newPrc=55, cutPrc=50.                        *)
+(*                 Expect: "DIVIDEND REINSTATED" header,        *)
+(*                   current price 55, cutoff 50,              *)
+(*                   reinstated notice line.                    *)
+(*             Visual output verified manually by tester.      *)
+(*             Machine check: action = 1 (CONTINUE) each call. *)
+(* PARAMS    : none                                             *)
+(* SIDE EFX  : Calls scrSplit once, scrDivFlag twice.          *)
+(*             Clears screen each call.                        *)
+(* ============================================================ *)
+DIM plyrName(6) : STRING[20]
+DIM shrBef(6)   : INTEGER
+DIM shrAft(6)   : INTEGER
+DIM action      : BYTE
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM p           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+! ---- Test 1: scrSplit - Stryker Drlg, 2-for-1 split ---------
+! oldPrc=173, newPrc=87.
+! ALICE held 100 shares before split, doubled to 200 after.
+! BOB held 0 shares - must not appear in player list.
+PRINT "=== TSTSPLTDV ==="
+PRINT
+PRINT "Test 1: scrSplit - Stryker Drlg split."
+PRINT "Expect: STOCK SPLIT  2 FOR 1"
+PRINT "Expect: Stryker Drlg"
+PRINT "Expect: Old price:  $ 173"
+PRINT "Expect: New price:  $  87"
+PRINT "Expect: ALICE row: before=100  after=200"
+PRINT "Expect: BOB row: NOT shown (zero shares before)"
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+FOR p := 1 TO 6
+  plyrName(p) := ""
+  shrBef(p)   := 0
+  shrAft(p)   := 0
+NEXT p
+plyrName(1) := "ALICE"
+shrBef(1)   := 100
+shrAft(1)   := 200
+plyrName(2) := "BOB"
+shrBef(2)   := 0
+shrAft(2)   := 0
+
+RUN scrSplit("Stryker Drlg", 173, 87, 2, plyrName, shrBef, shrAft, action)
+GOSUB 100
+
+! ---- Test 2: scrDivFlag - SUSPENDED -------------------------
+! Metro Props, newPrc=45, cutPrc=50.
+! 45 < 50 → newly suspended this year.
+PRINT "Test 2: scrDivFlag SUSPENDED - Metro Props."
+PRINT "Expect: DIVIDEND SUSPENDED"
+PRINT "Expect: Metro Props"
+PRINT "Expect: Current price:  $  45"
+PRINT "Expect: Cutoff price:   $  50"
+PRINT "Expect: suspended notice line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+RUN scrDivFlag("Metro Props", 1, 45, 50, action)
+GOSUB 200
+
+! ---- Test 3: scrDivFlag - REINSTATED ------------------------
+! Uranium Ent, newPrc=55, cutPrc=50.
+! 55 >= 50 → reinstated after prior suspension.
+PRINT "Test 3: scrDivFlag REINSTATED - Uranium Ent."
+PRINT "Expect: DIVIDEND REINSTATED"
+PRINT "Expect: Uranium Ent"
+PRINT "Expect: Current price:  $  55"
+PRINT "Expect: Cutoff price:   $  50"
+PRINT "Expect: reinstated notice line."
+PRINT "Press any key to launch screen."
+RUN waitKey
+
+RUN scrDivFlag("Uranium Ent", 2, 55, 50, action)
+GOSUB 300
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 action check
+    IF action = 1 THEN
+      PRINT "Test 1 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 1 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 action check
+    IF action = 1 THEN
+      PRINT "Test 2 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 2 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 action check
+    IF action = 1 THEN
+      PRINT "Test 3 PASS  action=1 (CONTINUE)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test 3 FAIL  action: exp=1 got="; action
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTSPLTDV"
+    END
