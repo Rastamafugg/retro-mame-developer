@@ -4034,3 +4034,224 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTMGNRPY"
     END
+
+PROCEDURE TSTAITURN
+(* ============================================================ *)
+(* PROCEDURE : TSTAITURN                                        *)
+(* PURPOSE   : Confirmation tests for scrAITurn (Task 9.5).    *)
+(*             scrAITurn is display-only. Visual verification  *)
+(*             of rendered output is the primary check.        *)
+(*             Machine assertions confirm:                     *)
+(*               - Input arrays are unmodified after the call  *)
+(*               - Procedure returns without error             *)
+(*                                                             *)
+(*             Subtest 1 — spec confirmation case              *)
+(*               Sell 50 Stryker, buy 20 Pioneer Mut,          *)
+(*               repay $500 margin. Phase=BUY.                 *)
+(*               Expected display (tester verifies):           *)
+(*                 COMPUTER TURN  BUY PHASE                    *)
+(*                 Player: HAL                                 *)
+(*                 SELL  50  Stryker Drlg                      *)
+(*                 BUY   20  Pioneer Mut                       *)
+(*                 REPAY $500 margin                           *)
+(*               Machine checks: decAct/Id/Type/Qty unchanged  *)
+(*                                                             *)
+(*             Subtest 2 — all PASS (no action this phase)     *)
+(*               decCnt=3, all entries decAct=4 (PASS).        *)
+(*               Expected display:                             *)
+(*                 (no action this phase)                      *)
+(*                                                             *)
+(*             Subtest 3 — SELL phase, bond sell only          *)
+(*               Sell 1 medium bond. Phase=SELL.               *)
+(*               Expected display:                             *)
+(*                 COMPUTER TURN  SELL PHASE                   *)
+(*                 SELL  1  $5000 bond                         *)
+(*                                                             *)
+(*             Subtest 4 — decCnt=0 (empty decision set)       *)
+(*               Expected display:                             *)
+(*                 (no action this phase)                      *)
+(* PARAMS    : none                                            *)
+(* SIDE EFX  : Calls scrAITurn which clears screen and waits   *)
+(*             for keypress at end of each subtest.            *)
+(* ============================================================ *)
+DIM decAct(12)  : BYTE
+DIM decType(12) : INTEGER
+DIM decId(12)   : INTEGER
+DIM decQty(12)  : INTEGER
+DIM decCnt      : INTEGER
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTAITURN  Task 9.5 ==="
+PRINT "Visual verification required for each subtest."
+PRINT
+
+! ---- Subtest 1: spec confirmation case ----------------------
+! Sell 50 Stryker (stock 5), buy 20 Pioneer Mut (stock 3),
+! repay $500 margin. Phase=BUY.
+GOSUB 500
+decAct(1)  := 1 \ decType(1) := 1 \ decId(1) := 5 \ decQty(1) := 50
+decAct(2)  := 2 \ decType(2) := 1 \ decId(2) := 3 \ decQty(2) := 20
+decAct(3)  := 3 \ decType(3) := 0 \ decId(3) := 0 \ decQty(3) := 500
+decCnt     := 3
+
+PRINT "--- Subtest 1: sell Stryker + buy Pioneer + repay ---"
+PRINT "Expected: SELL 50 Stryker Drlg, BUY 20 Pioneer Mut,"
+PRINT "          REPAY $500 margin.  Phase header: BUY PHASE."
+PRINT
+
+RUN scrAITurn("HAL", 2, decAct, decType, decId, decQty, decCnt)
+GOSUB 100
+
+! ---- Subtest 2: all PASS ------------------------------------
+GOSUB 500
+decAct(1)  := 4 \ decType(1) := 1 \ decId(1) := 5 \ decQty(1) := 0
+decAct(2)  := 4 \ decType(2) := 2 \ decId(2) := 1 \ decQty(2) := 0
+decAct(3)  := 4 \ decType(3) := 1 \ decId(3) := 3 \ decQty(3) := 0
+decCnt     := 3
+
+PRINT "--- Subtest 2: all PASS ---"
+PRINT "Expected: (no action this phase).  Phase header: SELL PHASE."
+PRINT
+
+RUN scrAITurn("HAL", 1, decAct, decType, decId, decQty, decCnt)
+GOSUB 200
+
+! ---- Subtest 3: SELL phase, bond sell only ------------------
+GOSUB 500
+decAct(1)  := 1 \ decType(1) := 2 \ decId(1) := 2 \ decQty(1) := 1
+decCnt     := 1
+
+PRINT "--- Subtest 3: sell 1 medium bond ---"
+PRINT "Expected: SELL 1 $5000 bond.  Phase header: SELL PHASE."
+PRINT
+
+RUN scrAITurn("HAL", 1, decAct, decType, decId, decQty, decCnt)
+GOSUB 300
+
+! ---- Subtest 4: empty decision set -------------------------
+GOSUB 500
+decCnt := 0
+
+PRINT "--- Subtest 4: decCnt=0 ---"
+PRINT "Expected: (no action this phase)."
+PRINT
+
+RUN scrAITurn("HAL", 2, decAct, decType, decId, decQty, decCnt)
+GOSUB 400
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Subtest 1: machine checks — arrays unmodified
+    PRINT "--- Subtest 1 machine checks ---"
+    IF decAct(1) = 1 AND decType(1) = 1 AND decId(1) = 5 THEN
+      IF decQty(1) = 50 THEN
+        PRINT "PASS  dec(1) unmodified (SELL stock 5 qty 50)"
+        passed := passed + 1
+      ELSE
+        PRINT "FAIL  dec(1).qty modified; exp=50 got="; decQty(1)
+        failed := failed + 1
+      ENDIF
+    ELSE
+      PRINT "FAIL  dec(1) act/type/id modified"
+      failed := failed + 1
+    ENDIF
+    IF decAct(2) = 2 AND decId(2) = 3 AND decQty(2) = 20 THEN
+      PRINT "PASS  dec(2) unmodified (BUY stock 3 qty 20)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  dec(2) modified"
+      failed := failed + 1
+    ENDIF
+    IF decAct(3) = 3 AND decQty(3) = 500 THEN
+      PRINT "PASS  dec(3) unmodified (REPAY 500)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  dec(3) modified"
+      failed := failed + 1
+    ENDIF
+    IF decCnt = 3 THEN
+      PRINT "PASS  decCnt unmodified (3)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  decCnt exp=3 got="; decCnt
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Subtest 2: machine checks — arrays unmodified
+    PRINT "--- Subtest 2 machine checks ---"
+    IF decAct(1) = 4 AND decAct(2) = 4 AND decAct(3) = 4 THEN
+      PRINT "PASS  all decAct=4 (PASS) unmodified"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  decAct entries modified"
+      failed := failed + 1
+    ENDIF
+    IF decCnt = 3 THEN
+      PRINT "PASS  decCnt unmodified (3)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  decCnt exp=3 got="; decCnt
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Subtest 3: machine checks — arrays unmodified
+    PRINT "--- Subtest 3 machine checks ---"
+    IF decAct(1) = 1 AND decType(1) = 2 AND decId(1) = 2 THEN
+      IF decQty(1) = 1 THEN
+        PRINT "PASS  dec(1) unmodified (SELL bond 2 qty 1)"
+        passed := passed + 1
+      ELSE
+        PRINT "FAIL  dec(1).qty modified; exp=1 got="; decQty(1)
+        failed := failed + 1
+      ENDIF
+    ELSE
+      PRINT "FAIL  dec(1) act/type/id modified"
+      failed := failed + 1
+    ENDIF
+    IF decCnt = 1 THEN
+      PRINT "PASS  decCnt unmodified (1)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  decCnt exp=1 got="; decCnt
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+400 ! Subtest 4: machine checks
+    PRINT "--- Subtest 4 machine checks ---"
+    IF decCnt = 0 THEN
+      PRINT "PASS  decCnt unmodified (0)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  decCnt exp=0 got="; decCnt
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+500 ! Reset all decision arrays to zero
+    FOR i := 1 TO 12
+      decAct(i)  := 0
+      decType(i) := 0
+      decId(i)   := 0
+      decQty(i)  := 0
+    NEXT i
+    decCnt := 0
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTAITURN"
+    END
