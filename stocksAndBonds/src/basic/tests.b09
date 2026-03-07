@@ -4416,3 +4416,331 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTMGNCALL"
     END
+
+PROCEDURE TSTFORCELIQ
+(* ============================================================ *)
+(* PROCEDURE : TSTFORCELIQ                                      *)
+(* PURPOSE   : Confirmation tests for applyLiqOrdr (machine)   *)
+(*             and scrForceLiq (visual), Task 10.2.            *)
+(*                                                             *)
+(*   Machine tests (applyLiqOrdr):                             *)
+(*   Test 1 — spec case, two sequential rounds                 *)
+(*     Obligation=3000. Holds: 50 Metro@$50, 1 small bond.     *)
+(*     cashBal=5000, marginTot=0.                              *)
+(*     Round 1: sell 50 Metro→prcd=2500, cashBal=7500,         *)
+(*              oblgRem=500.                                   *)
+(*     Round 2: sell 1 small bond→prcd=1000, cashBal=8500,     *)
+(*              oblgRem=0.                                     *)
+(*     Assert: cashBal=8500, oblgRem=0, stckShrs(2)=0,        *)
+(*             bondUnts(1)=0.                                  *)
+(*                                                             *)
+(*   Test 2 — margin stock sell                                *)
+(*     100 Stryker@$80, mgnHeld=TRUE, marginTot=5000,          *)
+(*     cashBal=0, oblgRem=8000.                                *)
+(*     Sell 100: prcd=8000, repay=MIN(5000,8000)=5000.         *)
+(*     After: marginTot=0, cashBal=3000, stckShrs(5)=0,        *)
+(*            mgnHeld(5)=FALSE, oblgRem=0.                     *)
+(*                                                             *)
+(*   Test 3 — oblgRem clamped at 0                             *)
+(*     cashBal=0, oblgRem=500, bondUnts(3)=1 ($10000 bond).    *)
+(*     Sell 1: prcd=10000. oblgRem→0 (not -9500).              *)
+(*     cashBal=10000.                                          *)
+(*                                                             *)
+(*   Test 4 — ordCnt=0 no-op                                   *)
+(*     No fields modified.                                     *)
+(*                                                             *)
+(*   Visual test (scrForceLiq):                                *)
+(*   Subtest 5 — interactive display check                     *)
+(*     Obligation=2500, holds 100 Growth Corp@$30 (margin),   *)
+(*     50 Shady Brooks@$60, 1 medium bond.                     *)
+(*     Tester verifies display, exercises order entry,         *)
+(*     selects Submit. Machine checks action=1 on return.      *)
+(* PARAMS    : none                                            *)
+(* SIDE EFX  : Subtest 5 clears screen and waits for input.    *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr      : PlyrRec
+DIM mkt       : MktState
+DIM ordType(12): INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordCnt     : INTEGER
+DIM oblgRem    : INTEGER
+DIM action     : BYTE
+DIM passed     : INTEGER
+DIM failed     : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTFORCELIQ  Task 10.2 ==="
+PRINT
+
+! ---- Shared mkt setup --------------------------------------
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(2) := 50  \ ! Metro Props
+mkt.stckPrice(5) := 80  \ ! Stryker
+mkt.stckPrice(1) := 30  \ ! Growth Corp (visual test)
+mkt.stckPrice(4) := 60  \ ! Shady Brooks (visual test)
+
+! ---- Test 1: spec case, two rounds -------------------------
+PRINT "--- Test 1: spec case (50 Metro + 1 small bond) ---"
+GOSUB 600
+plyr.cashBal     := 5000
+plyr.marginTot   := 0
+plyr.stckShrs(2) := 50
+plyr.bondUnts(1) := 1
+oblgRem          := 3000
+
+! Round 1: sell 50 Metro
+ordCnt     := 1
+ordType(1) := 1
+ordId(1)   := 2
+ordQty(1)  := 50
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+! Round 2: sell 1 small bond
+ordCnt     := 1
+ordType(1) := 2
+ordId(1)   := 1
+ordQty(1)  := 1
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 100
+
+! ---- Test 2: margin stock sell -----------------------------
+PRINT "--- Test 2: full margin sell (Stryker @80, mgnTot=5000) ---"
+GOSUB 600
+plyr.cashBal     := 0
+plyr.marginTot   := 5000
+plyr.stckShrs(5) := 100
+plyr.mgnHeld(5)  := TRUE
+oblgRem          := 8000
+
+ordCnt     := 1
+ordType(1) := 1
+ordId(1)   := 5
+ordQty(1)  := 100
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 200
+
+! ---- Test 3: oblgRem clamped at 0 --------------------------
+PRINT "--- Test 3: oblgRem clamp (1 large bond, oblgRem=500) ---"
+GOSUB 600
+plyr.cashBal     := 0
+plyr.bondUnts(3) := 1
+oblgRem          := 500
+
+ordCnt     := 1
+ordType(1) := 2
+ordId(1)   := 3
+ordQty(1)  := 1
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 300
+
+! ---- Test 4: ordCnt=0 no-op --------------------------------
+PRINT "--- Test 4: ordCnt=0 no-op ---"
+GOSUB 600
+plyr.cashBal     := 2000
+plyr.marginTot   := 1000
+plyr.stckShrs(1) := 50
+plyr.bondUnts(2) := 2
+oblgRem          := 1500
+ordCnt           := 0
+
+RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+
+GOSUB 400
+
+! ---- Subtest 5: scrForceLiq visual -------------------------
+PRINT "--- Subtest 5: scrForceLiq visual + action check ---"
+PRINT "Obligation=$2500, 100 Growth Corp@$30 [M],"
+PRINT "  50 Shady Brooks@$60, 1 medium bond."
+PRINT "Enter some orders, select Submit. Verify action=1."
+PRINT
+
+GOSUB 600
+plyr.plyrName    := "ALICE"
+plyr.cashBal     := 500
+plyr.marginTot   := 1200
+plyr.stckShrs(1) := 100
+plyr.mgnHeld(1)  := TRUE
+plyr.stckShrs(4) := 50
+plyr.bondUnts(2) := 1
+oblgRem          := 2500
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN scrForceLiq(plyr.plyrName, oblgRem, plyr, mkt, ordType, ordId, ordQty, ordCnt, action)
+
+GOSUB 500
+
+PRINT
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+100 ! Test 1 assertions
+    IF plyr.cashBal = 8500 THEN
+      PRINT "PASS  T1 cashBal=8500"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T1 cashBal exp=8500 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T1 oblgRem=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T1 oblgRem exp=0 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    IF plyr.stckShrs(2) = 0 THEN
+      PRINT "PASS  T1 stckShrs(2)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T1 stckShrs(2) exp=0 got="; plyr.stckShrs(2)
+      failed := failed + 1
+    ENDIF
+    IF plyr.bondUnts(1) = 0 THEN
+      PRINT "PASS  T1 bondUnts(1)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T1 bondUnts(1) exp=0 got="; plyr.bondUnts(1)
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+200 ! Test 2 assertions
+    IF plyr.cashBal = 3000 THEN
+      PRINT "PASS  T2 cashBal=3000"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 cashBal exp=3000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 0 THEN
+      PRINT "PASS  T2 marginTot=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 marginTot exp=0 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    IF plyr.stckShrs(5) = 0 THEN
+      PRINT "PASS  T2 stckShrs(5)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 stckShrs(5) exp=0 got="; plyr.stckShrs(5)
+      failed := failed + 1
+    ENDIF
+    IF NOT plyr.mgnHeld(5) THEN
+      PRINT "PASS  T2 mgnHeld(5)=FALSE"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 mgnHeld(5) exp=FALSE got=TRUE"
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T2 oblgRem=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T2 oblgRem exp=0 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+300 ! Test 3 assertions
+    IF plyr.cashBal = 10000 THEN
+      PRINT "PASS  T3 cashBal=10000"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 cashBal exp=10000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 0 THEN
+      PRINT "PASS  T3 oblgRem=0 (clamped)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 oblgRem exp=0 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    IF plyr.bondUnts(3) = 0 THEN
+      PRINT "PASS  T3 bondUnts(3)=0"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T3 bondUnts(3) exp=0 got="; plyr.bondUnts(3)
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+400 ! Test 4 assertions
+    IF plyr.cashBal = 2000 THEN
+      PRINT "PASS  T4 cashBal=2000 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 cashBal exp=2000 got="; plyr.cashBal
+      failed := failed + 1
+    ENDIF
+    IF plyr.marginTot = 1000 THEN
+      PRINT "PASS  T4 marginTot=1000 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 marginTot exp=1000 got="; plyr.marginTot
+      failed := failed + 1
+    ENDIF
+    IF oblgRem = 1500 THEN
+      PRINT "PASS  T4 oblgRem=1500 (no-op)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  T4 oblgRem exp=1500 got="; oblgRem
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+500 ! Subtest 5 assertion
+    IF action = 1 THEN
+      PRINT "PASS  Subtest5 action=1 (SUBMIT)"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL  Subtest5 action exp=1 got="; action
+      PRINT "      (2=DECLARE_BANKRUPTCY — was that intended?)"
+      failed := failed + 1
+    ENDIF
+    PRINT
+RETURN
+
+600 ! Reset plyr record to clean state
+    plyr.plyrName  := ""
+    plyr.plyrType  := 0
+    plyr.aiTier    := 0
+    plyr.cashBal   := 0
+    plyr.marginTot := 0
+    plyr.isBankrupt   := FALSE
+    plyr.hadCashPur   := FALSE
+    FOR i := 1 TO 9
+      plyr.stckShrs(i) := 0
+      plyr.mgnHeld(i)  := FALSE
+    NEXT i
+    FOR i := 1 TO 3
+      plyr.bondUnts(i) := 0
+    NEXT i
+RETURN
+
+900 PRINT "Runtime error "; ERR; " in TSTFORCELIQ"
+    END
