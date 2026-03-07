@@ -1,0 +1,3 @@
+PROCEDURE singleProc
+    PRINT "Single procedure executed."
+END

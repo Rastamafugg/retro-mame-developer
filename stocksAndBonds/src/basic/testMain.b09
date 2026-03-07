@@ -1,0 +1,58 @@
+PROCEDURE testMain
+    DIM memCmd:STRING
+    memCmd = "mem"
+    PRINT "Initial memory:"
+    SHELL memCmd
+    PRINT ""
+
+    (* Test single procedure module *)
+    PRINT "Loading and calling singleProc"
+    RUN singleProc
+    PRINT "Memory after loading singleProc:"
+    SHELL memCmd
+    PRINT ""
+    KILL singleProc
+    PRINT "Memory after killing singleProc:"
+    SHELL memCmd
+    PRINT ""
+
+    (* Test multiple procedure module *)
+    PRINT "Loading and calling multiProc1 (which calls multiProc2)"
+    RUN multiProc1
+    PRINT "Memory after loading multiProc1:"
+    SHELL memCmd
+    PRINT ""
+    KILL multiProc1
+    PRINT "Memory after killing multiProc1:"
+    SHELL memCmd
+    PRINT ""
+    SHELL "ex UnLink multiProc2"
+    PRINT "Memory after unlinking multiProc2:"
+    SHELL memCmd
+    PRINT ""
+
+    (* Test independent procedures module *)
+    PRINT "Loading and calling indepProc1"
+    RUN indepProc1
+    PRINT "Memory after loading indepProc1:"
+    SHELL memCmd
+    PRINT ""
+    PRINT "Loading and calling indepProc2"
+    RUN indepProc2
+    PRINT "Memory after loading indepProc2:"
+    SHELL memCmd
+    PRINT ""
+    PRINT "Loading and calling indepProc3"
+    RUN indepProc3
+    PRINT "Memory after loading indepProc3:"
+    SHELL memCmd
+    PRINT ""
+    KILL indepProc1
+    KILL indepProc2
+    KILL indepProc3
+    PRINT "Memory after killing all independent procedures:"
+    SHELL memCmd
+    PRINT ""
+
+    PRINT "Test completed."
+END

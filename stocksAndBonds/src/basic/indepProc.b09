@@ -1,0 +1,11 @@
+PROCEDURE indepProc1
+    PRINT "Independent procedure 1 executed."
+END
+
+PROCEDURE indepProc2
+    PRINT "Independent procedure 2 executed."
+END
+
+PROCEDURE indepProc3
+    PRINT "Independent procedure 3 executed."
+END
