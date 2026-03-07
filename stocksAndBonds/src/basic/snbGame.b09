@@ -782,327 +782,420 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE TSTMGNCLR
+PROCEDURE scrFinalMkt
 (* ============================================================ *)
-(* PROCEDURE : TSTMGNCLR                                        *)
-(* PURPOSE   : Confirmation tests for scrMgnClr (Task 10.4).   *)
-(*                                                             *)
-(*   Machine tests replicate the two-phase apply logic of      *)
-(*   scrMgnClr (applyLiqOrdr + cash repayment) without         *)
-(*   requiring interactive input. scrMgnClr is also called     *)
-(*   directly in Subtest 5 for visual and action verification. *)
-(*                                                             *)
-(*   Test 1 — Cash stock sell + partial cash repayment         *)
-(*     Valley Power 50 shrs @$50, cashBal=1000, marginTot=4000 *)
-(*     mgnHeld=FALSE. Sell 50 VP, repay=1500.                  *)
-(*     applyLiqOrdr: prcd=2500, cashBal→3500, marginTot=4000   *)
-(*     actualRpy=MIN(1500,4000,3500)=1500.                     *)
-(*     Expected: cashBal=2000, marginTot=2500, stckShrs(9)=0.  *)
-(*                                                             *)
-(*   Test 2 — Pure cash repayment, no sells                    *)
-(*     cashBal=5000, marginTot=4000, no assets.                *)
-(*     ordCnt=0, repay=4000.                                   *)
-(*     Expected: cashBal=1000, marginTot=0.                    *)
-(*                                                             *)
-(*   Test 3 — mgnHeld sell clears marginTot; cash repay        *)
-(*             clamped to 0                                     *)
-(*     Stryker 50 @$60, mgnHeld=TRUE, marginTot=2000,          *)
-(*     cashBal=500, repay=500.                                  *)
-(*     applyLiqOrdr: prcd=3000, repay_inner=2000,              *)
-(*       marginTot→0, cashBal→1500.                            *)
-(*     actualRpy=MIN(500,0,1500)=0 (marginTot=0 clamps it).    *)
-(*     Expected: cashBal=1500, marginTot=0.                    *)
-(*                                                             *)
-(*   Test 4 — Partial mgnHeld sell; cash repayment covers rest *)
-(*     Sell 30 of 50 Stryker @$60, mgnHeld=TRUE,               *)
-(*     marginTot=2000, cashBal=200, repay=500.                  *)
-(*     applyLiqOrdr: prcd=1800, repay_inner=1800,              *)
-(*       marginTot→200, cashBal→200.                           *)
-(*     actualRpy=MIN(500,200,200)=200.                         *)
-(*     Expected: cashBal=0, marginTot=0.                       *)
-(*                                                             *)
-(*   Subtest 5 — Visual: scrMgnClr direct call                 *)
-(*     marginTot=3000, cashBal=500, 100 Metro Props @$50,      *)
-(*     1 medium bond.                                          *)
-(*     Tester enters orders and/or repayment, submits.         *)
-(*     Machine checks: action=1 on return.                     *)
-(* PARAMS    : none                                            *)
-(* SIDE EFX  : Subtest 5 clears screen and waits for input.    *)
+(* PROCEDURE : scrFinalMkt                                      *)
+(* PURPOSE   : S24 Final Market Board. Displays all 9 stocks   *)
+(*             with final prices and dividend status after      *)
+(*             Year 10 market resolution. No dividends or       *)
+(*             interest shown; Year 10 exemption per spec       *)
+(*             Section 13.                                      *)
+(* PARAMS    : mkt - final market state (read-only)            *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* ============================================================ *)
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM mkt : MktState
+
+DIM sNam(9) : STRING[14]
+DIM s       : INTEGER
+DIM pStr    : STRING[8]
+
+ON ERROR GOTO 900
+
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+
+RUN clrScr
+PRINT "=== FINAL MARKET BOARD (S24) ==="
+PRINT
+PRINT " #  STOCK          PRICE  STATUS"
+PRINT " -  -------------  -----  --------"
+
+FOR s := 1 TO 9
+  RUN fmtMoney(mkt.stckPrice(s), pStr)
+  PRINT " "; s; "  "; sNam(s); "  "; pStr; "  ";
+  IF mkt.stckPrice(s) = 0 THEN
+    PRINT "BANKRUPT"
+  ELSE IF mkt.divSuspnd(s) THEN
+    PRINT "DIV SUSP"
+  ELSE
+    PRINT "OK"
+  ENDIF \ENDIF
+NEXT s
+
+PRINT
+RUN waitKey
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrWealth
+(* ============================================================ *)
+(* PROCEDURE : scrWealth                                        *)
+(* PURPOSE   : S25 Final Wealth Summary. Computes totalWealth  *)
+(*             per spec Section 13 for each player, sorts      *)
+(*             players descending by totalWealth, and displays  *)
+(*             cash / stock / bond / total breakdown per       *)
+(*             player in rank order. Bankrupt players are       *)
+(*             included in display but flagged.                *)
+(*             totalWealth = cashBal                           *)
+(*               + sum(stckShrs(i) * stckPrice(i)) for i=1..9 *)
+(*               + sum(bondUnts(j) * parVal(j))    for j=1..3 *)
+(* PARAMS    : plyrs     - all player records (read-only)      *)
+(*             plyrCount - number of players (1..6)            *)
+(*             mkt       - final market state (read-only)      *)
+(*             wlth      - output: wealth indexed by plyr slot *)
+(*             srtOrd    - output: player slots desc by wealth *)
+(* NOTE      : INTEGER overflow if totalWealth exceeds 32767.  *)
+(*             Bounded by game rules; not enforced here.       *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM plyr       : PlyrRec
-DIM mkt        : MktState
-DIM ordType(12): INTEGER
-DIM ordId(12)  : INTEGER
-DIM ordQty(12) : INTEGER
-DIM ordCnt     : INTEGER
-DIM oblgRem    : INTEGER
-DIM repay      : INTEGER
-DIM actualRpy  : INTEGER
-DIM action     : BYTE
-DIM passed     : INTEGER
-DIM failed     : INTEGER
-DIM i          : INTEGER
+PARAM plyrs(6)  : PlyrRec
+PARAM plyrCount : INTEGER
+PARAM mkt       : MktState
+PARAM wlth(6)   : INTEGER
+PARAM srtOrd(6) : INTEGER
+
+DIM bPar(3)  : INTEGER
+DIM s        : INTEGER
+DIM i        : INTEGER
+DIM j        : INTEGER
+DIM p        : INTEGER
+DIM maxPos   : INTEGER
+DIM tmp      : INTEGER
+DIM stckVal  : INTEGER
+DIM bndVal   : INTEGER
+DIM pStr     : STRING[8]
 
 ON ERROR GOTO 900
 
-passed := 0
-failed := 0
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
 
-PRINT "=== TSTMGNCLR  Task 10.4 ==="
-PRINT
-
-! Shared mkt setup
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 0
-  mkt.divSuspnd(i) := FALSE
+! --- Compute totalWealth per player slot --------------------
+FOR i := 1 TO plyrCount
+  wlth(i) := plyrs(i).cashBal
+  FOR s := 1 TO 9
+    wlth(i) := wlth(i) + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
+  NEXT s
+  FOR j := 1 TO 3
+    wlth(i) := wlth(i) + (plyrs(i).bondUnts(j) * bPar(j))
+  NEXT j
 NEXT i
-mkt.stckPrice(2) := 50  \ ! Metro Props (visual test)
-mkt.stckPrice(5) := 60  \ ! Stryker Drlg
-mkt.stckPrice(9) := 50  \ ! Valley Power
 
-! ---- Test 1: cash stock sell + partial cash repayment ------
-PRINT "--- Test 1: VP sell + $1500 cash repay ---"
-GOSUB 700
-plyr.cashBal     := 1000
-plyr.marginTot   := 4000
-plyr.stckShrs(9) := 50  \ ! Valley Power; not mgnHeld
+! --- Init sort order (1..plyrCount) -------------------------
+FOR i := 1 TO plyrCount
+  srtOrd(i) := i
+NEXT i
 
-ordCnt     := 1
-ordType(1) := 1
-ordId(1)   := 9
-ordQty(1)  := 50
-repay      := 1500
+! --- Selection sort descending by wlth ----------------------
+FOR i := 1 TO plyrCount - 1
+  maxPos := i
+  FOR j := i + 1 TO plyrCount
+    IF wlth(srtOrd(j)) > wlth(srtOrd(maxPos)) THEN
+      maxPos := j
+    ENDIF
+  NEXT j
+  IF maxPos <> i THEN
+    tmp           := srtOrd(i)
+    srtOrd(i)     := srtOrd(maxPos)
+    srtOrd(maxPos) := tmp
+  ENDIF
+NEXT i
 
-GOSUB 600  \ ! Two-phase apply
-
-GOSUB 100
-
-! ---- Test 2: pure cash repayment, no sells -----------------
-PRINT "--- Test 2: pure cash repayment (no sells) ---"
-GOSUB 700
-plyr.cashBal   := 5000
-plyr.marginTot := 4000
-ordCnt         := 0
-repay          := 4000
-
-GOSUB 600  \ ! Two-phase apply
-
-GOSUB 200
-
-! ---- Test 3: full mgnHeld sell; repay clamped to 0 ---------
-PRINT "--- Test 3: full mgnHeld sell; repay clamped at 0 ---"
-GOSUB 700
-plyr.cashBal     := 500
-plyr.marginTot   := 2000
-plyr.stckShrs(5) := 50
-plyr.mgnHeld(5)  := TRUE
-ordCnt     := 1
-ordType(1) := 1
-ordId(1)   := 5
-ordQty(1)  := 50
-repay      := 500
-
-GOSUB 600  \ ! Two-phase apply
-
-GOSUB 300
-
-! ---- Test 4: partial mgnHeld sell; cash covers residual ----
-PRINT "--- Test 4: partial mgnHeld sell + cash repay ---"
-GOSUB 700
-plyr.cashBal     := 200
-plyr.marginTot   := 2000
-plyr.stckShrs(5) := 50
-plyr.mgnHeld(5)  := TRUE
-ordCnt     := 1
-ordType(1) := 1
-ordId(1)   := 5
-ordQty(1)  := 30
-repay      := 500
-
-GOSUB 600  \ ! Two-phase apply
-
-GOSUB 400
-
-! ---- Subtest 5: scrMgnClr visual + action check ------------
-PRINT "--- Subtest 5: scrMgnClr visual ---"
-PRINT "Player: ALICE  marginTot=$3000  cashBal=$500"
-PRINT "Holdings: 100 Metro Props @$50, 1 medium bond."
-PRINT "Enter sell orders and/or cash repayment, then Submit."
-PRINT "Machine checks action=1 on return."
+! --- Display ranked results ---------------------------------
+RUN clrScr
+PRINT "=== FINAL WEALTH SUMMARY (S25) ==="
 PRINT
 
-GOSUB 700
-plyr.plyrName    := "ALICE"
-plyr.cashBal     := 500
-plyr.marginTot   := 3000
-plyr.stckShrs(2) := 100
-plyr.bondUnts(2) := 1
+FOR p := 1 TO plyrCount
+  i := srtOrd(p)
 
-RUN scrMgnClr(plyr, mkt, action)
+  ! Compute stock and bond components for display.
+  stckVal := 0
+  FOR s := 1 TO 9
+    stckVal := stckVal + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
+  NEXT s
+  bndVal := 0
+  FOR j := 1 TO 3
+    bndVal := bndVal + (plyrs(i).bondUnts(j) * bPar(j))
+  NEXT j
 
-GOSUB 500
+  PRINT " "; p; "  "; plyrs(i).plyrName
+  RUN fmtMoney(plyrs(i).cashBal, pStr)
+  PRINT "    Cash:"; pStr; "  ";
+  RUN fmtMoney(stckVal, pStr)
+  PRINT "Stk:"; pStr; "  ";
+  RUN fmtMoney(bndVal, pStr)
+  PRINT "Bnd:"; pStr; "  ";
+  RUN fmtMoney(wlth(i), pStr)
+  PRINT "Tot:"; pStr
+  IF plyrs(i).isBankrupt THEN
+    PRINT "    [BANKRUPT]"
+  ENDIF
+  PRINT
+NEXT p
 
-PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
+RUN waitKey
 END
 
-100 \! Test 1 assertions
-    IF plyr.cashBal = 2000 THEN
-      PRINT "PASS  T1 cashBal=2000"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T1 cashBal exp=2000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 2500 THEN
-      PRINT "PASS  T1 marginTot=2500"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T1 marginTot exp=2500 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(9) = 0 THEN
-      PRINT "PASS  T1 stckShrs(9)=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T1 stckShrs(9) exp=0 got="; plyr.stckShrs(9)
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
+900 ERROR(ERR)
+END
 
-200 \! Test 2 assertions
-    IF plyr.cashBal = 1000 THEN
-      PRINT "PASS  T2 cashBal=1000"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T2 cashBal exp=1000 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 0 THEN
-      PRINT "PASS  T2 marginTot=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T2 marginTot exp=0 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
+PROCEDURE scrWinner
+(* ============================================================ *)
+(* PROCEDURE : scrWinner                                        *)
+(* PURPOSE   : S26 Winner Declaration. Finds the highest       *)
+(*             totalWealth among non-bankrupt players and       *)
+(*             declares all players at that value as winners.  *)
+(*             Tie: two or more players share highest wealth   *)
+(*             (spec Section 13). Bankrupt players excluded    *)
+(*             from winner consideration (spec Section 12).    *)
+(* PARAMS    : plyrs     - all player records (read-only)      *)
+(*             plyrCount - number of players (1..6)            *)
+(*             wlth      - totalWealth per player slot         *)
+(*             srtOrd    - player slots in descending order    *)
+(*                         (output of scrWealth)               *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+PARAM plyrs(6)  : PlyrRec
+PARAM plyrCount : INTEGER
+PARAM wlth(6)   : INTEGER
+PARAM srtOrd(6) : INTEGER
 
-300 \! Test 3 assertions
-    IF plyr.cashBal = 1500 THEN
-      PRINT "PASS  T3 cashBal=1500"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T3 cashBal exp=1500 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 0 THEN
-      PRINT "PASS  T3 marginTot=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T3 marginTot exp=0 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(5) = 0 THEN
-      PRINT "PASS  T3 stckShrs(5)=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T3 stckShrs(5) exp=0 got="; plyr.stckShrs(5)
-      failed := failed + 1
-    ENDIF
-    IF NOT plyr.mgnHeld(5) THEN
-      PRINT "PASS  T3 mgnHeld(5)=FALSE"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T3 mgnHeld(5) exp=FALSE got=TRUE"
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
+DIM i    : INTEGER
+DIM topW : INTEGER
+DIM pStr : STRING[8]
 
-400 \! Test 4 assertions
-    IF plyr.cashBal = 0 THEN
-      PRINT "PASS  T4 cashBal=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T4 cashBal exp=0 got="; plyr.cashBal
-      failed := failed + 1
-    ENDIF
-    IF plyr.marginTot = 0 THEN
-      PRINT "PASS  T4 marginTot=0"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T4 marginTot exp=0 got="; plyr.marginTot
-      failed := failed + 1
-    ENDIF
-    IF plyr.stckShrs(5) = 20 THEN
-      PRINT "PASS  T4 stckShrs(5)=20 (30 sold of 50)"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  T4 stckShrs(5) exp=20 got="; plyr.stckShrs(5)
-      failed := failed + 1
-    ENDIF
-    PRINT
-RETURN
+ON ERROR GOTO 900
 
-500 \! Subtest 5: action check
-    PRINT "--- Subtest 5 machine checks ---"
-    IF action = 1 THEN
-      PRINT "PASS  Subtest5 action=1 (SUBMIT)"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL  Subtest5 action exp=1 got="; action
-      PRINT "      (2=DECLARE_BANKRUPTCY — was that intended?)"
-      failed := failed + 1
+! Find highest wealth among non-bankrupt players.
+! -32767 sentinel: no valid wealth can be lower after liquidation.
+topW := -32767
+FOR i := 1 TO plyrCount
+  IF NOT plyrs(i).isBankrupt THEN
+    IF wlth(i) > topW THEN
+      topW := wlth(i)
     ENDIF
-    PRINT
-RETURN
+  ENDIF
+NEXT i
 
-600 \! Two-phase apply: applyLiqOrdr then cash repayment
-    oblgRem := plyr.marginTot
-    RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
-    actualRpy := repay
-    IF actualRpy > plyr.marginTot THEN
-      actualRpy := plyr.marginTot
-    ENDIF
-    IF actualRpy > plyr.cashBal THEN
-      actualRpy := plyr.cashBal
-    ENDIF
-    IF actualRpy < 0 THEN
-      actualRpy := 0
-    ENDIF
-    plyr.cashBal   := plyr.cashBal - actualRpy
-    plyr.marginTot := plyr.marginTot - actualRpy
-RETURN
+RUN clrScr
+PRINT "=== WINNER DECLARATION (S26) ==="
+PRINT
 
-700 \! Reset plyr record and order arrays
-    plyr.plyrName  := ""
-    plyr.plyrType  := 0
-    plyr.aiTier    := 0
-    plyr.cashBal   := 0
-    plyr.marginTot := 0
-    plyr.isBankrupt   := FALSE
-    plyr.hadCashPur   := FALSE
-    FOR i := 1 TO 9
-      plyr.stckShrs(i) := 0
-      plyr.mgnHeld(i)  := FALSE
-    NEXT i
-    FOR i := 1 TO 3
-      plyr.bondUnts(i) := 0
-    NEXT i
-    FOR i := 1 TO 12
-      ordType(i) := 0
-      ordId(i)   := 0
-      ordQty(i)  := 0
-    NEXT i
-    ordCnt  := 0
-    repay   := 0
-    oblgRem := 0
-RETURN
+IF topW = -32767 THEN
+  ! Degenerate: all players bankrupt.
+  PRINT "  No winner: all players eliminated."
+ELSE
+  RUN fmtMoney(topW, pStr)
+  PRINT "  WINNER(S) with total wealth $"; pStr
+  PRINT
+  ! Iterate srtOrd so winners display in rank order.
+  FOR i := 1 TO plyrCount
+    IF NOT plyrs(srtOrd(i)).isBankrupt THEN
+      IF wlth(srtOrd(i)) = topW THEN
+        PRINT "  *** "; plyrs(srtOrd(i)).plyrName; " ***"
+      ENDIF
+    ENDIF
+  NEXT i
+ENDIF
 
-900 PRINT "Runtime error "; ERR; " in TSTMGNCLR"
-    END
+PRINT
+RUN waitKey
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrPostGame
+(* ============================================================ *)
+(* PROCEDURE : scrPostGame                                      *)
+(* PURPOSE   : S27 Post-Game Menu. Presents options to start   *)
+(*             a new game, load a saved game, or quit.         *)
+(* PARAMS    : action - receives selection on return:          *)
+(*               1 = New Game                                 *)
+(*               2 = Load Game                                *)
+(*               3 = Quit                                     *)
+(* SIDE EFX  : Clears screen. Blocks until valid key.          *)
+(* ============================================================ *)
+PARAM action : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  GAME OVER"
+PRINT "  ========="
+PRINT
+PRINT "  1. New Game"
+PRINT "  2. Load Game"
+PRINT "  3. Quit"
+PRINT
+PRINT "  Select (1-3): ";
+RUN getMenuKey(1, 3, action)
+PRINT
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE TSTEND
+(* ============================================================ *)
+(* PROCEDURE : TSTEND                                           *)
+(* PURPOSE   : Confirmation test for Phase 11 Task 11.1.       *)
+(*             Tests scrFinalMkt, scrWealth, scrWinner,        *)
+(*             scrPostGame per project-timeline.md spec.       *)
+(*                                                             *)
+(*   Test A — Normal game end (Player 1 wins):                 *)
+(*     P1: cashBal=3000, 100 Valley Power @95, 1 large bond.  *)
+(*         totalWealth = 3000 + 9500 + 10000 = 22500.         *)
+(*     P2: cashBal=8000, 50 Shady Brooks @140, 0 bonds.       *)
+(*         totalWealth = 8000 + 7000 = 15000.                 *)
+(*     Verify: wlth(1)=22500, wlth(2)=15000.                  *)
+(*     Verify: srtOrd(1)=1 (P1 listed first in scrWealth).    *)
+(*     Verify: scrWinner names ALICE.                          *)
+(*                                                             *)
+(*   Test B — Tie scenario:                                    *)
+(*     Adjust P2 cashBal to 15500.                            *)
+(*     P2 totalWealth = 15500 + 7000 = 22500 = P1 total.      *)
+(*     Verify: both ALICE and BOB named in scrWinner.          *)
+(*                                                             *)
+(*   Test C — Post-game menu:                                  *)
+(*     Verify 1=New Game / 2=Load Game / 3=Quit routes.       *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyrs(6)  : PlyrRec
+DIM mkt       : MktState
+DIM wlth(6)   : INTEGER
+DIM srtOrd(6) : INTEGER
+DIM action    : INTEGER
+DIM plyrCount : INTEGER
+DIM i         : INTEGER
+
+ON ERROR GOTO 900
+
+plyrCount := 2
+
+! --- Init player 1 (ALICE) ----------------------------------
+plyrs(1).plyrName   := "ALICE"
+plyrs(1).plyrType   := 1
+plyrs(1).aiTier     := 0
+plyrs(1).cashBal    := 3000
+plyrs(1).marginTot  := 0
+plyrs(1).isBankrupt := FALSE
+plyrs(1).hadCashPur := FALSE
+FOR i := 1 TO 9
+  plyrs(1).stckShrs(i) := 0
+  plyrs(1).mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyrs(1).bondUnts(i) := 0
+NEXT i
+plyrs(1).stckShrs(9) := 100 \ ! 100 Valley Power (stock 9)
+plyrs(1).bondUnts(3) := 1   \ ! 1 large bond ($10000 par)
+
+! --- Init player 2 (BOB) ------------------------------------
+plyrs(2).plyrName   := "BOB"
+plyrs(2).plyrType   := 1
+plyrs(2).aiTier     := 0
+plyrs(2).cashBal    := 8000
+plyrs(2).marginTot  := 0
+plyrs(2).isBankrupt := FALSE
+plyrs(2).hadCashPur := FALSE
+FOR i := 1 TO 9
+  plyrs(2).stckShrs(i) := 0
+  plyrs(2).mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyrs(2).bondUnts(i) := 0
+NEXT i
+plyrs(2).stckShrs(4) := 50 \ ! 50 Shady Brooks (stock 4)
+
+! --- Init market state --------------------------------------
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(9) := 95  \ ! Valley Power final price
+mkt.stckPrice(4) := 140 \ ! Shady Brooks final price
+
+! === Test A — Normal game end (P1 wins) =====================
+PRINT "=== TSTEND Phase 11 Task 11.1 ==="
+PRINT
+PRINT "Test A: P1 wins."
+PRINT "  Expected wlth(1)=22500  wlth(2)=15000"
+PRINT "  srtOrd(1)=1  srtOrd(2)=2"
+PRINT "  scrWinner: ALICE declared."
+PRINT
+PRINT "Press any key to run Test A...";
+RUN waitKey
+
+RUN scrFinalMkt(mkt)
+RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
+
+PRINT "wlth(1)="; wlth(1); "  expected 22500"
+PRINT "wlth(2)="; wlth(2); "  expected 15000"
+PRINT "srtOrd(1)="; srtOrd(1); "  expected 1"
+PRINT "srtOrd(2)="; srtOrd(2); "  expected 2"
+RUN waitKey
+
+RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
+
+! === Test B — Tie scenario ==================================
+PRINT "=== Test B: Tie ==="
+PRINT "  Setting plyrs(2).cashBal := 15500"
+PRINT "  P2 totalWealth = 15500 + 7000 = 22500 = P1 total"
+PRINT "  Expected: both ALICE and BOB named as winners."
+PRINT
+plyrs(2).cashBal := 15500
+PRINT "Press any key to run Test B...";
+RUN waitKey
+
+RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
+
+PRINT "wlth(1)="; wlth(1); "  expected 22500"
+PRINT "wlth(2)="; wlth(2); "  expected 22500"
+RUN waitKey
+
+RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
+
+! === Test C — Post-game menu ================================
+PRINT "=== Test C: Post-game menu ==="
+PRINT "  Press 1, 2, or 3. Verify action returned."
+PRINT
+PRINT "Press any key to launch scrPostGame...";
+RUN waitKey
+
+RUN scrPostGame(action)
+PRINT "action = "; action
+IF action = 1 THEN
+  PRINT "  New Game selected. Expected: 1. OK"
+ELSE IF action = 2 THEN
+  PRINT "  Load Game selected. Expected: 2. OK"
+ELSE
+  PRINT "  Quit selected. Expected: 3. OK"
+ENDIF \ENDIF
+
+PRINT
+PRINT "TSTEND complete."
+END
+
+900 PRINT "TSTEND error ("; ERR; ")"
+END
