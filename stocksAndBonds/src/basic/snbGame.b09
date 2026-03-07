@@ -123,6 +123,49 @@ END
     loadOK := FALSE
 END
 
+
+PROCEDURE getCard
+(* ============================================================ *)
+(* PROCEDURE : getCard                                          *)
+(* PURPOSE   : Populate a CardRec from the encoded card table   *)
+(*             for a given card ID (1..36).                     *)
+(* PARAMS    : cardId - card number 1..36                       *)
+(*             card   - receives all card fields (by ref)       *)
+(* SIDE EFX  : Repositions the internal DATA pointer via        *)
+(*             RESTORE. Caller must not depend on DATA pointer  *)
+(*             state after this call.                           *)
+(* NOTE      : CardRec TYPE must be declared in every procedure *)
+(*             that calls getCard or passes a CardRec param.    *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM cardId : INTEGER
+PARAM card   : CardRec
+DIM skipCnt : INTEGER
+DIM i       : INTEGER
+DIM tmp     : INTEGER
+
+ON ERROR GOTO 900
+
+! Each card occupies 11 fixed-width slots:
+!   crdType, efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
+! Unused effect slots are encoded as 0,0.
+skipCnt := (cardId - 1) * 11
+RESTORE 100
+
+FOR i := 1 TO skipCnt
+  READ tmp
+NEXT i
+
+READ card.crdType
+READ card.efxCnt
+READ card.efxStk(1), card.efxDlt(1)
+READ card.efxStk(2), card.efxDlt(2)
+READ card.efxStk(3), card.efxDlt(3)
+READ card.efxStk(4), card.efxDlt(4)
+READ card.divBonus
+END
+
 PROCEDURE clrScr
 (* ================================================== *)
 (* PROCEDURE: clrScr                                  *)
