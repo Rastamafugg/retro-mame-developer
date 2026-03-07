@@ -39,7 +39,7 @@ NEXT i
 
 END
 
-900 ! Error handler
+900 \ ! Error handler
     ERROR(ERR)
 END
 
@@ -69,7 +69,7 @@ NEXT i
 
 END
 
-900 ! Error handler
+900 \ ! Error handler
     ERROR(ERR)
 END
 
@@ -782,420 +782,605 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE scrFinalMkt
+PROCEDURE aiSell
 (* ============================================================ *)
-(* PROCEDURE : scrFinalMkt                                      *)
-(* PURPOSE   : S24 Final Market Board. Displays all 9 stocks   *)
-(*             with final prices and dividend status after      *)
-(*             Year 10 market resolution. No dividends or       *)
-(*             interest shown; Year 10 exemption per spec       *)
-(*             Section 13.                                      *)
-(* PARAMS    : mkt - final market state (read-only)            *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
-(* ============================================================ *)
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM mkt : MktState
-
-DIM sNam(9) : STRING[14]
-DIM s       : INTEGER
-DIM pStr    : STRING[8]
-
-ON ERROR GOTO 900
-
-sNam(1) := "Growth Corp"
-sNam(2) := "Metro Props"
-sNam(3) := "Pioneer Mut"
-sNam(4) := "Shady Brooks"
-sNam(5) := "Stryker Drlg"
-sNam(6) := "Tri-City Trn"
-sNam(7) := "United Auto"
-sNam(8) := "Uranium Ent"
-sNam(9) := "Valley Power"
-
-RUN clrScr
-PRINT "=== FINAL MARKET BOARD (S24) ==="
-PRINT
-PRINT " #  STOCK          PRICE  STATUS"
-PRINT " -  -------------  -----  --------"
-
-FOR s := 1 TO 9
-  RUN fmtMoney(mkt.stckPrice(s), pStr)
-  PRINT " "; s; "  "; sNam(s); "  "; pStr; "  ";
-  IF mkt.stckPrice(s) = 0 THEN
-    PRINT "BANKRUPT"
-  ELSE IF mkt.divSuspnd(s) THEN
-    PRINT "DIV SUSP"
-  ELSE
-    PRINT "OK"
-  ENDIF \ENDIF
-NEXT s
-
-PRINT
-RUN waitKey
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE scrWealth
-(* ============================================================ *)
-(* PROCEDURE : scrWealth                                        *)
-(* PURPOSE   : S25 Final Wealth Summary. Computes totalWealth  *)
-(*             per spec Section 13 for each player, sorts      *)
-(*             players descending by totalWealth, and displays  *)
-(*             cash / stock / bond / total breakdown per       *)
-(*             player in rank order. Bankrupt players are       *)
-(*             included in display but flagged.                *)
-(*             totalWealth = cashBal                           *)
-(*               + sum(stckShrs(i) * stckPrice(i)) for i=1..9 *)
-(*               + sum(bondUnts(j) * parVal(j))    for j=1..3 *)
-(* PARAMS    : plyrs     - all player records (read-only)      *)
-(*             plyrCount - number of players (1..6)            *)
-(*             mkt       - final market state (read-only)      *)
-(*             wlth      - output: wealth indexed by plyr slot *)
-(*             srtOrd    - output: player slots desc by wealth *)
-(* NOTE      : INTEGER overflow if totalWealth exceeds 32767.  *)
-(*             Bounded by game rules; not enforced here.       *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* PROCEDURE : aiSell                                           *)
+(* PURPOSE   : AI sell phase decision engine (Medium baseline) *)
+(*             Implements ai-player-logic.md Section 4 with    *)
+(*             hardcoded Medium tier parameter values from      *)
+(*             ai-difficulty-tiers.md Section 4.               *)
+(*             Produces sell order arrays for the caller to     *)
+(*             pass unchanged to applySells.                   *)
+(*             Does NOT modify plyr. Caller applies orders.    *)
+(*                                                             *)
+(*             Phase 13 wires in AIProfile; hardcoded values   *)
+(*             map directly to AIProfile fields:               *)
+(*               splitSellPW  = splitSellPct    = 50           *)
+(*               distSellPW   = distressSellPrice = 50         *)
+(*               marginClrYr  = marginClearYear = 9            *)
+(*               endgameYear                    = 0 (none)     *)
+(*                                                             *)
+(*             Sell logic order (ai-player-logic.md Sec 6):    *)
+(*               1. Stock Rules 1-4 (ascending stockId)        *)
+(*               2. Emergency bond sell (cashBal < 0)          *)
+(*               3. Proactive margin clearance (Year >= 9)     *)
+(*                                                             *)
+(* PARAMS    : currYear      - current game year (1..10)       *)
+(*             plyr          - player record (READ ONLY)       *)
+(*             mkt           - market state (READ ONLY)        *)
+(*             ordType(12)   - output: 1=STOCK 2=BOND          *)
+(*             ordId(12)     - output: asset index (1-9 / 1-3) *)
+(*             ordQty(12)    - output: quantity per order       *)
+(*             ordCnt        - output: number of orders (0..12)*)
+(* SIDE EFX  : None. plyr and mkt are not modified.            *)
+(* NOTE      : ordCnt=0 is a valid output (all rules pass).   *)
+(*             Array slots cap at 12; orders beyond limit are  *)
+(*             silently dropped.                               *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM plyrs(6)  : PlyrRec
-PARAM plyrCount : INTEGER
-PARAM mkt       : MktState
-PARAM wlth(6)   : INTEGER
-PARAM srtOrd(6) : INTEGER
+PARAM currYear    : INTEGER
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
 
-DIM bPar(3)  : INTEGER
-DIM s        : INTEGER
-DIM i        : INTEGER
-DIM j        : INTEGER
-DIM p        : INTEGER
-DIM maxPos   : INTEGER
-DIM tmp      : INTEGER
-DIM stckVal  : INTEGER
-DIM bndVal   : INTEGER
-DIM pStr     : STRING[8]
+! Medium hardcoded working parameters (ai-difficulty-tiers.md Sec 4)
+! Phase 13 replaces these with aiProfile field references.
+DIM splitSellPW : INTEGER \ ! splitSellPct = 50
+DIM distSellPW  : INTEGER \ ! distressSellPrice = 50
+DIM marginClrYr : INTEGER \ ! marginClearYear = 9
+
+DIM divPer(9)   : INTEGER \ ! dividend per share (spec Section 2.1)
+DIM bPar(3)     : INTEGER \ ! bond par values
+DIM pendQty(9)  : INTEGER \ ! shares already queued in sell orders
+DIM pendBnd(3)  : INTEGER \ ! bond units already queued in sell orders
+DIM clrIdx(9)   : INTEGER \ ! stock indices for clearance sort
+DIM clrSco(9)   : INTEGER \ ! yield scores for clearance sort
+DIM i           : INTEGER
+DIM j           : INTEGER
+DIM s           : INTEGER
+DIM b           : INTEGER
+DIM sellLots    : INTEGER
+DIM needed      : INTEGER
+DIM avail       : INTEGER
+DIM prcd        : INTEGER
+DIM tmp         : INTEGER
+DIM holdCnt     : INTEGER
+DIM minPos      : INTEGER
+DIM simCash     : INTEGER \ ! simulated cashBal for bond emergency check
 
 ON ERROR GOTO 900
 
+! --- Hardcoded Medium working parameters --------------------
+splitSellPW := 50
+distSellPW  := 50
+marginClrYr := 9
+
+! --- Dividend per share (spec Section 2.1) -----------------
+divPer(1) := 1 \ ! Growth Corp
+divPer(2) := 0 \ ! Metro Props    (no yield)
+divPer(3) := 4 \ ! Pioneer Mut
+divPer(4) := 7 \ ! Shady Brooks
+divPer(5) := 0 \ ! Stryker Drlg   (no yield)
+divPer(6) := 0 \ ! Tri-City Trn   (no yield)
+divPer(7) := 2 \ ! United Auto
+divPer(8) := 6 \ ! Uranium Ent
+divPer(9) := 3 \ ! Valley Power
+
+! --- Bond par values ----------------------------------------
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
 
-! --- Compute totalWealth per player slot --------------------
-FOR i := 1 TO plyrCount
-  wlth(i) := plyrs(i).cashBal
+! --- Init output and tracking arrays -----------------------
+ordCnt := 0
+FOR i := 1 TO 9
+  pendQty(i) := 0
+NEXT i
+FOR i := 1 TO 3
+  pendBnd(i) := 0
+NEXT i
+
+! ============================================================
+! Section 4.1: Stock sell rules. Ascending stockId order.
+! Rules are IF/ELSE IF; first match governs each stock.
+!   Rule 1: price = 0               → SELL all
+!   Rule 2: price <= 25, mgnHeld    → SELL all
+!   Rule 3: price >= 150            → SELL splitSellPW % (lots)
+!   Rule 4: divSuspnd AND price<=50 → SELL all
+!   Rule 5: default                 → PASS
+! ============================================================
+
+FOR s := 1 TO 9
+  IF plyr.stckShrs(s) > 0 THEN
+
+    IF mkt.stckPrice(s) = 0 THEN
+      ! Rule 1 — Bankrupt; explicitly clear the position.
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ELSE IF mkt.stckPrice(s) <= 25 AND plyr.mgnHeld(s) THEN
+      ! Rule 2 — Margin call imminent (MarginCallPrice = 25).
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ELSE IF mkt.stckPrice(s) >= 150 THEN
+      ! Rule 3 — Split threshold (StockSplitThreshold = 150).
+      ! sellLots = floor(shares * splitSellPW% / 10) * 10
+      sellLots := plyr.stckShrs(s) * splitSellPW / 100
+      sellLots := (sellLots / 10) * 10
+      IF sellLots >= 10 AND ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := sellLots
+        pendQty(s)      := sellLots
+      ENDIF
+
+    ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellPW THEN
+      ! Rule 4 — Distressed suspended-dividend stock.
+      IF ordCnt < 12 THEN
+        ordCnt          := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
+      ENDIF
+
+    ENDIF \ENDIF \ENDIF \ENDIF
+    ! Rule 5 (default PASS) requires no action.
+
+  ENDIF
+NEXT s
+
+! ============================================================
+! Section 4.3: Emergency bond sell.
+! Sell minimum bond units to bring simulated cashBal >= 0.
+! Uses plyr.cashBal directly (orders not yet applied).
+! Ascending denomination order (smallest first).
+! ============================================================
+
+simCash := plyr.cashBal
+IF simCash < 0 THEN
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF simCash >= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt          := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      simCash         := simCash + bPar(b)
+    ENDLOOP
+  NEXT b
+ENDIF
+
+! ============================================================
+! Section 4.4: Proactive margin clearance.
+! Active when currYear >= marginClrYr (9 for Medium).
+! Sells held assets in ascending yield-score order until
+! marginTot is covered. Stocks before bonds.
+! Skips positions already queued in Rules 1-4 (via pendQty).
+! ============================================================
+
+IF plyr.marginTot > 0 AND currYear >= marginClrYr THEN
+  needed := plyr.marginTot
+
+  ! Score unheld/unqueued stocks for clearance sort.
+  ! Score: suspended → -1; zero div → 0; yielding → div*1000/price
+  holdCnt := 0
   FOR s := 1 TO 9
-    wlth(i) := wlth(i) + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
-  NEXT s
-  FOR j := 1 TO 3
-    wlth(i) := wlth(i) + (plyrs(i).bondUnts(j) * bPar(j))
-  NEXT j
-NEXT i
-
-! --- Init sort order (1..plyrCount) -------------------------
-FOR i := 1 TO plyrCount
-  srtOrd(i) := i
-NEXT i
-
-! --- Selection sort descending by wlth ----------------------
-FOR i := 1 TO plyrCount - 1
-  maxPos := i
-  FOR j := i + 1 TO plyrCount
-    IF wlth(srtOrd(j)) > wlth(srtOrd(maxPos)) THEN
-      maxPos := j
+    avail := plyr.stckShrs(s) - pendQty(s)
+    IF avail > 0 THEN
+      holdCnt         := holdCnt + 1
+      clrIdx(holdCnt) := s
+      IF mkt.divSuspnd(s) THEN
+        clrSco(holdCnt) := -1
+      ELSE IF divPer(s) = 0 THEN
+        clrSco(holdCnt) := 0
+      ELSE
+        clrSco(holdCnt) := divPer(s) * 1000 / mkt.stckPrice(s)
+      ENDIF \ENDIF
     ENDIF
-  NEXT j
-  IF maxPos <> i THEN
-    tmp           := srtOrd(i)
-    srtOrd(i)     := srtOrd(maxPos)
-    srtOrd(maxPos) := tmp
-  ENDIF
-NEXT i
-
-! --- Display ranked results ---------------------------------
-RUN clrScr
-PRINT "=== FINAL WEALTH SUMMARY (S25) ==="
-PRINT
-
-FOR p := 1 TO plyrCount
-  i := srtOrd(p)
-
-  ! Compute stock and bond components for display.
-  stckVal := 0
-  FOR s := 1 TO 9
-    stckVal := stckVal + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
   NEXT s
-  bndVal := 0
-  FOR j := 1 TO 3
-    bndVal := bndVal + (plyrs(i).bondUnts(j) * bPar(j))
-  NEXT j
 
-  PRINT " "; p; "  "; plyrs(i).plyrName
-  RUN fmtMoney(plyrs(i).cashBal, pStr)
-  PRINT "    Cash:"; pStr; "  ";
-  RUN fmtMoney(stckVal, pStr)
-  PRINT "Stk:"; pStr; "  ";
-  RUN fmtMoney(bndVal, pStr)
-  PRINT "Bnd:"; pStr; "  ";
-  RUN fmtMoney(wlth(i), pStr)
-  PRINT "Tot:"; pStr
-  IF plyrs(i).isBankrupt THEN
-    PRINT "    [BANKRUPT]"
-  ENDIF
-  PRINT
-NEXT p
-
-RUN waitKey
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE scrWinner
-(* ============================================================ *)
-(* PROCEDURE : scrWinner                                        *)
-(* PURPOSE   : S26 Winner Declaration. Finds the highest       *)
-(*             totalWealth among non-bankrupt players and       *)
-(*             declares all players at that value as winners.  *)
-(*             Tie: two or more players share highest wealth   *)
-(*             (spec Section 13). Bankrupt players excluded    *)
-(*             from winner consideration (spec Section 12).    *)
-(* PARAMS    : plyrs     - all player records (read-only)      *)
-(*             plyrCount - number of players (1..6)            *)
-(*             wlth      - totalWealth per player slot         *)
-(*             srtOrd    - player slots in descending order    *)
-(*                         (output of scrWealth)               *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-PARAM plyrs(6)  : PlyrRec
-PARAM plyrCount : INTEGER
-PARAM wlth(6)   : INTEGER
-PARAM srtOrd(6) : INTEGER
-
-DIM i    : INTEGER
-DIM topW : INTEGER
-DIM pStr : STRING[8]
-
-ON ERROR GOTO 900
-
-! Find highest wealth among non-bankrupt players.
-! -32767 sentinel: no valid wealth can be lower after liquidation.
-topW := -32767
-FOR i := 1 TO plyrCount
-  IF NOT plyrs(i).isBankrupt THEN
-    IF wlth(i) > topW THEN
-      topW := wlth(i)
+  ! Selection sort: ascending clrSco, tie-break ascending stockId.
+  FOR i := 1 TO holdCnt - 1
+    minPos := i
+    FOR j := i + 1 TO holdCnt
+      IF clrSco(j) < clrSco(minPos) THEN
+        minPos := j
+      ELSE IF clrSco(j) = clrSco(minPos) THEN
+        IF clrIdx(j) < clrIdx(minPos) THEN
+          minPos := j
+        ENDIF
+      ENDIF \ENDIF
+    NEXT j
+    IF minPos <> i THEN
+      tmp            := clrSco(i)
+      clrSco(i)      := clrSco(minPos)
+      clrSco(minPos) := tmp
+      tmp            := clrIdx(i)
+      clrIdx(i)      := clrIdx(minPos)
+      clrIdx(minPos) := tmp
     ENDIF
-  ENDIF
-NEXT i
+  NEXT i
 
-RUN clrScr
-PRINT "=== WINNER DECLARATION (S26) ==="
-PRINT
-
-IF topW = -32767 THEN
-  ! Degenerate: all players bankrupt.
-  PRINT "  No winner: all players eliminated."
-ELSE
-  RUN fmtMoney(topW, pStr)
-  PRINT "  WINNER(S) with total wealth $"; pStr
-  PRINT
-  ! Iterate srtOrd so winners display in rank order.
-  FOR i := 1 TO plyrCount
-    IF NOT plyrs(srtOrd(i)).isBankrupt THEN
-      IF wlth(srtOrd(i)) = topW THEN
-        PRINT "  *** "; plyrs(srtOrd(i)).plyrName; " ***"
+  ! Pass 1 — sell stocks, weakest first, until needed <= 0.
+  FOR i := 1 TO holdCnt
+    IF needed > 0 THEN
+      s     := clrIdx(i)
+      avail := plyr.stckShrs(s) - pendQty(s)
+      IF avail > 0 THEN
+        prcd := avail * mkt.stckPrice(s)
+        IF prcd <= needed THEN
+          ! Full position: does not exceed needed.
+          IF ordCnt < 12 THEN
+            ordCnt          := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := avail
+            pendQty(s)      := pendQty(s) + avail
+            needed          := needed - prcd
+          ENDIF
+        ELSE
+          ! Partial sell: ceiling lots to cover remainder.
+          ! sellLots := ceil(needed / price), rounded to 10.
+          sellLots := (needed + mkt.stckPrice(s) - 1)
+          sellLots := sellLots / mkt.stckPrice(s)
+          sellLots := ((sellLots + 9) / 10) * 10
+          ! Clamp to available (inline MIN).
+          IF sellLots > avail THEN
+            sellLots := avail
+          ENDIF
+          IF sellLots >= 10 AND ordCnt < 12 THEN
+            ordCnt          := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := sellLots
+            pendQty(s)      := pendQty(s) + sellLots
+            needed          := needed - (sellLots * mkt.stckPrice(s))
+          ENDIF
+        ENDIF
       ENDIF
     ENDIF
   NEXT i
+
+  ! Pass 2 — supplement with bonds if still needed > 0.
+  ! Sell smallest denomination first; one unit at a time.
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF needed <= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt          := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      needed          := needed - bPar(b)
+    ENDLOOP
+  NEXT b
+
 ENDIF
 
-PRINT
-RUN waitKey
 END
 
 900 ERROR(ERR)
 END
 
-PROCEDURE scrPostGame
+PROCEDURE TSTAISELL
 (* ============================================================ *)
-(* PROCEDURE : scrPostGame                                      *)
-(* PURPOSE   : S27 Post-Game Menu. Presents options to start   *)
-(*             a new game, load a saved game, or quit.         *)
-(* PARAMS    : action - receives selection on return:          *)
-(*               1 = New Game                                 *)
-(*               2 = Load Game                                *)
-(*               3 = Quit                                     *)
-(* SIDE EFX  : Clears screen. Blocks until valid key.          *)
-(* ============================================================ *)
-PARAM action : INTEGER
-
-ON ERROR GOTO 900
-
-RUN clrScr
-PRINT
-PRINT "  GAME OVER"
-PRINT "  ========="
-PRINT
-PRINT "  1. New Game"
-PRINT "  2. Load Game"
-PRINT "  3. Quit"
-PRINT
-PRINT "  Select (1-3): ";
-RUN getMenuKey(1, 3, action)
-PRINT
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE TSTEND
-(* ============================================================ *)
-(* PROCEDURE : TSTEND                                           *)
-(* PURPOSE   : Confirmation test for Phase 11 Task 11.1.       *)
-(*             Tests scrFinalMkt, scrWealth, scrWinner,        *)
-(*             scrPostGame per project-timeline.md spec.       *)
+(* PROCEDURE : TSTAISELL                                        *)
+(* PURPOSE   : Confirmation tests for aiSell (Task 12.1).      *)
+(*             Machine-checks all confirmation cases from      *)
+(*             project-timeline.md Phase 12 Task 12.1.         *)
 (*                                                             *)
-(*   Test A — Normal game end (Player 1 wins):                 *)
-(*     P1: cashBal=3000, 100 Valley Power @95, 1 large bond.  *)
-(*         totalWealth = 3000 + 9500 + 10000 = 22500.         *)
-(*     P2: cashBal=8000, 50 Shady Brooks @140, 0 bonds.       *)
-(*         totalWealth = 8000 + 7000 = 15000.                 *)
-(*     Verify: wlth(1)=22500, wlth(2)=15000.                  *)
-(*     Verify: srtOrd(1)=1 (P1 listed first in scrWealth).    *)
-(*     Verify: scrWinner names ALICE.                          *)
+(* Test A — Combined rules scenario (currYear=5, no margin)    *)
+(*   stock 1: price=45, divSuspnd=TRUE, shrs=20                *)
+(*            → Rule 4, SELL 20                                *)
+(*   stock 2: price=0, shrs=50                                 *)
+(*            → Rule 1, SELL 50                                *)
+(*   stock 3: price=110, divSuspnd=FALSE, shrs=30              *)
+(*            → Rule 5, PASS                                   *)
+(*   stock 4: price=155, shrs=100                              *)
+(*            → Rule 3, SELL 50 (50% of 100)                  *)
+(*   stock 5: price=20, mgnHeld=TRUE, shrs=100                 *)
+(*            → Rule 2, SELL 100                               *)
+(*   cashBal=5000 (positive) → no bond sell.                  *)
+(*   Verify: ordCnt=4, orders in ascending stockId order.      *)
+(*   Stock 3 absent from order array.                          *)
 (*                                                             *)
-(*   Test B — Tie scenario:                                    *)
-(*     Adjust P2 cashBal to 15500.                            *)
-(*     P2 totalWealth = 15500 + 7000 = 22500 = P1 total.      *)
-(*     Verify: both ALICE and BOB named in scrWinner.          *)
+(* Test B — Bond emergency (currYear=5)                        *)
+(*   cashBal=-100, 1 small bond held, no stocks.               *)
+(*   Verify: ordCnt=1, ordType(1)=2, ordId(1)=1, ordQty(1)=1  *)
 (*                                                             *)
-(*   Test C — Post-game menu:                                  *)
-(*     Verify 1=New Game / 2=Load Game / 3=Quit routes.       *)
+(* Test C — Bond pass when cashBal >= 0                        *)
+(*   cashBal=5000, 1 small bond held, no stocks.               *)
+(*   Verify: ordCnt=0 (no bond sell).                          *)
+(*                                                             *)
+(* Test D — Margin clearance (currYear=9)                      *)
+(*   marginTot=2000, stock 2 (Metro, div=0) 30@$100,           *)
+(*   stock 4 (Shady, div=7) 50@$100. No other holdings.        *)
+(*   clrSco(Metro)=0, clrSco(Shady)=70.                       *)
+(*   Sort: Metro first (score 0 < 70).                         *)
+(*   needed=2000. Partial sell Metro:                          *)
+(*     sellLots = ceil(2000/100)=20, rounded to 20. SELL 20.   *)
+(*     needed = 2000-2000 = 0. Shady skipped.                  *)
+(*   Verify: ordCnt=1, ordType(1)=1, ordId(1)=2, ordQty(1)=20 *)
+(*                                                             *)
+(* Test E — Margin clearance below marginClrYr (currYear=5)    *)
+(*   Same state as Test D but currYear=5 < 9.                  *)
+(*   Verify: ordCnt=0 (clearance block skipped).               *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM plyrs(6)  : PlyrRec
-DIM mkt       : MktState
-DIM wlth(6)   : INTEGER
-DIM srtOrd(6) : INTEGER
-DIM action    : INTEGER
-DIM plyrCount : INTEGER
-DIM i         : INTEGER
+DIM plyr        : PlyrRec
+DIM mkt         : MktState
+DIM ordType(12) : INTEGER
+DIM ordId(12)   : INTEGER
+DIM ordQty(12)  : INTEGER
+DIM ordCnt      : INTEGER
+DIM passed      : INTEGER
+DIM failed      : INTEGER
+DIM i           : INTEGER
 
 ON ERROR GOTO 900
 
-plyrCount := 2
+passed := 0
+failed := 0
 
-! --- Init player 1 (ALICE) ----------------------------------
-plyrs(1).plyrName   := "ALICE"
-plyrs(1).plyrType   := 1
-plyrs(1).aiTier     := 0
-plyrs(1).cashBal    := 3000
-plyrs(1).marginTot  := 0
-plyrs(1).isBankrupt := FALSE
-plyrs(1).hadCashPur := FALSE
-FOR i := 1 TO 9
-  plyrs(1).stckShrs(i) := 0
-  plyrs(1).mgnHeld(i)  := FALSE
-NEXT i
-FOR i := 1 TO 3
-  plyrs(1).bondUnts(i) := 0
-NEXT i
-plyrs(1).stckShrs(9) := 100 \ ! 100 Valley Power (stock 9)
-plyrs(1).bondUnts(3) := 1   \ ! 1 large bond ($10000 par)
-
-! --- Init player 2 (BOB) ------------------------------------
-plyrs(2).plyrName   := "BOB"
-plyrs(2).plyrType   := 1
-plyrs(2).aiTier     := 0
-plyrs(2).cashBal    := 8000
-plyrs(2).marginTot  := 0
-plyrs(2).isBankrupt := FALSE
-plyrs(2).hadCashPur := FALSE
-FOR i := 1 TO 9
-  plyrs(2).stckShrs(i) := 0
-  plyrs(2).mgnHeld(i)  := FALSE
-NEXT i
-FOR i := 1 TO 3
-  plyrs(2).bondUnts(i) := 0
-NEXT i
-plyrs(2).stckShrs(4) := 50 \ ! 50 Shady Brooks (stock 4)
-
-! --- Init market state --------------------------------------
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 100
-  mkt.divSuspnd(i) := FALSE
-NEXT i
-mkt.stckPrice(9) := 95  \ ! Valley Power final price
-mkt.stckPrice(4) := 140 \ ! Shady Brooks final price
-
-! === Test A — Normal game end (P1 wins) =====================
-PRINT "=== TSTEND Phase 11 Task 11.1 ==="
+PRINT "=== TSTAISELL  Phase 12 Task 12.1 ==="
 PRINT
-PRINT "Test A: P1 wins."
-PRINT "  Expected wlth(1)=22500  wlth(2)=15000"
-PRINT "  srtOrd(1)=1  srtOrd(2)=2"
-PRINT "  scrWinner: ALICE declared."
+
+! ============================================================
+! Test A — Combined stock rules, no bond sell
+! ============================================================
+PRINT "--- Test A: Combined stock rules ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+! stock 1: Rule 4 (divSuspnd=TRUE, price=45 <= 50)
+plyr.stckShrs(1)  := 20
+mkt.stckPrice(1)  := 45
+mkt.divSuspnd(1)  := TRUE
+
+! stock 2: Rule 1 (price=0)
+plyr.stckShrs(2)  := 50
+mkt.stckPrice(2)  := 0
+
+! stock 3: Rule 5 (price=110, divSuspnd=FALSE) — should NOT appear
+plyr.stckShrs(3)  := 30
+mkt.stckPrice(3)  := 110
+mkt.divSuspnd(3)  := FALSE
+
+! stock 4: Rule 3 (price=155 >= 150, shares=100 → sell 50)
+plyr.stckShrs(4)  := 100
+mkt.stckPrice(4)  := 155
+
+! stock 5: Rule 2 (price=20 <= 25, mgnHeld=TRUE)
+plyr.stckShrs(5)  := 100
+mkt.stckPrice(5)  := 20
+plyr.mgnHeld(5)   := TRUE
+
+plyr.cashBal      := 5000 \ ! positive; no bond emergency
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+! ordCnt must be 4 (stocks 1, 2, 4, 5)
+GOSUB 100
+
+! ord 1: stock 1, Rule 4, sell all 20
+GOSUB 200
+
+! ord 2: stock 2, Rule 1, sell all 50
+GOSUB 300
+
+! ord 3: stock 4, Rule 3, sell 50
+GOSUB 400
+
+! ord 4: stock 5, Rule 2, sell all 100
+GOSUB 500
+
 PRINT
-PRINT "Press any key to run Test A...";
-RUN waitKey
 
-RUN scrFinalMkt(mkt)
-RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
+! ============================================================
+! Test B — Bond emergency: cashBal=-100
+! ============================================================
+PRINT "--- Test B: Bond emergency cashBal=-100 ---"
 
-PRINT "wlth(1)="; wlth(1); "  expected 22500"
-PRINT "wlth(2)="; wlth(2); "  expected 15000"
-PRINT "srtOrd(1)="; srtOrd(1); "  expected 1"
-PRINT "srtOrd(2)="; srtOrd(2); "  expected 2"
-RUN waitKey
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal     := -100
+plyr.bondUnts(1) := 1 \ ! small bond $1000
 
-RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
 
-! === Test B — Tie scenario ==================================
-PRINT "=== Test B: Tie ==="
-PRINT "  Setting plyrs(2).cashBal := 15500"
-PRINT "  P2 totalWealth = 15500 + 7000 = 22500 = P1 total"
-PRINT "  Expected: both ALICE and BOB named as winners."
-PRINT
-plyrs(2).cashBal := 15500
-PRINT "Press any key to run Test B...";
-RUN waitKey
-
-RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
-
-PRINT "wlth(1)="; wlth(1); "  expected 22500"
-PRINT "wlth(2)="; wlth(2); "  expected 22500"
-RUN waitKey
-
-RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
-
-! === Test C — Post-game menu ================================
-PRINT "=== Test C: Post-game menu ==="
-PRINT "  Press 1, 2, or 3. Verify action returned."
-PRINT
-PRINT "Press any key to launch scrPostGame...";
-RUN waitKey
-
-RUN scrPostGame(action)
-PRINT "action = "; action
-IF action = 1 THEN
-  PRINT "  New Game selected. Expected: 1. OK"
-ELSE IF action = 2 THEN
-  PRINT "  Load Game selected. Expected: 2. OK"
+IF ordCnt = 1 THEN
+  PRINT "Test B PASS  ordCnt=1"
+  passed := passed + 1
 ELSE
-  PRINT "  Quit selected. Expected: 3. OK"
-ENDIF \ENDIF
-
+  PRINT "Test B FAIL  ordCnt exp=1 got="; ordCnt
+  failed := failed + 1
+ENDIF
+IF ordType(1) = 2 AND ordId(1) = 1 AND ordQty(1) = 1 THEN
+  PRINT "Test B PASS  BOND#1 qty=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test B FAIL  exp BOND#1 qty=1, got type="; ordType(1);
+  PRINT " id="; ordId(1); " qty="; ordQty(1)
+  failed := failed + 1
+ENDIF
 PRINT
-PRINT "TSTEND complete."
+
+! ============================================================
+! Test C — Bond pass: cashBal >= 0
+! ============================================================
+PRINT "--- Test C: Bond pass cashBal=5000 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal     := 5000
+plyr.bondUnts(1) := 1
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 0 THEN
+  PRINT "Test C PASS  ordCnt=0 (no bond sell)"
+  passed := passed + 1
+ELSE
+  PRINT "Test C FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test D — Margin clearance active (currYear=9)
+! stock 2 Metro (div=0, score=0), stock 4 Shady (div=7, score=70)
+! needed=2000; partial sell 20 Metro covers exactly.
+! ============================================================
+PRINT "--- Test D: Margin clearance Year 9 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.marginTot   := 2000
+plyr.cashBal     := 5000
+plyr.stckShrs(2) := 30 \ ! Metro Props, div=0
+mkt.stckPrice(2) := 100
+plyr.stckShrs(4) := 50 \ ! Shady Brooks, div=7
+mkt.stckPrice(4) := 100
+
+RUN aiSell(9, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 1 THEN
+  PRINT "Test D PASS  ordCnt=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test D FAIL  ordCnt exp=1 got="; ordCnt
+  failed := failed + 1
+ENDIF
+IF ordType(1) = 1 AND ordId(1) = 2 AND ordQty(1) = 20 THEN
+  PRINT "Test D PASS  STK#2 qty=20 (Metro, partial)"
+  passed := passed + 1
+ELSE
+  PRINT "Test D FAIL  exp STK#2 qty=20, got type="; ordType(1);
+  PRINT " id="; ordId(1); " qty="; ordQty(1)
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test E — Margin clearance blocked (currYear=5 < 9)
+! Same holdings as Test D; clearance block must not fire.
+! ============================================================
+PRINT "--- Test E: Margin clearance blocked Year 5 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.marginTot   := 2000
+plyr.cashBal     := 5000
+plyr.stckShrs(2) := 30
+mkt.stckPrice(2) := 100
+plyr.stckShrs(4) := 50
+mkt.stckPrice(4) := 100
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 0 THEN
+  PRINT "Test E PASS  ordCnt=0 (clearance blocked)"
+  passed := passed + 1
+ELSE
+  PRINT "Test E FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-900 PRINT "TSTEND error ("; ERR; ")"
-END
+! ---- Test A subtests ----------------------------------------
+
+100 \ ! Check ordCnt = 4
+    IF ordCnt = 4 THEN
+      PRINT "Test A PASS  ordCnt=4"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ordCnt exp=4 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+RETURN
+
+200 \ ! ord1: stock 1, Rule 4, qty=20
+    IF ordType(1) = 1 AND ordId(1) = 1 AND ordQty(1) = 20 THEN
+      PRINT "Test A PASS  ord1=STK#1 qty=20 (Rule 4)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord1 exp STK#1 qty=20";
+      PRINT " got type="; ordType(1); " id="; ordId(1);
+      PRINT " qty="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+300 \ ! ord2: stock 2, Rule 1, qty=50
+    IF ordType(2) = 1 AND ordId(2) = 2 AND ordQty(2) = 50 THEN
+      PRINT "Test A PASS  ord2=STK#2 qty=50 (Rule 1)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord2 exp STK#2 qty=50";
+      PRINT " got type="; ordType(2); " id="; ordId(2);
+      PRINT " qty="; ordQty(2)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+400 \ ! ord3: stock 4, Rule 3, qty=50
+    IF ordType(3) = 1 AND ordId(3) = 4 AND ordQty(3) = 50 THEN
+      PRINT "Test A PASS  ord3=STK#4 qty=50 (Rule 3)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord3 exp STK#4 qty=50";
+      PRINT " got type="; ordType(3); " id="; ordId(3);
+      PRINT " qty="; ordQty(3)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+500 \ ! ord4: stock 5, Rule 2, qty=100
+    IF ordType(4) = 1 AND ordId(4) = 5 AND ordQty(4) = 100 THEN
+      PRINT "Test A PASS  ord4=STK#5 qty=100 (Rule 2)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test A FAIL  ord4 exp STK#5 qty=100";
+      PRINT " got type="; ordType(4); " id="; ordId(4);
+      PRINT " qty="; ordQty(4)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+900 PRINT "TSTAISELL error ("; ERR; ")"
+    END

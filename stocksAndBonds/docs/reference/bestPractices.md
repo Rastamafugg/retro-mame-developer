@@ -77,13 +77,13 @@ DIR       EXEC      READ      UPDATE    WRITE
     ON branchValue GOSUB 100, 200
     END
   
-  100 ! Branch A
+  100 \ ! Branch A
     RETURN
   
-  200 ! Branch B
+  200 \ ! Branch B
     RETURN
   
-  900 ! Error handler
+  900 \ ! Error handler
     END
   ```
 * **When to use ON...GOSUB** `ON...GOSUB` earns its compile cost and readability tradeoff when the selector is a contiguous `1..N` integer with N >= ~5, particularly inside loops where repeated evaluation matters. Below that threshold, `IF/ELSE IF` is preferable in this codebase.
@@ -224,14 +224,14 @@ DIR       EXEC      READ      UPDATE    WRITE
     ON ERROR GOTO 900
     ! ...
     END
-  900 ! ProcA error handler
+  900 \ ! ProcA error handler
     END
   
   PROCEDURE ProcB
     ON ERROR GOTO 900
     ! ...
     END
-  900 ! ProcB error handler - separate from ProcA's
+  900 \ ! ProcB error handler - separate from ProcA's
     END
   ```
 

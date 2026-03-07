@@ -41,7 +41,7 @@ PRINT "AIProfile: "; SIZE(aipr)
 PRINT "CardRec  : "; SIZE(card)
 END
 
-900 ! Error handler
+900 \ ! Error handler
     PRINT "Error: "; ERR
 END
 
@@ -79,7 +79,7 @@ NEXT i
 
 END
 
-900 ! Error handler
+900 \ ! Error handler
     PRINT "Error: "; ERR
 END
 
@@ -156,7 +156,7 @@ NEXT t
 
 END
 
-900 ! Error handler
+900 \ ! Error handler
     PRINT "Error: "; ERR
 END
 
@@ -201,7 +201,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 check
+100 \ ! Test 1 check
     IF delta = 67 THEN
       PRINT "Test 1 PASS  getMktDelta(5,1,9) = 67"
       passed := passed + 1
@@ -212,7 +212,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test 2 check
+200 \ ! Test 2 check
     IF delta = -20 THEN
       PRINT "Test 2 PASS  getMktDelta(5,2,4) = -20"
       passed := passed + 1
@@ -223,7 +223,7 @@ END
     ENDIF
     RETURN
 
-300 ! Test 3 check
+300 \ ! Test 3 check
     IF delta = 14 THEN
       PRINT "Test 3 PASS  getMktDelta(9,1,7) = 14"
       passed := passed + 1
@@ -234,7 +234,7 @@ END
     ENDIF
     RETURN
 
-400 ! Test 4 check
+400 \ ! Test 4 check
     IF delta = 8 THEN
       PRINT "Test 4 PASS  getMktDelta(9,2,2) = 8"
       passed := passed + 1
@@ -245,7 +245,7 @@ END
     ENDIF
     RETURN
 
-500 ! Test 5 check
+500 \ ! Test 5 check
     IF delta = -2 THEN
       PRINT "Test 5 PASS  getMktDelta(1,1,2) = -2"
       passed := passed + 1
@@ -305,7 +305,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: Card 1 Bear, stk=1 dlt=10, divBonus=2
+100 \ ! Test 1: Card 1 Bear, stk=1 dlt=10, divBonus=2
     ok := TRUE
     IF card.crdType <> 2 THEN
       PRINT "Test 1 FAIL crdType: exp=2 got="; card.crdType
@@ -335,7 +335,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test 2: Card 5 Bull, stk=1 dlt=-10, divBonus=0
+200 \ ! Test 2: Card 5 Bull, stk=1 dlt=-10, divBonus=0
     ok := TRUE
     IF card.crdType <> 1 THEN
       PRINT "Test 2 FAIL crdType: exp=1 got="; card.crdType
@@ -365,7 +365,7 @@ END
     ENDIF
     RETURN
 
-300 ! Test 3: Card 8 Bear, stk=2 dlt=10, divBonus=0
+300 \ ! Test 3: Card 8 Bear, stk=2 dlt=10, divBonus=0
     ok := TRUE
     IF card.crdType <> 2 THEN
       PRINT "Test 3 FAIL crdType: exp=2 got="; card.crdType
@@ -395,7 +395,7 @@ END
     ENDIF
     RETURN
 
-400 ! Test 4: Card 34 Bull, 4 stocks
+400 \ ! Test 4: Card 34 Bull, 4 stocks
     ok := TRUE
     IF card.crdType <> 1 THEN
       PRINT "Test 4 FAIL crdType: exp=1 got="; card.crdType
@@ -449,7 +449,7 @@ END
     ENDIF
     RETURN
 
-500 ! Test 5: Card 36 Bear, 3 stocks
+500 \ ! Test 5: Card 36 Bear, 3 stocks
     ok := TRUE
     IF card.crdType <> 2 THEN
       PRINT "Test 5 FAIL crdType: exp=2 got="; card.crdType
@@ -575,7 +575,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: 100 Shady + 1 med bond, Year 2 → 5950
+100 \ ! Test 1: 100 Shady + 1 med bond, Year 2 → 5950
     IF plyrs(1).cashBal = 5950 THEN
       PRINT "Test 1 PASS  Year2 100xShady+1med bond cashBal=5950"
       passed := passed + 1
@@ -585,7 +585,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test 2: Year 1 guard → cashBal unchanged
+200 \ ! Test 2: Year 1 guard → cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 2 PASS  Year1 guard cashBal unchanged=5000"
       passed := passed + 1
@@ -595,7 +595,7 @@ END
     ENDIF
     RETURN
 
-300 ! Test 3: Year 10 guard → cashBal unchanged
+300 \ ! Test 3: Year 10 guard → cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 3 PASS  Year10 guard cashBal unchanged=5000"
       passed := passed + 1
@@ -605,7 +605,7 @@ END
     ENDIF
     RETURN
 
-400 ! Test 4: bankrupt player → cashBal unchanged
+400 \ ! Test 4: bankrupt player → cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 4 PASS  bankrupt player skipped cashBal=5000"
       passed := passed + 1
@@ -615,7 +615,7 @@ END
     ENDIF
     RETURN
 
-500 ! Test 5: Shady suspended → bond interest only → 5250
+500 \ ! Test 5: Shady suspended → bond interest only → 5250
     IF plyrs(1).cashBal = 5250 THEN
       PRINT "Test 5 PASS  suspended div bond-only cashBal=5250"
       passed := passed + 1
@@ -723,7 +723,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: cashBal=-20, forceLiq=TRUE
+100 \ ! Test 1: cashBal=-20, forceLiq=TRUE
     IF plyrs(1).cashBal = -20 AND forceLiq(1) = TRUE THEN
       PRINT "Test 1 PASS  mgnCharge=100 cashBal=-20 forceLiq=TRUE"
       passed := passed + 1
@@ -736,7 +736,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
+200 \ ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 2 PASS  Year1 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -749,7 +749,7 @@ END
     ENDIF
     RETURN
 
-300 ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
+300 \ ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 3 PASS  Year10 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -762,7 +762,7 @@ END
     ENDIF
     RETURN
 
-400 ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
+400 \ ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 4 PASS  bankrupt skipped cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -775,7 +775,7 @@ END
     ENDIF
     RETURN
 
-500 ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
+500 \ ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
     IF plyrs(1).cashBal = 5000 AND NOT forceLiq(1) THEN
       PRINT "Test 5 PASS  zero margin cashBal=5000 forceLiq=FALSE"
       passed := passed + 1
@@ -788,7 +788,7 @@ END
     ENDIF
     RETURN
 
-600 ! Test 6: charge=100, cashBal=4900, forceLiq=FALSE
+600 \ ! Test 6: charge=100, cashBal=4900, forceLiq=FALSE
     IF plyrs(1).cashBal = 4900 AND NOT forceLiq(1) THEN
       PRINT "Test 6 PASS  charge=100 cashBal=4900 forceLiq=FALSE"
       passed := passed + 1
@@ -869,7 +869,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test A: split at 155 → price=78, shares=200, splitOccrd=TRUE
+100 \ ! Test A: split at 155 → price=78, shares=200, splitOccrd=TRUE
     ok := TRUE
     IF newPrice <> 78 THEN
       PRINT "Test A FAIL  newPrice: exp=78 got="; newPrice
@@ -899,7 +899,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test B: clamp -5→0, divSuspNow=TRUE, divSuspPrv=TRUE
+200 \ ! Test B: clamp -5→0, divSuspNow=TRUE, divSuspPrv=TRUE
     ok := TRUE
     IF newPrice <> 0 THEN
       PRINT "Test B FAIL  newPrice: exp=0 got="; newPrice
@@ -929,7 +929,7 @@ END
     ENDIF
     RETURN
 
-300 ! Test C: 55→45, divSuspPrv=FALSE, divSuspNow=TRUE
+300 \ ! Test C: 55→45, divSuspPrv=FALSE, divSuspNow=TRUE
     ok := TRUE
     IF newPrice <> 45 THEN
       PRINT "Test C FAIL  newPrice: exp=45 got="; newPrice
@@ -955,7 +955,7 @@ END
     ENDIF
     RETURN
 
-400 ! Test D: 45→55, divSuspPrv=TRUE, divSuspNow=FALSE
+400 \ ! Test D: 45→55, divSuspPrv=TRUE, divSuspNow=FALSE
     ok := TRUE
     IF newPrice <> 55 THEN
       PRINT "Test D FAIL  newPrice: exp=55 got="; newPrice
@@ -1037,7 +1037,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: Stryker Drilling (stock 5) — split and share doubling
+100 \ ! Test 1: Stryker Drilling (stock 5) — split and share doubling
     ok := TRUE
     IF mDlt(5) <> 56 THEN
       PRINT "Test 1 FAIL  mDlt(5): exp=56 got="; mDlt(5)
@@ -1083,7 +1083,7 @@ END
     ENDIF
     RETURN
 
-200 ! Test 2: Growth Corp (stock 1) — no card effect, no split
+200 \ ! Test 2: Growth Corp (stock 1) — no card effect, no split
     ok := TRUE
     IF mDlt(1) <> 23 THEN
       PRINT "Test 2 FAIL  mDlt(1): exp=23 got="; mDlt(1)
@@ -1493,7 +1493,7 @@ ELSE
   errCnt := errCnt + 1
 ENDIF
 
-700 ! --- Summary and cleanup ---
+700 \ ! --- Summary and cleanup ---
 PRINT
 IF errCnt = 0 THEN
   PRINT "PASS: all checks passed."
@@ -1554,7 +1554,7 @@ GOSUB 300
 
 GOTO 400
 
-100 ! --- Part 1: happy path round-trip ---
+100 \ ! --- Part 1: happy path round-trip ---
 PRINT "Part 1: round-trip save and load."
 
 FOR i := 1 TO 6
@@ -1653,7 +1653,7 @@ ENDIF
 PRINT
 RETURN
 
-200 ! --- Part 2: corrupt magic byte at offset 0 ---
+200 \ ! --- Part 2: corrupt magic byte at offset 0 ---
 ! Expected: loadGame prints "not a valid save file", loadOK=FALSE.
 PRINT "Part 2: corrupt magic byte (expect error message below)."
 
@@ -1677,7 +1677,7 @@ ENDIF
 PRINT
 RETURN
 
-300 ! --- Part 3: corrupt currYear at offset 2 ---
+300 \ ! --- Part 3: corrupt currYear at offset 2 ---
 ! magic and fmtVersion intact; checksum will mismatch.
 ! Expected: loadGame prints "save file is corrupt", loadOK=FALSE.
 PRINT "Part 3: corrupt currYear byte (expect error message below)."
@@ -1702,7 +1702,7 @@ ENDIF
 PRINT
 RETURN
 
-400 ! --- Summary and cleanup ---
+400 \ ! --- Summary and cleanup ---
 IF errCnt = 0 THEN
   PRINT "PASS: all checks passed."
 ELSE
@@ -1774,7 +1774,7 @@ GOSUB 400
 
 GOTO 500
 
-100 ! --- Phase 0: YEAR_START ---
+100 \ ! --- Phase 0: YEAR_START ---
 ! savedPlyr=0, obligation=0 (both unused at this checkpoint).
 PRINT "Phase 0 (YEAR_START)."
 hdr.currYear   := 1
@@ -1824,7 +1824,7 @@ ENDIF
 PRINT
 RETURN
 
-200 ! --- Phase 1: SELL_PHASE ---
+200 \ ! --- Phase 1: SELL_PHASE ---
 ! savedPlyr=next player to sell; obligation unused (=0).
 PRINT "Phase 1 (SELL_PHASE)."
 hdr.currYear   := 4
@@ -1874,7 +1874,7 @@ ENDIF
 PRINT
 RETURN
 
-300 ! --- Phase 2: BUY_PHASE ---
+300 \ ! --- Phase 2: BUY_PHASE ---
 ! savedPlyr=next player to buy; obligation unused (=0).
 PRINT "Phase 2 (BUY_PHASE)."
 hdr.currYear   := 7
@@ -1924,7 +1924,7 @@ ENDIF
 PRINT
 RETURN
 
-400 ! --- Phase 3: FORCED_LIQ ---
+400 \ ! --- Phase 3: FORCED_LIQ ---
 ! obligation carries the outstanding forced-liquidation amount.
 ! This is the only checkpoint where obligation is non-zero.
 PRINT "Phase 3 (FORCED_LIQ)."
@@ -1975,7 +1975,7 @@ ENDIF
 PRINT
 RETURN
 
-500 ! --- Summary ---
+500 \ ! --- Summary ---
 IF errCnt = 0 THEN
   PRINT "PASS: all phase checks passed."
 ELSE
@@ -2416,7 +2416,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 action check
+100 \ ! Test 1 action check
     IF action = 1 THEN
       PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2427,7 +2427,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 action check
+200 \ ! Test 2 action check
     IF action = 1 THEN
       PRINT "Test 2 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2438,7 +2438,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 action check
+300 \ ! Test 3 action check
     IF action = 1 THEN
       PRINT "Test 3 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2530,7 +2530,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 action check
+100 \ ! Test 1 action check
     IF action = 1 THEN
       PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2541,7 +2541,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 action check
+200 \ ! Test 2 action check
     IF action = 1 THEN
       PRINT "Test 2 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2640,7 +2640,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 action check
+100 \ ! Test 1 action check
     IF action = 1 THEN
       PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2651,7 +2651,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 action check
+200 \ ! Test 2 action check
     IF action = 1 THEN
       PRINT "Test 2 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2662,7 +2662,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 action check
+300 \ ! Test 3 action check
     IF action = 1 THEN
       PRINT "Test 3 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2784,7 +2784,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 action check
+100 \ ! Test 1 action check
     IF action = 1 THEN
       PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2795,7 +2795,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 action check
+200 \ ! Test 2 action check
     IF action = 1 THEN
       PRINT "Test 2 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2806,7 +2806,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 action check
+300 \ ! Test 3 action check
     IF action = 1 THEN
       PRINT "Test 3 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -2930,7 +2930,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Action check
+100 \ ! Action check
     IF action = 1 THEN
       PRINT "PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -3049,7 +3049,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 action check
+100 \ ! Test 1 action check
     IF action = 1 THEN
       PRINT "Test 1 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -3060,7 +3060,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 action check
+200 \ ! Test 2 action check
     IF action = 1 THEN
       PRINT "Test 2 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -3071,7 +3071,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 action check
+300 \ ! Test 3 action check
     IF action = 1 THEN
       PRINT "Test 3 PASS  action=1 (CONTINUE)"
       passed := passed + 1
@@ -3184,7 +3184,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! --- Check returned values ---
+100 \ ! --- Check returned values ---
     PRINT
     PRINT "ordCnt = "; ordCnt; "  (exp 2)"
     PRINT "action = "; action; "  (exp 1)"
@@ -3381,7 +3381,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1: cash sell + bond sell
+100 \ ! Test 1: cash sell + bond sell
     GOSUB 500
     IF plyr.cashBal = 16000 THEN
       PRINT "Test 1 PASS  cashBal=16000"
@@ -3414,7 +3414,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2: full margin sell
+200 \ ! Test 2: full margin sell
     GOSUB 500
     IF plyr.cashBal = 8000 THEN
       PRINT "Test 2 PASS  cashBal=8000"
@@ -3447,7 +3447,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3: partial margin sell
+300 \ ! Test 3: partial margin sell
     GOSUB 500
     IF plyr.cashBal = 5000 THEN
       PRINT "Test 3 PASS  cashBal=5000 (unchanged)"
@@ -3480,7 +3480,7 @@ RETURN
     PRINT
 RETURN
 
-400 ! Test 4: pass turn — no changes
+400 \ ! Test 4: pass turn — no changes
     GOSUB 500
     IF plyr.cashBal = 5000 THEN
       PRINT "Test 4 PASS  cashBal=5000 (unchanged)"
@@ -3499,7 +3499,7 @@ RETURN
     PRINT
 RETURN
 
-500 ! Print state for inspection
+500 \ ! Print state for inspection
      PRINT "  cashBal="; plyr.cashBal;
      PRINT "  marginTot="; plyr.marginTot;
      PRINT "  stckShrs(1)="; plyr.stckShrs(1);
@@ -3707,7 +3707,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1 assertions
+100 \ ! Subtest 1 assertions
     PRINT "--- Subtest 1 results ---"
     IF ordCnt = 2 THEN
       PRINT "PASS  ordCnt=2"
@@ -3754,7 +3754,7 @@ END
     PRINT
 RETURN
 
-200 ! Subtest 2 assertions
+200 \ ! Subtest 2 assertions
     PRINT "--- Subtest 2 results ---"
     IF ordCnt = 0 THEN
       PRINT "PASS  ordCnt=0"
@@ -3780,7 +3780,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Subtest 3 assertions
+300 \ ! Subtest 3 assertions
     PRINT "--- Subtest 3 results ---"
     IF ordCnt = 1 THEN
       PRINT "PASS  ordCnt=1"
@@ -3821,7 +3821,7 @@ RETURN
     PRINT
 RETURN
 
-400 ! Subtest 4 assertions
+400 \ ! Subtest 4 assertions
     PRINT "--- Subtest 4 results ---"
     IF mgnRepay = 1000 THEN
       PRINT "PASS  mgnRepay=1000"
@@ -3977,7 +3977,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1: expect amtToRpy=500
+100 \ ! Subtest 1: expect amtToRpy=500
     IF amtToRpy = 500 THEN
       PRINT "PASS  amtToRpy=500"
       passed := passed + 1
@@ -3988,7 +3988,7 @@ END
     PRINT
 RETURN
 
-200 ! Subtest 2: expect amtToRpy=0
+200 \ ! Subtest 2: expect amtToRpy=0
     IF amtToRpy = 0 THEN
       PRINT "PASS  amtToRpy=0 (no repayment)"
       passed := passed + 1
@@ -3999,7 +3999,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Subtest 3: expect amtToRpy=0
+300 \ ! Subtest 3: expect amtToRpy=0
     IF amtToRpy = 0 THEN
       PRINT "PASS  amtToRpy=0 (bare Enter)"
       passed := passed + 1
@@ -4010,7 +4010,7 @@ RETURN
     PRINT
 RETURN
 
-400 ! Subtest 4: expect amtToRpy=1000
+400 \ ! Subtest 4: expect amtToRpy=1000
     IF amtToRpy = 1000 THEN
       PRINT "PASS  amtToRpy=1000 (exact max)"
       passed := passed + 1
@@ -4021,7 +4021,7 @@ RETURN
     PRINT
 RETURN
 
-500 ! Subtest 5: expect amtToRpy=250
+500 \ ! Subtest 5: expect amtToRpy=250
     IF amtToRpy = 250 THEN
       PRINT "PASS  amtToRpy=250"
       passed := passed + 1
@@ -4150,7 +4150,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1: machine checks — arrays unmodified
+100 \ ! Subtest 1: machine checks — arrays unmodified
     PRINT "--- Subtest 1 machine checks ---"
     IF decAct(1) = 1 AND decType(1) = 1 AND decId(1) = 5 THEN
       IF decQty(1) = 50 THEN
@@ -4188,7 +4188,7 @@ END
     PRINT
 RETURN
 
-200 ! Subtest 2: machine checks — arrays unmodified
+200 \ ! Subtest 2: machine checks — arrays unmodified
     PRINT "--- Subtest 2 machine checks ---"
     IF decAct(1) = 4 AND decAct(2) = 4 AND decAct(3) = 4 THEN
       PRINT "PASS  all decAct=4 (PASS) unmodified"
@@ -4207,7 +4207,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Subtest 3: machine checks — arrays unmodified
+300 \ ! Subtest 3: machine checks — arrays unmodified
     PRINT "--- Subtest 3 machine checks ---"
     IF decAct(1) = 1 AND decType(1) = 2 AND decId(1) = 2 THEN
       IF decQty(1) = 1 THEN
@@ -4231,7 +4231,7 @@ RETURN
     PRINT
 RETURN
 
-400 ! Subtest 4: machine checks
+400 \ ! Subtest 4: machine checks
     PRINT "--- Subtest 4 machine checks ---"
     IF decCnt = 0 THEN
       PRINT "PASS  decCnt unmodified (0)"
@@ -4243,7 +4243,7 @@ RETURN
     PRINT
 RETURN
 
-500 ! Reset all decision arrays to zero
+500 \ ! Reset all decision arrays to zero
     FOR i := 1 TO 12
       decAct(i)  := 0
       decType(i) := 0
@@ -4341,7 +4341,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1: params unmodified
+100 \ ! Subtest 1: params unmodified
     PRINT "--- Subtest 1 machine checks ---"
     IF tPlyrNam = "ALICE" THEN
       PRINT "PASS  tPlyrNam unmodified"
@@ -4381,7 +4381,7 @@ END
     PRINT
 RETURN
 
-200 ! Subtest 2: params unmodified
+200 \ ! Subtest 2: params unmodified
     PRINT "--- Subtest 2 machine checks ---"
     IF tPlyrNam = "BOB" THEN
       PRINT "PASS  tPlyrNam unmodified"
@@ -4592,7 +4592,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Test 1 assertions
+100 \ ! Test 1 assertions
     IF plyr.cashBal = 8500 THEN
       PRINT "PASS  T1 cashBal=8500"
       passed := passed + 1
@@ -4624,7 +4624,7 @@ END
     PRINT
 RETURN
 
-200 ! Test 2 assertions
+200 \ ! Test 2 assertions
     IF plyr.cashBal = 3000 THEN
       PRINT "PASS  T2 cashBal=3000"
       passed := passed + 1
@@ -4663,7 +4663,7 @@ RETURN
     PRINT
 RETURN
 
-300 ! Test 3 assertions
+300 \ ! Test 3 assertions
     IF plyr.cashBal = 10000 THEN
       PRINT "PASS  T3 cashBal=10000"
       passed := passed + 1
@@ -4688,7 +4688,7 @@ RETURN
     PRINT
 RETURN
 
-400 ! Test 4 assertions
+400 \ ! Test 4 assertions
     IF plyr.cashBal = 2000 THEN
       PRINT "PASS  T4 cashBal=2000 (no-op)"
       passed := passed + 1
@@ -4713,7 +4713,7 @@ RETURN
     PRINT
 RETURN
 
-500 ! Subtest 5 assertion
+500 \ ! Subtest 5 assertion
     IF action = 1 THEN
       PRINT "PASS  Subtest5 action=1 (SUBMIT)"
       passed := passed + 1
@@ -4725,7 +4725,7 @@ RETURN
     PRINT
 RETURN
 
-600 ! Reset plyr record to clean state
+600 \ ! Reset plyr record to clean state
     plyr.plyrName  := ""
     plyr.plyrType  := 0
     plyr.aiTier    := 0
@@ -4840,7 +4840,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 ! Subtest 1 post-call assertions
+100 \ ! Subtest 1 post-call assertions
     PRINT "--- Subtest 1 machine checks ---"
     IF plyr.isBankrupt THEN
       PRINT "PASS  S1 isBankrupt=TRUE after call"
@@ -4873,7 +4873,7 @@ END
     PRINT
 RETURN
 
-200 ! Subtest 2 post-call assertions
+200 \ ! Subtest 2 post-call assertions
     PRINT "--- Subtest 2 machine checks ---"
     IF plyr.isBankrupt THEN
       PRINT "PASS  S2 isBankrupt=TRUE after call"
@@ -4906,7 +4906,7 @@ RETURN
     PRINT
 RETURN
 
-500 ! Reset plyr to clean state
+500 \ ! Reset plyr to clean state
     plyr.plyrName   := ""
     plyr.plyrType   := 0
     plyr.aiTier     := 0
@@ -5250,3 +5250,149 @@ RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTMGNCLR"
     END
+
+PROCEDURE TSTEND
+(* ============================================================ *)
+(* PROCEDURE : TSTEND                                           *)
+(* PURPOSE   : Confirmation test for Phase 11 Task 11.1.       *)
+(*             Tests scrFinalMkt, scrWealth, scrWinner,        *)
+(*             scrPostGame per project-timeline.md spec.       *)
+(*                                                             *)
+(*   Test A — Normal game end (Player 1 wins):                 *)
+(*     P1: cashBal=3000, 100 Valley Power @95, 1 large bond.  *)
+(*         totalWealth = 3000 + 9500 + 10000 = 22500.         *)
+(*     P2: cashBal=8000, 50 Shady Brooks @140, 0 bonds.       *)
+(*         totalWealth = 8000 + 7000 = 15000.                 *)
+(*     Verify: wlth(1)=22500, wlth(2)=15000.                  *)
+(*     Verify: srtOrd(1)=1 (P1 listed first in scrWealth).    *)
+(*     Verify: scrWinner names ALICE.                          *)
+(*                                                             *)
+(*   Test B — Tie scenario:                                    *)
+(*     Adjust P2 cashBal to 15500.                            *)
+(*     P2 totalWealth = 15500 + 7000 = 22500 = P1 total.      *)
+(*     Verify: both ALICE and BOB named in scrWinner.          *)
+(*                                                             *)
+(*   Test C — Post-game menu:                                  *)
+(*     Verify 1=New Game / 2=Load Game / 3=Quit routes.       *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyrs(6)  : PlyrRec
+DIM mkt       : MktState
+DIM wlth(6)   : INTEGER
+DIM srtOrd(6) : INTEGER
+DIM action    : INTEGER
+DIM plyrCount : INTEGER
+DIM i         : INTEGER
+
+ON ERROR GOTO 900
+
+plyrCount := 2
+
+! --- Init player 1 (ALICE) ----------------------------------
+plyrs(1).plyrName   := "ALICE"
+plyrs(1).plyrType   := 1
+plyrs(1).aiTier     := 0
+plyrs(1).cashBal    := 3000
+plyrs(1).marginTot  := 0
+plyrs(1).isBankrupt := FALSE
+plyrs(1).hadCashPur := FALSE
+FOR i := 1 TO 9
+  plyrs(1).stckShrs(i) := 0
+  plyrs(1).mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyrs(1).bondUnts(i) := 0
+NEXT i
+plyrs(1).stckShrs(9) := 100 \ ! 100 Valley Power (stock 9)
+plyrs(1).bondUnts(3) := 1   \ ! 1 large bond ($10000 par)
+
+! --- Init player 2 (BOB) ------------------------------------
+plyrs(2).plyrName   := "BOB"
+plyrs(2).plyrType   := 1
+plyrs(2).aiTier     := 0
+plyrs(2).cashBal    := 8000
+plyrs(2).marginTot  := 0
+plyrs(2).isBankrupt := FALSE
+plyrs(2).hadCashPur := FALSE
+FOR i := 1 TO 9
+  plyrs(2).stckShrs(i) := 0
+  plyrs(2).mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyrs(2).bondUnts(i) := 0
+NEXT i
+plyrs(2).stckShrs(4) := 50 \ ! 50 Shady Brooks (stock 4)
+
+! --- Init market state --------------------------------------
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(9) := 95  \ ! Valley Power final price
+mkt.stckPrice(4) := 140 \ ! Shady Brooks final price
+
+! === Test A — Normal game end (P1 wins) =====================
+PRINT "=== TSTEND Phase 11 Task 11.1 ==="
+PRINT
+PRINT "Test A: P1 wins."
+PRINT "  Expected wlth(1)=22500  wlth(2)=15000"
+PRINT "  srtOrd(1)=1  srtOrd(2)=2"
+PRINT "  scrWinner: ALICE declared."
+PRINT
+PRINT "Press any key to run Test A...";
+RUN waitKey
+
+RUN scrFinalMkt(mkt)
+RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
+
+PRINT "wlth(1)="; wlth(1); "  expected 22500"
+PRINT "wlth(2)="; wlth(2); "  expected 15000"
+PRINT "srtOrd(1)="; srtOrd(1); "  expected 1"
+PRINT "srtOrd(2)="; srtOrd(2); "  expected 2"
+RUN waitKey
+
+RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
+
+! === Test B — Tie scenario ==================================
+PRINT "=== Test B: Tie ==="
+PRINT "  Setting plyrs(2).cashBal := 15500"
+PRINT "  P2 totalWealth = 15500 + 7000 = 22500 = P1 total"
+PRINT "  Expected: both ALICE and BOB named as winners."
+PRINT
+plyrs(2).cashBal := 15500
+PRINT "Press any key to run Test B...";
+RUN waitKey
+
+RUN scrWealth(plyrs, plyrCount, mkt, wlth, srtOrd)
+
+PRINT "wlth(1)="; wlth(1); "  expected 22500"
+PRINT "wlth(2)="; wlth(2); "  expected 22500"
+RUN waitKey
+
+RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
+
+! === Test C — Post-game menu ================================
+PRINT "=== Test C: Post-game menu ==="
+PRINT "  Press 1, 2, or 3. Verify action returned."
+PRINT
+PRINT "Press any key to launch scrPostGame...";
+RUN waitKey
+
+RUN scrPostGame(action)
+PRINT "action = "; action
+IF action = 1 THEN
+  PRINT "  New Game selected. Expected: 1. OK"
+ELSE IF action = 2 THEN
+  PRINT "  Load Game selected. Expected: 2. OK"
+ELSE
+  PRINT "  Quit selected. Expected: 3. OK"
+ENDIF \ENDIF
+
+PRINT
+PRINT "TSTEND complete."
+END
+
+900 PRINT "TSTEND error ("; ERR; ")"
+END
