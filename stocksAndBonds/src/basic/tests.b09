@@ -6740,3 +6740,75 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTMGNINT
+(* ============================================================ *)
+(* PROCEDURE : TSTMGNINT                                        *)
+(* PURPOSE   : Confirmation test for Task 10.5 (scrMgnInt).    *)
+(*             Three visual test cases; examiner verifies      *)
+(*             screen content against expected output.         *)
+(*                                                             *)
+(*   Test 1 — Normal (no forced liquidation):                  *)
+(*     mgnTot=2000, mgnChg=100, cashBef=500, cashAft=400.      *)
+(*     Expect: charge and both balances displayed.             *)
+(*             NO forced liquidation notice.                   *)
+(*                                                             *)
+(*   Test 2 — Forced liquidation triggered:                    *)
+(*     mgnTot=2000, mgnChg=200, cashBef=150, cashAft=-50.      *)
+(*     Expect: charge and both balances displayed.             *)
+(*             FORCED LIQUIDATION warning visible.             *)
+(*                                                             *)
+(*   Test 3 — Year guard (Year 1):                             *)
+(*     Expect: screen clears immediately, no content shown,    *)
+(*             procedure returns without blocking on waitKey.  *)
+(*                                                             *)
+(*   Test 4 — Year guard (Year 10):                            *)
+(*     Expect: same as Test 3.                                 *)
+(* ============================================================ *)
+DIM act : INTEGER
+
+ON ERROR GOTO 900
+
+! ---- Test 1: normal, no forced liquidation -----------------
+PRINT "Test 1: normal case (isFrcLiq=FALSE)"
+PRINT "Expect: charge=$100, cashBef=$500, cashAft=$400, no warning"
+PRINT "Press any key to view screen..."
+RUN waitKey
+
+RUN scrMgnInt(5, "ALICE", 2000, 100, 500, 400, FALSE, act)
+
+PRINT "Returned action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 2: forced liquidation ----------------------------
+PRINT "Test 2: forced liquidation (isFrcLiq=TRUE)"
+PRINT "Expect: charge=$200, cashBef=$150, cashAft=$-50, warning shown"
+PRINT "Press any key to view screen..."
+RUN waitKey
+
+RUN scrMgnInt(5, "BOB", 2000, 200, 150, -50, TRUE, act)
+
+PRINT "Returned action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 3: Year 1 guard ----------------------------------
+PRINT "Test 3: Year 1 guard"
+PRINT "Expect: screen returns immediately, no S10 content shown"
+RUN scrMgnInt(1, "CAROL", 1000, 50, 300, 250, FALSE, act)
+PRINT "Returned without blocking. action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 4: Year 10 guard ---------------------------------
+PRINT "Test 4: Year 10 guard"
+PRINT "Expect: screen returns immediately, no S10 content shown"
+RUN scrMgnInt(10, "DAVE", 1000, 50, 300, 250, FALSE, act)
+PRINT "Returned without blocking. action="; act; "  (expected 1)"
+PRINT
+PRINT "TSTMGNINT complete."
+END
+
+900 ERROR(ERR)
+END

@@ -771,3 +771,80 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE scrMgnInt
+(* ============================================================ *)
+(* PROCEDURE : scrMgnInt                                        *)
+(* PURPOSE   : S10 Margin Interest Notice screen.              *)
+(*             Displays annual margin interest charge and the  *)
+(*             resulting cash balance for one player.          *)
+(*             Called once per non-bankrupt player with        *)
+(*             outstanding margin after applyMgnInt runs.      *)
+(*             If isFrcLiq is TRUE, displays a forced          *)
+(*             liquidation warning before waitKey; caller is   *)
+(*             responsible for routing to scrForceLiq after    *)
+(*             this screen returns.                            *)
+(*             Internal guard: no-ops for Year 1 and Year 10; *)
+(*             those years have no margin interest charge.     *)
+(*             Caller should not invoke in Year 1 or Year 10, *)
+(*             but the guard prevents display if called in     *)
+(*             error.                                          *)
+(* PARAMS    : currYear  - current game year (1..10)           *)
+(*             plyrNam   - player name for display             *)
+(*             mgnTot    - outstanding margin before charge    *)
+(*             mgnChg    - interest deducted this year (>= 0)  *)
+(*             cashBef   - cash balance before deduction       *)
+(*             cashAft   - cash balance after deduction        *)
+(*             isFrcLiq  - TRUE if cashAft < 0                 *)
+(*             action    - OUT: always 1 (CONTINUE)            *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey.  *)
+(* ============================================================ *)
+PARAM currYear : INTEGER
+PARAM plyrNam  : STRING[20]
+PARAM mgnTot   : INTEGER
+PARAM mgnChg   : INTEGER
+PARAM cashBef  : INTEGER
+PARAM cashAft  : INTEGER
+PARAM isFrcLiq : BOOLEAN
+PARAM action   : INTEGER
+DIM pStr : STRING[8]
+
+ON ERROR GOTO 900
+
+! Internal guard: margin interest does not apply in Year 1 or 10.
+IF currYear = 1 OR currYear = 10 THEN
+  action := 1
+  END
+ENDIF
+
+RUN clrScr
+PRINT
+PRINT "  MARGIN INTEREST (S10)"
+PRINT "  "; plyrNam; "  YEAR "; currYear; " OF 10"
+PRINT
+
+RUN fmtMoney(mgnTot, pStr)
+PRINT "  Outstanding margin : $"; pStr
+RUN fmtMoney(mgnChg, pStr)
+PRINT "  Annual charge (5%) : $"; pStr
+PRINT
+
+RUN fmtMoney(cashBef, pStr)
+PRINT "  Cash before charge : $"; pStr
+RUN fmtMoney(cashAft, pStr)
+PRINT "  Cash after charge  : $"; pStr
+PRINT
+
+IF isFrcLiq THEN
+  PRINT "  *** FORCED LIQUIDATION REQUIRED ***"
+  PRINT "  Cash balance is negative after margin interest."
+  PRINT "  You must liquidate assets to cover the deficit."
+  PRINT
+ENDIF
+
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END

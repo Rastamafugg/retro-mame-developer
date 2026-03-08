@@ -183,481 +183,207 @@ END
 PRINT "waitKey error ("; ERR; ")"
 END
 
-PROCEDURE getMktDelta
-(* ============================================================ *)
-(* PROCEDURE : getMktDelta                                      *)
-(* PURPOSE   : Return stock price delta from the Bull or Bear   *)
-(*             market table for a given stock, market type,     *)
-(*             and 2d6 roll result.                             *)
-(* PARAMS    : stockId - stock index 1..9                       *)
-(*             mktType - market type: 1=Bull, 2=Bear            *)
-(*             roll    - 2d6 result 2..12                       *)
-(*             delta   - receives the price change (INTEGER)    *)
-(* SIDE EFX  : Repositions the internal DATA pointer via        *)
-(*             RESTORE. Caller must not depend on DATA pointer   *)
-(*             state after this call.                           *)
-(* ============================================================ *)
-PARAM stockId : INTEGER
-PARAM mktType : INTEGER
-PARAM roll    : INTEGER
-PARAM delta   : INTEGER
-DIM skipCnt : INTEGER
-DIM i       : INTEGER
-DIM tmp     : INTEGER
+PROCEDURE clrScr
+(* ================================================== *)
+(* PROCEDURE: clrScr                                  *)
+(* PURPOSE:   Clear the terminal screen via path 1.  *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Sends ASCII form-feed (12) to path 1.  *)
+(*            Cursor moves to top-left of terminal.  *)
+(* ================================================== *)
+DIM clsChar:BYTE
 
 ON ERROR GOTO 900
 
-! Offset into the flat table: (stockId-1)*11 columns per stock
-! plus (roll-2) for 0-based roll index within that row.
-skipCnt := ((stockId - 1) * 11) + (roll - 2)
-
-IF mktType = 1 THEN
-  RESTORE 100 \ ! Bull table
-ELSE
-  RESTORE 200 \ ! Bear table
-ENDIF
-
-FOR i := 1 TO skipCnt
-  READ tmp
-NEXT i
-READ delta
+clsChar := 12 \ ! ASCII form-feed clears terminal screen
+PUT #1, clsChar
 END
 
-! ---- Bull market table (spec Section 5.1) -------------------
-! Stock order: Growth Corp, Metro Props, Pioneer Mutual,
-!   Shady Brooks, Stryker Drilling, Tri-City Transport,
-!   United Auto, Uranium Enterprises, Valley Power
-! Rolls:          2    3    4    5    6    7    8    9   10   11   12
-100 DATA  -2,  26,  18,  23,  20,  17,  19,  11,  13,  14,  24
-DATA -10,  16,  23,  28,  15,  21,  24,  18,  31,  -8,  24
-DATA  -7,  25,  11,  -2,  15,  13,  17,  14,   1,  19,  23
-DATA  -9,   8,  12,  11,   7,  -2,   9,  11,  14,  -1,  20
-DATA  -2, -14,  46,  56, -20,  37,  -5,  67, -11,  -9,  51
-DATA  -9,  21,  18,  19,  15,  23,  26,  15,  18,  25,  27
-DATA  -7,  14,  -5,  30,  13,  23,  13,  22,  18, -10,  38
-DATA -16,  -4,  34,  29, -10,  19,  -7,  18, -14,  13,  33
-DATA  -4,  17,  15,  14,  12,  14,  15,  13,  10,  19,  18
-
-! ---- Bear market table (spec Section 5.2) -------------------
-! Same stock order as Bull table above.
-! Rolls:          2    3    4    5    6    7    8    9   10   11   12
-200 DATA  12,   7,   9,   7,   8,   6,   5,  -2,  11,  -5,  -8
-DATA  14,  -6,  10,   8,   6,   4,   7,   6,  11,  13, -10
-DATA  13,  10,   7,   5,   4,   3,  -1,  -3,  -5,  -8, -10
-DATA  10, -10,  -5,  -6,  -4,   3,  -3,  -8,  -7,   6, -15
-DATA  10,  30, -20, -40,  40, -15,  45, -20,  30,  25, -20
-DATA  20,   6,  12,   3,   8,   5,   6,   7,  10,   4, -20
-DATA  21, -19,  21,  16,   4,   8, -10,  10, -11,  18, -23
-DATA  25,  22,  18, -14, -12,  -8,  10,  14, -18, -22, -25
-DATA   8,  -2,   7,   4,   3,   5,   4,   6,  -4,  -4,  -7
-
-900 ERROR(ERR)
+900 \ ! Error handler
+PRINT "clrScr error ("; ERR; ")"
 END
 
-PROCEDURE getCard
-(* ============================================================ *)
-(* PROCEDURE : getCard                                          *)
-(* PURPOSE   : Populate a CardRec from the encoded card table   *)
-(*             for a given card ID (1..36).                     *)
-(* PARAMS    : cardId - card number 1..36                       *)
-(*             card   - receives all card fields (by ref)       *)
-(* SIDE EFX  : Repositions the internal DATA pointer via        *)
-(*             RESTORE. Caller must not depend on DATA pointer  *)
-(*             state after this call.                           *)
-(* NOTE      : CardRec TYPE must be declared in every procedure *)
-(*             that calls getCard or passes a CardRec param.    *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
-PARAM cardId : INTEGER
-PARAM card   : CardRec
-DIM skipCnt : INTEGER
-DIM i       : INTEGER
-DIM tmp     : INTEGER
+PROCEDURE fmtMoney
+(* ================================================== *)
+(* PROCEDURE: fmtMoney                                *)
+(* PURPOSE:   Right-justify an INTEGER into a 7-char *)
+(*            field, returned in result (STRING[8]). *)
+(* PARAMS:    amt    - value to format (INTEGER)      *)
+(*            result - receives formatted string      *)
+(* EFFECTS:   result is always exactly 7 characters. *)
+(*            Negative values include leading minus.  *)
+(* LIMITS:    Field width 7 holds -32767 to 32767.   *)
+(*            -32768 produces 8 chars and overflows. *)
+(* ================================================== *)
+PARAM amt:INTEGER
+PARAM result:STRING[8]
+
+DIM raw:STRING[8]
+DIM sLen:INTEGER
+DIM padLen:INTEGER
+DIM p:INTEGER
 
 ON ERROR GOTO 900
 
-! Each card occupies 11 fixed-width slots:
-!   crdType, efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
-! Unused effect slots are encoded as 0,0.
-skipCnt := (cardId - 1) * 11
-RESTORE 100
+raw := TRIM$(STR$(amt)) \ ! digit string, no trailing spaces
+sLen := LEN(raw)
+padLen := 7 - sLen
 
-FOR i := 1 TO skipCnt
-  READ tmp
-NEXT i
-
-READ card.crdType
-READ card.efxCnt
-READ card.efxStk(1), card.efxDlt(1)
-READ card.efxStk(2), card.efxDlt(2)
-READ card.efxStk(3), card.efxDlt(3)
-READ card.efxStk(4), card.efxDlt(4)
-READ card.divBonus
+result := ""
+FOR p := 1 TO padLen
+  result := result + " "
+NEXT p
+result := result + raw
 END
 
-! ---- Situation card table (spec Section 4.3) ----------------
-! Stock IDs: 1=Growth Corp  2=Metro Props  3=Pioneer Mutual
-!            4=Shady Brooks 5=Stryker      6=Tri-City Transport
-!            7=United Auto  8=Uranium Ent  9=Valley Power
-! crdType: 1=Bull  2=Bear
-! crdType,efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
-100 DATA 2, 1,  1,  10,  0,   0,  0,   0,  0,   0,  2
-DATA     1, 1,  1,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  1,   8,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  1,  -8,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  2,   5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  2,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  2,  -5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  2, -10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  4,   5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  4,  -5,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  5,  17,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  5, -15,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  5, -10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  6,  15,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  6,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  6,   5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  6,  -5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  6, -25,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  7,  15,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  7,  -5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  8, -25,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
-DATA     2, 1,  9, -14,  0,   0,  0,   0,  0,   0,  0
-DATA     1, 2,  3,   3,  9,   4,  0,   0,  0,   0,  0
-DATA     1, 4,  1,   8,  2,   5,  3,   5,  7,   7,  0
-DATA     1, 3,  3,  -8,  5,   8,  8,   5,  0,   0,  0
-DATA     2, 3,  1,  -8,  2,  -5,  7,  -7,  0,   0,  0
-
-900 ERROR(ERR)
+900 \ ! Error handler
+PRINT "fmtMoney error ("; ERR; ")"
 END
 
-PROCEDURE resolvePrice
+PROCEDURE scrMgnInt
 (* ============================================================ *)
-(* PROCEDURE : resolvePrice                                     *)
-(* PURPOSE   : Resolve the new price and share count for one   *)
-(*             stock after market table and card deltas are     *)
-(*             applied (spec Section 7).                        *)
-(*             Execution order per spec:                        *)
-(*               1. Sum deltas.                                 *)
-(*               2. Clamp at 0 (BankruptcyPrice).              *)
-(*               3. Set divSuspndNow (DividendCutoff = 50).    *)
-(*               4. Apply split if >= 150 (round price up).    *)
-(* PARAMS    : curPrice   - stock price before this year        *)
-(*             mktDelta   - market table delta for this roll    *)
-(*             cardDelta  - situation card delta (0 if none)    *)
-(*             sharesOwnd - shares held by this player          *)
-(*             newPrice   - resolved price after all steps      *)
-(*             newShares  - shares after possible split         *)
-(*             splitOccrd - TRUE if a 2-for-1 split triggered  *)
-(*             divSuspNow - TRUE if dividends suspended at      *)
-(*                          newPrice (pre-split price used per  *)
-(*                          spec; split price always >= 75)     *)
-(*             divSuspPrv - TRUE if dividends were suspended at *)
-(*                          curPrice; derived here so caller    *)
-(*                          can detect suspension transitions   *)
-(*                          without external state.             *)
-(* SIDE EFX  : None. All outputs are via PARAM.                *)
+(* PROCEDURE : scrMgnInt                                        *)
+(* PURPOSE   : S10 Margin Interest Notice screen.              *)
+(*             Displays annual margin interest charge and the  *)
+(*             resulting cash balance for one player.          *)
+(*             Called once per non-bankrupt player with        *)
+(*             outstanding margin after applyMgnInt runs.      *)
+(*             If isFrcLiq is TRUE, displays a forced          *)
+(*             liquidation warning before waitKey; caller is   *)
+(*             responsible for routing to scrForceLiq after    *)
+(*             this screen returns.                            *)
+(*             Internal guard: no-ops for Year 1 and Year 10; *)
+(*             those years have no margin interest charge.     *)
+(*             Caller should not invoke in Year 1 or Year 10, *)
+(*             but the guard prevents display if called in     *)
+(*             error.                                          *)
+(* PARAMS    : currYear  - current game year (1..10)           *)
+(*             plyrNam   - player name for display             *)
+(*             mgnTot    - outstanding margin before charge    *)
+(*             mgnChg    - interest deducted this year (>= 0)  *)
+(*             cashBef   - cash balance before deduction       *)
+(*             cashAft   - cash balance after deduction        *)
+(*             isFrcLiq  - TRUE if cashAft < 0                 *)
+(*             action    - OUT: always 1 (CONTINUE)            *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey.  *)
 (* ============================================================ *)
-PARAM curPrice   : INTEGER
-PARAM mktDelta   : INTEGER
-PARAM cardDelta  : INTEGER
-PARAM sharesOwnd : INTEGER
-PARAM newPrice   : INTEGER
-PARAM newShares  : INTEGER
-PARAM splitOccrd : BOOLEAN
-PARAM divSuspNow : BOOLEAN
-PARAM divSuspPrv : BOOLEAN
-DIM rawPrice : INTEGER
+PARAM currYear : INTEGER
+PARAM plyrNam  : STRING[20]
+PARAM mgnTot   : INTEGER
+PARAM mgnChg   : INTEGER
+PARAM cashBef  : INTEGER
+PARAM cashAft  : INTEGER
+PARAM isFrcLiq : BOOLEAN
+PARAM action   : INTEGER
+DIM pStr : STRING[8]
 
 ON ERROR GOTO 900
 
-! Step 1: sum deltas.
-rawPrice := curPrice + mktDelta + cardDelta
-
-! Step 2: clamp at BankruptcyPrice (0).
-IF rawPrice < 0 THEN
-  rawPrice := 0
+! Internal guard: margin interest does not apply in Year 1 or 10.
+IF currYear = 1 OR currYear = 10 THEN
+  action := 1
+  END
 ENDIF
 
-! Derive previous suspension state from entry price.
-divSuspPrv := (curPrice < 50)
-
-! Step 3: set dividend suspension from clamped pre-split price.
-divSuspNow := (rawPrice < 50)
-
-! Step 4: apply split or pass through.
-IF rawPrice >= 150 THEN
-  ! Round halved price up: (rawPrice + 1) / 2 handles odd prices.
-  ! e.g. 155 → (155+1)/2 = 78.  154 → (154+1)/2 = 77.
-  newPrice   := (rawPrice + 1) / 2
-  newShares  := sharesOwnd * 2
-  splitOccrd := TRUE
-ELSE
-  newPrice   := rawPrice
-  newShares  := sharesOwnd
-  splitOccrd := FALSE
-ENDIF
-
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE applyMktYear
-(* ============================================================ *)
-(* PROCEDURE : applyMktYear                                     *)
-(* PURPOSE   : Apply full market price resolution for all 9    *)
-(*             stocks for one year (spec Sections 5–7).        *)
-(*             For each stock:                                  *)
-(*               - Looks up market table delta (getMktDelta)    *)
-(*               - Looks up card delta (getCard)                *)
-(*               - Resolves price, split, and dividend flags    *)
-(*                 (resolvePrice)                               *)
-(*               - Updates mkt.stckPrice and mkt.divSuspnd      *)
-(*               - Doubles stckShrs for all players on split    *)
-(*             Populates per-stock output arrays for S13–S15.  *)
-(* PARAMS    : cardId    - drawn card number (1..36)            *)
-(*             rolls     - per-stock 2d6 result (2..12);        *)
-(*                         all 9 slots populated by caller.    *)
-(*                         Mode A/B years 2-10: all 9 slots    *)
-(*                         hold the same value. Mode B year 1  *)
-(*                         and Mode C: slots hold independent  *)
-(*                         or override values per doRolls.     *)
-(*             plyrCnt   - number of active players (1..6)      *)
-(*             plyrs     - player records; stckShrs modified    *)
-(*                         on split                             *)
-(*             mkt       - market state; stckPrice and          *)
-(*                         divSuspnd updated in place           *)
-(*             prcBefCrd - price after mkt table, before card   *)
-(*                         delta; unclamped; for S13 display    *)
-(*             mktDlta   - market table delta per stock         *)
-(*             crdDlta   - card delta per stock (0 if none)     *)
-(*             splitOcc  - TRUE per stock if split triggered    *)
-(*             divSuspd  - TRUE per stock if newly suspended    *)
-(*             divRnstd  - TRUE per stock if reinstated         *)
-(* SIDE EFX  : Repositions DATA pointer (via getMktDelta and   *)
-(*             getCard). Caller must not depend on DATA state.  *)
-(* NOTE      : Card divBonus (Card 1) is NOT applied here.     *)
-(*             Apply separately to player cashBal after return. *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
-PARAM cardId       : INTEGER
-PARAM rolls(9)     : INTEGER
-PARAM plyrCnt      : INTEGER
-PARAM plyrs(6)     : PlyrRec
-PARAM mkt          : MktState
-PARAM prcBefCrd(9) : INTEGER
-PARAM mktDlta(9)   : INTEGER
-PARAM crdDlta(9)   : INTEGER
-PARAM splitOcc(9)  : BOOLEAN
-PARAM divSuspd(9)  : BOOLEAN
-PARAM divRnstd(9)  : BOOLEAN
-DIM card   : CardRec
-DIM s      : INTEGER
-DIM p      : INTEGER
-DIM e      : INTEGER
-DIM curPrc : INTEGER
-DIM delta  : INTEGER
-DIM cDelta : INTEGER
-DIM tmpPrc : INTEGER
-DIM tmpShr : INTEGER
-DIM splt   : BOOLEAN
-DIM dNow   : BOOLEAN
-DIM dPrv   : BOOLEAN
-
-ON ERROR GOTO 900
-
-RUN getCard(cardId, card)
-
-FOR s := 1 TO 9
-
-  ! Market table delta for this stock using its assigned roll.
-  RUN getMktDelta(s, card.crdType, rolls(s), delta)
-  mktDlta(s) := delta
-
-  ! Card delta: scan effects for this stock; default 0.
-  cDelta := 0
-  FOR e := 1 TO card.efxCnt
-    IF card.efxStk(e) = s THEN
-      cDelta := card.efxDlt(e)
-    ENDIF
-  NEXT e
-  crdDlta(s) := cDelta
-
-  ! Price before card delta: used by S13 for display only.
-  prcBefCrd(s) := mkt.stckPrice(s) + delta
-
-  ! Resolve price, split, and dividend suspension flags.
-  curPrc := mkt.stckPrice(s)
-  RUN resolvePrice(curPrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
-
-  ! Record display flags for S13/S14/S15.
-  splitOcc(s) := splt
-  IF NOT dPrv AND dNow THEN
-    divSuspd(s) := TRUE
-  ELSE
-    divSuspd(s) := FALSE
-  ENDIF
-  IF dPrv AND NOT dNow THEN
-    divRnstd(s) := TRUE
-  ELSE
-    divRnstd(s) := FALSE
-  ENDIF
-
-  ! Update market state in place.
-  mkt.stckPrice(s) := tmpPrc
-  mkt.divSuspnd(s) := dNow
-
-  ! On split: double all players' shares for this stock.
-  IF splt THEN
-    FOR p := 1 TO plyrCnt
-      plyrs(p).stckShrs(s) := plyrs(p).stckShrs(s) * 2
-    NEXT p
-  ENDIF
-
-NEXT s
-
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE TSTAMYR
-(* ============================================================ *)
-(* PROCEDURE : TSTAMYR                                          *)
-(* PURPOSE   : Confirmation test for Task 3.4a.                *)
-(*             Verifies applyMktYear uses rolls(s) per stock.  *)
-(*             Test A: uniform rolls — result matches prior     *)
-(*               Task 3.4 scalar expectation.                  *)
-(*             Test B: mixed rolls — stock 2 receives roll=4;  *)
-(*               all others roll=7. Verify mktDlta(2) differs  *)
-(*               from mktDlta(1), proving per-stock dispatch.  *)
-(*                                                             *)
-(* Expected values (Bull table, Card 13 = Stryker Bull +17):  *)
-(*   Test A roll=5:                                            *)
-(*     getMktDelta(1,1,5)=23  stckPrice(1) = 100+23 = 123     *)
-(*     getMktDelta(5,1,5)=56  100+56+17=173 split to 87       *)
-(*   Test B stock 1 roll=7, stock 2 roll=4:                   *)
-(*     getMktDelta(1,1,7)=17  mktDlta(1)=17                   *)
-(*     getMktDelta(2,1,4)=23  mktDlta(2)=23                   *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-
-DIM plyrs(6)   : PlyrRec
-DIM mkt        : MktState
-DIM rolls(9)   : INTEGER
-DIM prcBef(9)  : INTEGER
-DIM mktDlt(9)  : INTEGER
-DIM crdDlt(9)  : INTEGER
-DIM splitOc(9) : BOOLEAN
-DIM divSusp(9) : BOOLEAN
-DIM divRnst(9) : BOOLEAN
-DIM s          : INTEGER
-DIM pass       : INTEGER
-DIM fail       : INTEGER
-
-ON ERROR GOTO 900
-
-pass := 0
-fail := 0
-
-! ---- Test A: uniform rolls (all 9 = 5), Card 13 -----------
-
-PRINT "Test A: uniform rolls=5, Card 13"
-FOR s := 1 TO 9
-  rolls(s) := 5
-NEXT s
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-
-! Line exceeds 79 chars; applyMktYear call requires single line.
-RUN applyMktYear(13, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
-
-IF mkt.stckPrice(1) = 123 THEN
-  PRINT "  PASS: stckPrice(1)=123"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: stckPrice(1)="; mkt.stckPrice(1); " exp 123"
-  fail := fail + 1
-ENDIF
-
-IF mkt.stckPrice(5) = 87 THEN
-  PRINT "  PASS: stckPrice(5)=87 (split from 173)"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: stckPrice(5)="; mkt.stckPrice(5); " exp 87"
-  fail := fail + 1
-ENDIF
-
-IF splitOc(5) THEN
-  PRINT "  PASS: splitOcc(5)=TRUE"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: splitOcc(5)=FALSE expected TRUE"
-  fail := fail + 1
-ENDIF
-
-RUN waitKey
-
-! ---- Test B: stock 2 roll=4, stocks 1 and 3..9 roll=7 -----
-
-PRINT "Test B: stock 2 roll=4, all others roll=7, Card 13"
-FOR s := 1 TO 9
-  rolls(s) := 7
-NEXT s
-rolls(2) := 4
-RUN initPlayer(plyrs(1))
-RUN initMkt(mkt)
-
-! Line exceeds 79 chars; applyMktYear call requires single line.
-RUN applyMktYear(13, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
-
-IF mktDlt(1) = 17 THEN
-  PRINT "  PASS: mktDlt(1)=17 (roll=7)"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: mktDlt(1)="; mktDlt(1); " expected 17"
-  fail := fail + 1
-ENDIF
-
-IF mktDlt(2) = 23 THEN
-  PRINT "  PASS: mktDlt(2)=23 (roll=4)"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: mktDlt(2)="; mktDlt(2); " expected 23"
-  fail := fail + 1
-ENDIF
-
-IF mktDlt(2) <> mktDlt(1) THEN
-  PRINT "  PASS: mktDlt(2)<>mktDlt(1) (rolls independent)"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: mktDlt(2)=mktDlt(1) (per-stock dispatch fail)"
-  fail := fail + 1
-ENDIF
-
-RUN waitKey
-
-! ---- Summary -----------------------------------------------
+RUN clrScr
 PRINT
-PRINT "TSTAMYR: "; pass; " passed, "; fail; " failed"
+PRINT "  MARGIN INTEREST (S10)"
+PRINT "  "; plyrNam; "  YEAR "; currYear; " OF 10"
+PRINT
+
+RUN fmtMoney(mgnTot, pStr)
+PRINT "  Outstanding margin : $"; pStr
+RUN fmtMoney(mgnChg, pStr)
+PRINT "  Annual charge (5%) : $"; pStr
+PRINT
+
+RUN fmtMoney(cashBef, pStr)
+PRINT "  Cash before charge : $"; pStr
+RUN fmtMoney(cashAft, pStr)
+PRINT "  Cash after charge  : $"; pStr
+PRINT
+
+IF isFrcLiq THEN
+  PRINT "  *** FORCED LIQUIDATION REQUIRED ***"
+  PRINT "  Cash balance is negative after margin interest."
+  PRINT "  You must liquidate assets to cover the deficit."
+  PRINT
+ENDIF
+
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE TSTMGNINT
+(* ============================================================ *)
+(* PROCEDURE : TSTMGNINT                                        *)
+(* PURPOSE   : Confirmation test for Task 10.5 (scrMgnInt).    *)
+(*             Three visual test cases; examiner verifies      *)
+(*             screen content against expected output.         *)
+(*                                                             *)
+(*   Test 1 — Normal (no forced liquidation):                  *)
+(*     mgnTot=2000, mgnChg=100, cashBef=500, cashAft=400.      *)
+(*     Expect: charge and both balances displayed.             *)
+(*             NO forced liquidation notice.                   *)
+(*                                                             *)
+(*   Test 2 — Forced liquidation triggered:                    *)
+(*     mgnTot=2000, mgnChg=200, cashBef=150, cashAft=-50.      *)
+(*     Expect: charge and both balances displayed.             *)
+(*             FORCED LIQUIDATION warning visible.             *)
+(*                                                             *)
+(*   Test 3 — Year guard (Year 1):                             *)
+(*     Expect: screen clears immediately, no content shown,    *)
+(*             procedure returns without blocking on waitKey.  *)
+(*                                                             *)
+(*   Test 4 — Year guard (Year 10):                            *)
+(*     Expect: same as Test 3.                                 *)
+(* ============================================================ *)
+DIM act : INTEGER
+
+ON ERROR GOTO 900
+
+! ---- Test 1: normal, no forced liquidation -----------------
+PRINT "Test 1: normal case (isFrcLiq=FALSE)"
+PRINT "Expect: charge=$100, cashBef=$500, cashAft=$400, no warning"
+PRINT "Press any key to view screen..."
+RUN waitKey
+
+RUN scrMgnInt(5, "ALICE", 2000, 100, 500, 400, FALSE, act)
+
+PRINT "Returned action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 2: forced liquidation ----------------------------
+PRINT "Test 2: forced liquidation (isFrcLiq=TRUE)"
+PRINT "Expect: charge=$200, cashBef=$150, cashAft=$-50, warning shown"
+PRINT "Press any key to view screen..."
+RUN waitKey
+
+RUN scrMgnInt(5, "BOB", 2000, 200, 150, -50, TRUE, act)
+
+PRINT "Returned action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 3: Year 1 guard ----------------------------------
+PRINT "Test 3: Year 1 guard"
+PRINT "Expect: screen returns immediately, no S10 content shown"
+RUN scrMgnInt(1, "CAROL", 1000, 50, 300, 250, FALSE, act)
+PRINT "Returned without blocking. action="; act; "  (expected 1)"
+PRINT
+RUN waitKey
+
+! ---- Test 4: Year 10 guard ---------------------------------
+PRINT "Test 4: Year 10 guard"
+PRINT "Expect: screen returns immediately, no S10 content shown"
+RUN scrMgnInt(10, "DAVE", 1000, 50, 300, 250, FALSE, act)
+PRINT "Returned without blocking. action="; act; "  (expected 1)"
+PRINT
+PRINT "TSTMGNINT complete."
 END
 
 900 ERROR(ERR)
