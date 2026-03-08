@@ -6526,3 +6526,231 @@ END
 
 900 ERROR(ERR)
 END
+
+
+PROCEDURE TST132
+(* =========================================================== *)
+(* PROCEDURE : TST132                                          *)
+(* PURPOSE   : Confirmation test for Phase 13 Task 13.2.       *)
+(*             Verifies endgame overrides activate correctly    *)
+(*             for Hard tier from Year 7 onward, and that      *)
+(*             Easy tier produces no override at Year 7.       *)
+(*             Pre-load: RUN snbAI before running this test.   *)
+(* =========================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+
+DIM plyr     : PlyrRec
+DIM mkt      : MktState
+DIM prof     : AIProfile
+DIM oTyp(12) : INTEGER \ ! ordType output
+DIM oId(12)  : INTEGER \ ! ordId output
+DIM oQty(12) : INTEGER \ ! ordQty output
+DIM oPur(12) : INTEGER \ ! ordPurch output
+DIM oCnt     : INTEGER
+DIM mRpy     : INTEGER
+DIM pass     : INTEGER
+DIM fail     : INTEGER
+DIM expQty   : INTEGER
+DIM i        : INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "=== TST132: Endgame Override Verification ==="
+PRINT ""
+
+! ============================================================
+! Block 1: Hard Rule 3 split sell — Year 6 vs Year 7.
+! Setup: stock 1 at $150, 100 shares.
+! Year 6 (base spltSlPct=30): expected SELL 30.
+! Year 7 (endgame spltSlPcE=70): expected SELL 70.
+! ============================================================
+
+PRINT "Block 1: Hard splitSellPW Year 6 vs Year 7"
+pass := 0
+fail := 0
+
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+plyr.stckShrs(1) := 100
+
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(1) := 150
+
+! Hard Year 6: no endgame override (endgameYr=7, year=6).
+RUN initAIProf(3, prof)
+expQty := 30
+RUN aiSell(6, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
+  PRINT "  Hard Yr6 splitSell: PASS (SELL 30)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard Yr6 splitSell: FAIL  oCnt="; oCnt;
+  IF oCnt >= 1 THEN
+    PRINT " qty="; oQty(1)
+  ELSE
+    PRINT ""
+  ENDIF
+  fail := fail + 1
+ENDIF
+
+! Hard Year 7: endgame override applies (endgameYr=7, year=7).
+expQty := 70
+RUN aiSell(7, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
+  PRINT "  Hard Yr7 splitSell: PASS (SELL 70)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard Yr7 splitSell: FAIL  oCnt="; oCnt;
+  IF oCnt >= 1 THEN
+    PRINT " qty="; oQty(1)
+  ELSE
+    PRINT ""
+  ENDIF
+  fail := fail + 1
+ENDIF
+
+PRINT "Block 1: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+! ============================================================
+! Block 2: Hard repayFracW — Year 6 vs Year 7.
+! Setup: cashBal=500, marginTot=2000. All stocks at $0.
+! annlChrg = 2000/20 = 100.
+! burdenThr = 500/100*5 = 25. 100 > 25 → repay triggered.
+! Year 6 (repayFrac=75): repayAmt = 500/100*75 = 375.
+! Year 7 (repayFrcE=90): repayAmt = 500/100*90 = 450.
+! ============================================================
+
+PRINT "Block 2: Hard repayFracW Year 6 vs Year 7"
+pass := 0
+fail := 0
+
+plyr.cashBal    := 500
+plyr.marginTot  := 2000
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0 \ ! All bankrupt; ineligible for buy scoring.
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+
+! Hard Year 6: base repayFrac=75.
+RUN initAIProf(3, prof)
+RUN aiBuy(6, plyr, mkt, prof, oTyp, oId, oQty, oPur, oCnt, mRpy)
+IF mRpy = 375 THEN
+  PRINT "  Hard Yr6 repayFrac: PASS (mgnRepay=375)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard Yr6 repayFrac: FAIL  mRpy="; mRpy; " exp=375"
+  fail := fail + 1
+ENDIF
+
+! Hard Year 7: endgame repayFrcE=90.
+RUN aiBuy(7, plyr, mkt, prof, oTyp, oId, oQty, oPur, oCnt, mRpy)
+IF mRpy = 450 THEN
+  PRINT "  Hard Yr7 repayFrac: PASS (mgnRepay=450)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard Yr7 repayFrac: FAIL  mRpy="; mRpy; " exp=450"
+  fail := fail + 1
+ENDIF
+
+PRINT "Block 2: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+! ============================================================
+! Block 3: Easy Year 7 — no endgame override.
+! endgameYr=0 for Easy → override block never entered.
+! Rule 3 split sell should be 20% at both Year 1 and Year 7.
+! Setup: stock 1 at $150, 100 shares.
+! Year 1: SELL 20. Year 7: SELL 20 (identical — no override).
+! ============================================================
+
+PRINT "Block 3: Easy Year 7 no override"
+pass := 0
+fail := 0
+
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+plyr.stckShrs(1) := 100
+
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(1) := 150
+
+RUN initAIProf(1, prof)
+expQty := 20
+
+! Easy Year 1: base behavior.
+RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
+  PRINT "  Easy Yr1 splitSell: PASS (SELL 20)"
+  pass := pass + 1
+ELSE
+  PRINT "  Easy Yr1 splitSell: FAIL  oCnt="; oCnt;
+  IF oCnt >= 1 THEN
+    PRINT " qty="; oQty(1)
+  ELSE
+    PRINT ""
+  ENDIF
+  fail := fail + 1
+ENDIF
+
+! Easy Year 7: endgameYr=0 → no override; must also give SELL 20.
+RUN aiSell(7, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
+  PRINT "  Easy Yr7 splitSell: PASS (SELL 20, no override)"
+  pass := pass + 1
+ELSE
+  PRINT "  Easy Yr7 splitSell: FAIL  oCnt="; oCnt;
+  IF oCnt >= 1 THEN
+    PRINT " qty="; oQty(1)
+  ELSE
+    PRINT ""
+  ENDIF
+  fail := fail + 1
+ENDIF
+
+PRINT "Block 3: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+PRINT "TST132 complete."
+END
+
+900 ERROR(ERR)
+END
