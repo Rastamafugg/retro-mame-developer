@@ -240,150 +240,375 @@ END
 PRINT "fmtMoney error ("; ERR; ")"
 END
 
-PROCEDURE scrMgnInt
+PROCEDURE doRolls
 (* ============================================================ *)
-(* PROCEDURE : scrMgnInt                                        *)
-(* PURPOSE   : S10 Margin Interest Notice screen.              *)
-(*             Displays annual margin interest charge and the  *)
-(*             resulting cash balance for one player.          *)
-(*             Called once per non-bankrupt player with        *)
-(*             outstanding margin after applyMgnInt runs.      *)
-(*             If isFrcLiq is TRUE, displays a forced          *)
-(*             liquidation warning before waitKey; caller is   *)
-(*             responsible for routing to scrForceLiq after    *)
-(*             this screen returns.                            *)
-(*             Internal guard: no-ops for Year 1 and Year 10; *)
-(*             those years have no margin interest charge.     *)
-(*             Caller should not invoke in Year 1 or Year 10, *)
-(*             but the guard prevents display if called in     *)
-(*             error.                                          *)
-(* PARAMS    : currYear  - current game year (1..10)           *)
-(*             plyrNam   - player name for display             *)
-(*             mgnTot    - outstanding margin before charge    *)
-(*             mgnChg    - interest deducted this year (>= 0)  *)
-(*             cashBef   - cash balance before deduction       *)
-(*             cashAft   - cash balance after deduction        *)
-(*             isFrcLiq  - TRUE if cashAft < 0                 *)
-(*             action    - OUT: always 1 (CONTINUE)            *)
-(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey.  *)
+(* PROCEDURE : doRolls                                          *)
+(* PURPOSE   : Generate 2d6 roll results for one game year     *)
+(*             according to the active market roll mode.        *)
+(*             Populates dieOne, dieTwo, and rollTot arrays     *)
+(*             for consumption by scrDice and applyMktYear.     *)
+(*             All 9 slots are always populated on return;      *)
+(*             applyMktYear uses rolls(s) per stock.            *)
+(*                                                             *)
+(*             Mode A (rollMode=1), any year:                  *)
+(*               Roll once. Copy result to all 9 slots.        *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Year 1 only:               *)
+(*               Roll each of 9 stocks independently.          *)
+(*               No 2/12 override check.                       *)
+(*               rollCnt=9. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Years 2-10:                *)
+(*               Same as Mode A — single roll, all 9 slots.   *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode C (rollMode=3), any year:                  *)
+(*               Roll stocks 1-9 in sequence. If any roll      *)
+(*               totals 2 or 12, fill all 9 slots with that    *)
+(*               triggering roll (prior rolls discarded),      *)
+(*               set ovrdActive=TRUE, and stop rolling.        *)
+(*               rollCnt=9 always. ovrdActive reflects whether *)
+(*               override fired.                               *)
+(*                                                             *)
+(* PARAMS    : rollMode  - 1=A 2=B 3=C (staged from BYTE by   *)
+(*                         caller)                             *)
+(*             currYear  - current game year 1..10 (staged     *)
+(*                         from BYTE by caller)                *)
+(*             dieOne    - OUT: first die per stock slot 1..9  *)
+(*             dieTwo    - OUT: second die per stock slot 1..9 *)
+(*             rollTot   - OUT: total per stock slot 1..9      *)
+(*             rollCnt   - OUT: 1 for Mode A / Mode B Y2-10;   *)
+(*                         9 for Mode B Y1 and Mode C          *)
+(*             ovrdActive - OUT: TRUE only when Mode C 2/12    *)
+(*                          override fired                     *)
+(* SIDE EFX  : Advances the RND sequence. Caller is           *)
+(*             responsible for seeding RND before the first    *)
+(*             call each game session.                         *)
 (* ============================================================ *)
-PARAM currYear : INTEGER
-PARAM plyrNam  : STRING[20]
-PARAM mgnTot   : INTEGER
-PARAM mgnChg   : INTEGER
-PARAM cashBef  : INTEGER
-PARAM cashAft  : INTEGER
-PARAM isFrcLiq : BOOLEAN
-PARAM action   : INTEGER
-DIM pStr : STRING[8]
+PARAM rollMode   : INTEGER
+PARAM currYear   : INTEGER
+PARAM dieOne(9)  : BYTE
+PARAM dieTwo(9)  : BYTE
+PARAM rollTot(9) : BYTE
+PARAM rollCnt    : BYTE
+PARAM ovrdActive : BOOLEAN
+DIM d1  : INTEGER
+DIM d2  : INTEGER
+DIM tot : INTEGER
+DIM s   : INTEGER
+DIM f   : INTEGER
 
 ON ERROR GOTO 900
 
-! Internal guard: margin interest does not apply in Year 1 or 10.
-IF currYear = 1 OR currYear = 10 THEN
-  action := 1
-  END
-ENDIF
+IF rollMode = 1 THEN
 
-RUN clrScr
-PRINT
-PRINT "  MARGIN INTEREST (S10)"
-PRINT "  "; plyrNam; "  YEAR "; currYear; " OF 10"
-PRINT
+  ! Mode A: single roll, copy to all 9 slots.
+  d1  := INT(RND(6)) + 1
+  d2  := INT(RND(6)) + 1
+  tot := d1 + d2
+  FOR s := 1 TO 9
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+  NEXT s
+  rollCnt    := 1
+  ovrdActive := FALSE
 
-RUN fmtMoney(mgnTot, pStr)
-PRINT "  Outstanding margin : $"; pStr
-RUN fmtMoney(mgnChg, pStr)
-PRINT "  Annual charge (5%) : $"; pStr
-PRINT
+ELSE IF rollMode = 2 THEN
 
-RUN fmtMoney(cashBef, pStr)
-PRINT "  Cash before charge : $"; pStr
-RUN fmtMoney(cashAft, pStr)
-PRINT "  Cash after charge  : $"; pStr
-PRINT
+  IF currYear = 1 THEN
 
-IF isFrcLiq THEN
-  PRINT "  *** FORCED LIQUIDATION REQUIRED ***"
-  PRINT "  Cash balance is negative after margin interest."
-  PRINT "  You must liquidate assets to cover the deficit."
-  PRINT
-ENDIF
+    ! Mode B Year 1: independent per-stock rolls, no override.
+    FOR s := 1 TO 9
+      d1         := INT(RND(6)) + 1
+      d2         := INT(RND(6)) + 1
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := d1 + d2
+    NEXT s
+    rollCnt    := 9
+    ovrdActive := FALSE
 
-RUN waitKey
-action := 1
+  ELSE
+
+    ! Mode B Years 2-10: same as Mode A.
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    FOR s := 1 TO 9
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := tot
+    NEXT s
+    rollCnt    := 1
+    ovrdActive := FALSE
+
+  ENDIF
+
+ELSE
+
+  ! Mode C: per-stock rolls with 2/12 override.
+  ! Roll stocks in sequence. On 2 or 12: fill all 9 slots
+  ! with triggering roll, set ovrdActive, stop rolling.
+  s          := 1
+  ovrdActive := FALSE
+  LOOP
+    EXITIF s > 9 OR ovrdActive THEN
+    ENDEXIT
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+    IF tot = 2 OR tot = 12 THEN
+      ! Override: backfill all 9 slots with this roll.
+      FOR f := 1 TO 9
+        dieOne(f)  := d1
+        dieTwo(f)  := d2
+        rollTot(f) := tot
+      NEXT f
+      ovrdActive := TRUE
+    ENDIF
+    s := s + 1
+  ENDLOOP
+  rollCnt := 9
+
+ENDIF \ENDIF
+
 END
 
 900 ERROR(ERR)
 END
 
-PROCEDURE TSTMGNINT
+PROCEDURE TSTROLLS
 (* ============================================================ *)
-(* PROCEDURE : TSTMGNINT                                        *)
-(* PURPOSE   : Confirmation test for Task 10.5 (scrMgnInt).    *)
-(*             Three visual test cases; examiner verifies      *)
-(*             screen content against expected output.         *)
+(* PROCEDURE : TSTROLLS                                         *)
+(* PURPOSE   : Confirmation test for Task 14.0 (doRolls).      *)
+(*             Tests invariants that hold regardless of RND     *)
+(*             outcome. Cannot force specific die values.       *)
 (*                                                             *)
-(*   Test 1 — Normal (no forced liquidation):                  *)
-(*     mgnTot=2000, mgnChg=100, cashBef=500, cashAft=400.      *)
-(*     Expect: charge and both balances displayed.             *)
-(*             NO forced liquidation notice.                   *)
+(*   Test A — Mode A, Year 5:                                  *)
+(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test 2 — Forced liquidation triggered:                    *)
-(*     mgnTot=2000, mgnChg=200, cashBef=150, cashAft=-50.      *)
-(*     Expect: charge and both balances displayed.             *)
-(*             FORCED LIQUIDATION warning visible.             *)
+(*   Test B — Mode B, Year 1:                                  *)
+(*     rollCnt=9, ovrdActive=FALSE.                            *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test 3 — Year guard (Year 1):                             *)
-(*     Expect: screen clears immediately, no content shown,    *)
-(*             procedure returns without blocking on waitKey.  *)
+(*   Test C — Mode B, Year 5:                                  *)
+(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test 4 — Year guard (Year 10):                            *)
-(*     Expect: same as Test 3.                                 *)
+(*   Test D — Mode C (run 20 times):                           *)
+(*     Each call: rollCnt=9. All dieOne/dieTwo in 1-6.        *)
+(*     rollTot = dieOne+dieTwo per slot.                       *)
+(*     If ovrdActive: all 9 rollTot slots equal.               *)
+(*     Reports how many of 20 runs triggered an override.      *)
 (* ============================================================ *)
-DIM act : INTEGER
+DIM dOne(9)   : BYTE
+DIM dTwo(9)   : BYTE
+DIM rTot(9)   : BYTE
+DIM rCnt      : BYTE
+DIM oAct      : BOOLEAN
+DIM s         : INTEGER
+DIM r         : INTEGER
+DIM pass      : INTEGER
+DIM fail      : INTEGER
+DIM allSame   : BOOLEAN
+DIM iD1       : INTEGER
+DIM iD2       : INTEGER
+DIM iTot      : INTEGER
+DIM ovrdCount : INTEGER
 
 ON ERROR GOTO 900
 
-! ---- Test 1: normal, no forced liquidation -----------------
-PRINT "Test 1: normal case (isFrcLiq=FALSE)"
-PRINT "Expect: charge=$100, cashBef=$500, cashAft=$400, no warning"
-PRINT "Press any key to view screen..."
+pass      := 0
+fail      := 0
+ovrdCount := 0
+
+! ---- Test A: Mode A, Year 5 --------------------------------
+PRINT "Test A: Mode A Year 5"
+RUN doRolls(1, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+IF rCnt = 1 THEN
+  PRINT "  PASS: rollCnt=1"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+! All 9 slots must be identical.
+allSame := TRUE
+FOR s := 2 TO 9
+  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
+    allSame := FALSE
+  ENDIF
+NEXT s
+IF allSame THEN
+  PRINT "  PASS: all 9 slots identical"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: slots not identical"
+  fail := fail + 1
+ENDIF
+
+! Die range and consistency for all 9 slots.
+FOR s := 1 TO 9
+  iD1  := dOne(s)
+  iD2  := dTwo(s)
+  iTot := rTot(s)
+  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+    PRINT "  FAIL: slot "; s; " die out of range"
+    fail := fail + 1
+  ENDIF
+  IF iD1 + iD2 <> iTot THEN
+    PRINT "  FAIL: slot "; s; " total inconsistent"
+    fail := fail + 1
+  ENDIF
+NEXT s
+PRINT "  (die range and consistency checks done for all 9 slots)"
+
 RUN waitKey
 
-RUN scrMgnInt(5, "ALICE", 2000, 100, 500, 400, FALSE, act)
+! ---- Test B: Mode B, Year 1 --------------------------------
+PRINT "Test B: Mode B Year 1"
+RUN doRolls(2, 1, dOne, dTwo, rTot, rCnt, oAct)
 
-PRINT "Returned action="; act; "  (expected 1)"
+IF rCnt = 9 THEN
+  PRINT "  PASS: rollCnt=9"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 9"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+FOR s := 1 TO 9
+  iD1  := dOne(s)
+  iD2  := dTwo(s)
+  iTot := rTot(s)
+  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+    PRINT "  FAIL: slot "; s; " die out of range"
+    fail := fail + 1
+  ENDIF
+  IF iD1 + iD2 <> iTot THEN
+    PRINT "  FAIL: slot "; s; " total inconsistent"
+    fail := fail + 1
+  ENDIF
+NEXT s
+PRINT "  (die range and consistency checks done for all 9 slots)"
+
+RUN waitKey
+
+! ---- Test C: Mode B, Year 5 --------------------------------
+PRINT "Test C: Mode B Year 5"
+RUN doRolls(2, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+IF rCnt = 1 THEN
+  PRINT "  PASS: rollCnt=1"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+allSame := TRUE
+FOR s := 2 TO 9
+  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
+    allSame := FALSE
+  ENDIF
+NEXT s
+IF allSame THEN
+  PRINT "  PASS: all 9 slots identical"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: slots not identical"
+  fail := fail + 1
+ENDIF
+
+RUN waitKey
+
+! ---- Test D: Mode C, 20 iterations -------------------------
+PRINT "Test D: Mode C (20 runs)"
+PRINT "  Checking: rollCnt=9, die range, consistency,"
+PRINT "  and if override: all rollTot slots equal."
+
+FOR r := 1 TO 20
+  RUN doRolls(3, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+  IF rCnt <> 9 THEN
+    PRINT "  FAIL run "; r; ": rollCnt="; rCnt; " expected 9"
+    fail := fail + 1
+  ELSE
+    pass := pass + 1
+  ENDIF
+
+  FOR s := 1 TO 9
+    iD1  := dOne(s)
+    iD2  := dTwo(s)
+    iTot := rTot(s)
+    IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+      PRINT "  FAIL run "; r; " slot "; s; ": die out of range"
+      fail := fail + 1
+    ENDIF
+    IF iD1 + iD2 <> iTot THEN
+      PRINT "  FAIL run "; r; " slot "; s; ": total inconsistent"
+      fail := fail + 1
+    ENDIF
+  NEXT s
+
+  IF oAct THEN
+    ovrdCount := ovrdCount + 1
+    ! Verify all 9 rollTot slots equal when override active.
+    allSame := TRUE
+    FOR s := 2 TO 9
+      IF rTot(s) <> rTot(1) THEN
+        allSame := FALSE
+      ENDIF
+    NEXT s
+    IF NOT allSame THEN
+      PRINT "  FAIL run "; r; ": override set but slots not equal"
+      fail := fail + 1
+    ENDIF
+  ENDIF
+
+NEXT r
+
+PRINT "  Overrides observed in 20 runs: "; ovrdCount
+PRINT "  (Expect ~8 overrides probabilistically;"
+PRINT "   zero is unlikely but not a test failure.)"
+
+RUN waitKey
+
+! ---- Summary -----------------------------------------------
 PRINT
-RUN waitKey
-
-! ---- Test 2: forced liquidation ----------------------------
-PRINT "Test 2: forced liquidation (isFrcLiq=TRUE)"
-PRINT "Expect: charge=$200, cashBef=$150, cashAft=$-50, warning shown"
-PRINT "Press any key to view screen..."
-RUN waitKey
-
-RUN scrMgnInt(5, "BOB", 2000, 200, 150, -50, TRUE, act)
-
-PRINT "Returned action="; act; "  (expected 1)"
-PRINT
-RUN waitKey
-
-! ---- Test 3: Year 1 guard ----------------------------------
-PRINT "Test 3: Year 1 guard"
-PRINT "Expect: screen returns immediately, no S10 content shown"
-RUN scrMgnInt(1, "CAROL", 1000, 50, 300, 250, FALSE, act)
-PRINT "Returned without blocking. action="; act; "  (expected 1)"
-PRINT
-RUN waitKey
-
-! ---- Test 4: Year 10 guard ---------------------------------
-PRINT "Test 4: Year 10 guard"
-PRINT "Expect: screen returns immediately, no S10 content shown"
-RUN scrMgnInt(10, "DAVE", 1000, 50, 300, 250, FALSE, act)
-PRINT "Returned without blocking. action="; act; "  (expected 1)"
-PRINT
-PRINT "TSTMGNINT complete."
+PRINT "TSTROLLS: "; pass; " passed, "; fail; " failed"
 END
 
 900 ERROR(ERR)

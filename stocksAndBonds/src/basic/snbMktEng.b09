@@ -1,3 +1,144 @@
+PROCEDURE doRolls
+(* ============================================================ *)
+(* PROCEDURE : doRolls                                          *)
+(* PURPOSE   : Generate 2d6 roll results for one game year     *)
+(*             according to the active market roll mode.        *)
+(*             Populates dieOne, dieTwo, and rollTot arrays     *)
+(*             for consumption by scrDice and applyMktYear.     *)
+(*             All 9 slots are always populated on return;      *)
+(*             applyMktYear uses rolls(s) per stock.            *)
+(*                                                             *)
+(*             Mode A (rollMode=1), any year:                  *)
+(*               Roll once. Copy result to all 9 slots.        *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Year 1 only:               *)
+(*               Roll each of 9 stocks independently.          *)
+(*               No 2/12 override check.                       *)
+(*               rollCnt=9. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Years 2-10:                *)
+(*               Same as Mode A — single roll, all 9 slots.   *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode C (rollMode=3), any year:                  *)
+(*               Roll stocks 1-9 in sequence. If any roll      *)
+(*               totals 2 or 12, fill all 9 slots with that    *)
+(*               triggering roll (prior rolls discarded),      *)
+(*               set ovrdActive=TRUE, and stop rolling.        *)
+(*               rollCnt=9 always. ovrdActive reflects whether *)
+(*               override fired.                               *)
+(*                                                             *)
+(* PARAMS    : rollMode  - 1=A 2=B 3=C (staged from BYTE by   *)
+(*                         caller)                             *)
+(*             currYear  - current game year 1..10 (staged     *)
+(*                         from BYTE by caller)                *)
+(*             dieOne    - OUT: first die per stock slot 1..9  *)
+(*             dieTwo    - OUT: second die per stock slot 1..9 *)
+(*             rollTot   - OUT: total per stock slot 1..9      *)
+(*             rollCnt   - OUT: 1 for Mode A / Mode B Y2-10;   *)
+(*                         9 for Mode B Y1 and Mode C          *)
+(*             ovrdActive - OUT: TRUE only when Mode C 2/12    *)
+(*                          override fired                     *)
+(* SIDE EFX  : Advances the RND sequence. Caller is           *)
+(*             responsible for seeding RND before the first    *)
+(*             call each game session.                         *)
+(* ============================================================ *)
+PARAM rollMode   : INTEGER
+PARAM currYear   : INTEGER
+PARAM dieOne(9)  : BYTE
+PARAM dieTwo(9)  : BYTE
+PARAM rollTot(9) : BYTE
+PARAM rollCnt    : BYTE
+PARAM ovrdActive : BOOLEAN
+DIM d1  : INTEGER
+DIM d2  : INTEGER
+DIM tot : INTEGER
+DIM s   : INTEGER
+DIM f   : INTEGER
+
+ON ERROR GOTO 900
+
+IF rollMode = 1 THEN
+
+  ! Mode A: single roll, copy to all 9 slots.
+  d1  := INT(RND(6)) + 1
+  d2  := INT(RND(6)) + 1
+  tot := d1 + d2
+  FOR s := 1 TO 9
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+  NEXT s
+  rollCnt    := 1
+  ovrdActive := FALSE
+
+ELSE IF rollMode = 2 THEN
+
+  IF currYear = 1 THEN
+
+    ! Mode B Year 1: independent per-stock rolls, no override.
+    FOR s := 1 TO 9
+      d1         := INT(RND(6)) + 1
+      d2         := INT(RND(6)) + 1
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := d1 + d2
+    NEXT s
+    rollCnt    := 9
+    ovrdActive := FALSE
+
+  ELSE
+
+    ! Mode B Years 2-10: same as Mode A.
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    FOR s := 1 TO 9
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := tot
+    NEXT s
+    rollCnt    := 1
+    ovrdActive := FALSE
+
+  ENDIF
+
+ELSE
+
+  ! Mode C: per-stock rolls with 2/12 override.
+  ! Roll stocks in sequence. On 2 or 12: fill all 9 slots
+  ! with triggering roll, set ovrdActive, stop rolling.
+  s          := 1
+  ovrdActive := FALSE
+  LOOP
+    EXITIF s > 9 OR ovrdActive THEN
+    ENDEXIT
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+    IF tot = 2 OR tot = 12 THEN
+      ! Override: backfill all 9 slots with this roll.
+      FOR f := 1 TO 9
+        dieOne(f)  := d1
+        dieTwo(f)  := d2
+        rollTot(f) := tot
+      NEXT f
+      ovrdActive := TRUE
+    ENDIF
+    s := s + 1
+  ENDLOOP
+  rollCnt := 9
+
+ENDIF \ENDIF
+
+END
+
+900 ERROR(ERR)
+END
 
 PROCEDURE getMktDelta
 (* ============================================================ *)

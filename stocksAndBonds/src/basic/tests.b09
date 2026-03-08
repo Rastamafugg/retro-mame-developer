@@ -6812,3 +6812,235 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTROLLS
+(* ============================================================ *)
+(* PROCEDURE : TSTROLLS                                         *)
+(* PURPOSE   : Confirmation test for Task 14.0 (doRolls).      *)
+(*             Tests invariants that hold regardless of RND     *)
+(*             outcome. Cannot force specific die values.       *)
+(*                                                             *)
+(*   Test A — Mode A, Year 5:                                  *)
+(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
+(*                                                             *)
+(*   Test B — Mode B, Year 1:                                  *)
+(*     rollCnt=9, ovrdActive=FALSE.                            *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
+(*                                                             *)
+(*   Test C — Mode B, Year 5:                                  *)
+(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
+(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
+(*                                                             *)
+(*   Test D — Mode C (run 20 times):                           *)
+(*     Each call: rollCnt=9. All dieOne/dieTwo in 1-6.        *)
+(*     rollTot = dieOne+dieTwo per slot.                       *)
+(*     If ovrdActive: all 9 rollTot slots equal.               *)
+(*     Reports how many of 20 runs triggered an override.      *)
+(* ============================================================ *)
+DIM dOne(9)   : BYTE
+DIM dTwo(9)   : BYTE
+DIM rTot(9)   : BYTE
+DIM rCnt      : BYTE
+DIM oAct      : BOOLEAN
+DIM s         : INTEGER
+DIM r         : INTEGER
+DIM pass      : INTEGER
+DIM fail      : INTEGER
+DIM allSame   : BOOLEAN
+DIM iD1       : INTEGER
+DIM iD2       : INTEGER
+DIM iTot      : INTEGER
+DIM ovrdCount : INTEGER
+
+ON ERROR GOTO 900
+
+pass      := 0
+fail      := 0
+ovrdCount := 0
+
+! ---- Test A: Mode A, Year 5 --------------------------------
+PRINT "Test A: Mode A Year 5"
+RUN doRolls(1, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+IF rCnt = 1 THEN
+  PRINT "  PASS: rollCnt=1"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+! All 9 slots must be identical.
+allSame := TRUE
+FOR s := 2 TO 9
+  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
+    allSame := FALSE
+  ENDIF
+NEXT s
+IF allSame THEN
+  PRINT "  PASS: all 9 slots identical"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: slots not identical"
+  fail := fail + 1
+ENDIF
+
+! Die range and consistency for all 9 slots.
+FOR s := 1 TO 9
+  iD1  := dOne(s)
+  iD2  := dTwo(s)
+  iTot := rTot(s)
+  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+    PRINT "  FAIL: slot "; s; " die out of range"
+    fail := fail + 1
+  ENDIF
+  IF iD1 + iD2 <> iTot THEN
+    PRINT "  FAIL: slot "; s; " total inconsistent"
+    fail := fail + 1
+  ENDIF
+NEXT s
+PRINT "  (die range and consistency checks done for all 9 slots)"
+
+RUN waitKey
+
+! ---- Test B: Mode B, Year 1 --------------------------------
+PRINT "Test B: Mode B Year 1"
+RUN doRolls(2, 1, dOne, dTwo, rTot, rCnt, oAct)
+
+IF rCnt = 9 THEN
+  PRINT "  PASS: rollCnt=9"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 9"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+FOR s := 1 TO 9
+  iD1  := dOne(s)
+  iD2  := dTwo(s)
+  iTot := rTot(s)
+  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+    PRINT "  FAIL: slot "; s; " die out of range"
+    fail := fail + 1
+  ENDIF
+  IF iD1 + iD2 <> iTot THEN
+    PRINT "  FAIL: slot "; s; " total inconsistent"
+    fail := fail + 1
+  ENDIF
+NEXT s
+PRINT "  (die range and consistency checks done for all 9 slots)"
+
+RUN waitKey
+
+! ---- Test C: Mode B, Year 5 --------------------------------
+PRINT "Test C: Mode B Year 5"
+RUN doRolls(2, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+IF rCnt = 1 THEN
+  PRINT "  PASS: rollCnt=1"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
+  fail := fail + 1
+ENDIF
+
+IF NOT oAct THEN
+  PRINT "  PASS: ovrdActive=FALSE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+allSame := TRUE
+FOR s := 2 TO 9
+  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
+    allSame := FALSE
+  ENDIF
+NEXT s
+IF allSame THEN
+  PRINT "  PASS: all 9 slots identical"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: slots not identical"
+  fail := fail + 1
+ENDIF
+
+RUN waitKey
+
+! ---- Test D: Mode C, 20 iterations -------------------------
+PRINT "Test D: Mode C (20 runs)"
+PRINT "  Checking: rollCnt=9, die range, consistency,"
+PRINT "  and if override: all rollTot slots equal."
+
+FOR r := 1 TO 20
+  RUN doRolls(3, 5, dOne, dTwo, rTot, rCnt, oAct)
+
+  IF rCnt <> 9 THEN
+    PRINT "  FAIL run "; r; ": rollCnt="; rCnt; " expected 9"
+    fail := fail + 1
+  ELSE
+    pass := pass + 1
+  ENDIF
+
+  FOR s := 1 TO 9
+    iD1  := dOne(s)
+    iD2  := dTwo(s)
+    iTot := rTot(s)
+    IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
+      PRINT "  FAIL run "; r; " slot "; s; ": die out of range"
+      fail := fail + 1
+    ENDIF
+    IF iD1 + iD2 <> iTot THEN
+      PRINT "  FAIL run "; r; " slot "; s; ": total inconsistent"
+      fail := fail + 1
+    ENDIF
+  NEXT s
+
+  IF oAct THEN
+    ovrdCount := ovrdCount + 1
+    ! Verify all 9 rollTot slots equal when override active.
+    allSame := TRUE
+    FOR s := 2 TO 9
+      IF rTot(s) <> rTot(1) THEN
+        allSame := FALSE
+      ENDIF
+    NEXT s
+    IF NOT allSame THEN
+      PRINT "  FAIL run "; r; ": override set but slots not equal"
+      fail := fail + 1
+    ENDIF
+  ENDIF
+
+NEXT r
+
+PRINT "  Overrides observed in 20 runs: "; ovrdCount
+PRINT "  (Expect ~8 overrides probabilistically;"
+PRINT "   zero is unlikely but not a test failure.)"
+
+RUN waitKey
+
+! ---- Summary -----------------------------------------------
+PRINT
+PRINT "TSTROLLS: "; pass; " passed, "; fail; " failed"
+END
+
+900 ERROR(ERR)
+END

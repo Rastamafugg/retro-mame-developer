@@ -1023,38 +1023,501 @@ Easy tier, Year 7:
 
 ---
 
+# Revised Timeline — Backfill Tasks and Phase 14
+
+---
+
+## Backfill Task 10.5 — Margin Interest Notice screen (S10)
+
+**Status:** Missing. No source file contains `scrMgnInt`. This screen
+is referenced in `ui-screen-flow.md` as S10 and sits between
+`applyMgnInt` (engine) and S11 (card display) in the year loop.
+
+**Procedure:** `scrMgnInt`
+
+Display-only. Shows each active, non-bankrupt player their annual
+margin interest charge and resulting cash balance. If `forceLiq` is
+TRUE for that player, displays a "FORCED LIQUIDATION" notice before
+returning; the caller routes to `scrForceLiq`. One player at a time;
+`waitKey` between players. No-op for Years 1 and 10 (caller
+responsibility; procedure must guard internally as well).
+
+```
+PARAMS : plyrNam   - player name for display
+         mgnCharge - interest deducted this year (>= 0)
+         cashBef   - cash balance before deduction
+         cashAft   - cash balance after deduction
+         isFrcLiq  - TRUE if cashAft < 0 (forced liquidation flag)
+         action    - OUT: always 1 (CONTINUE)
+```
+
+**Confirmation Test 10.5:**
+
+```
+Normal case: mgnCharge=100, cashBef=500, cashAft=400, isFrcLiq=FALSE.
+    Verify charge and both balances displayed. No liquidation notice.
+
+Forced case: mgnCharge=200, cashBef=150, cashAft=-50, isFrcLiq=TRUE.
+    Verify charge and both balances displayed.
+    Verify FORCED LIQUIDATION notice visible before waitKey.
+
+Year guard: call with currYear=1. Verify no output produced.
+```
+
+**File:** `snbMargin.b09`
+
+**Gate:** Must pass before Phase 14 begins. Insert into packed module
+at same position as other `snbMargin.b09` procedures.
+
+---
+
+## Backfill Task 3.4a — Roll array support in `applyMktYear`
+
+**Status:** Defect. `applyMktYear` accepts `roll : INTEGER` (scalar).
+Mode B Year 1 and Mode C (absent a 2/12 override) require per-stock
+rolls. The scalar is passed to `getMktDelta` for every stock, making
+all nine stocks share the same roll result.
+
+**Fix:** Replace `roll : INTEGER` with `rolls(9) : INTEGER`.
+
+Inside `applyMktYear`, change:
+
+```
+RUN getMktDelta(s, card.crdType, roll, delta)
+```
+
+to:
+
+```
+RUN getMktDelta(s, card.crdType, rolls(s), delta)
+```
+
+**Caller contract (all modes):**
+
+| Mode | Year | Action |
+|------|------|--------|
+| A    | Any  | Fill `rolls(1..9)` with the single roll value |
+| B    | 1    | Fill `rolls(s)` independently for each stock s |
+| B    | 2-10 | Fill `rolls(1..9)` with the single roll value |
+| C    | Any  | Fill `rolls(s)` independently; apply 2/12 override first (see Task 14.0) |
+
+**Confirmation Test 3.4a:**
+
+```
+Pass rolls(1)=7, rolls(2)=4, rolls(3..9)=7 (mixed).
+Verify getMktDelta called with roll=7 for stock 1, roll=4 for stock 2.
+Verify stock 2 delta differs from stocks 1/3-9.
+Existing Task 3.4 tests remain valid: all slots filled with 5 → same
+    result as before.
+```
+
+**File:** `snbMktEng.b09`
+
+**Gate:** Must pass before Phase 14 begins.
+
+---
+
+## Backfill Task 14.0 — Roll generation and 2/12 override helper
+
+**Procedure:** `doRolls`
+
+Encapsulates all roll generation logic for a single year. Populates
+`dieOne(9)`, `dieTwo(9)`, `rollTot(9)`, and the effective `rolls(9)`
+array passed to `applyMktYear`. Also sets `rollCnt` for `scrDice`.
+
+**Roll mode behavior:**
+
+```
+Mode A (rollMode=1), any year:
+    Roll once. Fill all 9 slots of dieOne/dieTwo/rollTot with that
+    result. rollCnt := 1.
+
+Mode B (rollMode=2), Year 1:
+    Roll independently per stock s=1..9.
+    No 2/12 override rule applies to Mode B.
+    rollCnt := 9.
+
+Mode B (rollMode=2), Years 2-10:
+    Same as Mode A.
+
+Mode C (rollMode=3), any year:
+For Mode C any year:
+    Roll stocks s=1..9 in sequence
+    EXITIF rollTot(s) = 2 OR rollTot(s) = 12 THEN
+        fill rolls(1..9) all with rollTot(s)
+        ovrdActive := TRUE
+    ENDEXIT
+    EXITIF s = 9 THEN
+    ENDEXIT
+```
+
+```
+PARAMS : rollMode     - 1=A 2=B 3=C
+         currYear     - current game year (1..10)
+         dieOne(9)    - OUT: die 1 per slot
+         dieTwo(9)    - OUT: die 2 per slot
+         rollTot(9)   - OUT: sum per slot
+         rollCnt      - OUT: populated slot count (1 or 9)
+         ovrdActive   - OUT: TRUE if 2/12 override fired (Mode C only)
+```
+
+**Confirmation Test 14.0:**
+
+```
+Mode A, Year 5: verify all 9 rollTot slots identical. rollCnt=1.
+
+Mode B, Year 1: verify rollTot slots differ (statistical; run 3 times
+    and confirm at least one difference across 9 stocks).
+
+Mode B, Year 3: verify all 9 rollTot slots identical. rollCnt=1.
+
+Mode C override: stub RND to produce roll=12 on stock 3.
+    Verify rollTot(3..9) all = 12. ovrdActive = TRUE. rollCnt = 9.
+    Verify rollTot(1) and rollTot(2) hold their independent results.
+
+Mode C no override: stub RND to avoid 2/12 on all 9 stocks.
+    Verify ovrdActive = FALSE. All 9 slots independent.
+```
+
+**File:** `snbMktEng.b09`
+
+---
+
 ## 16. Phase 14 — Integration and Full Game Loop
 
 **Goal:** A complete 10-year game runs from start screen to winner
-declaration with at least one human and one computer player.
+declaration with at least one human and one computer player. All roll
+modes verified. Save/resume verified. Bankruptcy path verified.
+
+**Prerequisites before any Phase 14 task begins:**
+
+- Task 10.5 (`scrMgnInt`) confirmed passing.
+- Task 3.4a (`applyMktYear` roll array fix) confirmed passing.
+- Task 14.0 (`doRolls`) confirmed passing.
 
 ---
 
-### Task 14.1 — Year loop master procedure
+### Stub Procedure Strategy
 
-Procedure: `runYearLoop`
+**Rationale:** `runYearLoop` must load alongside all engine, screen,
+and AI procedures. The combined packed module may exceed available
+memory before all real procedures are included. Stub procedures with
+the same name and identical TYPE/PARAM signatures allow `runYearLoop`
+to be tested end-to-end before all real procedures are packed.
 
-Integrates all engine steps (Phase 3) and screen calls (Phases 8–10)
-in the correct order per spec Section 6. Handles Year 1 and Year 10
-exceptions. Iterates players. Calls save on request.
+**Stub contract:**
 
-**Confirmation Test 14.1:**
+- TYPE and PARAM blocks must be byte-for-byte identical to the real
+  procedure.
+- All output PARAMs must be set to a safe default before END.
+- A single PRINT trace line identifies the stub in output.
+- `ON ERROR GOTO 900` and `900 ERROR(ERR) END` required.
+- No functional logic.
+
+**Stub targets and safe output defaults:**
+
+| Procedure   | Key outputs and defaults                                  |
+|-------------|-----------------------------------------------------------|
+| `scrSell`   | `ordCnt := 0`, `action := 1`                             |
+| `scrBuy`    | `ordCnt := 0`, `mgnRepay := 0`, `action := 1`            |
+| `scrForceLiq` | `ordCnt := 0`, `action := 1`                           |
+| `scrMgnClr` | `action := 1`                                            |
+| `scrDivInt` | (display-only; no outputs)                               |
+| `scrMgnInt` | `action := 1`                                            |
+| `aiSell`    | `ordCnt := 0`                                            |
+| `aiBuy`     | `ordCnt := 0`, `mgnRepay := 0`                           |
+| `scrAITurn` | (display-only; no outputs)                               |
+
+**Integration sequence:** Stubs are packed with `runYearLoop` first.
+Real procedures replace stubs one at a time after the loop logic is
+confirmed stable. This allows isolated regression testing at each
+swap.
+
+---
+
+### Task 14.1-P1 — Interface and variable scoping
+
+Define the complete TYPE, PARAM, and DIM block for `runYearLoop`.
+Resolve all naming collisions between local variables and TYPE field
+names. No executable logic beyond skeleton structure.
+
+**Collision resolutions (confirmed against SaveHdr, PlyrRec,
+MktState field names):**
+
+| Intended purpose       | Collision field     | Local name used  |
+|------------------------|---------------------|------------------|
+| Current year counter   | `hdr.currYear`      | `cYear`          |
+| Player count           | `hdr.plyrCount`     | `pCnt`           |
+| Roll mode              | `hdr.rollMode`      | `rMode`          |
+| Forced liquidation flags | (none; new array) | `forceLiq(6)`    |
+| Game-over sentinel     | (none)              | `gameOver`       |
+| Active player count    | (none)              | `activeCnt`      |
+
+**Stub pack:** All stub procedures loaded and resident before
+`runYearLoop` is compiled. Verify SIZE() of the combined variable
+space is under 32KB before proceeding to P2.
+
+**Confirmation Test 14.1-P1:**
 
 ```
-Run a complete game: 1 human, 1 computer (Medium), Roll Mode A.
+Compile runYearLoop skeleton (no logic). Verify no Error #076
+    (Multiply-defined Variable). Verify no Error #009 (Type mismatch)
+    on BYTE-to-INTEGER staging variables.
+Print SIZE() of all DIM arrays in runYearLoop. Total < 32KB.
+```
+
+---
+
+### Task 14.1-P2 — Revenue and margin sub-loops
+
+Implement Year 1/10 guards and the dividend/margin interest sequence:
+
+```
+Step 1: IF cYear > 1 AND cYear < 10 THEN
+    RUN applyDivInt(cYear, pCnt, plyrs, mkt)
+    FOR p := 1 TO pCnt (non-bankrupt players)
+        show scrDivInt per player
+    ENDIF
+
+Step 2: IF cYear > 1 AND cYear < 10 THEN
+    initialize forceLiq(1..pCnt) := FALSE
+    RUN applyMgnInt(cYear, pCnt, plyrs, forceLiq)
+    FOR p := 1 TO pCnt (non-bankrupt players with marginTot > 0)
+        RUN scrMgnInt(...)
+        IF forceLiq(p) THEN route to forced liquidation (GOSUB 500)
+    ENDIF
+```
+
+The forced liquidation GOSUB at line 500 is stubbed as a PRINT
+placeholder in this phase. It is fully implemented in P4.
+
+**Confirmation Test 14.1-P2:**
+
+```
+Year 1: verify applyDivInt and applyMgnInt not called.
+Year 5, player with margin: verify scrMgnInt called with correct
+    charge and cashAft values. Stub scrMgnInt prints trace.
+Year 10: verify both steps skipped.
+```
+
+---
+
+### Task 14.1-P3 — Market resolution mechanics
+
+Implement card draw, roll generation, and price resolution:
+
+```
+Step 3: RUN drawCard(hdr, card)   \ ! draws from shuffled deck
+Step 4: RUN scrCard(card, action)
+Step 5: RUN doRolls(rMode, cYear, dieOne, dieTwo, rollTot,
+                    rollCnt, ovrdActive)
+        RUN scrDice(rMode, rollCnt, dieOne, dieTwo, rollTot, action)
+Steps 6-8: RUN applyMktYear(card.cardId, rolls, pCnt, plyrs, mkt,
+                    prcBef, mktDlta, crdDlta, splitOcc,
+                    divSuspd, divRnstd)
+           \ ! Line exceeds 79 chars; documented exception.
+        RUN scrMktBoard(prcBef, mktDlta, crdDlta, mkt.stckPrice,
+                    splitOcc, divSuspd, divRnstd, action)
+        FOR s := 1 TO 9
+            IF splitOcc(s): RUN scrSplit(...)
+            IF divSuspd(s) OR divRnstd(s): RUN scrDivFlag(...)
+        NEXT s
+        IF card.divBonus > 0 AND cYear > 1 AND cYear < 10 THEN
+            apply Card 1 dividend bonus to all non-bankrupt players
+        ENDIF
+```
+
+**Confirmation Test 14.1-P3:**
+
+```
+Year 3, Mode A: verify card drawn, dice displayed, market board
+    shown with correct deltas. Stub scrMktBoard prints trace.
+Card 1 bonus: set divBonus > 0, Year 2. Verify cashBal incremented
+    per share held. Year 1: verify bonus not applied.
+Mode C, override roll=12: verify all 9 stocks use roll 12 delta.
+```
+
+---
+
+### Task 14.1-P4 — Player action and liquidation logic
+
+Implement sell phase (skipped Year 1), buy phase, margin call check,
+forced liquidation GOSUB, and Year 10 margin clearance gate.
+
+**Sell phase (GOSUB 300):**
+
+```
+SELL_GATE: IF cYear = 1 THEN GOTO BUY_PHASE
+FOR p := 1 TO pCnt
+    IF plyrs(p).isBankrupt THEN skip
+    IF plyrs(p).plyrType = 1 THEN
+        RUN scrSell(cYear, plyrs(p), mkt, ordType, ordId,
+                    ordQty, ordCnt, action)
+        IF ordCnt > 0: RUN applySells(plyrs(p), mkt,
+                    ordType, ordId, ordQty, ordCnt)
+        check margin call per stock → GOSUB 500 if triggered
+    ELSE
+        RUN aiSell(cYear, plyrs(p), mkt, prof(p),
+                    ordType, ordId, ordQty, ordCnt)
+        IF ordCnt > 0: RUN applySells(...)
+        RUN scrAITurn(...)
+        check margin call → GOSUB 500 if triggered
+    ENDIF
+NEXT p
+```
+
+**Margin call trigger (per stock s, per player p):**
+
+```
+IF plyrs(p).mgnHeld(s) AND mkt.stckPrice(s) <= 25 THEN
+    obligation := plyrs(p).marginTot
+    RUN scrMgnCall(plyrs(p).plyrName, sNam(s),
+                   mkt.stckPrice(s), 25, obligation)
+    GOSUB 500   \ ! forced liquidation handler
+ENDIF
+```
+
+**Forced liquidation GOSUB 500:**
+
+```
+500 LOOP
+    RUN scrForceLiq(plyrs(p).plyrName, oblgRem, plyrs(p), mkt,
+                    ordType, ordId, ordQty, ordCnt, liqAction)
+    IF liqAction = 2 THEN GOSUB 600  \ ! bankruptcy
+        RETURN
+    ENDIF
+    IF ordCnt > 0 THEN
+        RUN applyLiqOrdr(plyrs(p), mkt, ordType, ordId,
+                         ordQty, ordCnt, oblgRem)
+    ENDIF
+    EXITIF oblgRem <= 0 THEN
+    ENDEXIT
+    ! Implicit bankruptcy guard: if ordCnt=0 and oblgRem>0,
+    ! no progress possible; force bankruptcy.
+    IF ordCnt = 0 THEN GOSUB 600  \ ! bankruptcy
+        RETURN
+    ENDIF
+ENDLOOP
+RETURN
+```
+
+**Bankruptcy GOSUB 600:**
+
+```
+600 RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, bkReason, cYear)
+activeCnt := activeCnt - 1
+IF activeCnt <= 1 THEN gameOver := TRUE
+RETURN
+```
+
+**Year 10 margin clearance (before buy phase):**
+
+```
+IF cYear = 10 THEN
+    FOR p := 1 TO pCnt
+        IF NOT plyrs(p).isBankrupt THEN
+            LOOP
+                EXITIF plyrs(p).marginTot <= 0 THEN
+                ENDEXIT
+                RUN scrMgnClr(plyrs(p), mkt, mgnClrAct)
+                IF mgnClrAct = 2 THEN GOSUB 600
+                    EXITIF TRUE THEN
+                    ENDEXIT
+                ENDIF
+            ENDLOOP
+        ENDIF
+    NEXT p
+ENDIF
+```
+
+**Buy phase:** Mirrors sell phase structure. `mgnYrOk := (cYear < 10)`.
+For human: `RUN scrBuy(...)`, apply repayment, then `applyBuys`.
+For AI: `RUN aiBuy(...)`, apply repayment, then `applyBuys`.
+
+**Confirmation Test 14.1-P4:**
+
+```
+Year 1: verify sell phase skipped entirely.
+Year 2 human sell, no orders (stub): verify applySells not called.
+Margin call trigger: set mgnHeld(3)=TRUE, stckPrice(3)=20.
+    Verify scrMgnCall called, then scrForceLiq called.
+    Stub scrForceLiq returns action=1, ordCnt=0 → implicit bankruptcy.
+    Verify scrBankrupt called. activeCnt decremented.
+Year 10 margin clearance: set marginTot=1000 before buy phase.
+    Stub scrMgnClr returns action=1. Verify loop re-entered until
+    marginTot manually zeroed (simulate via save edit or stub).
+```
+
+---
+
+### Task 14.1-P5 — Endgame sequence and confirmation test
+
+Implement the year-end check and post-Year-10 routing:
+
+```
+YEAR_END:
+    IF cYear = 10 OR gameOver THEN
+        RUN scrFinalMkt(mkt)
+        RUN scrWealth(plyrs, pCnt, mkt, wlth, srtOrd)
+        RUN scrWinner(plyrs, pCnt, wlth, srtOrd)
+        RUN scrPostGame(pgAction)
+        ! Caller handles pgAction routing (SNBMAIN).
+        END
+    ELSE
+        cYear := cYear + 1
+        hdr.currYear := cYear  \ ! BYTE stage back
+        GOTO YEAR_TOP
+    ENDIF
+```
+
+**Single-survivor early exit:** `gameOver` is set TRUE in GOSUB 600
+when `activeCnt <= 1`. The `YEAR_END` check fires at the bottom of
+the current year's loop iteration; no partial-year continuation.
+
+**Confirmation Test 14.1-P5 (Task 14.1 full test):**
+
+```
+Run complete game: 1 human (stub scrSell/scrBuy → pass all),
+    1 computer Medium, Roll Mode A.
 Verify:
-    - Year 1: no dividend screen, no sell screen.
-    - Year 10: no dividend screen, margin clearance enforced for
-      any player with outstanding margin.
-    - All 10 years complete without crash.
-    - Game proceeds to S24–S27 after Year 10.
+    Year 1: no dividend screen, no margin screen, no sell phase.
+    Year 10: no dividend screen, no margin screen, margin clearance
+        gate entered for any player with marginTot > 0.
+    All 10 years iterate. scrFinalMkt, scrWealth, scrWinner,
+        scrPostGame all called in sequence after Year 10.
+    No stack overflow or Error #090 (out of memory).
+    gameOver path: manually set activeCnt=1 in Year 5 stub.
+        Verify game routes to endgame after Year 5 rather than
+        continuing to Year 6.
 ```
 
 ---
 
-### Task 14.2 — Save and resume integration
+### Task 14.2 — Stub-to-real procedure swap sequence
 
-**Confirmation Test 14.2:**
+Replace stub procedures with real implementations one at a time.
+Confirm each swap passes prior test before proceeding.
+
+**Recommended swap order (least-to-most complex; minimizes
+regression blast radius):**
+
+1. `scrDivInt` — display-only, no input
+2. `scrMgnInt` — display-only, no input
+3. `scrAITurn` — display-only, no input
+4. `aiSell` — no input, deterministic
+5. `aiBuy` — no input, deterministic
+6. `scrSell` — human input, sell phase only
+7. `scrBuy` — human input, buy phase
+8. `scrForceLiq` — human input, liquidation path
+9. `scrMgnClr` — human input, Year 10 only
+
+After each swap, re-run the Task 14.1-P5 confirmation test.
+
+---
+
+### Task 14.3 — Save and resume integration
+
+**Confirmation Test 14.3:**
 
 ```
 During Year 5 sell phase (human player's turn), invoke save.
@@ -1067,34 +1530,39 @@ Verify all subsequent years complete correctly after resume.
 
 ---
 
-### Task 14.3 — Bankruptcy path integration
-
-**Confirmation Test 14.3:**
-
-```
-Arrange: Player 2 holds heavy margin in a volatile stock.
-Force margin call by manually setting that stock's price to $20
-    in the save file, then resuming.
-Verify margin call alert, forced liquidation loop, and (if
-    insufficient assets) bankruptcy declaration all execute in
-    correct sequence.
-Verify bankrupt player is excluded from all subsequent turns.
-Verify game continues with remaining players to Year 10.
-```
-
----
-
-### Task 14.4 — All three roll modes (A, B, C) complete a game
+### Task 14.4 — All three roll modes end-to-end
 
 **Confirmation Test 14.4:**
 
 ```
-Run short games (3 years via save edit on currYear) under each mode:
-Mode A: single roll per year, all stocks receive same market type.
-Mode B: per-stock roll Year 1 only; single roll Years 2–10.
-Mode C: per-stock roll every year. Verify special rule activates
-    when any stock rolls 2 or 12 (override all prices for that roll).
+Mode A: run 3-year game. Verify all 9 stocks share same roll each year.
+Mode B: run 3-year game. Year 1: verify 9 independent rolls.
+    Years 2-3: verify single roll applies to all stocks.
+Mode C no override: stub RND to avoid 2/12. Verify 9 independent
+    deltas per stock each year.
+Mode C with override: stub RND to produce 12 on stock 4 in Year 2.
+    Verify all 9 stocks use roll=12 delta that year.
+    Verify rolls(1..3) used their independent values in Year 2
+    before override (stocks 1-3 already resolved individually
+    before stock 4 triggered override).
 ```
+
+**Note on Mode C semantics:** Stocks 1 through (trigger-1) have
+already been independently resolved before the 2/12 roll fires.
+`applyMktYear` processes them with their individual rolls.
+Stocks from the trigger point onward all receive the override roll.
+This is consistent with the user-confirmed rule: "rolling stops as
+soon as the first 2 or 12 is rolled."
+
+---
+
+## Updated Phase Summary Table (revised rows only)
+
+| Phase | Tasks        | Gate Condition                                        |
+|-------|--------------|-------------------------------------------------------|
+| 3     | 3.1–3.4, **3.4a** | All price resolution verified; roll array fix confirmed |
+| 10    | 10.1–10.4, **10.5** | All margin/bankruptcy paths verified; scrMgnInt confirmed |
+| 14    | **14.0**, 14.1-P1 through P5, 14.2–14.4 | Full 10-year game with all roll modes and save/resume confirmed |
 
 ---
 
