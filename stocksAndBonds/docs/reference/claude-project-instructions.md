@@ -40,6 +40,8 @@ These instructions govern how to build, edit, review, and QA Basic09 code in thi
 
 * **Prefer existing utility procedures over re-implementing common logic.** Review the project's existing `.b09` files before writing new string manipulation, file I/O, or parsing logic.
 
+* **End-of-line comment syntax (`\ !`) must be used without exception.** In Basic09, the `!` character only introduces a comment when it appears at the start of a line. An inline comment appended to a statement requires the line concatenation operator first: `statement \ ! comment`. The form `statement ! comment` is a syntax error. Before finalizing any procedure, scan every line that contains `!` not at column 1 and confirm it is preceded by `\`.
+
 ---
 
 ## 4. Editing Existing Code
@@ -64,7 +66,7 @@ These instructions govern how to build, edit, review, and QA Basic09 code in thi
 
 Before submitting or approving any Basic09 code change, verify:
 
-- [ ] No reserved word is used as a variable, type attribute, array, or procedure name
+- [ ] No reserved word is used as a variable, type attribute, array, or procedure name. This includes lowercase or mixed case versions of the identifiers.
 - [ ] All `IF` blocks have a matching `ENDIF`; all `WHILE` blocks have `ENDWHILE`; all `FOR` loops have `NEXT`; all `LOOP` blocks have `ENDLOOP`; all `REPEAT` blocks have `UNTIL`; all `EXITIF` blocks have `ENDEXIT`
 - [ ] `ELSE IF` nesting is fully closed with the correct number of `ENDIF` statements
 - [ ] Every procedure has an `ON ERROR GOTO` handler (or a documented exception)
@@ -80,6 +82,8 @@ Before submitting or approving any Basic09 code change, verify:
 - [ ] Line length is 79 characters or fewer (exceptions documented inline)
 - [ ] All line numbers within a procedure are unique and monotonically increasing
 - [ ] No `MODULE` or `ENDMODULE` statements are present
+- [ ] Every end-of-line comment uses `\ !` syntax, not bare `!`
+- [ ] No `DIM` or `PARAM` variable name matches any field name defined in a `TYPE` declaration within the same procedure (causes Error #076 Multiply-defined Variable)
 
 ---
 

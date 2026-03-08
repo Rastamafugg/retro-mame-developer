@@ -6285,3 +6285,244 @@ RETURN
 
 900 PRINT "TSTAIBUY error ("; ERR; ")"
     END
+
+PROCEDURE TST131
+(* =========================================================== *)
+(* PROCEDURE : TST131                                          *)
+(* PURPOSE   : Confirmation test for Phase 13 Task 13.1.       *)
+(*             Verifies AIProfile wiring in aiSell and aiBuy   *)
+(*             across all three difficulty tiers.              *)
+(*             Pre-load: RUN snbAI before running this test.   *)
+(* =========================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+
+DIM plyr  : PlyrRec
+DIM mkt   : MktState
+DIM prof  : AIProfile
+DIM oTyp(12)  : INTEGER \ ! ordType output
+DIM oId(12)   : INTEGER \ ! ordId output
+DIM oQty(12)  : INTEGER \ ! ordQty output
+DIM oPur(12)  : INTEGER \ ! ordPurch output
+DIM oCnt      : INTEGER
+DIM mRpy      : INTEGER
+DIM tNum      : INTEGER
+DIM pass      : INTEGER
+DIM fail      : INTEGER
+DIM expQty    : INTEGER
+DIM i         : INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "=== TST131: AIProfile Integration ==="
+PRINT ""
+
+! ============================================================
+! Block 1: Rule 3 split sell.
+! Setup: stock 1 at $150, 100 shares, no margin.
+! Easy=20 lots, Medium=50 lots, Hard=30 lots.
+! ============================================================
+
+PRINT "Block 1: Rule 3 Split Sell by Tier"
+pass := 0
+fail := 0
+
+! Init player: clear all fields inline.
+plyr.cashBal   := 5000
+plyr.marginTot := 0
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+plyr.stckShrs(1) := 100
+
+! Init market: stock 1 at $150; all others at $0 (ineligible).
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(1) := 150
+
+FOR tNum := 1 TO 3
+  RUN initAIProf(tNum, prof)
+  RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+  IF tNum = 1 THEN
+    expQty := 20
+  ELSE IF tNum = 2 THEN
+    expQty := 50
+  ELSE
+    expQty := 30
+  ENDIF \ENDIF
+  IF oCnt = 1 AND oTyp(1) = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
+    PRINT "  Tier "; tNum; " Rule3: PASS (SELL "; expQty; ")"
+    pass := pass + 1
+  ELSE
+    PRINT "  Tier "; tNum; " Rule3: FAIL  cnt="; oCnt;
+    IF oCnt >= 1 THEN
+      PRINT " qty="; oQty(1)
+    ELSE
+      PRINT ""
+    ENDIF
+    fail := fail + 1
+  ENDIF
+NEXT tNum
+
+PRINT "Block 1: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+! ============================================================
+! Block 2: Rule 4 distress sell.
+! Scenario A: Easy/Medium — stock 2 at $48, suspended → SELL.
+! Scenario B: Hard        — stock 2 at $55, suspended → SELL.
+! Scenario C: Hard        — stock 2 at $65, suspended → PASS.
+! ============================================================
+
+PRINT "Block 2: Rule 4 Distress Sell by Tier"
+pass := 0
+fail := 0
+
+! Init player with 50 shares of stock 2.
+plyr.cashBal   := 5000
+plyr.marginTot := 0
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+plyr.stckShrs(2) := 50
+
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.divSuspnd(2) := TRUE
+
+! --- Scenario A: Easy, $48 suspended (distSlPrc=50 → SELL) ---
+mkt.stckPrice(2) := 48
+RUN initAIProf(1, prof)
+RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 2 AND oQty(1) = 50 THEN
+  PRINT "  Easy   $48 susp: PASS"
+  pass := pass + 1
+ELSE
+  PRINT "  Easy   $48 susp: FAIL  cnt="; oCnt
+  fail := fail + 1
+ENDIF
+
+! --- Scenario A: Medium, $48 suspended (distSlPrc=50 → SELL) ---
+RUN initAIProf(2, prof)
+RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 2 AND oQty(1) = 50 THEN
+  PRINT "  Medium $48 susp: PASS"
+  pass := pass + 1
+ELSE
+  PRINT "  Medium $48 susp: FAIL  cnt="; oCnt
+  fail := fail + 1
+ENDIF
+
+! --- Scenario B: Hard, $55 suspended (distSlPrc=60 → SELL) ---
+mkt.stckPrice(2) := 55
+RUN initAIProf(3, prof)
+RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 1 AND oId(1) = 2 AND oQty(1) = 50 THEN
+  PRINT "  Hard   $55 susp: PASS (SELL)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard   $55 susp: FAIL  cnt="; oCnt
+  fail := fail + 1
+ENDIF
+
+! --- Scenario C: Hard, $65 suspended (distSlPrc=60 → PASS) ---
+mkt.stckPrice(2) := 65
+RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
+IF oCnt = 0 THEN
+  PRINT "  Hard   $65 susp: PASS (no sell)"
+  pass := pass + 1
+ELSE
+  PRINT "  Hard   $65 susp: FAIL  cnt="; oCnt
+  fail := fail + 1
+ENDIF
+
+PRINT "Block 2: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+! ============================================================
+! Block 3: Concentration cap (buy phase).
+! Setup: only stock 4 (Shady Brooks, divPer=7) at $100 eligible.
+! All others at $0 (bankrupt → ineligible). cashBal=5000.
+! Easy  (concenCap=70): maxCash=3500, lots=35→30 → BUY 30.
+! Medium(concenCap=40): maxCash=2000, lots=20→20 → BUY 20.
+! Hard  (concenCap=25): maxCash=1250, lots=12→10 → BUY 10.
+! ============================================================
+
+PRINT "Block 3: Concentration Cap (aiBuy) by Tier"
+pass := 0
+fail := 0
+
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.hadCashPur := FALSE
+plyr.isBankrupt := FALSE
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 0
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+mkt.stckPrice(4) := 100  \ ! Only Shady Brooks eligible.
+
+FOR tNum := 1 TO 3
+  RUN initAIProf(tNum, prof)
+  IF tNum = 1 THEN
+    expQty := 30
+  ELSE IF tNum = 2 THEN
+    expQty := 20
+  ELSE
+    expQty := 10
+  ENDIF \ENDIF
+  RUN aiBuy(1, plyr, mkt, prof, oTyp, oId, oQty, oPur, oCnt, mRpy)
+  ! Check first order: stock 4, expected qty, CASH purchase.
+  IF oCnt >= 1 AND oTyp(1) = 1 AND oId(1) = 4 THEN
+    IF oQty(1) = expQty AND oPur(1) = 1 THEN
+      PRINT "  Tier "; tNum; " Cap: PASS (BUY "; expQty; ")"
+      pass := pass + 1
+    ELSE
+      PRINT "  Tier "; tNum; " Cap: FAIL  qty="; oQty(1);
+      PRINT " pur="; oPur(1); " expQty="; expQty
+      fail := fail + 1
+    ENDIF
+  ELSE
+    PRINT "  Tier "; tNum; " Cap: FAIL  oCnt="; oCnt
+    IF oCnt >= 1 THEN
+      PRINT "    oTyp(1)="; oTyp(1); " oId(1)="; oId(1)
+    ENDIF
+    fail := fail + 1
+  ENDIF
+NEXT tNum
+
+PRINT "Block 3: "; pass; " pass, "; fail; " fail"
+RUN waitKey
+
+PRINT "TST131 complete."
+END
+
+900 ERROR(ERR)
+END
