@@ -1,0 +1,311 @@
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE TSTBYTEINT
+! TSTBYTEINT - BYTE/INTEGER interaction test
+!  Purpose : Explore every BYTE<->INTEGER boundary:
+!            assignment, promotion, truncation, arithmetic
+!            result types, LAND staging, PARAM passing.
+!  Params  : none
+!  Notes   : Run after pre-loading this file with RUN TSTBYTEINT
+
+  TYPE TBIRec = bFld:BYTE; iFld:INTEGER
+  DIM bv1, bv2, bv3: BYTE
+  DIM iv1, iv2: INTEGER
+  DIM rec: TBIRec
+  ON ERROR GOTO 900
+
+  ! -------------------------------------------------------
+  ! Section A: Direct assignment to standalone BYTE variable
+  ! -------------------------------------------------------
+  PRINT "=== A: BYTE direct assignment ==="
+
+  bv1 := 42
+  PRINT "A1 bv1:=42       expect  42  got "; bv1
+
+  bv1 := 255
+  PRINT "A2 bv1:=255      expect 255  got "; bv1
+
+  bv1 := 256
+  PRINT "A3 bv1:=256      expect   0  got "; bv1
+
+  bv1 := 257
+  PRINT "A4 bv1:=257      expect   1  got "; bv1
+
+  bv1 := 300
+  PRINT "A5 bv1:=300      expect  44  got "; bv1
+
+  iv1 := -1
+  bv1 := iv1
+  PRINT "A6 iv1:=-1 bv1:=iv1 expect 255  got "; bv1
+
+  iv1 := -128
+  bv1 := iv1
+  PRINT "A7 iv1:=-128 bv1:=iv1 expect 128  got "; bv1
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section B: Assignment to BYTE field inside TYPE struct
+  ! -------------------------------------------------------
+  PRINT "=== B: BYTE struct field assignment ==="
+
+  rec.bFld := 42
+  PRINT "B1 rec.bFld:=42      expect  42  got "; rec.bFld
+
+  rec.bFld := 255
+  PRINT "B2 rec.bFld:=255     expect 255  got "; rec.bFld
+
+  rec.bFld := 256
+  PRINT "B3 rec.bFld:=256     expect   0  got "; rec.bFld
+
+  iv1 := -1
+  rec.bFld := iv1
+  PRINT "B4 iv1:=-1 rec.bFld:=iv1 expect 255  got "; rec.bFld
+
+  rec.iFld := 42
+  PRINT "B5 rec.iFld:=42      expect  42  got "; rec.iFld
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section C: BYTE variable assigned to INTEGER variable
+  ! Unsigned BYTE 255 — does INTEGER see 255 or -1?
+  ! -------------------------------------------------------
+  PRINT "=== C: BYTE -> INTEGER promotion ==="
+
+  bv1 := 100
+  iv1 := bv1
+  PRINT "C1 bv1:=100 iv1:=bv1  expect 100  got "; iv1
+
+  bv1 := 255
+  iv1 := bv1
+  PRINT "C2 bv1:=255 iv1:=bv1  expect 255 (not -1)  got "; iv1
+
+  bv1 := 128
+  iv1 := bv1
+  PRINT "C3 bv1:=128 iv1:=bv1  expect 128 (not -128) got "; iv1
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section D: INTEGER variable assigned to BYTE variable
+  ! -------------------------------------------------------
+  PRINT "=== D: INTEGER -> BYTE truncation ==="
+
+  iv1 := 300
+  bv1 := iv1
+  PRINT "D1 iv1:=300 bv1:=iv1  expect  44  got "; bv1
+
+  iv1 := 0
+  bv1 := iv1
+  PRINT "D2 iv1:=0   bv1:=iv1  expect   0  got "; bv1
+
+  iv1 := 256
+  bv1 := iv1
+  PRINT "D3 iv1:=256 bv1:=iv1  expect   0  got "; bv1
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section E: Arithmetic result type observation
+  ! PRINT format reveals type: no decimal = INTEGER/BYTE
+  ! -------------------------------------------------------
+  PRINT "=== E: Arithmetic result types ==="
+
+  bv1 := 10
+  bv2 := 20
+  iv1 := bv1+bv2
+  PRINT "E1 BYTE+BYTE->INTEGER: 10+20 expect 30  got "; iv1
+
+  bv1 := 200
+  bv2 := 100
+  iv1 := bv1+bv2
+  PRINT "E2 200B+100B->INTEGER: expect 300  got "; iv1
+
+  bv1 := 200
+  bv2 := 100
+  bv3 := bv1+bv2
+  PRINT "E3 200B+100B->BYTE dest: expect 44  got "; bv3
+
+  bv1 := 10
+  iv2 := 100
+  iv1 := bv1+iv2
+  PRINT "E4 BYTE+INTEGER: 10+100 expect 110  got "; iv1
+
+  iv1 := 10
+  iv2 := 100
+  iv1 := iv1+iv2
+  PRINT "E5 INT+INT: 10+100 expect 110  got "; iv1
+
+  ! Does PRINT show decimal point? (REAL indicator)
+  ! Print raw BYTE and raw INTEGER to observe format
+  bv1 := 7
+  iv1 := 7
+  PRINT "E6 PRINT raw BYTE 7 (no decimal=BYTE/INT): "; bv1
+  PRINT "E7 PRINT raw INT  7 (no decimal=BYTE/INT): "; iv1
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section F: LAND staging — BYTE vs INTEGER intermediates
+  ! Critical for checksum and masking logic
+  ! -------------------------------------------------------
+  PRINT "=== F: LAND staging ==="
+
+  bv1 := 42
+  iv1 := LAND(bv1,255)
+  PRINT "F1 LAND(BYTE 42,255)->INT expect  42  got "; iv1
+
+  iv2 := 42
+  iv1 := LAND(iv2,255)
+  PRINT "F2 LAND(INT 42,255)->INT  expect  42  got "; iv1
+
+  iv2 := 300
+  iv1 := LAND(iv2,255)
+  PRINT "F3 LAND(INT 300,255)->INT expect  44  got "; iv1
+
+  iv2 := 300
+  iv1 := LAND(iv2,255)
+  bv1 := iv1
+  PRINT "F4 LAND(300,255)->INT->BYTE expect 44  got "; bv1
+
+  ! Direct: assign LAND result to BYTE without staging
+  iv2 := 300
+  bv1 := LAND(iv2,255)
+  PRINT "F5 LAND(300,255)->BYTE direct expect 44  got "; bv1
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section G: BYTE PARAM passing
+  ! Per manual: no BYTE constants exist; literals are
+  ! INTEGER. Called proc expecting BYTE uses high-order
+  ! byte of the 2-byte INTEGER — typically zero.
+  ! -------------------------------------------------------
+  PRINT "=== G: BYTE PARAM passing ==="
+
+  PRINT "G1 literal 42 to BYTE PARAM (expect 0 - high byte):"
+  RUN BTPRMTST(42)
+
+  bv1 := 42
+  PRINT "G2 BYTE var 42 to BYTE PARAM (expect 42):"
+  RUN BTPRMTST(bv1)
+
+  iv1 := 42
+  PRINT "G3 INTEGER var 42 to BYTE PARAM (expect 0 - high byte):"
+  RUN BTPRMTST(iv1)
+
+  bv1 := 255
+  PRINT "G4 BYTE var 255 to BYTE PARAM (expect 255):"
+  RUN BTPRMTST(bv1)
+
+  ! Pass BYTE var by-value via +0 expression
+  ! +0 promotes to INTEGER expression; high-byte applies
+  bv1 := 42
+  PRINT "G5 BYTE var+0 (by-value expr) to BYTE PARAM (expect 0):"
+  RUN BTPRMTST(bv1+0)
+
+  ! Pass struct BYTE field
+  rec.bFld := 99
+  PRINT "G6 struct BYTE field 99 to BYTE PARAM (expect 99):"
+  RUN BTPRMTST(rec.bFld)
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section H: INTEGER PARAM receiving various sources
+  ! -------------------------------------------------------
+  PRINT "=== H: INTEGER PARAM passing ==="
+
+  PRINT "H1 literal 42 to INTEGER PARAM (expect 42):"
+  RUN ITPRMTST(42)
+
+  bv1 := 42
+  PRINT "H2 BYTE var 42 to INTEGER PARAM (expect 42):"
+  RUN ITPRMTST(bv1)
+
+  iv1 := 42
+  PRINT "H3 INTEGER var 42 to INTEGER PARAM (expect 42):"
+  RUN ITPRMTST(iv1)
+
+  PRINT "H4 literal 256 to INTEGER PARAM (expect 256):"
+  RUN ITPRMTST(256)
+
+  rec.bFld := 99
+  PRINT "H5 struct BYTE field 99 to INTEGER PARAM (expect 99?):"
+  RUN ITPRMTST(rec.bFld)
+
+  RUN waitKey
+
+  ! -------------------------------------------------------
+  ! Section I: Comparison behavior
+  ! BYTE 255 vs INTEGER 255 vs INTEGER -1
+  ! -------------------------------------------------------
+  PRINT "=== I: Comparison ==="
+
+  bv1 := 255
+  iv1 := 255
+  IF bv1=iv1 THEN
+    PRINT "I1 BYTE 255 = INT 255: TRUE (expected TRUE)"
+  ELSE
+    PRINT "I1 BYTE 255 = INT 255: FALSE (unexpected)"
+  ENDIF
+
+  bv1 := 255
+  iv1 := -1
+  IF bv1=iv1 THEN
+    PRINT "I2 BYTE 255 = INT -1: TRUE (unexpected)"
+  ELSE
+    PRINT "I2 BYTE 255 = INT -1: FALSE (expected FALSE)"
+  ENDIF
+
+  bv1 := 128
+  iv1 := 128
+  IF bv1>0 THEN
+    PRINT "I3 BYTE 128 > 0: TRUE (expected TRUE)"
+  ELSE
+    PRINT "I3 BYTE 128 > 0: FALSE (unexpected)"
+  ENDIF
+
+  PRINT "=== TSTBYTEINT COMPLETE ==="
+  END
+900 PRINT "ERR "; ERR
+  END
+
+PROCEDURE BTPRMTST
+(* Helper: accepts BYTE PARAM, prints received value *)
+  PARAM bParam: BYTE
+  ON ERROR GOTO 900
+  PRINT "  BTPRMTST received: "; bParam
+  END
+900 PRINT "ERR "; ERR
+  END
+
+PROCEDURE ITPRMTST
+(* Helper: accepts INTEGER PARAM, prints received value *)
+  PARAM iParam: INTEGER
+  ON ERROR GOTO 900
+  PRINT "  ITPRMTST received: "; iParam
+  END
+900 PRINT "ERR "; ERR
+  END
