@@ -522,10 +522,10 @@ mgnRepay := 0
 
 simCash := plyr.cashBal
 IF plyr.marginTot > 0 AND plyr.cashBal > 0 THEN
-  annlChrg  := plyr.marginTot * 5 / 100
-  burdenThr := plyr.cashBal * mgnRsvPctW / 100
+  annlChrg  := plyr.marginTot / 20
+  burdenThr := plyr.cashBal / 100 * mgnRsvPctW
   IF annlChrg > burdenThr THEN
-    repayAmt := plyr.cashBal * repayFracW / 100
+    repayAmt := plyr.cashBal / 100 * repayFracW
     IF repayAmt > plyr.marginTot THEN
       repayAmt := plyr.marginTot
     ENDIF
@@ -609,7 +609,7 @@ stocksBought := FALSE
 FOR i := 1 TO candCnt
   s := srtIdx(i)
   IF simCash >= mkt.stckPrice(s) THEN
-    maxCash := simCash * concentCapW / 100
+    maxCash := simCash / 100 * concentCapW
     maxLots := maxCash / mkt.stckPrice(s)
     maxLots := (maxLots / 10) * 10
     IF maxLots >= 10 AND ordCnt < 12 THEN
