@@ -1,0 +1,516 @@
+
+PROCEDURE scrYearHdr
+(* ============================================================ *)
+(* PROCEDURE : scrYearHdr                                       *)
+(* PURPOSE   : Display the year header screen (S8). Shows the  *)
+(*             year number and applicable rule notices:         *)
+(*               - No dividends or bond interest (Year 1, 10)  *)
+(*               - No sell phase (Year 1)                       *)
+(*               - No new margin purchases (Year 10)            *)
+(*             Blocks until any key is pressed.                 *)
+(* PARAMS    : currYear - current game year (1..10)             *)
+(*             totYears - total game years (always 10)          *)
+(*             rollMode - market roll mode (1=A 2=B 3=C)        *)
+(*                        included per S8 spec; not displayed   *)
+(*             noDiv    - TRUE if divs/interest skipped         *)
+(*             noMgn    - TRUE if new margin purchases blocked  *)
+(*             noSell   - TRUE if sell phase is skipped         *)
+(*             action   - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey.  *)
+(* ============================================================ *)
+PARAM currYear : INTEGER
+PARAM totYears : INTEGER
+PARAM rollMode : BYTE
+PARAM noDiv    : BOOLEAN
+PARAM noMgn    : BOOLEAN
+PARAM noSell   : BOOLEAN
+PARAM action   : BYTE
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  STOCKS AND BONDS"
+PRINT
+PRINT "  YEAR "; currYear; " OF "; totYears
+PRINT "  --------------------------------"
+PRINT
+IF noDiv THEN
+  PRINT "  * No dividends or bond interest this year"
+ENDIF
+IF noSell THEN
+  PRINT "  * No sell phase this year"
+ENDIF
+IF noMgn THEN
+  PRINT "  * No new margin purchases this year"
+ENDIF
+IF noDiv OR noSell OR noMgn THEN
+  PRINT
+ENDIF
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrDivInt
+(* ============================================================ *)
+(* PROCEDURE : scrDivInt                                        *)
+(* PURPOSE   : Display dividend and interest summary (S9) for  *)
+(*             one player. Shows per-stock dividends and per-  *)
+(*             bond interest received this year, the total     *)
+(*             received, and cash before and after.            *)
+(*             Only stocks with divRcvd > 0 are listed.        *)
+(*             Only bonds with bndInt > 0 are listed.          *)
+(*             Sections show "(none)" when no amounts apply.   *)
+(*             Blocks on keypress via waitKey.                 *)
+(*                                                             *)
+(*             CALLER RESPONSIBILITY: must not be called in    *)
+(*             Year 1 or Year 10; those years have no          *)
+(*             dividends or bond interest.                     *)
+(* PARAMS    : currYear - current game year (2..9)             *)
+(*             plyrName - player name for display              *)
+(*             cashBef  - cash balance before dividends        *)
+(*             divRcvd  - dividends received per stock (1..9)  *)
+(*                        0 for no-yield or suspended stocks   *)
+(*             bndInt   - interest received per bond (1..3)    *)
+(*                        0 for bonds not held                 *)
+(*             totRcvd  - total dividends + interest received  *)
+(*             cashAft  - cash balance after dividends         *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress.             *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* ============================================================ *)
+PARAM currYear   : INTEGER
+PARAM plyrName   : STRING[20]
+PARAM cashBef    : INTEGER
+PARAM divRcvd(9) : INTEGER
+PARAM bndInt(3)  : INTEGER
+PARAM totRcvd    : INTEGER
+PARAM cashAft    : INTEGER
+PARAM action     : BYTE
+DIM s      : INTEGER
+DIM b      : INTEGER
+DIM sName  : STRING[12]
+DIM bName  : STRING[6]
+DIM anyDiv : BOOLEAN
+DIM anyBnd : BOOLEAN
+
+ON ERROR GOTO 900
+
+anyDiv := FALSE
+anyBnd := FALSE
+
+RUN clrScr
+PRINT
+PRINT "  DIVIDENDS AND INTEREST"
+PRINT "  "; plyrName; "  YEAR "; currYear
+PRINT
+
+! -- Dividends received ----------------------------------------
+PRINT "  DIVIDENDS RECEIVED:"
+RESTORE 100
+FOR s := 1 TO 9
+  READ sName
+  IF divRcvd(s) > 0 THEN
+    PRINT USING "'    ',S12<,'  $',I6>", sName, divRcvd(s)
+    anyDiv := TRUE
+  ENDIF
+NEXT s
+IF NOT anyDiv THEN
+  PRINT "    (none)"
+ENDIF
+PRINT
+
+! -- Bond interest ---------------------------------------------
+PRINT "  BOND INTEREST:"
+RESTORE 200
+FOR b := 1 TO 3
+  READ bName
+  IF bndInt(b) > 0 THEN
+    PRINT USING "'    ',S12<,'  $',I6>", bName, bndInt(b)
+    anyBnd := TRUE
+  ENDIF
+NEXT b
+IF NOT anyBnd THEN
+  PRINT "    (none)"
+ENDIF
+PRINT
+
+! -- Cash summary ----------------------------------------------
+PRINT USING "'  Total received:   $',I6>", totRcvd
+PRINT USING "'  Cash before:      $',I6>", cashBef
+PRINT USING "'  Cash after:       $',I6>", cashAft
+PRINT
+
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for dividend display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+! Bond names 1..3 for interest display (spec Section 2.2)
+200 DATA "Small","Medium","Large"
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrCard
+(* ============================================================ *)
+(* PROCEDURE : scrCard                                          *)
+(* PURPOSE   : Display the situation card screen (S11). Shows  *)
+(*             card number, market type (Bull/Bear), flavour   *)
+(*             text, each affected stock and its price delta,  *)
+(*             and a dividend bonus notice when applicable.    *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : crdNum  - card number (1..36) for display       *)
+(*             card    - populated CardRec from getCard        *)
+(*               card.crdType  - 1=Bull 2=Bear                 *)
+(*               card.efxCnt  - number of affected stocks      *)
+(*               card.efxStk  - stock IDs for each effect      *)
+(*               card.efxDlt  - price deltas for each effect   *)
+(*               card.divBonus - dividend bonus (0 if none)    *)
+(*             flavTxt - flavour text string for this card     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* NOTE      : Flavour text longer than ~76 chars will wrap    *)
+(*             at the terminal width. Basic09 does not provide *)
+(*             word-wrap; this is accepted behaviour.          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM crdNum  : INTEGER
+PARAM card    : CardRec
+PARAM flavTxt : STRING[160]
+PARAM action  : BYTE
+DIM sName : STRING[12]
+DIM sign   : STRING[1]
+DIM e     : INTEGER
+DIM s     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  SITUATION CARD #"; crdNum
+PRINT
+IF card.crdType = 1 THEN
+  PRINT "  BULL MARKET"
+ELSE
+  PRINT "  BEAR MARKET"
+ENDIF
+PRINT
+PRINT "  "; flavTxt
+PRINT
+PRINT "  STOCKS AFFECTED:"
+FOR e := 1 TO card.efxCnt
+  ! Read stock names in order from DATA until reaching the
+  ! target stock ID; sName holds the matching name on exit.
+  RESTORE 100
+  FOR s := 1 TO card.efxStk(e)
+    READ sName
+  NEXT s
+  IF card.efxDlt(e) >= 0 THEN
+    sign := "+"
+  ELSE
+    sign := ""
+  ENDIF
+  PRINT "    "; sName; TAB(20); sign; card.efxDlt(e)
+NEXT e
+IF card.divBonus > 0 THEN
+  PRINT
+  PRINT "  DIVIDEND BONUS: $"; card.divBonus; " per share"
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for effect display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrDice
+(* ============================================================ *)
+(* PROCEDURE : scrDice                                          *)
+(* PURPOSE   : Display the dice roll screen (S12).             *)
+(*             Mode A or B (rollMode 1 or 2): one roll applies *)
+(*             to all stocks; displays die 1, die 2, total.    *)
+(*             Mode C (rollMode 3): one roll per stock;         *)
+(*             displays a row per stock with both dice and the  *)
+(*             total. Blocks until any key is pressed.          *)
+(*                                                             *)
+(*             CALLER RESPONSIBILITY: for Mode C, caller must   *)
+(*             populate all 9 slots of dieOne, dieTwo, and     *)
+(*             rollTot before calling. Slot r corresponds to   *)
+(*             stock r (1=Growth Corp ... 9=Valley Power).      *)
+(*             rollCnt must be 1 for modes A/B, 9 for mode C.  *)
+(* PARAMS    : rollMode - 1=A (single) 2=B (single) 3=C (per  *)
+(*                        stock)                                *)
+(*             rollCnt  - number of populated roll slots        *)
+(*                        (1 for mode A/B, 9 for mode C)       *)
+(*             dieOne   - first die value per roll slot (1..6) *)
+(*             dieTwo   - second die value per roll slot (1..6)*)
+(*             rollTot  - sum per roll slot (2..12)             *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used)         *)
+(*             when rollMode = 3.                               *)
+(* ============================================================ *)
+PARAM rollMode   : BYTE
+PARAM rollCnt    : BYTE
+PARAM dieOne(9)  : BYTE
+PARAM dieTwo(9)  : BYTE
+PARAM rollTot(9) : BYTE
+PARAM action     : BYTE
+DIM sName : STRING[12]
+DIM r     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  DICE ROLL"
+PRINT
+
+IF rollMode = 1 THEN
+  PRINT "  ROLL MODE A"
+ELSE
+  IF rollMode = 2 THEN
+    PRINT "  ROLL MODE B"
+  ELSE
+    PRINT "  ROLL MODE C  (per stock)"
+  ENDIF
+ENDIF
+
+PRINT
+
+IF rollMode = 3 THEN
+  ! Mode C: one row per stock
+  PRINT "    STOCK            D1   D2  TOT"
+  PRINT "    ----------------------------------"
+  RESTORE 100
+  FOR r := 1 TO rollCnt
+    READ sName
+    PRINT USING "'    ',S12<,X2,I3>,X2,I3>,X2,I3>", sName, dieOne(r), dieTwo(r), rollTot(r)
+  NEXT r
+ELSE
+  ! Mode A or B: single roll, stockId unused
+  PRINT "  Die 1:  "; dieOne(1)
+  PRINT "  Die 2:  "; dieTwo(1)
+  PRINT "  Total:  "; rollTot(1)
+ENDIF
+
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for mode C display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrMktBoard
+(* ============================================================ *)
+(* PROCEDURE : scrMktBoard                                      *)
+(* PURPOSE   : Display the market results board (S13). Shows   *)
+(*             one row per stock: price before card delta,      *)
+(*             market table delta, card delta, resolved price,  *)
+(*             and a status flag where applicable.             *)
+(*             Flag column (priority order):                    *)
+(*               BKRT  price resolved to 0 (bankruptcy floor)  *)
+(*               SPLT  2-for-1 split triggered this year        *)
+(*               SUSP  dividends newly suspended this year      *)
+(*               RSTD  dividends reinstated this year           *)
+(*               (blank) no notable event                       *)
+(*             prcBefCrd values are unclamped (may be          *)
+(*             negative) as produced by applyMktYear.          *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : prcBefCrd - price after mkt table, before card  *)
+(*                         delta; unclamped; per stock 1..9    *)
+(*             mktDlta   - market table delta per stock 1..9   *)
+(*             crdDlta   - card delta per stock 1..9           *)
+(*             newPrc    - resolved price per stock 1..9        *)
+(*             splitOcc  - TRUE if split triggered per stock   *)
+(*             divSuspd  - TRUE if dividends newly suspended   *)
+(*             divRnstd  - TRUE if dividends reinstated        *)
+(*             action    - returns 1 (CONTINUE) on exit        *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* ============================================================ *)
+PARAM prcBefCrd(9) : INTEGER
+PARAM mktDlta(9)   : INTEGER
+PARAM crdDlta(9)   : INTEGER
+PARAM newPrc(9)    : INTEGER
+PARAM splitOcc(9)  : BOOLEAN
+PARAM divSuspd(9)  : BOOLEAN
+PARAM divRnstd(9)  : BOOLEAN
+PARAM action       : BYTE
+DIM sName : STRING[12]
+DIM flg   : STRING[4]
+DIM s     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  MARKET RESULTS BOARD"
+PRINT
+PRINT "  STOCK          PREV   MKT   CRD   NEW NOTE"
+PRINT "  ------------   ----  ----  ----  ---- ----"
+
+RESTORE 100
+FOR s := 1 TO 9
+  READ sName
+
+  ! Derive status flag; BKRT takes priority over all others.
+  IF newPrc(s) = 0 THEN
+    flg := "BKRT"
+  ELSE
+    IF splitOcc(s) THEN
+      flg := "SPLT"
+    ELSE
+      IF divSuspd(s) THEN
+        flg := "SUSP"
+      ELSE
+        IF divRnstd(s) THEN
+          flg := "RSTD"
+        ELSE
+          flg := "    "
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+
+  PRINT USING "'  ',S12<,X1,I4>,X2,I4>,X2,I4>,X2,I4>,X1,S4<", sName, prcBefCrd(s), mktDlta(s), crdDlta(s), newPrc(s), flg
+NEXT s
+
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrDivFlag
+(* ============================================================ *)
+(* PROCEDURE : scrDivFlag                                       *)
+(* PURPOSE   : Display the dividend suspension or reinstatement*)
+(*             notice (S15) for one threshold-crossing event.  *)
+(*             Shows event type (SUSPENDED / REINSTATED), stock *)
+(*             name, resolved price, and dividend cutoff price. *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName - stock name for display                *)
+(*             evtType - 1 = SUSPENDED   2 = REINSTATED        *)
+(*             newPrc  - resolved stock price this year        *)
+(*             cutPrc  - dividend cutoff price (always 50)     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName : STRING[12]
+PARAM evtType : INTEGER
+PARAM newPrc  : INTEGER
+PARAM cutPrc  : INTEGER
+PARAM action  : BYTE
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+IF evtType = 1 THEN
+  PRINT "  DIVIDEND SUSPENDED"
+ELSE
+  PRINT "  DIVIDEND REINSTATED"
+ENDIF
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Current price:  $',I4>", newPrc
+PRINT USING "'  Cutoff price:   $',I4>", cutPrc
+PRINT
+IF evtType = 1 THEN
+  PRINT "  Dividends suspended until price recovers."
+ELSE
+  PRINT "  Dividends reinstated."
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrSplit
+(* ============================================================ *)
+(* PROCEDURE : scrSplit                                         *)
+(* PURPOSE   : Display the stock split notification (S14) for  *)
+(*             one split event. Shows the stock name, old and  *)
+(*             new price, and one row per player who held       *)
+(*             shares before the split (shrBef > 0). Players   *)
+(*             with zero shares before the split are skipped.  *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName  - stock name for display               *)
+(*             oldPrc   - price before split                    *)
+(*             newPrc   - price after split                     *)
+(*             plyrCnt  - number of active players (1..6)      *)
+(*             plyrName - player name per slot (1..plyrCnt)    *)
+(*             shrBef   - shares held before split per player  *)
+(*             shrAft   - shares held after split per player   *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName     : STRING[12]
+PARAM oldPrc      : INTEGER
+PARAM newPrc      : INTEGER
+PARAM plyrCnt     : INTEGER
+PARAM plyrName(6) : STRING[20]
+PARAM shrBef(6)   : INTEGER
+PARAM shrAft(6)   : INTEGER
+PARAM action      : BYTE
+DIM p : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  STOCK SPLIT  2 FOR 1"
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Old price:  $',I4>", oldPrc
+PRINT USING "'  New price:  $',I4>", newPrc
+PRINT
+PRINT "  PLAYER               BEFORE   AFTER"
+PRINT "  -------------------  ------  ------"
+FOR p := 1 TO plyrCnt
+  IF shrBef(p) > 0 THEN
+    PRINT USING "'  ',S20<,I6>,X2,I6>", plyrName(p), shrBef(p), shrAft(p)
+  ENDIF
+NEXT p
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 ERROR(ERR)
+END
