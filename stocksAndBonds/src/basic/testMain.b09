@@ -1,3 +1,28 @@
+PROCEDURE singleProc
+    PRINT "Single procedure executed."
+END
+
+PROCEDURE multiProc1
+    PRINT "Multi procedure 1 executed."
+    RUN multiProc2
+END
+
+PROCEDURE multiProc2
+    PRINT "Multi procedure 2 executed."
+END
+
+PROCEDURE indepProc1
+    PRINT "Independent procedure 1 executed."
+END
+
+PROCEDURE indepProc2
+    PRINT "Independent procedure 2 executed."
+END
+
+PROCEDURE indepProc3
+    PRINT "Independent procedure 3 executed."
+END
+
 PROCEDURE testMain
     DIM memCmd:STRING
     DIM procName:STRING
