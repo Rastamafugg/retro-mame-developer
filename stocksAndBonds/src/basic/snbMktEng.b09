@@ -244,7 +244,12 @@ PROCEDURE applyMktYear
 (*               - Doubles stckShrs for all players on split    *)
 (*             Populates per-stock output arrays for S13–S15.  *)
 (* PARAMS    : cardId    - drawn card number (1..36)            *)
-(*             roll      - 2d6 result (2..12)                   *)
+(*             rolls     - per-stock 2d6 result (2..12);        *)
+(*                         all 9 slots populated by caller.    *)
+(*                         Mode A/B years 2-10: all 9 slots    *)
+(*                         hold the same value. Mode B year 1  *)
+(*                         and Mode C: slots hold independent  *)
+(*                         or override values per doRolls.     *)
 (*             plyrCnt   - number of active players (1..6)      *)
 (*             plyrs     - player records; stckShrs modified    *)
 (*                         on split                             *)
@@ -268,7 +273,7 @@ TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
 PARAM cardId       : INTEGER
-PARAM roll         : INTEGER
+PARAM rolls(9)     : INTEGER
 PARAM plyrCnt      : INTEGER
 PARAM plyrs(6)     : PlyrRec
 PARAM mkt          : MktState
@@ -297,8 +302,8 @@ RUN getCard(cardId, card)
 
 FOR s := 1 TO 9
 
-  ! Market table delta for this stock and roll.
-  RUN getMktDelta(s, card.crdType, roll, delta)
+  ! Market table delta for this stock using its assigned roll.
+  RUN getMktDelta(s, card.crdType, rolls(s), delta)
   mktDlta(s) := delta
 
   ! Card delta: scan effects for this stock; default 0.

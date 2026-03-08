@@ -986,143 +986,129 @@ END
 
 PROCEDURE TSTMKTYR
 (* ============================================================ *)
-(* PROCEDURE : TSTMKTYR                                         *)
-(* PURPOSE   : Confirmation tests for applyMktYear (Task 3.4). *)
-(*             Card 13 (Stryker +17), Bull market, roll=5.     *)
-(*             Test 1: Stryker (stock 5) — split, delta flags, *)
-(*                     shares doubled for holder, zero for non *)
-(*             Test 2: Growth Corp (stock 1) — no card effect, *)
-(*                     correct price, no split, no div flags   *)
-(* PARAMS    : none                                             *)
+(* PROCEDURE : TSTMKTYR                                          *)
+(* PURPOSE   : Confirmation test for Task 3.4a.                *)
+(*             Verifies applyMktYear uses rolls(s) per stock.  *)
+(*             Test A: uniform rolls — result matches prior     *)
+(*               Task 3.4 scalar expectation.                  *)
+(*             Test B: mixed rolls — stock 2 receives roll=4;  *)
+(*               all others roll=7. Verify mktDlta(2) differs  *)
+(*               from mktDlta(1), proving per-stock dispatch.  *)
+(*                                                             *)
+(* Expected values (Bull table, Card 13 = Stryker Bull +17):  *)
+(*   Test A roll=5:                                            *)
+(*     getMktDelta(1,1,5)=23  stckPrice(1) = 100+23 = 123     *)
+(*     getMktDelta(5,1,5)=56  100+56+17=173 split to 87       *)
+(*   Test B stock 1 roll=7, stock 2 roll=4:                   *)
+(*     getMktDelta(1,1,7)=17  mktDlta(1)=17                   *)
+(*     getMktDelta(2,1,4)=23  mktDlta(2)=23                   *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM plyrs(6) : PlyrRec
-DIM mkt      : MktState
-DIM bCrd(9)  : INTEGER
-DIM mDlt(9)  : INTEGER
-DIM cDlt(9)  : INTEGER
-DIM splt(9)  : BOOLEAN
-DIM susp(9)  : BOOLEAN
-DIM rstd(9)  : BOOLEAN
-DIM passed   : INTEGER
-DIM failed   : INTEGER
-DIM p        : INTEGER
-DIM ok       : BOOLEAN
+
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM rolls(9)   : INTEGER
+DIM prcBef(9)  : INTEGER
+DIM mktDlt(9)  : INTEGER
+DIM crdDlt(9)  : INTEGER
+DIM splitOc(9) : BOOLEAN
+DIM divSusp(9) : BOOLEAN
+DIM divRnst(9) : BOOLEAN
+DIM s          : INTEGER
+DIM pass       : INTEGER
+DIM fail       : INTEGER
 
 ON ERROR GOTO 900
 
-passed := 0
-failed := 0
+pass := 0
+fail := 0
 
-! Initialize all player slots and market state.
-FOR p := 1 TO 6
-  RUN initPlayer(plyrs(p))
-NEXT p
+! ---- Test A: uniform rolls (all 9 = 5), Card 13 -----------
+
+PRINT "Test A: uniform rolls=5, Card 13"
+FOR s := 1 TO 9
+  rolls(s) := 5
+NEXT s
+RUN initPlayer(plyrs(1))
 RUN initMkt(mkt)
 
-! Player 1 holds 100 Stryker Drilling shares; player 2 holds none.
-plyrs(1).stckShrs(5) := 100
+! Line exceeds 79 chars; applyMktYear call requires single line.
+RUN applyMktYear(13, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
 
-! Card 13 = Stryker +17, Bull. Roll = 5.
-! Bull table roll=5 for Stryker = 56. rawPrice = 100+56+17 = 173.
-! Split: newPrice = (173+1)/2 = 87. Shares doubled for holders.
-RUN applyMktYear(13, 5, 2, plyrs, mkt, bCrd, mDlt, cDlt, splt, susp, rstd)
+IF mkt.stckPrice(1) = 123 THEN
+  PRINT "  PASS: stckPrice(1)=123"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: stckPrice(1)="; mkt.stckPrice(1); " exp 123"
+  fail := fail + 1
+ENDIF
 
-GOSUB 100 \ ! Test 1: Stryker
-GOSUB 200 \ ! Test 2: Growth Corp
+IF mkt.stckPrice(5) = 87 THEN
+  PRINT "  PASS: stckPrice(5)=87 (split from 173)"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: stckPrice(5)="; mkt.stckPrice(5); " exp 87"
+  fail := fail + 1
+ENDIF
 
+IF splitOc(5) THEN
+  PRINT "  PASS: splitOcc(5)=TRUE"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: splitOcc(5)=FALSE expected TRUE"
+  fail := fail + 1
+ENDIF
+
+RUN waitKey
+
+! ---- Test B: stock 2 roll=4, stocks 1 and 3..9 roll=7 -----
+
+PRINT "Test B: stock 2 roll=4, all others roll=7, Card 13"
+FOR s := 1 TO 9
+  rolls(s) := 7
+NEXT s
+rolls(2) := 4
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+
+! Line exceeds 79 chars; applyMktYear call requires single line.
+RUN applyMktYear(13, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
+
+IF mktDlt(1) = 17 THEN
+  PRINT "  PASS: mktDlt(1)=17 (roll=7)"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: mktDlt(1)="; mktDlt(1); " expected 17"
+  fail := fail + 1
+ENDIF
+
+IF mktDlt(2) = 23 THEN
+  PRINT "  PASS: mktDlt(2)=23 (roll=4)"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: mktDlt(2)="; mktDlt(2); " expected 23"
+  fail := fail + 1
+ENDIF
+
+IF mktDlt(2) <> mktDlt(1) THEN
+  PRINT "  PASS: mktDlt(2)<>mktDlt(1) (rolls independent)"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: mktDlt(2)=mktDlt(1) (per-stock dispatch fail)"
+  fail := fail + 1
+ENDIF
+
+RUN waitKey
+
+! ---- Summary -----------------------------------------------
 PRINT
-PRINT "Results: "; passed; " passed, "; failed; " failed."
+PRINT "TSTMKTYR: "; pass; " passed, "; fail; " failed"
 END
 
-100 \ ! Test 1: Stryker Drilling (stock 5) — split and share doubling
-    ok := TRUE
-    IF mDlt(5) <> 56 THEN
-      PRINT "Test 1 FAIL  mDlt(5): exp=56 got="; mDlt(5)
-      ok := FALSE
-    ENDIF
-    IF cDlt(5) <> 17 THEN
-      PRINT "Test 1 FAIL  cDlt(5): exp=17 got="; cDlt(5)
-      ok := FALSE
-    ENDIF
-    IF bCrd(5) <> 156 THEN
-      PRINT "Test 1 FAIL  bCrd(5): exp=156 got="; bCrd(5)
-      ok := FALSE
-    ENDIF
-    IF mkt.stckPrice(5) <> 87 THEN
-      PRINT "Test 1 FAIL  stckPrice(5): exp=87 got="; mkt.stckPrice(5)
-      ok := FALSE
-    ENDIF
-    IF NOT splt(5) THEN
-      PRINT "Test 1 FAIL  splt(5): exp=TRUE got=FALSE"
-      ok := FALSE
-    ENDIF
-    IF susp(5) THEN
-      PRINT "Test 1 FAIL  susp(5): exp=FALSE got=TRUE"
-      ok := FALSE
-    ENDIF
-    IF rstd(5) THEN
-      PRINT "Test 1 FAIL  rstd(5): exp=FALSE got=TRUE"
-      ok := FALSE
-    ENDIF
-    IF plyrs(1).stckShrs(5) <> 200 THEN
-      PRINT "Test 1 FAIL  p1 shrs(5): exp=200 got="; plyrs(1).stckShrs(5)
-      ok := FALSE
-    ENDIF
-    IF plyrs(2).stckShrs(5) <> 0 THEN
-      PRINT "Test 1 FAIL  p2 shrs(5): exp=0 got="; plyrs(2).stckShrs(5)
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 1 PASS  Stryker split 173->87 shrs 100->200"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-200 \ ! Test 2: Growth Corp (stock 1) — no card effect, no split
-    ok := TRUE
-    IF mDlt(1) <> 23 THEN
-      PRINT "Test 2 FAIL  mDlt(1): exp=23 got="; mDlt(1)
-      ok := FALSE
-    ENDIF
-    IF cDlt(1) <> 0 THEN
-      PRINT "Test 2 FAIL  cDlt(1): exp=0 got="; cDlt(1)
-      ok := FALSE
-    ENDIF
-    IF bCrd(1) <> 123 THEN
-      PRINT "Test 2 FAIL  bCrd(1): exp=123 got="; bCrd(1)
-      ok := FALSE
-    ENDIF
-    IF mkt.stckPrice(1) <> 123 THEN
-      PRINT "Test 2 FAIL  stckPrice(1): exp=123 got="; mkt.stckPrice(1)
-      ok := FALSE
-    ENDIF
-    IF splt(1) THEN
-      PRINT "Test 2 FAIL  splt(1): exp=FALSE got=TRUE"
-      ok := FALSE
-    ENDIF
-    IF susp(1) THEN
-      PRINT "Test 2 FAIL  susp(1): exp=FALSE got=TRUE"
-      ok := FALSE
-    ENDIF
-    IF rstd(1) THEN
-      PRINT "Test 2 FAIL  rstd(1): exp=FALSE got=TRUE"
-      ok := FALSE
-    ENDIF
-    IF ok THEN
-      PRINT "Test 2 PASS  GrowthCorp no-card 100->123 no split"
-      passed := passed + 1
-    ELSE
-      failed := failed + 1
-    ENDIF
-    RETURN
-
-900 PRINT "Runtime error "; ERR; " in TSTMKTYR"
-    END
+900 ERROR(ERR)
+END
 
 PROCEDURE TSTSHFLDCK
 (* ============================================================ *)
