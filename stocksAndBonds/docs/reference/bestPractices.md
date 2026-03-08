@@ -148,6 +148,31 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **Numeric INPUT logic should handle non-numeric edge cases** INPUT + VAL validation pattern. Always guard with: (1) IF qIn = "" THEN treat as zero/default. (2) ELSE IF VAL(qIn) = 0 AND qIn <> "0" THEN reject as non-numeric.
 
+* **INTEGER Overflow in Percentage Arithmetic** Basic09 `INTEGER` is signed 16-bit. Maximum safe value: 32,767. Any expression `A * B` where the product may exceed 32,767 silently wraps and produces a wrong result. This is a latent defect — it will not raise an error and may only manifest with mid-to-late-game values.
+
+    **The pattern to audit:** `value * pct / 100`
+    
+    Overflow occurs when `value * pct > 32,767`, i.e. when `value > 32,767 / pct`.
+    
+    | pct | overflows when value > |
+    |-----|-------|
+    | 100 |   327 |
+    |  75 |   437 |
+    |  50 |   655 |
+    |  40 |   819 |
+    |  25 | 1,310 |
+    |  20 | 1,638 |
+    |  10 | 3,276 |
+    |   5 | 6,553 |
+
+  Fix strategies — choose by context:
+
+  1. Constant pct with a clean reciprocal. Replace with a single integer division. `value * 5 / 100` → `value / 20` Only applicable when the percentage has an exact integer reciprocal and no precision loss is acceptable.
+  2. Value is always a multiple of 10 (share lots). Divide into lots first, scale by pct, then divide by 10. `shares * pct / 100` → `(shares / 10) * pct / 10` Result is exact when shares is a multiple of 10. Max intermediate: `(maxShares/10) * maxPct`.
+  3. General case (arbitrary value, no structural constraint). Divide by 100 first. `value * pct / 100` → `value / 100 * pct` Trades overflow safety for truncation precision: values below 100 round to zero. Acceptable only when the calling context makes sub-100 inputs irrelevant (e.g., cashBal below $100 produces a meaningful 0 in a budget calculation).
+
+  **Rule:** Before writing any `A * B / 100` expression, compute the worst-case product using the maximum in-game value for `A` and the highest tier value for `B`. If the product can exceed 32,767, apply one of the above fixe
+
 ### Procedure Calls and Parameters
 
 * **Use `RUN` to execute a procedure.** `CALL` is not a valid keyword.

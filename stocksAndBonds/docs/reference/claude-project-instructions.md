@@ -54,7 +54,13 @@ These instructions govern how to build, edit, review, and QA Basic09 code in thi
 
 ---
 
-## 5. Code Review and QA Checklist
+## 5. Test Procedure Code
+
+* **When writing test procedures, add user-input calls to pause the output between test blocks** When a test procedure has multiple blocks of tests, the earlier results can scroll off the screen before the user can read them.  Add a call `RUN waitKey` at the end of each test block, to allow the user to review pass/fails before proceeding to the next set of test in the procedure.
+
+---
+
+## 6. Code Review and QA Checklist
 
 Before submitting or approving any Basic09 code change, verify:
 
@@ -77,7 +83,7 @@ Before submitting or approving any Basic09 code change, verify:
 
 ---
 
-## 6. Documentation Standards
+## 7. Documentation Standards
 
 * **Add a procedure header comment block immediately after `PROCEDURE name`.** Include at minimum: purpose, parameters, and any non-obvious side effects.
 
@@ -87,7 +93,7 @@ Before submitting or approving any Basic09 code change, verify:
 
 ---
 
-## 7. File and Directory Conventions
+## 8. File and Directory Conventions
 
 * **Basic09 source files use the `.b09` extension.**
 * **Documentation files use the `.md` extension and reside in `/docs`.**

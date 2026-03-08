@@ -5694,6 +5694,12 @@ PROCEDURE TSTAISELL
 (* Test E — Margin clearance below marginClrYr (currYear=5)    *)
 (*   Same state as Test D but currYear=5 < 9.                  *)
 (*   Verify: ordCnt=0 (clearance block skipped).               *)
+(*                                                             *)
+(* Test F — Rule 3 overflow guard                              *)
+(*   stock 4: price=155, shrs=800.                             *)
+(*   Old formula: 800*50=40000 → overflows → no order.         *)
+(*   Fixed formula: (800/10)*50/10=400 → SELL 400.             *)
+(*   Verify: ordCnt=1, ordType(1)=1, ordId(1)=4, ordQty(1)=400 *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
@@ -5768,6 +5774,8 @@ GOSUB 500
 
 PRINT
 
+RUN waitKey
+
 ! ============================================================
 ! Test B — Bond emergency: cashBal=-100
 ! ============================================================
@@ -5797,6 +5805,8 @@ ELSE
 ENDIF
 PRINT
 
+RUN waitKey
+
 ! ============================================================
 ! Test C — Bond pass: cashBal >= 0
 ! ============================================================
@@ -5817,6 +5827,8 @@ ELSE
   failed := failed + 1
 ENDIF
 PRINT
+
+RUN waitKey
 
 ! ============================================================
 ! Test D — Margin clearance active (currYear=9)
@@ -5853,6 +5865,8 @@ ELSE
 ENDIF
 PRINT
 
+RUN waitKey
+
 ! ============================================================
 ! Test E — Margin clearance blocked (currYear=5 < 9)
 ! Same holdings as Test D; clearance block must not fire.
@@ -5875,6 +5889,41 @@ IF ordCnt = 0 THEN
   passed := passed + 1
 ELSE
   PRINT "Test E FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+RUN waitKey
+
+! ============================================================
+! Test F — Rule 3 integer overflow guard (stckShrs=800)
+! Old: 800*50=40000 overflows → signed wrap → sellLots<10 → no order.
+! Fixed: (800/10)*50/10=400 → ordQty=400.
+! stckShrs=800 is reachable after two splits from 200 shares.
+! ============================================================
+PRINT "--- Test F: Rule 3 overflow guard shrs=800 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.stckShrs(4) := 800 \ ! Shady Brooks; large post-split count
+mkt.stckPrice(4) := 155 \ ! >= 150; triggers Rule 3
+plyr.cashBal     := 5000
+
+RUN aiSell(5, plyr, mkt, ordType, ordId, ordQty, ordCnt)
+
+IF ordCnt = 1 THEN
+  PRINT "Test F PASS  ordCnt=1"
+  passed := passed + 1
+ELSE
+  PRINT "Test F FAIL  ordCnt exp=1 got="; ordCnt
+  failed := failed + 1
+ENDIF
+IF ordType(1) = 1 AND ordId(1) = 4 AND ordQty(1) = 400 THEN
+  PRINT "Test F PASS  STK#4 qty=400 (Rule 3, no overflow)"
+  passed := passed + 1
+ELSE
+  PRINT "Test F FAIL  exp STK#4 qty=400, got type="; ordType(1);
+  PRINT " id="; ordId(1); " qty="; ordQty(1)
   failed := failed + 1
 ENDIF
 PRINT
