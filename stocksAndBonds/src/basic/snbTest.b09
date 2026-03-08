@@ -287,7 +287,7 @@ ENDIF
 !   Rule 1: price = 0                        → SELL all
 !   Rule 2: price <= 25, mgnHeld             → SELL all
 !   Rule 3: price >= 150                     → SELL spltSlPctW%
-!   Rule 4: divSuspnd AND price <= distSellW → SELL all
+!   Rule 4: divSuspnd AND price <= distSlPrcW → SELL all
 !   Rule 5: default                          → PASS
 ! ============================================================
 
@@ -327,7 +327,7 @@ FOR s := 1 TO 9
         pendQty(s)      := sellLots
       ENDIF
 
-    ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellW THEN
+    ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSlPrcW THEN
       ! Rule 4 — Distressed suspended-dividend stock.
       IF ordCnt < 12 THEN
         ordCnt          := ordCnt + 1
@@ -371,13 +371,13 @@ ENDIF
 
 ! ============================================================
 ! Section 4.4: Proactive margin clearance.
-! Active when currYear >= marginClrYrW.
+! Active when currYear >= mgnClrYearW.
 ! Sells held assets in ascending yield-score order until
 ! marginTot is covered. Stocks before bonds.
 ! Skips positions already queued in Rules 1-4 (via pendQty).
 ! ============================================================
 
-IF plyr.marginTot > 0 AND currYear >= marginClrYrW THEN
+IF plyr.marginTot > 0 AND currYear >= mgnClrYearW THEN
   needed := plyr.marginTot
 
   ! Score unheld/unqueued stocks for clearance sort.
@@ -616,7 +616,7 @@ mgnMaxExpW   := aiProfile.mgnMaxExpo
 IF aiProfile.endgameYr > 0 THEN
   IF currYear >= aiProfile.endgameYr THEN
     zeroDivElgW  := FALSE
-    repayFracW   := aiProfile.repayFracEnd
+    repayFracW   := aiProfile.repayFrcE
     bondIdleCshW := aiProfile.bndIdlCsE
   ENDIF
 ENDIF
