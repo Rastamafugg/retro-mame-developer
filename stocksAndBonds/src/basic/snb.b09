@@ -650,3 +650,144 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE runYearLoop
+(* ============================================================ *)
+(* PROCEDURE : runYearLoop                                      *)
+(* PURPOSE   : Main year-loop integrating all game phases for  *)
+(*             Years 1..10. Covers:                            *)
+(*               P2: revenue (applyDivInt) and margin charge   *)
+(*                   (applyMgnInt + scrMgnInt per player)      *)
+(*               P3: market resolution (drawCard, doRolls,     *)
+(*                   applyMktYear, scrCard, scrDice,           *)
+(*                   scrMktBoard, scrSplit, scrDivFlag)        *)
+(*               P4: sell and buy phases per player; forced    *)
+(*                   liquidation and bankruptcy sub-loops      *)
+(*               P5: endgame detection (Year 10 or last player *)
+(*                   standing); routes to scrFinalMkt,         *)
+(*                   scrWealth, scrWinner, scrPostGame         *)
+(*             Save/resume uses savedPhase 0..3 in hdr.        *)
+(*                                                             *)
+(* PARAMS    : savePath - filename for mid-game save calls     *)
+(*             hdr      - game header; currYear, plyrCount,    *)
+(*                        rollMode, deckPos modified in place  *)
+(*             deckOrd  - shuffled deck; deckPos advances      *)
+(*             plyrs    - all 6 player records; modified in    *)
+(*                        place throughout the loop            *)
+(*             mkt      - market state; prices updated each    *)
+(*                        year by applyMktYear                 *)
+(*                                                             *)
+(* LOCAL NAMES: BYTE fields of hdr that are passed to          *)
+(*   procedures expecting INTEGER are staged to local INTEGER  *)
+(*   variables to prevent the BYTE→INTEGER garbage pattern     *)
+(*   (bestPractices.md). Collision-safe names chosen to avoid  *)
+(*   any TYPE field name in this procedure's scope:            *)
+(*     cYear    ← hdr.currYear   (avoids TYPE field currYear)  *)
+(*     pCnt     ← hdr.plyrCount  (avoids TYPE field plyrCount) *)
+(*     rMode    ← hdr.rollMode   (avoids TYPE field rollMode)  *)
+(*                                                             *)
+(* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
+(*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
+(*             marginTot, isBankrupt. Modifies mkt.stckPrice,  *)
+(*             mkt.divSuspnd. Advances RND and DATA pointers.  *)
+(*             Writes to disk when save is triggered.          *)
+(*                                                             *)
+(* NOTE      : Caller must seed RND before calling this        *)
+(*             procedure. doRolls and shuffleDeck advance RND. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM savePath    : STRING[20]
+PARAM hdr         : SaveHdr
+PARAM deckOrd(36) : BYTE
+PARAM plyrs(6)    : PlyrRec
+PARAM mkt         : MktState
+
+! ---- Staged scalars from hdr BYTE fields -------------------
+DIM cYear     : INTEGER  \ ! staged: hdr.currYear
+DIM pCnt      : INTEGER  \ ! staged: hdr.plyrCount
+DIM rMode     : INTEGER  \ ! staged: hdr.rollMode
+
+! ---- Market resolution -------------------------------------
+DIM cardId    : INTEGER  \ ! drawn card ID (1..36)
+DIM crd       : CardRec  \ ! populated by getCard for divBonus check
+DIM dOne(9)   : BYTE     \ ! die 1 per stock slot (1..6)
+DIM dTwo(9)   : BYTE     \ ! die 2 per stock slot (1..6)
+DIM rTot(9)   : BYTE     \ ! roll total per stock slot (2..12)
+DIM rolls(9)  : INTEGER  \ ! INTEGER copy of rTot for applyMktYear
+DIM rCnt      : BYTE     \ ! populated roll slot count from doRolls
+DIM oAct      : BOOLEAN  \ ! TRUE if Mode C 2/12 override fired
+DIM prcBef(9) : INTEGER  \ ! price after mkt table, before card delta
+DIM mktDlt(9) : INTEGER  \ ! market table delta per stock
+DIM crdDlt(9) : INTEGER  \ ! card delta per stock
+DIM spOcc(9)  : BOOLEAN  \ ! TRUE if split triggered this stock
+DIM dvSusp(9) : BOOLEAN  \ ! TRUE if dividends newly suspended
+DIM dvRnst(9) : BOOLEAN  \ ! TRUE if dividends reinstated
+
+! ---- Player turn working vars ------------------------------
+DIM p         : INTEGER  \ ! player loop index (1..pCnt)
+DIM s         : INTEGER  \ ! stock index (1..9)
+DIM ordTyp(12): INTEGER  \ ! order type: 1=STOCK 2=BOND
+DIM ordId(12) : INTEGER  \ ! asset index per order
+DIM ordQty(12): INTEGER  \ ! quantity per order
+DIM ordPur(12): INTEGER  \ ! purchase type: 1=CASH 2=MARGIN (buy only)
+DIM ordCnt    : INTEGER  \ ! number of orders in current batch
+DIM mgnRpy    : INTEGER  \ ! margin repayment amount for buy phase
+DIM actInt    : INTEGER  \ ! action return from INTEGER-action screens
+DIM actByt    : BYTE     \ ! action return from BYTE-action screens
+
+! ---- Margin interest and forced liquidation ----------------
+DIM forceLiq(6): BOOLEAN \ ! TRUE per player if cashBal went negative
+DIM oblgRem   : INTEGER  \ ! outstanding forced liquidation obligation
+DIM mgnChg    : INTEGER  \ ! margin interest charge for scrMgnInt display
+DIM cashBef   : INTEGER  \ ! cashBal before charge for scrMgnInt display
+
+! ---- Buy phase eligibility ---------------------------------
+DIM mgnElig   : BOOLEAN  \ ! TRUE if player has prior cash purchase
+DIM mgnYrOk   : BOOLEAN  \ ! TRUE if current year allows margin buys
+
+! ---- AI working vars ---------------------------------------
+DIM prof      : AIProfile \ ! AI profile for current player's turn
+DIM tInt      : INTEGER   \ ! stages aiTier (BYTE) for initAIProf call
+
+! ---- String staging ----------------------------------------
+DIM pNam      : STRING[20] \ ! stages plyrName for screen calls
+DIM pStr      : STRING[8]  \ ! fmtMoney output buffer
+
+! ---- Endgame and wealth summary ----------------------------
+DIM gameOver  : BOOLEAN  \ ! TRUE when game ends before Year 10
+DIM activeCnt : INTEGER  \ ! count of non-bankrupt players
+DIM wlth(6)   : INTEGER  \ ! computed total wealth per player
+DIM srtOrd(6) : INTEGER  \ ! wealth sort order (index into plyrs)
+
+! ---- Card 1 dividend bonus ---------------------------------
+DIM divBns    : INTEGER  \ ! divBonus from drawn card (0 unless Card 1)
+
+ON ERROR GOTO 900
+
+! ---- P1 SIZE diagnostics -----------------------------------
+! Verify TYPE sizes match save-load-design.md Section 5.
+! Expected: SaveHdr=11 PlyrRec=61 MktState=27 AIProfile=20
+PRINT "runYearLoop P1 — variable space diagnostics"
+PRINT "  SIZE(hdr)      = "; SIZE(hdr);    "  (expect 11)"
+PRINT "  SIZE(plyrs(1)) = "; SIZE(plyrs(1)); "  (expect 61)"
+PRINT "  SIZE(mkt)      = "; SIZE(mkt);    "  (expect 27)"
+PRINT "  SIZE(prof)     = "; SIZE(prof);   "  (expect 20)"
+PRINT "  SIZE(plyrs)    = "; SIZE(plyrs);  "  (expect 366)"
+PRINT "  SIZE(deckOrd)  = "; SIZE(deckOrd); " (expect 36)"
+PRINT "  SIZE(rolls)    = "; SIZE(rolls);  "  (expect 18)"
+PRINT "  SIZE(ordTyp)   = "; SIZE(ordTyp); "  (expect 24)"
+PRINT "  SIZE(crd)      = "; SIZE(crd);    "  (expect 22)"
+PRINT
+PRINT "P1 skeleton complete. No game logic executed."
+END
+
+900 ERROR(ERR)
+END
