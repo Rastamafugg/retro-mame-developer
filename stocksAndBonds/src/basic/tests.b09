@@ -3113,7 +3113,7 @@ PROCEDURE TSTSELL
 (*   ordType(1)=1, ordId(1)=1, ordQty(1)=50  (Growth Corp)   *)
 (*   ordType(2)=2, ordId(2)=2, ordQty(2)=1   (medium bond)   *)
 (*   Proceeds: 50*120 + 1*5000 = 11000                        *)
-(*   cashBal update verified by TSTAPPLY (Task 9.2)           *)
+(*   cashBal update verified by TSTASLL (Task 9.2)           *)
 (* PARAMS    : none                                             *)
 (* SIDE EFX  : Calls scrSell; clears screen multiple times.   *)
 (* ============================================================ *)
@@ -3230,15 +3230,15 @@ END
     ! Expected proceeds (cashBal update verified in Task 9.2)
     PRINT
     PRINT "Expected proceeds: 50*120 + 1*5000 = 11000"
-    PRINT "cashBal update verified by TSTAPPLY (Task 9.2)."
+    PRINT "cashBal update verified by TSTASLL (Task 9.2)."
 RETURN
 
 900 PRINT "Runtime error "; ERR; " in TSTSELL"
     END
 
-PROCEDURE TSTAPPLY
+PROCEDURE TSTASLL
 (* ============================================================ *)
-(* PROCEDURE : TSTAPPLY                                         *)
+(* PROCEDURE : TSTASLL                                         *)
 (* PURPOSE   : Confirmation tests for applySells (Task 9.2).   *)
 (*             Four machine-checked tests:                     *)
 (*               Test 1 — cash stock + bond sell               *)
@@ -3278,7 +3278,7 @@ ON ERROR GOTO 900
 passed := 0
 failed := 0
 
-PRINT "=== TSTAPPLY  Task 9.2 ==="
+PRINT "=== TSTASLL  Task 9.2 ==="
 PRINT
 
 ! ---- Test 1: cash stock sell + bond sell --------------------
@@ -3509,8 +3509,262 @@ RETURN
      PRINT "  mgnHeld(5)="; plyr.mgnHeld(5)
 RETURN
 
-900 PRINT "Runtime error "; ERR; " in TSTAPPLY"
+900 PRINT "Runtime error "; ERR; " in TSTASLL"
     END
+
+PROCEDURE TSTABUY
+(* ============================================================ *)
+(* PROCEDURE : TSTABUY                                          *)
+(* PURPOSE   : Confirmation test for applyBuys (Task 9.3).     *)
+(*             Four scenarios; 13 assertions.                  *)
+(*                                                             *)
+(*   Scenario A — Cash stock buy (ordPurch=1)                  *)
+(*     20 shares Growth Corp @ $100. cost=2000.                *)
+(*     cashBal:    5000 -> 3000                                 *)
+(*     stckShrs(3): 0   -> 20                                  *)
+(*     hadCashPur: FALSE -> TRUE                               *)
+(*     marginTot:  0    unchanged                               *)
+(*     mgnHeld(3): FALSE unchanged                             *)
+(*                                                             *)
+(*   Scenario B — Margin stock buy (ordPurch=2)                *)
+(*     20 shares Growth Corp @ $100. cost=2000.                *)
+(*     cashPay=1000 (50%), mgnPay=1000 (50%).                  *)
+(*     cashBal:    5000 -> 4000                                 *)
+(*     marginTot:  0    -> 1000                                 *)
+(*     mgnHeld(1): FALSE -> TRUE                               *)
+(*     stckShrs(1): 0   -> 20                                  *)
+(*     hadCashPur: FALSE unchanged (margin does not qualify)   *)
+(*                                                             *)
+(*   Scenario C — Bond buy                                     *)
+(*     1 medium bond, par=5000.                                *)
+(*     cashBal:    5000 -> 0                                   *)
+(*     bondUnts(2): 0   -> 1                                   *)
+(*                                                             *)
+(*   Scenario D — No-op (ordCnt=0)                            *)
+(*     No orders. All fields unchanged.                        *)
+(*     cashBal:    5000 unchanged                              *)
+(*                                                             *)
+(* SIDE EFX  : Prints PASS/FAIL per assertion. Prints summary. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+DIM plyr        : PlyrRec
+DIM mkt         : MktState
+DIM ordType(12) : INTEGER
+DIM ordId(12)   : INTEGER
+DIM ordQty(12)  : INTEGER
+DIM ordPurch(12): INTEGER
+DIM ordCnt      : INTEGER
+DIM fails       : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+fails := 0
+
+! ============================================================
+! Scenario A — Cash stock buy
+! ordType=1, ordId=3 (Pioneer Mut), ordQty=20, ordPurch=1
+! stckPrice(3)=100 (initMkt default)
+! cost = 20 * 100 = 2000
+! Expected: cashBal=3000, stckShrs(3)=20,
+!           hadCashPur=TRUE, marginTot=0, mgnHeld(3)=FALSE
+! ============================================================
+PRINT "--- Scenario A: cash stock buy ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+FOR i := 1 TO 12
+  ordType(i)  := 0
+  ordId(i)    := 0
+  ordQty(i)   := 0
+  ordPurch(i) := 0
+NEXT i
+
+ordType(1)  := 1 \ ! STOCK
+ordId(1)    := 3 \ ! Pioneer Mut; price=100 from initMkt
+ordQty(1)   := 20
+ordPurch(1) := 1 \ ! CASH
+ordCnt      := 1
+
+RUN applyBuys(plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt)
+
+IF plyr.cashBal = 3000 THEN
+  PRINT "  A1 PASS  cashBal=3000"
+ELSE
+  PRINT "  A1 FAIL  cashBal="; plyr.cashBal; " (expected 3000)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.stckShrs(3) = 20 THEN
+  PRINT "  A2 PASS  stckShrs(3)=20"
+ELSE
+  PRINT "  A2 FAIL  stckShrs(3)="; plyr.stckShrs(3); " (expected 20)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.hadCashPur = TRUE THEN
+  PRINT "  A3 PASS  hadCashPur=TRUE"
+ELSE
+  PRINT "  A3 FAIL  hadCashPur=FALSE (expected TRUE)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.marginTot = 0 THEN
+  PRINT "  A4 PASS  marginTot=0"
+ELSE
+  PRINT "  A4 FAIL  marginTot="; plyr.marginTot; " (expected 0)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.mgnHeld(3) = FALSE THEN
+  PRINT "  A5 PASS  mgnHeld(3)=FALSE"
+ELSE
+  PRINT "  A5 FAIL  mgnHeld(3)=TRUE (expected FALSE)"
+  fails := fails + 1
+ENDIF
+
+! ============================================================
+! Scenario B — Margin stock buy
+! ordType=1, ordId=1 (Growth Corp), ordQty=20, ordPurch=2
+! stckPrice(1)=100 (initMkt default)
+! cost=2000; cashPay=1000; mgnPay=1000
+! Expected: cashBal=4000, marginTot=1000, mgnHeld(1)=TRUE,
+!           stckShrs(1)=20, hadCashPur=FALSE
+! ============================================================
+PRINT "--- Scenario B: margin stock buy ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+FOR i := 1 TO 12
+  ordType(i)  := 0
+  ordId(i)    := 0
+  ordQty(i)   := 0
+  ordPurch(i) := 0
+NEXT i
+
+ordType(1)  := 1 \ ! STOCK
+ordId(1)    := 1 \ ! Growth Corp; price=100 from initMkt
+ordQty(1)   := 20
+ordPurch(1) := 2 \ ! MARGIN
+ordCnt      := 1
+
+RUN applyBuys(plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt)
+
+IF plyr.cashBal = 4000 THEN
+  PRINT "  B1 PASS  cashBal=4000"
+ELSE
+  PRINT "  B1 FAIL  cashBal="; plyr.cashBal; " (expected 4000)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.marginTot = 1000 THEN
+  PRINT "  B2 PASS  marginTot=1000"
+ELSE
+  PRINT "  B2 FAIL  marginTot="; plyr.marginTot; " (expected 1000)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.mgnHeld(1) = TRUE THEN
+  PRINT "  B3 PASS  mgnHeld(1)=TRUE"
+ELSE
+  PRINT "  B3 FAIL  mgnHeld(1)=FALSE (expected TRUE)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.stckShrs(1) = 20 THEN
+  PRINT "  B4 PASS  stckShrs(1)=20"
+ELSE
+  PRINT "  B4 FAIL  stckShrs(1)="; plyr.stckShrs(1); " (expected 20)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.hadCashPur = FALSE THEN
+  PRINT "  B5 PASS  hadCashPur=FALSE"
+ELSE
+  PRINT "  B5 FAIL  hadCashPur=TRUE (expected FALSE)"
+  fails := fails + 1
+ENDIF
+
+! ============================================================
+! Scenario C — Bond buy
+! ordType=2, ordId=2 (medium; par=5000), ordQty=1, ordPurch=1
+! Expected: cashBal=0, bondUnts(2)=1
+! ============================================================
+PRINT "--- Scenario C: bond buy ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+FOR i := 1 TO 12
+  ordType(i)  := 0
+  ordId(i)    := 0
+  ordQty(i)   := 0
+  ordPurch(i) := 0
+NEXT i
+
+ordType(1)  := 2 \ ! BOND
+ordId(1)    := 2 \ ! medium; bPar(2)=5000
+ordQty(1)   := 1
+ordPurch(1) := 1 \ ! CASH (bonds always cash)
+ordCnt      := 1
+
+RUN applyBuys(plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt)
+
+IF plyr.cashBal = 0 THEN
+  PRINT "  C1 PASS  cashBal=0"
+ELSE
+  PRINT "  C1 FAIL  cashBal="; plyr.cashBal; " (expected 0)"
+  fails := fails + 1
+ENDIF
+
+IF plyr.bondUnts(2) = 1 THEN
+  PRINT "  C2 PASS  bondUnts(2)=1"
+ELSE
+  PRINT "  C2 FAIL  bondUnts(2)="; plyr.bondUnts(2); " (expected 1)"
+  fails := fails + 1
+ENDIF
+
+! ============================================================
+! Scenario D — No-op: ordCnt=0
+! initPlayer sets cashBal=5000. Nothing should change.
+! Expected: cashBal=5000 (spot check)
+! ============================================================
+PRINT "--- Scenario D: no-op (ordCnt=0) ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+
+ordCnt := 0
+
+RUN applyBuys(plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt)
+
+IF plyr.cashBal = 5000 THEN
+  PRINT "  D1 PASS  cashBal=5000"
+ELSE
+  PRINT "  D1 FAIL  cashBal="; plyr.cashBal; " (expected 5000)"
+  fails := fails + 1
+ENDIF
+
+! ============================================================
+! Summary
+! ============================================================
+PRINT
+PRINT "TSTABUY: "; 13 - fails; " of 13 passed."
+IF fails = 0 THEN
+  PRINT "ALL PASS"
+ELSE
+  PRINT fails; " FAILURE(S)"
+ENDIF
+
+END
+
+900 PRINT "TSTABUY error ("; ERR; ")"
+END
 
 PROCEDURE TSTBUY
 (* ============================================================ *)
