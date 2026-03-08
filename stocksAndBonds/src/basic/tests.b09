@@ -5690,3 +5690,295 @@ RETURN
 
 900 PRINT "TSTAISELL error ("; ERR; ")"
     END
+
+PROCEDURE TSTAIBUY
+(* ============================================================ *)
+(* PROCEDURE : TSTAIBUY                                         *)
+(* PURPOSE   : Confirmation tests for aiBuy (Task 12.2).       *)
+(*             Machine-checks all confirmation cases from      *)
+(*             project-timeline.md Phase 12 Task 12.2.         *)
+(*                                                             *)
+(* Test A — Margin repayment trigger                           *)
+(*   marginTot=2000, cashBal=500. All stocks bankrupt (p=0).   *)
+(*   annlChrg=100. burdenThr=50. 100>50 → repay.              *)
+(*   repayAmt=500*50/100=250. mgnRepay=250. simCash=250.       *)
+(*   No stocks eligible; simCash<5000 → no bond.               *)
+(*   Verify: mgnRepay=250, ordCnt=0.                           *)
+(*                                                             *)
+(* Test B — Scoring: Shady Brooks outranks Growth Corp         *)
+(*   cashBal=10000, stocks 1 (div=1) and 4 (div=7) at $100.   *)
+(*   All other stocks at p=0 (bankrupt).                       *)
+(*   Shady score=70 > Growth score=10 → Shady first.          *)
+(*   Verify: ordId(1)=4 (Shady), ordId(2)=1 (Growth).         *)
+(*                                                             *)
+(* Test C — Concentration cap                                  *)
+(*   cashBal=5000, only stock 4 (Shady) at $100.               *)
+(*   maxCash=5000*40/100=2000. maxLots=2000/100=20 lots.       *)
+(*   Verify: ordCnt=1, ordQty(1)=20.                           *)
+(*                                                             *)
+(* Test D — Bond fallback                                      *)
+(*   cashBal=5000, all stocks bankrupt. stocksBought=FALSE.    *)
+(*   5000>=5000 → eligible. 5000>=10000 FALSE.                 *)
+(*   5000>=5000 → BUY 1 medium bond.                           *)
+(*   Verify: ordCnt=1, ordType(1)=2, ordId(1)=2, ordQty(1)=1. *)
+(*                                                             *)
+(* Test E — Bond skip when stocks were bought                  *)
+(*   cashBal=5000, stock 4 at $100. Buys 20 Shady.             *)
+(*   stocksBought=TRUE → bond block skipped.                   *)
+(*   Verify: ordCnt=1, no bond order (ordType(1)=1).           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM plyr         : PlyrRec
+DIM mkt          : MktState
+DIM ordType(12)  : INTEGER
+DIM ordId(12)    : INTEGER
+DIM ordQty(12)   : INTEGER
+DIM ordPurch(12) : INTEGER
+DIM ordCnt       : INTEGER
+DIM mgnRepay     : INTEGER
+DIM passed       : INTEGER
+DIM failed       : INTEGER
+DIM s            : INTEGER
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+
+PRINT "=== TSTAIBUY  Phase 12 Task 12.2 ==="
+PRINT
+
+! ============================================================
+! Test A — Margin repayment trigger
+! ============================================================
+PRINT "--- Test A: Margin repayment trigger ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal   := 500
+plyr.marginTot := 2000
+! All stocks remain at initMkt default ($100); zero them out
+! so no stock buys occur and bond idle threshold not met
+! (simCash after repay = 250 < 5000).
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 0
+NEXT s
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
+
+IF mgnRepay = 250 THEN
+  PRINT "Test A PASS  mgnRepay=250"
+  passed := passed + 1
+ELSE
+  PRINT "Test A FAIL  mgnRepay exp=250 got="; mgnRepay
+  failed := failed + 1
+ENDIF
+IF ordCnt = 0 THEN
+  PRINT "Test A PASS  ordCnt=0 (no buys)"
+  passed := passed + 1
+ELSE
+  PRINT "Test A FAIL  ordCnt exp=0 got="; ordCnt
+  failed := failed + 1
+ENDIF
+PRINT
+
+! ============================================================
+! Test B — Scoring: Shady Brooks (div=7) outranks Growth (div=1)
+! ============================================================
+PRINT "--- Test B: Scoring order Shady > Growth ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal := 10000
+! Zero all stocks; then re-enable only stocks 1 and 4.
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 0
+NEXT s
+mkt.stckPrice(1) := 100 \ ! Growth Corp  div=1  score=10
+mkt.stckPrice(4) := 100 \ ! Shady Brooks div=7  score=70
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
+
+GOSUB 100
+
+PRINT
+
+! ============================================================
+! Test C — Concentration cap: 40% of 5000 = 2000 → 20 lots
+! ============================================================
+PRINT "--- Test C: Concentration cap 40% ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal := 5000
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 0
+NEXT s
+mkt.stckPrice(4) := 100 \ ! Shady Brooks only
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
+
+GOSUB 200
+
+PRINT
+
+! ============================================================
+! Test D — Bond fallback: no stocks, cashBal=5000 → medium bond
+! ============================================================
+PRINT "--- Test D: Bond fallback cashBal=5000 ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal := 5000
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 0
+NEXT s
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
+
+GOSUB 300
+
+PRINT
+
+! ============================================================
+! Test E — Bond skip: stocks bought → bondPriority=FALSE skips
+! ============================================================
+PRINT "--- Test E: Bond skip when stocks bought ---"
+
+RUN initPlayer(plyr)
+RUN initMkt(mkt)
+plyr.cashBal := 5000
+FOR s := 1 TO 9
+  mkt.stckPrice(s) := 0
+NEXT s
+mkt.stckPrice(4) := 100 \ ! Shady; buys 20 shares → stocksBought=TRUE
+
+! Line exceeds 79 chars; RUN parameter list cannot be split.
+RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
+
+GOSUB 400
+
+PRINT
+
+PRINT "Results: "; passed; " passed, "; failed; " failed."
+END
+
+! ---- Test B assertions: scoring order ----------------------
+
+100 \ ! ordCnt >= 2 and Shady first, Growth second
+    IF ordCnt >= 2 THEN
+      PRINT "Test B PASS  ordCnt>=2 ("; ordCnt; ")"
+      passed := passed + 1
+    ELSE
+      PRINT "Test B FAIL  ordCnt exp>=2 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordId(1) = 4 THEN
+      PRINT "Test B PASS  ordId(1)=4 (Shady first)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test B FAIL  ordId(1) exp=4 got="; ordId(1)
+      failed := failed + 1
+    ENDIF
+    IF ordId(2) = 1 THEN
+      PRINT "Test B PASS  ordId(2)=1 (Growth second)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test B FAIL  ordId(2) exp=1 got="; ordId(2)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+! ---- Test C assertions: concentration cap ------------------
+
+200 \ ! ordCnt=1, ordId(1)=4, ordQty(1)=20, ordPurch(1)=1
+    IF ordCnt = 1 THEN
+      PRINT "Test C PASS  ordCnt=1"
+      passed := passed + 1
+    ELSE
+      PRINT "Test C FAIL  ordCnt exp=1 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordId(1) = 4 THEN
+      PRINT "Test C PASS  ordId(1)=4 (Shady)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test C FAIL  ordId(1) exp=4 got="; ordId(1)
+      failed := failed + 1
+    ENDIF
+    IF ordQty(1) = 20 THEN
+      PRINT "Test C PASS  ordQty(1)=20"
+      passed := passed + 1
+    ELSE
+      PRINT "Test C FAIL  ordQty(1) exp=20 got="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+    IF ordPurch(1) = 1 THEN
+      PRINT "Test C PASS  ordPurch(1)=1 (CASH)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test C FAIL  ordPurch(1) exp=1 got="; ordPurch(1)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+! ---- Test D assertions: bond fallback ----------------------
+
+300 \ ! ordCnt=1, ordType(1)=2, ordId(1)=2, ordQty(1)=1
+    IF ordCnt = 1 THEN
+      PRINT "Test D PASS  ordCnt=1"
+      passed := passed + 1
+    ELSE
+      PRINT "Test D FAIL  ordCnt exp=1 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordType(1) = 2 THEN
+      PRINT "Test D PASS  ordType(1)=2 (BOND)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test D FAIL  ordType(1) exp=2 got="; ordType(1)
+      failed := failed + 1
+    ENDIF
+    IF ordId(1) = 2 THEN
+      PRINT "Test D PASS  ordId(1)=2 (medium bond)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test D FAIL  ordId(1) exp=2 got="; ordId(1)
+      failed := failed + 1
+    ENDIF
+    IF ordQty(1) = 1 THEN
+      PRINT "Test D PASS  ordQty(1)=1"
+      passed := passed + 1
+    ELSE
+      PRINT "Test D FAIL  ordQty(1) exp=1 got="; ordQty(1)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+! ---- Test E assertions: bond skip --------------------------
+
+400 \ ! ordCnt=1, only a stock order (no bond)
+    IF ordCnt = 1 THEN
+      PRINT "Test E PASS  ordCnt=1 (stock only)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test E FAIL  ordCnt exp=1 got="; ordCnt
+      failed := failed + 1
+    ENDIF
+    IF ordType(1) = 1 THEN
+      PRINT "Test E PASS  ordType(1)=1 (STOCK, no bond)"
+      passed := passed + 1
+    ELSE
+      PRINT "Test E FAIL  ordType(1) exp=1 got="; ordType(1)
+      failed := failed + 1
+    ENDIF
+RETURN
+
+900 PRINT "TSTAIBUY error ("; ERR; ")"
+    END

@@ -184,7 +184,46 @@ DIR       EXEC      READ      UPDATE    WRITE
 
 * **Variable, Param, and Type Attribute names must be unique within a Procedure** It is a syntax error when a variable or parameter shares the same name as a type attribute.
 
-* **Calling and Called Parameters must match data type** For example, if the calling procedure is passing an INTEGER, the called procedure must expect an INTEGER. BYTE PARAMs must never receive integer literals from a caller. Use INTEGER PARAMs for any value that callers will pass as a literal. Reserve BYTE for TYPE record fields and BYTE arrays only.
+* **PARAM types must exactly match the storage size of the value passed by the caller.**
+  Basic09 does not check type at the call site — it checks only size. A size mismatch
+  causes the called procedure to read bytes from adjacent memory, producing garbage
+  values silently. The rules by caller source are:
+
+  | Caller passes          | BYTE PARAM result        | INTEGER PARAM result |
+  |------------------------|--------------------------|----------------------|
+  | Integer literal (e.g. `42`) | High byte of 2-byte int = **0** | Correct: `42` |
+  | BYTE variable          | Correct: `42`            | **Reads 2 bytes from BYTE address: `byteVal * 256 + nextMemByte`** |
+  | INTEGER variable       | High byte only = **0**   | Correct: `42` |
+  | BYTE struct field      | Correct: field value     | **Reads 2 bytes from field address: same garbage pattern** |
+
+  Practical rules derived from the table:
+  - Declare PARAMs as `INTEGER` for any value callers will pass as a literal or
+    `INTEGER` variable.
+  - Never pass a `BYTE` variable or `BYTE` struct field directly to an `INTEGER` PARAM.
+    Stage through a local `INTEGER` DIM variable first (see rule below).
+  - Reserve `BYTE` PARAMs only for procedures whose callers will exclusively pass
+    `BYTE` variables or `BYTE` struct fields — never literals, never `INTEGER` vars.
+  - Reserve `BYTE` for `TYPE` record fields and `BYTE` arrays. Prefer `INTEGER` for
+    all working variables and parameters.
+
+* **Stage BYTE fields through an INTEGER variable before passing to an INTEGER PARAM.**
+  Passing a `BYTE` variable or `BYTE` struct field directly to a procedure expecting
+  an `INTEGER` PARAM causes Basic09 to read 2 bytes starting at the BYTE's 1-byte
+  address. The BYTE value lands in the high byte (×256) and the low byte is whatever
+  memory follows — a neighboring variable or the next struct field. The result is
+  `byteValue * 256 + nextMemoryByte`, which is deterministic but always wrong.
+  Confirmed on NitrOS-9 hardware (TSTBYTEINT H2/H5).
+
+  Always use an explicit INTEGER staging variable:
+```basic09
+  DIM iStage: INTEGER
+  iStage := rec.bFld      \ ! safe: BYTE->INTEGER assignment promotes correctly
+  RUN someProc(iStage)    \ ! INTEGER var to INTEGER PARAM: correct
+```
+
+  The inverse (passing an INTEGER var to a BYTE PARAM) delivers only the high byte,
+  which is zero for any value in the normal 0–255 range. That failure mode is silent.
+  Do not rely on implicit narrowing in either direction.
 
 * **Declare `STRING` variables with an explicit length when the default is insufficient.** Without a length specifier, `STRING` defaults to 32 characters. Use `DIM name:STRING[40]` to declare a longer string.
 
