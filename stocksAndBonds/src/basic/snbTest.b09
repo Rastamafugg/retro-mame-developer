@@ -386,6 +386,10 @@ DIM bkRsn      : BYTE    \ ! scrBankrupt reason: 1=MGN_INT 2=MGN_CALL
 DIM decAct(12) : BYTE    \ ! scrAITurn decision action codes (1=SELL)
 DIM sNam14     : STRING[14] \ ! STRING[14] staging for scrMgnCall param
 
+! ---- P4-C: Buy phase vars ----------------------------------
+DIM mgnClrAct  : BYTE    \ ! scrMgnClr action: 1=SUBMIT 2=BANKRUPTCY
+DIM decCnt     : INTEGER  \ ! scrAITurn display entry count (>= ordCnt)
+
 ON ERROR GOTO 900
 
 ! ---- Initialize staged scalars and loop state --------------
@@ -674,10 +678,96 @@ LOOP
   ENDIF  \ ! NOT nSell
 
   ! ==========================================================
-  ! P4-C stub: Year 10 margin clearance and buy phase.
-  ! Replaced in Task 14.1-P4-C.
+  ! P4-C: Year 10 margin clearance gate and buy phase.
+  ! Clearance: all players with marginTot > 0 must clear
+  ! before the buy phase opens. Loop re-enters scrMgnClr
+  ! until marginTot = 0 or player declares bankruptcy.
+  ! Buy phase: human via scrBuy; AI via aiBuy + scrAITurn.
+  ! mgnYrOk is FALSE in Year 10; no new margin purchases.
   ! ==========================================================
-  PRINT "  [P4-C buy phase stub: Year "; cYear; "]"
+
+  mgnYrOk := TRUE
+  IF cYear = 10 THEN
+    mgnYrOk := FALSE
+  ENDIF
+
+  ! ---- Year 10 forced margin clearance (S23) ---------------
+  IF cYear = 10 THEN
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        pNam := plyrs(p).plyrName
+        LOOP
+          EXITIF plyrs(p).marginTot <= 0
+          ENDEXIT
+          RUN scrMgnClr(plyrs(p), mkt, mgnClrAct)
+          IF mgnClrAct = 2 THEN
+            bkRsn := 2  \ ! margin call / forced clearance
+            GOSUB 600
+            EXITIF TRUE
+            ENDEXIT
+          ENDIF
+        ENDLOOP
+      ENDIF
+    NEXT p
+  ENDIF
+
+  ! ---- Buy phase (all years including Year 10) --------------
+  FOR p := 1 TO pCnt
+    IF NOT plyrs(p).isBankrupt THEN
+      pNam    := plyrs(p).plyrName
+      ordCnt  := 0
+      mgnRpy  := 0
+      mgnElig := plyrs(p).hadCashPur
+
+      IF plyrs(p).plyrType = 1 THEN
+
+        ! ---- Human buy phase --------------------------------
+        RUN scrBuy(cYear, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+        IF mgnRpy > 0 THEN
+          plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
+          plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
+        ENDIF
+        IF ordCnt > 0 THEN
+          RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+        ENDIF
+
+      ELSE
+
+        ! ---- AI buy phase -----------------------------------
+        tInt := plyrs(p).aiTier
+        RUN initAIProf(tInt, prof)
+        ! Line exceeds 79 chars; RUN statement cannot be split.
+        RUN aiBuy(cYear, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
+        IF mgnRpy > 0 THEN
+          plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
+          plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
+        ENDIF
+        IF ordCnt > 0 THEN
+          RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+        ENDIF
+
+        ! Build decAct for scrAITurn: BUY=2 per order.
+        ! If mgnRpy > 0, append a REPAY entry after buy orders.
+        FOR tInt := 1 TO ordCnt
+          decAct(tInt) := 2
+        NEXT tInt
+        decCnt := ordCnt
+        IF mgnRpy > 0 THEN
+          IF decCnt < 12 THEN
+            decCnt             := decCnt + 1
+            decAct(decCnt)     := 3  \ ! REPAY
+            ordTyp(decCnt)     := 0  \ ! N/A for repay entry
+            ordId(decCnt)      := 0
+            ordQty(decCnt)     := mgnRpy
+          ENDIF
+        ENDIF
+        ! actByt := 2 stages phase=BUY (BYTE) for scrAITurn.
+        actByt := 2
+        RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, decCnt)
+
+      ENDIF
+    ENDIF
+  NEXT p
 
   cYear := cYear + 1
 ENDLOOP
