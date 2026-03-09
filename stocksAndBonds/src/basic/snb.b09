@@ -801,6 +801,9 @@ DIM sNam14     : STRING[14] \ ! STRING[14] staging for scrMgnCall param
 DIM mgnClrAct  : BYTE    \ ! scrMgnClr action: 1=SUBMIT 2=BANKRUPTCY
 DIM decCnt     : INTEGER  \ ! scrAITurn display entry count (>= ordCnt)
 
+! ---- P5: Endgame vars --------------------------------------
+DIM pgAct      : INTEGER  \ ! scrPostGame action: 1=New 2=Load 3=Quit
+
 ON ERROR GOTO 900
 
 ! ---- Initialize staged scalars and loop state --------------
@@ -1184,10 +1187,15 @@ LOOP
 ENDLOOP
 
 ! ==========================================================
-! P5 stub: scrFinalMkt, scrWealth, scrWinner, scrPostGame.
-! Replaced in Task 14.1-P5.
+! P5: Endgame sequence.
+! Reached when EXITIF cYear > 10 OR gameOver fires.
+! scrWealth computes wlth and srtOrd; scrWinner reads them.
+! pgAct returned to caller (SNBMAIN) for routing.
 ! ==========================================================
-PRINT "  [P5 endgame stub]"
+RUN scrFinalMkt(mkt)
+RUN scrWealth(plyrs, pCnt, mkt, wlth, srtOrd)
+RUN scrWinner(plyrs, pCnt, wlth, srtOrd)
+RUN scrPostGame(pgAct)
 
 END
 
