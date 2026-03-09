@@ -1,213 +1,3 @@
-PROCEDURE checkModule
-(* ================================================== *)
-(* PROCEDURE: checkModule                             *)
-(* PURPOSE:   Test if a named module is in memory    *)
-(*            by attempting F$Link. If link succeeds,*)
-(*            immediately issues F$UnLink to undo    *)
-(*            the test link.                         *)
-(* PARAMS:    modName  - module name to check        *)
-(*            isLoaded - TRUE if module is in memory *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM modName:STRING[32]
-PARAM isLoaded:BOOLEAN
-DIM regs:Register
-DIM callCode:BYTE
-DIM nameAddr:INTEGER
-DIM iCC:INTEGER
-
-ON ERROR GOTO 900
-
-callCode := $00 \ ! F$Link: attempt to link by name
-regs.a := 0 \ ! Accept any type/language
-nameAddr := ADDR(modName)
-regs.x := nameAddr
-RUN SysCall(callCode, regs)
-
-iCC := regs.cc \ ! Stage BYTE cc to INTEGER for LAND
-IF LAND(iCC, 1) = 0 THEN
-  isLoaded := TRUE
-  PRINT modName; " is loaded"
-  callCode := $02 \ ! F$UnLink: remove the test link
-  RUN SysCall(callCode, regs)
-ELSE
-  isLoaded := FALSE
-  PRINT modName; " is not loaded"
-ENDIF
-END
-
-900 \ ! Error handler
-PRINT "checkModule error ("; ERR; ")"
-ERROR(ERR)
-END
-
-
-PROCEDURE loadModule
-(* ================================================== *)
-(* PROCEDURE: loadModule                              *)
-(* PURPOSE:   Load a named module into memory.       *)
-(*            Tries F$Link first (already in memory),*)
-(*            then F$Load to bring in from disk.     *)
-(* PARAMS:    modName  - module name to load         *)
-(*            isLoaded - TRUE if successfully loaded *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM modName:STRING[32]
-PARAM isLoaded:BOOLEAN
-DIM regs:Register
-DIM callCode:BYTE
-DIM nameAddr:INTEGER
-DIM iCC:INTEGER
-
-ON ERROR GOTO 900
-
-isLoaded := FALSE
-nameAddr := ADDR(modName)
-
-callCode := $00 \ ! F$Link: try if already in memory
-regs.a := 0
-regs.x := nameAddr
-RUN SysCall(callCode, regs)
-
-iCC := regs.cc
-IF LAND(iCC, 1) = 0 THEN
-  PRINT modName; " linked (was already loaded)"
-  isLoaded := TRUE
-ELSE
-  callCode := $01 \ ! F$Load: load module from disk
-  regs.a := 0
-  regs.x := nameAddr
-  RUN SysCall(callCode, regs)
-  iCC := regs.cc
-  IF LAND(iCC, 1) = 0 THEN
-    PRINT modName; " loaded from disk"
-    isLoaded := TRUE
-  ELSE
-    PRINT "Failed to load "; modName; " (err: "; regs.b; ")"
-  ENDIF
-ENDIF
-END
-
-900 \ ! Error handler
-PRINT "loadModule error ("; ERR; ")"
-ERROR(ERR)
-END
-
-
-PROCEDURE unloadModule
-(* ================================================== *)
-(* PROCEDURE: unloadModule                            *)
-(* PURPOSE:   Unload a named module from memory.     *)
-(*            If hdrAddr is nonzero, uses F$UnLink   *)
-(*            by header address. Otherwise uses      *)
-(*            F$UnLoad by module name.               *)
-(* PARAMS:    modName  - module name (for reporting) *)
-(*            hdrAddr  - module header addr (0=none) *)
-(*            unloaded - TRUE if successfully removed*)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM modName:STRING[32]
-PARAM hdrAddr:INTEGER
-PARAM unloaded:BOOLEAN
-DIM regs:Register
-DIM callCode:BYTE
-DIM nameAddr:INTEGER
-DIM iCC:INTEGER
-
-ON ERROR GOTO 900
-
-unloaded := FALSE
-
-IF hdrAddr <> 0 THEN
-  callCode := $02 \ ! F$UnLink: unlink by header address
-  regs.u := hdrAddr
-  RUN SysCall(callCode, regs)
-  iCC := regs.cc
-  IF LAND(iCC, 1) = 0 THEN
-    PRINT modName; " unlinked by header"
-    unloaded := TRUE
-  ELSE
-    PRINT "Failed to unlink "; modName; " by hdr (err: "; regs.b; ")"
-  ENDIF
-ELSE
-  nameAddr := ADDR(modName)
-  callCode := $1D \ ! F$UnLoad: unload by name
-  regs.a := 0
-  regs.x := nameAddr
-  RUN SysCall(callCode, regs)
-  iCC := regs.cc
-  IF LAND(iCC, 1) = 0 THEN
-    PRINT modName; " unlinked by name"
-    unloaded := TRUE
-  ELSE
-    PRINT "Failed to unlink "; modName; " by name (err: "; regs.b; ")"
-  ENDIF
-ENDIF
-END
-
-900 \ ! Error handler
-PRINT "unloadModule error ("; ERR; ")"
-ERROR(ERR)
-END
-
-
-PROCEDURE getMemoryUsage
-(* ================================================== *)
-(* PROCEDURE: getMemoryUsage                          *)
-(* PURPOSE:   Display current process memory via     *)
-(*            F$Mem syscall. Prints A (hi) and B     *)
-(*            (lo) bytes of the returned size value. *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-DIM regs:Register
-DIM callCode:BYTE
-DIM hiB:INTEGER
-DIM loB:INTEGER
-
-ON ERROR GOTO 900
-
-callCode := $07 \ ! F$Mem: request current memory size
-regs.a := 0
-regs.b := 0
-RUN SysCall(callCode, regs)
-
-hiB := regs.a \ ! Stage BYTE fields to INTEGER for printing
-loB := regs.b
-PRINT "Memory size (hi:lo bytes): "; hiB; " : "; loB
-END
-
-900 \ ! Error handler
-PRINT "getMemoryUsage error ("; ERR; ")"
-ERROR(ERR)
-END
-
-
-PROCEDURE waitKey
-(* ================================================== *)
-(* PROCEDURE: waitKey                                 *)
-(* PURPOSE:   Display a continue prompt and block    *)
-(*            until any key is pressed.              *)
-(* NOTE:      Do not pack alongside snb.b09 which    *)
-(*            defines its own waitKey procedure.     *)
-(* ================================================== *)
-DIM k:STRING[1]
-
-ON ERROR GOTO 900
-
-PRINT "Press any key to continue...";
-GET #0, k
-PRINT
-END
-
-900 \ ! Error handler
-PRINT "waitKey error ("; ERR; ")"
-END
-
-
 PROCEDURE TSTMODULE
 (* ================================================== *)
 (* PROCEDURE: TSTMODULE                               *)
@@ -464,4 +254,213 @@ END
 900 \ ! Error handler
 PRINT "TSTMODULE error ("; ERR; ")"
 PRINT "Passed so far: "; passed; "  Failed so far: "; failed
+END
+
+PROCEDURE checkModule
+(* ================================================== *)
+(* PROCEDURE: checkModule                             *)
+(* PURPOSE:   Test if a named module is in memory    *)
+(*            by attempting F$Link. If link succeeds,*)
+(*            immediately issues F$UnLink to undo    *)
+(*            the test link.                         *)
+(* PARAMS:    modName  - module name to check        *)
+(*            isLoaded - TRUE if module is in memory *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modName:STRING[32]
+PARAM isLoaded:BOOLEAN
+DIM regs:Register
+DIM callCode:BYTE
+DIM nameAddr:INTEGER
+DIM iCC:INTEGER
+
+ON ERROR GOTO 900
+
+callCode := $00 \ ! F$Link: attempt to link by name
+regs.a := 0 \ ! Accept any type/language
+nameAddr := ADDR(modName)
+regs.x := nameAddr
+RUN SysCall(callCode, regs)
+
+iCC := regs.cc \ ! Stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 0 THEN
+  isLoaded := TRUE
+  PRINT modName; " is loaded"
+  callCode := $02 \ ! F$UnLink: remove the test link
+  RUN SysCall(callCode, regs)
+ELSE
+  isLoaded := FALSE
+  PRINT modName; " is not loaded"
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "checkModule error ("; ERR; ")"
+ERROR(ERR)
+END
+
+
+PROCEDURE loadModule
+(* ================================================== *)
+(* PROCEDURE: loadModule                              *)
+(* PURPOSE:   Load a named module into memory.       *)
+(*            Tries F$Link first (already in memory),*)
+(*            then F$Load to bring in from disk.     *)
+(* PARAMS:    modName  - module name to load         *)
+(*            isLoaded - TRUE if successfully loaded *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modName:STRING[32]
+PARAM isLoaded:BOOLEAN
+DIM regs:Register
+DIM callCode:BYTE
+DIM nameAddr:INTEGER
+DIM iCC:INTEGER
+
+ON ERROR GOTO 900
+
+isLoaded := FALSE
+nameAddr := ADDR(modName)
+
+callCode := $00 \ ! F$Link: try if already in memory
+regs.a := 0
+regs.x := nameAddr
+RUN SysCall(callCode, regs)
+
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT modName; " linked (was already loaded)"
+  isLoaded := TRUE
+ELSE
+  callCode := $01 \ ! F$Load: load module from disk
+  regs.a := 0
+  regs.x := nameAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " loaded from disk"
+    isLoaded := TRUE
+  ELSE
+    PRINT "Failed to load "; modName; " (err: "; regs.b; ")"
+  ENDIF
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "loadModule error ("; ERR; ")"
+ERROR(ERR)
+END
+
+
+PROCEDURE unloadModule
+(* ================================================== *)
+(* PROCEDURE: unloadModule                            *)
+(* PURPOSE:   Unload a named module from memory.     *)
+(*            If hdrAddr is nonzero, uses F$UnLink   *)
+(*            by header address. Otherwise uses      *)
+(*            F$UnLoad by module name.               *)
+(* PARAMS:    modName  - module name (for reporting) *)
+(*            hdrAddr  - module header addr (0=none) *)
+(*            unloaded - TRUE if successfully removed*)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modName:STRING[32]
+PARAM hdrAddr:INTEGER
+PARAM unloaded:BOOLEAN
+DIM regs:Register
+DIM callCode:BYTE
+DIM nameAddr:INTEGER
+DIM iCC:INTEGER
+
+ON ERROR GOTO 900
+
+unloaded := FALSE
+
+IF hdrAddr <> 0 THEN
+  callCode := $02 \ ! F$UnLink: unlink by header address
+  regs.u := hdrAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " unlinked by header"
+    unloaded := TRUE
+  ELSE
+    PRINT "Failed to unlink "; modName; " by hdr (err: "; regs.b; ")"
+  ENDIF
+ELSE
+  nameAddr := ADDR(modName)
+  callCode := $1D \ ! F$UnLoad: unload by name
+  regs.a := 0
+  regs.x := nameAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " unlinked by name"
+    unloaded := TRUE
+  ELSE
+    PRINT "Failed to unlink "; modName; " by name (err: "; regs.b; ")"
+  ENDIF
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "unloadModule error ("; ERR; ")"
+ERROR(ERR)
+END
+
+
+PROCEDURE getMemoryUsage
+(* ================================================== *)
+(* PROCEDURE: getMemoryUsage                          *)
+(* PURPOSE:   Display current process memory via     *)
+(*            F$Mem syscall. Prints A (hi) and B     *)
+(*            (lo) bytes of the returned size value. *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs:Register
+DIM callCode:BYTE
+DIM hiB:INTEGER
+DIM loB:INTEGER
+
+ON ERROR GOTO 900
+
+callCode := $07 \ ! F$Mem: request current memory size
+regs.a := 0
+regs.b := 0
+RUN SysCall(callCode, regs)
+
+hiB := regs.a \ ! Stage BYTE fields to INTEGER for printing
+loB := regs.b
+PRINT "Memory size (hi:lo bytes): "; hiB; " : "; loB
+END
+
+900 \ ! Error handler
+PRINT "getMemoryUsage error ("; ERR; ")"
+ERROR(ERR)
+END
+
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display a continue prompt and block    *)
+(*            until any key is pressed.              *)
+(* NOTE:      Do not pack alongside snb.b09 which    *)
+(*            defines its own waitKey procedure.     *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
 END
