@@ -677,23 +677,19 @@ PROCEDURE runYearLoop
 (*             mkt      - market state; prices updated each    *)
 (*                        year by applyMktYear                 *)
 (*                                                             *)
-(* LOCAL NAMES: BYTE fields of hdr that are passed to          *)
-(*   procedures expecting INTEGER are staged to local INTEGER  *)
-(*   variables to prevent the BYTE→INTEGER garbage pattern     *)
-(*   (bestPractices.md). Collision-safe names chosen to avoid  *)
-(*   any TYPE field name in this procedure's scope:            *)
-(*     cYear    ← hdr.currYear   (avoids TYPE field currYear)  *)
-(*     pCnt     ← hdr.plyrCount  (avoids TYPE field plyrCount) *)
-(*     rMode    ← hdr.rollMode   (avoids TYPE field rollMode)  *)
+(* LOCAL NAMES: BYTE fields of hdr passed to INTEGER PARAMs   *)
+(*   are staged to local INTEGER vars (bestPractices.md).      *)
+(*   Names chosen to avoid TYPE field name collisions:         *)
+(*     cYear ← hdr.currYear   pCnt ← hdr.plyrCount            *)
+(*     rMode ← hdr.rollMode                                    *)
 (*                                                             *)
 (* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
 (*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
 (*             marginTot, isBankrupt. Modifies mkt.stckPrice,  *)
-(*             mkt.divSuspnd. Advances RND and DATA pointers.  *)
-(*             Writes to disk when save is triggered.          *)
+(*             mkt.divSuspnd. Writes to disk on save.          *)
 (*                                                             *)
-(* NOTE      : Caller must seed RND before calling this        *)
-(*             procedure. doRolls and shuffleDeck advance RND. *)
+(* NOTE      : Caller must seed RND before calling.            *)
+(*             doRolls and shuffleDeck advance the sequence.   *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
@@ -710,12 +706,12 @@ PARAM deckOrd(36) : BYTE
 PARAM plyrs(6)    : PlyrRec
 PARAM mkt         : MktState
 
-! ---- Staged scalars from hdr BYTE fields -------------------
+! ---- Staged scalars from hdr BYTE fields (P1) ---------------
 DIM cYear     : INTEGER  \ ! staged: hdr.currYear
 DIM pCnt      : INTEGER  \ ! staged: hdr.plyrCount
 DIM rMode     : INTEGER  \ ! staged: hdr.rollMode
 
-! ---- Market resolution -------------------------------------
+! ---- Market resolution (P1) --------------------------------
 DIM cardId    : INTEGER  \ ! drawn card ID (1..36)
 DIM crd       : CardRec  \ ! populated by getCard for divBonus check
 DIM dOne(9)   : BYTE     \ ! die 1 per stock slot (1..6)
@@ -731,9 +727,10 @@ DIM spOcc(9)  : BOOLEAN  \ ! TRUE if split triggered this stock
 DIM dvSusp(9) : BOOLEAN  \ ! TRUE if dividends newly suspended
 DIM dvRnst(9) : BOOLEAN  \ ! TRUE if dividends reinstated
 
-! ---- Player turn working vars ------------------------------
+! ---- Player turn working vars (P1) -------------------------
 DIM p         : INTEGER  \ ! player loop index (1..pCnt)
 DIM s         : INTEGER  \ ! stock index (1..9)
+DIM b         : INTEGER  \ ! bond index (1..3)
 DIM ordTyp(12): INTEGER  \ ! order type: 1=STOCK 2=BOND
 DIM ordId(12) : INTEGER  \ ! asset index per order
 DIM ordQty(12): INTEGER  \ ! quantity per order
@@ -743,51 +740,231 @@ DIM mgnRpy    : INTEGER  \ ! margin repayment amount for buy phase
 DIM actInt    : INTEGER  \ ! action return from INTEGER-action screens
 DIM actByt    : BYTE     \ ! action return from BYTE-action screens
 
-! ---- Margin interest and forced liquidation ----------------
+! ---- Margin interest and forced liquidation (P1) -----------
 DIM forceLiq(6): BOOLEAN \ ! TRUE per player if cashBal went negative
 DIM oblgRem   : INTEGER  \ ! outstanding forced liquidation obligation
 DIM mgnChg    : INTEGER  \ ! margin interest charge for scrMgnInt display
-DIM cashBef   : INTEGER  \ ! cashBal before charge for scrMgnInt display
+DIM cashBef   : INTEGER  \ ! cashBal before bulk call (reused div+mgn)
 
-! ---- Buy phase eligibility ---------------------------------
+! ---- Buy phase eligibility (P1) ----------------------------
 DIM mgnElig   : BOOLEAN  \ ! TRUE if player has prior cash purchase
 DIM mgnYrOk   : BOOLEAN  \ ! TRUE if current year allows margin buys
 
-! ---- AI working vars ---------------------------------------
+! ---- AI working vars (P1) ----------------------------------
 DIM prof      : AIProfile \ ! AI profile for current player's turn
 DIM tInt      : INTEGER   \ ! stages aiTier (BYTE) for initAIProf call
 
-! ---- String staging ----------------------------------------
+! ---- String staging (P1) -----------------------------------
 DIM pNam      : STRING[20] \ ! stages plyrName for screen calls
 DIM pStr      : STRING[8]  \ ! fmtMoney output buffer
 
-! ---- Endgame and wealth summary ----------------------------
+! ---- Endgame and wealth summary (P1) -----------------------
 DIM gameOver  : BOOLEAN  \ ! TRUE when game ends before Year 10
 DIM activeCnt : INTEGER  \ ! count of non-bankrupt players
 DIM wlth(6)   : INTEGER  \ ! computed total wealth per player
 DIM srtOrd(6) : INTEGER  \ ! wealth sort order (index into plyrs)
 
-! ---- Card 1 dividend bonus ---------------------------------
+! ---- Card 1 dividend bonus (P1) ----------------------------
 DIM divBns    : INTEGER  \ ! divBonus from drawn card (0 unless Card 1)
+
+! ---- P2: Revenue sub-loop working vars ---------------------
+DIM cashBefA(6): INTEGER \ ! cashBal snapshot per player before bulk call
+DIM divRcv(9)  : INTEGER \ ! per-stock dividend received (for scrDivInt)
+DIM bndRcv(3)  : INTEGER \ ! per-bond interest received (for scrDivInt)
+DIM divRate(9) : INTEGER \ ! dividend rate per stock (spec Sec 2.1)
+DIM bndRate(3) : INTEGER \ ! bond interest per unit (spec Sec 2.2)
+DIM totRcv     : INTEGER \ ! total div+int received this year (display)
+
+! ---- P2: Year header flags ---------------------------------
+DIM nDiv       : BOOLEAN \ ! TRUE in Years 1 and 10 (no div/int)
+DIM nSell      : BOOLEAN \ ! TRUE in Year 1 (no sell phase)
+DIM nMgn       : BOOLEAN \ ! TRUE in Year 10 (no new margin)
 
 ON ERROR GOTO 900
 
-! ---- P1 SIZE diagnostics -----------------------------------
-! Verify TYPE sizes match save-load-design.md Section 5.
-! Expected: SaveHdr=11 PlyrRec=61 MktState=27 AIProfile=20
-PRINT "runYearLoop P1 — variable space diagnostics"
-PRINT "  SIZE(hdr)      = "; SIZE(hdr);    "  (expect 11)"
-PRINT "  SIZE(plyrs(1)) = "; SIZE(plyrs(1)); "  (expect 61)"
-PRINT "  SIZE(mkt)      = "; SIZE(mkt);    "  (expect 27)"
-PRINT "  SIZE(prof)     = "; SIZE(prof);   "  (expect 20)"
-PRINT "  SIZE(plyrs)    = "; SIZE(plyrs);  "  (expect 366)"
-PRINT "  SIZE(deckOrd)  = "; SIZE(deckOrd); " (expect 36)"
-PRINT "  SIZE(rolls)    = "; SIZE(rolls);  "  (expect 18)"
-PRINT "  SIZE(ordTyp)   = "; SIZE(ordTyp); "  (expect 24)"
-PRINT "  SIZE(crd)      = "; SIZE(crd);    "  (expect 22)"
-PRINT
-PRINT "P1 skeleton complete. No game logic executed."
+! ---- Initialize staged scalars and loop state --------------
+cYear     := hdr.currYear
+pCnt      := hdr.plyrCount
+rMode     := hdr.rollMode
+gameOver  := FALSE
+activeCnt := pCnt
+
+! ============================================================
+! Main year loop (Years hdr.currYear..10).
+! LOOP/EXITIF used instead of FOR/NEXT to allow early exit
+! when gameOver is set by P4 bankruptcy logic.
+! ============================================================
+LOOP
+  EXITIF cYear > 10 OR gameOver
+  ENDEXIT
+
+  hdr.currYear := cYear        \ ! keep hdr in sync for save checkpoints
+
+  ! ---- Compute year flags for scrYearHdr and guards --------
+  nDiv  := FALSE
+  nSell := FALSE
+  nMgn  := FALSE
+  IF cYear = 1 OR cYear = 10 THEN
+    nDiv := TRUE
+  ENDIF
+  IF cYear = 1 THEN
+    nSell := TRUE
+  ENDIF
+  IF cYear = 10 THEN
+    nMgn := TRUE
+  ENDIF
+
+  ! ---- S8: Year header screen ------------------------------
+  RUN scrYearHdr(cYear, 10, hdr.rollMode, nDiv, nMgn, nSell, actByt)
+
+  ! ==========================================================
+  ! P2: Revenue and margin sub-loops.
+  ! Skipped in Year 1 and Year 10 (nDiv = TRUE).
+  ! Dividend pass runs before market resolution so players
+  ! receive dividends at pre-resolution prices per spec Sec 6.
+  ! ==========================================================
+  IF NOT nDiv THEN
+
+    ! ---- Dividend and interest pass (Steps 1-2 per spec) ---
+    ! Capture cashBal before bulk apply for per-player display.
+    FOR p := 1 TO pCnt
+      cashBefA(p) := plyrs(p).cashBal
+    NEXT p
+
+    ! Load rates from local DATA (lines 700-710).
+    ! applyDivInt uses its own DATA; these copies are for the
+    ! per-player scrDivInt display computation only.
+    RESTORE 700
+    FOR s := 1 TO 9
+      READ divRate(s)
+    NEXT s
+    RESTORE 710
+    FOR b := 1 TO 3
+      READ bndRate(b)
+    NEXT b
+
+    ! Apply dividends and bond interest to all players at once.
+    RUN applyDivInt(cYear, pCnt, plyrs, mkt)
+
+    ! Show S9 dividend summary to each active player.
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        totRcv := 0
+
+        ! Compute per-stock dividends matching applyDivInt logic.
+        FOR s := 1 TO 9
+          divRcv(s) := 0
+          IF NOT mkt.divSuspnd(s) THEN
+            IF divRate(s) > 0 THEN
+              IF plyrs(p).stckShrs(s) > 0 THEN
+                divRcv(s) := divRate(s) * plyrs(p).stckShrs(s)
+                totRcv := totRcv + divRcv(s)
+              ENDIF
+            ENDIF
+          ENDIF
+        NEXT s
+
+        ! Compute per-bond interest matching applyDivInt logic.
+        FOR b := 1 TO 3
+          bndRcv(b) := 0
+          IF plyrs(p).bondUnts(b) > 0 THEN
+            bndRcv(b) := bndRate(b) * plyrs(p).bondUnts(b)
+            totRcv := totRcv + bndRcv(b)
+          ENDIF
+        NEXT b
+
+        pNam    := plyrs(p).plyrName
+        cashBef := cashBefA(p)
+        ! Line exceeds 79 chars; RUN statement cannot be split.
+        RUN scrDivInt(cYear, pNam, cashBef, divRcv, bndRcv, totRcv, plyrs(p).cashBal, actByt)
+      ENDIF
+    NEXT p
+
+    ! ---- Margin interest pass (Step 3 per spec) ------------
+    ! Initialize forceLiq; re-capture cashBal before apply.
+    FOR p := 1 TO pCnt
+      forceLiq(p) := FALSE
+      cashBefA(p) := plyrs(p).cashBal
+    NEXT p
+
+    ! Deduct 5% annual charge; set forceLiq where cashBal < 0.
+    RUN applyMgnInt(cYear, pCnt, plyrs, forceLiq)
+
+    ! Show S10 margin screen to each player with outstanding margin.
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        IF plyrs(p).marginTot > 0 THEN
+          pNam    := plyrs(p).plyrName
+          ! mgnChg: 5% = marginTot / 20. Safe for all INTEGER values.
+          ! Matches the formula used in applyMgnInt exactly.
+          mgnChg  := plyrs(p).marginTot / 20
+          cashBef := cashBefA(p)
+          ! Line exceeds 79 chars; RUN statement cannot be split.
+          RUN scrMgnInt(cYear, pNam, plyrs(p).marginTot, mgnChg, cashBef, plyrs(p).cashBal, forceLiq(p), actInt)
+          IF forceLiq(p) THEN
+            ! oblgRem = absolute value of negative cashBal.
+            oblgRem := 0 - plyrs(p).cashBal
+            GOSUB 500
+          ENDIF
+        ENDIF
+      ENDIF
+    NEXT p
+
+  ENDIF  \ ! NOT nDiv
+
+  ! ==========================================================
+  ! P3 stub: market resolution (drawCard, doRolls,
+  !          applyMktYear, scrCard, scrDice, scrMktBoard,
+  !          scrSplit, scrDivFlag, Card 1 divBonus).
+  ! Replaced in Task 14.1-P3.
+  ! ==========================================================
+  PRINT "  [P3 market resolution stub: Year "; cYear; "]"
+
+  ! ==========================================================
+  ! P4 stub: sell phase, margin calls, forced liquidation,
+  !          buy phase, Year 10 margin clearance gate.
+  ! Replaced in Task 14.1-P4.
+  ! ==========================================================
+  PRINT "  [P4 player actions stub: Year "; cYear; "]"
+
+  cYear := cYear + 1
+ENDLOOP
+
+! ==========================================================
+! P5 stub: scrFinalMkt, scrWealth, scrWinner, scrPostGame.
+! Replaced in Task 14.1-P5.
+! ==========================================================
+PRINT "  [P5 endgame stub]"
+
 END
+
+! ==========================================================
+! GOSUB 500 — Forced liquidation sub-loop (stub).
+! Entry: p = player index; oblgRem = obligation amount.
+! Calls scrForceLiq until oblgRem <= 0.
+! If oblgRem > 0 and ordCnt = 0 after scrForceLiq: GOSUB 600.
+! Replaced in full in Task 14.1-P4.
+! ==========================================================
+500 PRINT "  [ForcedLiq stub: plyr="; p; " oblg="; oblgRem; "]"
+    RETURN
+
+! ==========================================================
+! GOSUB 600 — Bankruptcy handler (stub).
+! Entry: p = player index.
+! Calls scrBankrupt; decrements activeCnt.
+! Sets gameOver = TRUE if activeCnt <= 1.
+! Replaced in full in Task 14.1-P4.
+! ==========================================================
+600 PRINT "  [Bankruptcy stub: plyr="; p; "]"
+    RETURN
+
+! Dividend per share per stock 1..9 (spec Section 2.1).
+! GrwCorp Metro Pioneer Shady Stryker TriCity UAuto Uranium ValPwr
+700 DATA 1, 0, 4, 7, 0, 0, 2, 6, 3
+
+! Annual bond interest per unit for bonds 1..3 (spec Sec 2.2).
+! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
+710 DATA 50, 250, 500
 
 900 ERROR(ERR)
 END

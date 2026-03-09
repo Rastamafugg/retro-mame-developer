@@ -240,376 +240,320 @@ END
 PRINT "fmtMoney error ("; ERR; ")"
 END
 
-PROCEDURE doRolls
+PROCEDURE runYearLoop
 (* ============================================================ *)
-(* PROCEDURE : doRolls                                          *)
-(* PURPOSE   : Generate 2d6 roll results for one game year     *)
-(*             according to the active market roll mode.        *)
-(*             Populates dieOne, dieTwo, and rollTot arrays     *)
-(*             for consumption by scrDice and applyMktYear.     *)
-(*             All 9 slots are always populated on return;      *)
-(*             applyMktYear uses rolls(s) per stock.            *)
+(* PROCEDURE : runYearLoop                                      *)
+(* PURPOSE   : Main year-loop integrating all game phases for  *)
+(*             Years 1..10. Covers:                            *)
+(*               P2: revenue (applyDivInt) and margin charge   *)
+(*                   (applyMgnInt + scrMgnInt per player)      *)
+(*               P3: market resolution (drawCard, doRolls,     *)
+(*                   applyMktYear, scrCard, scrDice,           *)
+(*                   scrMktBoard, scrSplit, scrDivFlag)        *)
+(*               P4: sell and buy phases per player; forced    *)
+(*                   liquidation and bankruptcy sub-loops      *)
+(*               P5: endgame detection (Year 10 or last player *)
+(*                   standing); routes to scrFinalMkt,         *)
+(*                   scrWealth, scrWinner, scrPostGame         *)
+(*             Save/resume uses savedPhase 0..3 in hdr.        *)
 (*                                                             *)
-(*             Mode A (rollMode=1), any year:                  *)
-(*               Roll once. Copy result to all 9 slots.        *)
-(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(* PARAMS    : savePath - filename for mid-game save calls     *)
+(*             hdr      - game header; currYear, plyrCount,    *)
+(*                        rollMode, deckPos modified in place  *)
+(*             deckOrd  - shuffled deck; deckPos advances      *)
+(*             plyrs    - all 6 player records; modified in    *)
+(*                        place throughout the loop            *)
+(*             mkt      - market state; prices updated each    *)
+(*                        year by applyMktYear                 *)
 (*                                                             *)
-(*             Mode B (rollMode=2), Year 1 only:               *)
-(*               Roll each of 9 stocks independently.          *)
-(*               No 2/12 override check.                       *)
-(*               rollCnt=9. ovrdActive=FALSE.                  *)
+(* LOCAL NAMES: BYTE fields of hdr passed to INTEGER PARAMs   *)
+(*   are staged to local INTEGER vars (bestPractices.md).      *)
+(*   Names chosen to avoid TYPE field name collisions:         *)
+(*     cYear ← hdr.currYear   pCnt ← hdr.plyrCount            *)
+(*     rMode ← hdr.rollMode                                    *)
 (*                                                             *)
-(*             Mode B (rollMode=2), Years 2-10:                *)
-(*               Same as Mode A — single roll, all 9 slots.   *)
-(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
+(*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
+(*             marginTot, isBankrupt. Modifies mkt.stckPrice,  *)
+(*             mkt.divSuspnd. Writes to disk on save.          *)
 (*                                                             *)
-(*             Mode C (rollMode=3), any year:                  *)
-(*               Roll stocks 1-9 in sequence. If any roll      *)
-(*               totals 2 or 12, fill all 9 slots with that    *)
-(*               triggering roll (prior rolls discarded),      *)
-(*               set ovrdActive=TRUE, and stop rolling.        *)
-(*               rollCnt=9 always. ovrdActive reflects whether *)
-(*               override fired.                               *)
-(*                                                             *)
-(* PARAMS    : rollMode  - 1=A 2=B 3=C (staged from BYTE by   *)
-(*                         caller)                             *)
-(*             currYear  - current game year 1..10 (staged     *)
-(*                         from BYTE by caller)                *)
-(*             dieOne    - OUT: first die per stock slot 1..9  *)
-(*             dieTwo    - OUT: second die per stock slot 1..9 *)
-(*             rollTot   - OUT: total per stock slot 1..9      *)
-(*             rollCnt   - OUT: 1 for Mode A / Mode B Y2-10;   *)
-(*                         9 for Mode B Y1 and Mode C          *)
-(*             ovrdActive - OUT: TRUE only when Mode C 2/12    *)
-(*                          override fired                     *)
-(* SIDE EFX  : Advances the RND sequence. Caller is           *)
-(*             responsible for seeding RND before the first    *)
-(*             call each game session.                         *)
+(* NOTE      : Caller must seed RND before calling.            *)
+(*             doRolls and shuffleDeck advance the sequence.   *)
 (* ============================================================ *)
-PARAM rollMode   : INTEGER
-PARAM currYear   : INTEGER
-PARAM dieOne(9)  : BYTE
-PARAM dieTwo(9)  : BYTE
-PARAM rollTot(9) : BYTE
-PARAM rollCnt    : BYTE
-PARAM ovrdActive : BOOLEAN
-DIM d1  : INTEGER
-DIM d2  : INTEGER
-DIM tot : INTEGER
-DIM s   : INTEGER
-DIM f   : INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM savePath    : STRING[20]
+PARAM hdr         : SaveHdr
+PARAM deckOrd(36) : BYTE
+PARAM plyrs(6)    : PlyrRec
+PARAM mkt         : MktState
+
+! ---- Staged scalars from hdr BYTE fields (P1) ---------------
+DIM cYear     : INTEGER  \ ! staged: hdr.currYear
+DIM pCnt      : INTEGER  \ ! staged: hdr.plyrCount
+DIM rMode     : INTEGER  \ ! staged: hdr.rollMode
+
+! ---- Market resolution (P1) --------------------------------
+DIM cardId    : INTEGER  \ ! drawn card ID (1..36)
+DIM crd       : CardRec  \ ! populated by getCard for divBonus check
+DIM dOne(9)   : BYTE     \ ! die 1 per stock slot (1..6)
+DIM dTwo(9)   : BYTE     \ ! die 2 per stock slot (1..6)
+DIM rTot(9)   : BYTE     \ ! roll total per stock slot (2..12)
+DIM rolls(9)  : INTEGER  \ ! INTEGER copy of rTot for applyMktYear
+DIM rCnt      : BYTE     \ ! populated roll slot count from doRolls
+DIM oAct      : BOOLEAN  \ ! TRUE if Mode C 2/12 override fired
+DIM prcBef(9) : INTEGER  \ ! price after mkt table, before card delta
+DIM mktDlt(9) : INTEGER  \ ! market table delta per stock
+DIM crdDlt(9) : INTEGER  \ ! card delta per stock
+DIM spOcc(9)  : BOOLEAN  \ ! TRUE if split triggered this stock
+DIM dvSusp(9) : BOOLEAN  \ ! TRUE if dividends newly suspended
+DIM dvRnst(9) : BOOLEAN  \ ! TRUE if dividends reinstated
+
+! ---- Player turn working vars (P1) -------------------------
+DIM p         : INTEGER  \ ! player loop index (1..pCnt)
+DIM s         : INTEGER  \ ! stock index (1..9)
+DIM b         : INTEGER  \ ! bond index (1..3)
+DIM ordTyp(12): INTEGER  \ ! order type: 1=STOCK 2=BOND
+DIM ordId(12) : INTEGER  \ ! asset index per order
+DIM ordQty(12): INTEGER  \ ! quantity per order
+DIM ordPur(12): INTEGER  \ ! purchase type: 1=CASH 2=MARGIN (buy only)
+DIM ordCnt    : INTEGER  \ ! number of orders in current batch
+DIM mgnRpy    : INTEGER  \ ! margin repayment amount for buy phase
+DIM actInt    : INTEGER  \ ! action return from INTEGER-action screens
+DIM actByt    : BYTE     \ ! action return from BYTE-action screens
+
+! ---- Margin interest and forced liquidation (P1) -----------
+DIM forceLiq(6): BOOLEAN \ ! TRUE per player if cashBal went negative
+DIM oblgRem   : INTEGER  \ ! outstanding forced liquidation obligation
+DIM mgnChg    : INTEGER  \ ! margin interest charge for scrMgnInt display
+DIM cashBef   : INTEGER  \ ! cashBal before bulk call (reused div+mgn)
+
+! ---- Buy phase eligibility (P1) ----------------------------
+DIM mgnElig   : BOOLEAN  \ ! TRUE if player has prior cash purchase
+DIM mgnYrOk   : BOOLEAN  \ ! TRUE if current year allows margin buys
+
+! ---- AI working vars (P1) ----------------------------------
+DIM prof      : AIProfile \ ! AI profile for current player's turn
+DIM tInt      : INTEGER   \ ! stages aiTier (BYTE) for initAIProf call
+
+! ---- String staging (P1) -----------------------------------
+DIM pNam      : STRING[20] \ ! stages plyrName for screen calls
+DIM pStr      : STRING[8]  \ ! fmtMoney output buffer
+
+! ---- Endgame and wealth summary (P1) -----------------------
+DIM gameOver  : BOOLEAN  \ ! TRUE when game ends before Year 10
+DIM activeCnt : INTEGER  \ ! count of non-bankrupt players
+DIM wlth(6)   : INTEGER  \ ! computed total wealth per player
+DIM srtOrd(6) : INTEGER  \ ! wealth sort order (index into plyrs)
+
+! ---- Card 1 dividend bonus (P1) ----------------------------
+DIM divBns    : INTEGER  \ ! divBonus from drawn card (0 unless Card 1)
+
+! ---- P2: Revenue sub-loop working vars ---------------------
+DIM cashBefA(6): INTEGER \ ! cashBal snapshot per player before bulk call
+DIM divRcv(9)  : INTEGER \ ! per-stock dividend received (for scrDivInt)
+DIM bndRcv(3)  : INTEGER \ ! per-bond interest received (for scrDivInt)
+DIM divRate(9) : INTEGER \ ! dividend rate per stock (spec Sec 2.1)
+DIM bndRate(3) : INTEGER \ ! bond interest per unit (spec Sec 2.2)
+DIM totRcv     : INTEGER \ ! total div+int received this year (display)
+
+! ---- P2: Year header flags ---------------------------------
+DIM nDiv       : BOOLEAN \ ! TRUE in Years 1 and 10 (no div/int)
+DIM nSell      : BOOLEAN \ ! TRUE in Year 1 (no sell phase)
+DIM nMgn       : BOOLEAN \ ! TRUE in Year 10 (no new margin)
 
 ON ERROR GOTO 900
 
-IF rollMode = 1 THEN
+! ---- Initialize staged scalars and loop state --------------
+cYear     := hdr.currYear
+pCnt      := hdr.plyrCount
+rMode     := hdr.rollMode
+gameOver  := FALSE
+activeCnt := pCnt
 
-  ! Mode A: single roll, copy to all 9 slots.
-  d1  := INT(RND(6)) + 1
-  d2  := INT(RND(6)) + 1
-  tot := d1 + d2
-  FOR s := 1 TO 9
-    dieOne(s)  := d1
-    dieTwo(s)  := d2
-    rollTot(s) := tot
-  NEXT s
-  rollCnt    := 1
-  ovrdActive := FALSE
+! ============================================================
+! Main year loop (Years hdr.currYear..10).
+! LOOP/EXITIF used instead of FOR/NEXT to allow early exit
+! when gameOver is set by P4 bankruptcy logic.
+! ============================================================
+LOOP
+  EXITIF cYear > 10 OR gameOver
+  ENDEXIT
 
-ELSE IF rollMode = 2 THEN
+  hdr.currYear := cYear        \ ! keep hdr in sync for save checkpoints
 
-  IF currYear = 1 THEN
+  ! ---- Compute year flags for scrYearHdr and guards --------
+  nDiv  := FALSE
+  nSell := FALSE
+  nMgn  := FALSE
+  IF cYear = 1 OR cYear = 10 THEN
+    nDiv := TRUE
+  ENDIF
+  IF cYear = 1 THEN
+    nSell := TRUE
+  ENDIF
+  IF cYear = 10 THEN
+    nMgn := TRUE
+  ENDIF
 
-    ! Mode B Year 1: independent per-stock rolls, no override.
+  ! ---- S8: Year header screen ------------------------------
+  RUN scrYearHdr(cYear, 10, hdr.rollMode, nDiv, nMgn, nSell, actByt)
+
+  ! ==========================================================
+  ! P2: Revenue and margin sub-loops.
+  ! Skipped in Year 1 and Year 10 (nDiv = TRUE).
+  ! Dividend pass runs before market resolution so players
+  ! receive dividends at pre-resolution prices per spec Sec 6.
+  ! ==========================================================
+  IF NOT nDiv THEN
+
+    ! ---- Dividend and interest pass (Steps 1-2 per spec) ---
+    ! Capture cashBal before bulk apply for per-player display.
+    FOR p := 1 TO pCnt
+      cashBefA(p) := plyrs(p).cashBal
+    NEXT p
+
+    ! Load rates from local DATA (lines 700-710).
+    ! applyDivInt uses its own DATA; these copies are for the
+    ! per-player scrDivInt display computation only.
+    RESTORE 700
     FOR s := 1 TO 9
-      d1         := INT(RND(6)) + 1
-      d2         := INT(RND(6)) + 1
-      dieOne(s)  := d1
-      dieTwo(s)  := d2
-      rollTot(s) := d1 + d2
+      READ divRate(s)
     NEXT s
-    rollCnt    := 9
-    ovrdActive := FALSE
+    RESTORE 710
+    FOR b := 1 TO 3
+      READ bndRate(b)
+    NEXT b
 
-  ELSE
+    ! Apply dividends and bond interest to all players at once.
+    RUN applyDivInt(cYear, pCnt, plyrs, mkt)
 
-    ! Mode B Years 2-10: same as Mode A.
-    d1  := INT(RND(6)) + 1
-    d2  := INT(RND(6)) + 1
-    tot := d1 + d2
-    FOR s := 1 TO 9
-      dieOne(s)  := d1
-      dieTwo(s)  := d2
-      rollTot(s) := tot
-    NEXT s
-    rollCnt    := 1
-    ovrdActive := FALSE
+    ! Show S9 dividend summary to each active player.
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        totRcv := 0
 
-  ENDIF
+        ! Compute per-stock dividends matching applyDivInt logic.
+        FOR s := 1 TO 9
+          divRcv(s) := 0
+          IF NOT mkt.divSuspnd(s) THEN
+            IF divRate(s) > 0 THEN
+              IF plyrs(p).stckShrs(s) > 0 THEN
+                divRcv(s) := divRate(s) * plyrs(p).stckShrs(s)
+                totRcv := totRcv + divRcv(s)
+              ENDIF
+            ENDIF
+          ENDIF
+        NEXT s
 
-ELSE
+        ! Compute per-bond interest matching applyDivInt logic.
+        FOR b := 1 TO 3
+          bndRcv(b) := 0
+          IF plyrs(p).bondUnts(b) > 0 THEN
+            bndRcv(b) := bndRate(b) * plyrs(p).bondUnts(b)
+            totRcv := totRcv + bndRcv(b)
+          ENDIF
+        NEXT b
 
-  ! Mode C: per-stock rolls with 2/12 override.
-  ! Roll stocks in sequence. On 2 or 12: fill all 9 slots
-  ! with triggering roll, set ovrdActive, stop rolling.
-  s          := 1
-  ovrdActive := FALSE
-  LOOP
-    EXITIF s > 9 OR ovrdActive THEN
-    ENDEXIT
-    d1  := INT(RND(6)) + 1
-    d2  := INT(RND(6)) + 1
-    tot := d1 + d2
-    dieOne(s)  := d1
-    dieTwo(s)  := d2
-    rollTot(s) := tot
-    IF tot = 2 OR tot = 12 THEN
-      ! Override: backfill all 9 slots with this roll.
-      FOR f := 1 TO 9
-        dieOne(f)  := d1
-        dieTwo(f)  := d2
-        rollTot(f) := tot
-      NEXT f
-      ovrdActive := TRUE
-    ENDIF
-    s := s + 1
-  ENDLOOP
-  rollCnt := 9
-
-ENDIF \ENDIF
-
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE TSTROLLS
-(* ============================================================ *)
-(* PROCEDURE : TSTROLLS                                         *)
-(* PURPOSE   : Confirmation test for Task 14.0 (doRolls).      *)
-(*             Tests invariants that hold regardless of RND     *)
-(*             outcome. Cannot force specific die values.       *)
-(*                                                             *)
-(*   Test A — Mode A, Year 5:                                  *)
-(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
-(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
-(*                                                             *)
-(*   Test B — Mode B, Year 1:                                  *)
-(*     rollCnt=9, ovrdActive=FALSE.                            *)
-(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
-(*                                                             *)
-(*   Test C — Mode B, Year 5:                                  *)
-(*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
-(*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
-(*                                                             *)
-(*   Test D — Mode C (run 20 times):                           *)
-(*     Each call: rollCnt=9. All dieOne/dieTwo in 1-6.        *)
-(*     rollTot = dieOne+dieTwo per slot.                       *)
-(*     If ovrdActive: all 9 rollTot slots equal.               *)
-(*     Reports how many of 20 runs triggered an override.      *)
-(* ============================================================ *)
-DIM dOne(9)   : BYTE
-DIM dTwo(9)   : BYTE
-DIM rTot(9)   : BYTE
-DIM rCnt      : BYTE
-DIM oAct      : BOOLEAN
-DIM s         : INTEGER
-DIM r         : INTEGER
-DIM pass      : INTEGER
-DIM fail      : INTEGER
-DIM allSame   : BOOLEAN
-DIM iD1       : INTEGER
-DIM iD2       : INTEGER
-DIM iTot      : INTEGER
-DIM ovrdCount : INTEGER
-
-ON ERROR GOTO 900
-
-pass      := 0
-fail      := 0
-ovrdCount := 0
-
-! ---- Test A: Mode A, Year 5 --------------------------------
-PRINT "Test A: Mode A Year 5"
-RUN doRolls(1, 5, dOne, dTwo, rTot, rCnt, oAct)
-
-IF rCnt = 1 THEN
-  PRINT "  PASS: rollCnt=1"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
-  fail := fail + 1
-ENDIF
-
-IF NOT oAct THEN
-  PRINT "  PASS: ovrdActive=FALSE"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
-  fail := fail + 1
-ENDIF
-
-! All 9 slots must be identical.
-allSame := TRUE
-FOR s := 2 TO 9
-  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
-    allSame := FALSE
-  ENDIF
-NEXT s
-IF allSame THEN
-  PRINT "  PASS: all 9 slots identical"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: slots not identical"
-  fail := fail + 1
-ENDIF
-
-! Die range and consistency for all 9 slots.
-FOR s := 1 TO 9
-  iD1  := dOne(s)
-  iD2  := dTwo(s)
-  iTot := rTot(s)
-  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
-    PRINT "  FAIL: slot "; s; " die out of range"
-    fail := fail + 1
-  ENDIF
-  IF iD1 + iD2 <> iTot THEN
-    PRINT "  FAIL: slot "; s; " total inconsistent"
-    fail := fail + 1
-  ENDIF
-NEXT s
-PRINT "  (die range and consistency checks done for all 9 slots)"
-
-RUN waitKey
-
-! ---- Test B: Mode B, Year 1 --------------------------------
-PRINT "Test B: Mode B Year 1"
-RUN doRolls(2, 1, dOne, dTwo, rTot, rCnt, oAct)
-
-IF rCnt = 9 THEN
-  PRINT "  PASS: rollCnt=9"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: rollCnt="; rCnt; " expected 9"
-  fail := fail + 1
-ENDIF
-
-IF NOT oAct THEN
-  PRINT "  PASS: ovrdActive=FALSE"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
-  fail := fail + 1
-ENDIF
-
-FOR s := 1 TO 9
-  iD1  := dOne(s)
-  iD2  := dTwo(s)
-  iTot := rTot(s)
-  IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
-    PRINT "  FAIL: slot "; s; " die out of range"
-    fail := fail + 1
-  ENDIF
-  IF iD1 + iD2 <> iTot THEN
-    PRINT "  FAIL: slot "; s; " total inconsistent"
-    fail := fail + 1
-  ENDIF
-NEXT s
-PRINT "  (die range and consistency checks done for all 9 slots)"
-
-RUN waitKey
-
-! ---- Test C: Mode B, Year 5 --------------------------------
-PRINT "Test C: Mode B Year 5"
-RUN doRolls(2, 5, dOne, dTwo, rTot, rCnt, oAct)
-
-IF rCnt = 1 THEN
-  PRINT "  PASS: rollCnt=1"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: rollCnt="; rCnt; " expected 1"
-  fail := fail + 1
-ENDIF
-
-IF NOT oAct THEN
-  PRINT "  PASS: ovrdActive=FALSE"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: ovrdActive=TRUE expected FALSE"
-  fail := fail + 1
-ENDIF
-
-allSame := TRUE
-FOR s := 2 TO 9
-  IF rTot(s) <> rTot(1) OR dOne(s) <> dOne(1) OR dTwo(s) <> dTwo(1) THEN
-    allSame := FALSE
-  ENDIF
-NEXT s
-IF allSame THEN
-  PRINT "  PASS: all 9 slots identical"
-  pass := pass + 1
-ELSE
-  PRINT "  FAIL: slots not identical"
-  fail := fail + 1
-ENDIF
-
-RUN waitKey
-
-! ---- Test D: Mode C, 20 iterations -------------------------
-PRINT "Test D: Mode C (20 runs)"
-PRINT "  Checking: rollCnt=9, die range, consistency,"
-PRINT "  and if override: all rollTot slots equal."
-
-FOR r := 1 TO 20
-  RUN doRolls(3, 5, dOne, dTwo, rTot, rCnt, oAct)
-
-  IF rCnt <> 9 THEN
-    PRINT "  FAIL run "; r; ": rollCnt="; rCnt; " expected 9"
-    fail := fail + 1
-  ELSE
-    pass := pass + 1
-  ENDIF
-
-  FOR s := 1 TO 9
-    iD1  := dOne(s)
-    iD2  := dTwo(s)
-    iTot := rTot(s)
-    IF iD1 < 1 OR iD1 > 6 OR iD2 < 1 OR iD2 > 6 THEN
-      PRINT "  FAIL run "; r; " slot "; s; ": die out of range"
-      fail := fail + 1
-    ENDIF
-    IF iD1 + iD2 <> iTot THEN
-      PRINT "  FAIL run "; r; " slot "; s; ": total inconsistent"
-      fail := fail + 1
-    ENDIF
-  NEXT s
-
-  IF oAct THEN
-    ovrdCount := ovrdCount + 1
-    ! Verify all 9 rollTot slots equal when override active.
-    allSame := TRUE
-    FOR s := 2 TO 9
-      IF rTot(s) <> rTot(1) THEN
-        allSame := FALSE
+        pNam    := plyrs(p).plyrName
+        cashBef := cashBefA(p)
+        ! Line exceeds 79 chars; RUN statement cannot be split.
+        RUN scrDivInt(cYear, pNam, cashBef, divRcv, bndRcv, totRcv, plyrs(p).cashBal, actByt)
       ENDIF
-    NEXT s
-    IF NOT allSame THEN
-      PRINT "  FAIL run "; r; ": override set but slots not equal"
-      fail := fail + 1
-    ENDIF
-  ENDIF
+    NEXT p
 
-NEXT r
+    ! ---- Margin interest pass (Step 3 per spec) ------------
+    ! Initialize forceLiq; re-capture cashBal before apply.
+    FOR p := 1 TO pCnt
+      forceLiq(p) := FALSE
+      cashBefA(p) := plyrs(p).cashBal
+    NEXT p
 
-PRINT "  Overrides observed in 20 runs: "; ovrdCount
-PRINT "  (Expect ~8 overrides probabilistically;"
-PRINT "   zero is unlikely but not a test failure.)"
+    ! Deduct 5% annual charge; set forceLiq where cashBal < 0.
+    RUN applyMgnInt(cYear, pCnt, plyrs, forceLiq)
 
-RUN waitKey
+    ! Show S10 margin screen to each player with outstanding margin.
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        IF plyrs(p).marginTot > 0 THEN
+          pNam    := plyrs(p).plyrName
+          ! mgnChg: 5% = marginTot / 20. Safe for all INTEGER values.
+          ! Matches the formula used in applyMgnInt exactly.
+          mgnChg  := plyrs(p).marginTot / 20
+          cashBef := cashBefA(p)
+          ! Line exceeds 79 chars; RUN statement cannot be split.
+          RUN scrMgnInt(cYear, pNam, plyrs(p).marginTot, mgnChg, cashBef, plyrs(p).cashBal, forceLiq(p), actInt)
+          IF forceLiq(p) THEN
+            ! oblgRem = absolute value of negative cashBal.
+            oblgRem := 0 - plyrs(p).cashBal
+            GOSUB 500
+          ENDIF
+        ENDIF
+      ENDIF
+    NEXT p
 
-! ---- Summary -----------------------------------------------
-PRINT
-PRINT "TSTROLLS: "; pass; " passed, "; fail; " failed"
+  ENDIF  \ ! NOT nDiv
+
+  ! ==========================================================
+  ! P3 stub: market resolution (drawCard, doRolls,
+  !          applyMktYear, scrCard, scrDice, scrMktBoard,
+  !          scrSplit, scrDivFlag, Card 1 divBonus).
+  ! Replaced in Task 14.1-P3.
+  ! ==========================================================
+  PRINT "  [P3 market resolution stub: Year "; cYear; "]"
+
+  ! ==========================================================
+  ! P4 stub: sell phase, margin calls, forced liquidation,
+  !          buy phase, Year 10 margin clearance gate.
+  ! Replaced in Task 14.1-P4.
+  ! ==========================================================
+  PRINT "  [P4 player actions stub: Year "; cYear; "]"
+
+  cYear := cYear + 1
+ENDLOOP
+
+! ==========================================================
+! P5 stub: scrFinalMkt, scrWealth, scrWinner, scrPostGame.
+! Replaced in Task 14.1-P5.
+! ==========================================================
+PRINT "  [P5 endgame stub]"
+
 END
+
+! ==========================================================
+! GOSUB 500 — Forced liquidation sub-loop (stub).
+! Entry: p = player index; oblgRem = obligation amount.
+! Calls scrForceLiq until oblgRem <= 0.
+! If oblgRem > 0 and ordCnt = 0 after scrForceLiq: GOSUB 600.
+! Replaced in full in Task 14.1-P4.
+! ==========================================================
+500 PRINT "  [ForcedLiq stub: plyr="; p; " oblg="; oblgRem; "]"
+    RETURN
+
+! ==========================================================
+! GOSUB 600 — Bankruptcy handler (stub).
+! Entry: p = player index.
+! Calls scrBankrupt; decrements activeCnt.
+! Sets gameOver = TRUE if activeCnt <= 1.
+! Replaced in full in Task 14.1-P4.
+! ==========================================================
+600 PRINT "  [Bankruptcy stub: plyr="; p; "]"
+    RETURN
+
+! Dividend per share per stock 1..9 (spec Section 2.1).
+! GrwCorp Metro Pioneer Shady Stryker TriCity UAuto Uranium ValPwr
+700 DATA 1, 0, 4, 7, 0, 0, 2, 6, 3
+
+! Annual bond interest per unit for bonds 1..3 (spec Sec 2.2).
+! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
+710 DATA 50, 250, 500
 
 900 ERROR(ERR)
 END
