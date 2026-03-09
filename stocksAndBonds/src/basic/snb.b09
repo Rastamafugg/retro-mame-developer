@@ -793,6 +793,10 @@ DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
 DIM liqAct     : BYTE    \ ! scrForceLiq action: 1=SUBMIT 2=BANKRUPTCY
 DIM bkRsn      : BYTE    \ ! scrBankrupt reason: 1=MGN_INT 2=MGN_CALL
 
+! ---- P4-B: Sell phase vars ---------------------------------
+DIM decAct(12) : BYTE    \ ! scrAITurn decision action codes (1=SELL)
+DIM sNam14     : STRING[14] \ ! STRING[14] staging for scrMgnCall param
+
 ON ERROR GOTO 900
 
 ! ---- Initialize staged scalars and loop state --------------
@@ -1014,11 +1018,77 @@ LOOP
   ENDIF
 
   ! ==========================================================
-  ! P4 stub: sell phase, margin calls, forced liquidation,
-  !          buy phase, Year 10 margin clearance gate.
-  ! Replaced in Task 14.1-P4.
+  ! P4-B: Sell phase.
+  ! Skipped in Year 1 (nSell = TRUE).
+  ! Human players: scrSell -> applySells.
+  ! AI players: aiSell -> applySells -> scrAITurn.
+  ! Post-sell: check margin call per stock per player.
   ! ==========================================================
-  PRINT "  [P4 player actions stub: Year "; cYear; "]"
+  IF NOT nSell THEN
+
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        pNam   := plyrs(p).plyrName
+        ordCnt := 0
+
+        IF plyrs(p).plyrType = 1 THEN
+
+          ! ---- Human sell phase ----------------------------
+          RUN scrSell(cYear, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actByt)
+          IF ordCnt > 0 THEN
+            RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+          ENDIF
+
+        ELSE
+
+          ! ---- AI sell phase -------------------------------
+          tInt := plyrs(p).aiTier
+          RUN initAIProf(tInt, prof)
+          RUN aiSell(cYear, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
+          IF ordCnt > 0 THEN
+            RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+          ENDIF
+          ! Build decAct: all sell-phase AI orders are SELL (code 1).
+          FOR tInt := 1 TO ordCnt
+            decAct(tInt) := 1
+          NEXT tInt
+          ! actByt := 1 stages phase=SELL (BYTE) for scrAITurn.
+          actByt := 1
+          RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
+
+        ENDIF
+
+        ! ---- Post-sell margin call check ------------------
+        ! Trigger if any margin-held stock is at or below $25.
+        ! bkRsn := 2 = MARGIN_CALL for scrBankrupt in GOSUB 600.
+        FOR s := 1 TO 9
+          IF plyrs(p).mgnHeld(s) THEN
+            IF mkt.stckPrice(s) <= 25 THEN
+              ! Read stock name s from DATA 720 into STRING[12],
+              ! then widen to STRING[14] for scrMgnCall param.
+              RESTORE 720
+              FOR tInt := 1 TO s
+                READ sNam
+              NEXT tInt
+              sNam14  := sNam
+              bkRsn   := 2
+              RUN scrMgnCall(pNam, sNam14, mkt.stckPrice(s), 25, plyrs(p).marginTot)
+              oblgRem := plyrs(p).marginTot
+              GOSUB 500
+            ENDIF
+          ENDIF
+        NEXT s
+
+      ENDIF
+    NEXT p
+
+  ENDIF  \ ! NOT nSell
+
+  ! ==========================================================
+  ! P4-C stub: Year 10 margin clearance and buy phase.
+  ! Replaced in Task 14.1-P4-C.
+  ! ==========================================================
+  PRINT "  [P4-C buy phase stub: Year "; cYear; "]"
 
   cYear := cYear + 1
 ENDLOOP
