@@ -378,6 +378,10 @@ DIM shrAf(6)   : INTEGER     \ ! shares after split per player
 DIM evTyp      : INTEGER     \ ! event type: 1=suspended 2=reinstated
 DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
 
+! ---- P4-A: Forced liquidation and bankruptcy vars ----------
+DIM liqAct     : BYTE    \ ! scrForceLiq action: 1=SUBMIT 2=BANKRUPTCY
+DIM bkRsn      : BYTE    \ ! scrBankrupt reason: 1=MGN_INT 2=MGN_CALL
+
 ON ERROR GOTO 900
 
 ! ---- Initialize staged scalars and loop state --------------
@@ -502,6 +506,7 @@ LOOP
           IF forceLiq(p) THEN
             ! oblgRem = absolute value of negative cashBal.
             oblgRem := 0 - plyrs(p).cashBal
+            bkRsn   := 1  \ ! margin interest triggered this path
             GOSUB 500
           ENDIF
         ENDIF
@@ -616,23 +621,47 @@ PRINT "  [P5 endgame stub]"
 END
 
 ! ==========================================================
-! GOSUB 500 - Forced liquidation sub-loop (stub).
-! Entry: p = player index; oblgRem = obligation amount.
-! Calls scrForceLiq until oblgRem <= 0.
-! If oblgRem > 0 and ordCnt = 0 after scrForceLiq: GOSUB 600.
-! Replaced in full in Task 14.1-P4.
+! GOSUB 500 - Forced liquidation sub-loop.
+! Entry: p       = current player index
+!        oblgRem = obligation amount (positive INTEGER)
+!        bkRsn   = reason code for scrBankrupt if triggered
+!        pNam    = player name (already staged by caller)
+! Loops scrForceLiq until obligation cleared, player declares
+! bankruptcy (liqAct=2), or no orders submitted with obligation
+! still outstanding (implicit bankruptcy).
 ! ==========================================================
-500 PRINT "  [ForcedLiq stub: plyr="; p; " oblg="; oblgRem; "]"
+500 LOOP
+      ! Line exceeds 79 chars; RUN statement cannot be split.
+      RUN scrForceLiq(pNam, oblgRem, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, liqAct)
+      IF liqAct = 2 THEN
+        GOSUB 600
+        RETURN
+      ENDIF
+      IF ordCnt > 0 THEN
+        RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
+      ENDIF
+      EXITIF oblgRem <= 0
+      ENDEXIT
+      ! ordCnt=0 with oblgRem>0: no assets remain; force bankruptcy.
+      IF ordCnt = 0 THEN
+        GOSUB 600
+        RETURN
+      ENDIF
+    ENDLOOP
     RETURN
 
 ! ==========================================================
-! GOSUB 600 - Bankruptcy handler (stub).
-! Entry: p = player index.
-! Calls scrBankrupt; decrements activeCnt.
-! Sets gameOver = TRUE if activeCnt <= 1.
-! Replaced in full in Task 14.1-P4.
+! GOSUB 600 - Bankruptcy handler.
+! Entry: p     = current player index
+!        bkRsn = reason: 1=MARGIN_INTEREST 2=MARGIN_CALL
+! scrBankrupt sets plyrs(p).isBankrupt := TRUE internally.
+! Decrements activeCnt; sets gameOver when one player remains.
 ! ==========================================================
-600 PRINT "  [Bankruptcy stub: plyr="; p; "]"
+600 RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, bkRsn, cYear)
+    activeCnt := activeCnt - 1
+    IF activeCnt <= 1 THEN
+      gameOver := TRUE
+    ENDIF
     RETURN
 
 ! Dividend per share per stock 1..9 (spec Section 2.1).
