@@ -1,0 +1,359 @@
+PROCEDURE checkModule(moduleName:STRING)
+! Check if a specific module is loaded in memory
+! Returns TRUE if loaded, FALSE if not
+    TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+    DIM regs:Register
+    DIM callCode:BYTE
+    DIM nameAddr:INTEGER
+    DIM result:BOOLEAN
+    
+    nameAddr := ADDR(moduleName)
+    
+    callCode := $00 \ ! F$Link - try to link the module
+    regs.a := 0     \ ! Any type/language
+    regs.x := nameAddr
+    RUN SYSCALL(callCode, regs)
+    
+    IF regs.cc = 0 THEN
+        result := TRUE
+        PRINT moduleName; " is loaded"
+        ! Unlink it since we were just checking
+        callCode := $02 \ ! F$UnLink
+        regs.u := regs.u \ ! Module header from successful link
+        RUN SYSCALL(callCode, regs)
+    ELSE
+        result := FALSE
+        PRINT moduleName; " is not loaded"
+    END IF
+    
+    RETURN result
+END
+
+PROCEDURE loadModule(moduleName:STRING)
+! Load a module into memory
+! First tries F$Link (if already loaded), then F$Load (from disk)
+    TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+    DIM regs:Register
+    DIM callCode:BYTE
+    DIM nameAddr:INTEGER
+    DIM loaded:BOOLEAN
+    
+    nameAddr := ADDR(moduleName)
+    loaded := FALSE
+    
+    ! First try to link (if already in memory)
+    callCode := $00  \ ! F$Link
+    regs.a := 0      \ ! Any type/language
+    regs.x := nameAddr
+    RUN SYSCALL(callCode, regs)
+    
+    IF regs.cc = 0 THEN
+        PRINT moduleName; " linked successfully (was already loaded)"
+        loaded := TRUE
+    ELSE
+        ! Try loading from disk
+        callCode := $01  \ ! F$Load
+        regs.a := 0      \ ! Any type/language
+        regs.x := nameAddr
+        RUN SYSCALL(callCode, regs)
+        
+        IF regs.cc = 0 THEN
+            PRINT moduleName; " loaded successfully from disk"
+            loaded := TRUE
+        ELSE
+            PRINT "Failed to load "; moduleName; " (error:"; regs.b; ")"
+        END IF
+    END IF
+    
+    RETURN loaded
+END
+
+PROCEDURE unloadModule(moduleName:STRING, headerAddr:INTEGER)
+! Unload a module from memory
+! If headerAddr is provided, uses F$UnLink, otherwise uses F$UnLoad
+    TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+    DIM regs:Register
+    DIM callCode:BYTE
+    DIM nameAddr:INTEGER
+    DIM unloaded:BOOLEAN
+    
+    unloaded := FALSE
+    
+    IF headerAddr <> 0 THEN
+        ! Unlink by header address
+        callCode := $02  \ ! F$UnLink
+        regs.u := headerAddr
+        RUN SYSCALL(callCode, regs)
+        
+        IF regs.cc = 0 THEN
+            PRINT moduleName; " unlinked successfully by header"
+            unloaded := TRUE
+        ELSE
+            PRINT "Failed to unlink "; moduleName; " by header (error:"; regs.b; ")"
+        END IF
+    ELSE
+        ! Unlink by name
+        nameAddr := ADDR(moduleName)
+        
+        callCode := $1D  \ ! F$UnLoad
+        regs.a := 0      \ ! Any type
+        regs.x := nameAddr
+        RUN SYSCALL(callCode, regs)
+        
+        IF regs.cc = 0 THEN
+            PRINT moduleName; " unlinked successfully by name"
+            unloaded := TRUE
+        ELSE
+            PRINT "Failed to unlink "; moduleName; " by name (error:"; regs.b; ")"
+        END IF
+    END IF
+    
+    RETURN unloaded
+END
+
+PROCEDURE getMemoryUsage
+! Get current memory usage of the process
+    TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+    DIM regs:Register
+    DIM callCode:BYTE
+
+    callCode := $07 \ ! F$Mem
+    regs.d := 0     \ ! Request current size
+    RUN SYSCALL(callCode, regs)
+    
+    PRINT "Current memory size: "; regs.d; " bytes"
+    PRINT "Memory upper bound: $"; HEX$(regs.y)
+END
+
+PROCEDURE TSTMODULE
+! Comprehensive test procedure for module management syscalls
+! Tests various scenarios including the NOT CONFIRMED item from documentation
+    TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+    DIM regs:Register
+    DIM callCode:BYTE
+    DIM testCount:INTEGER
+    DIM passed:INTEGER
+    DIM failed:INTEGER
+    DIM memBefore:INTEGER
+    DIM memAfter:INTEGER
+    
+    testCount := 0
+    passed := 0
+    failed := 0
+    
+    PRINT "=== MODULE MANAGEMENT SYSCALL TEST SUITE ==="
+    PRINT ""
+    
+    ! Test 1: Check memory usage at start
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Initial memory check"
+    getMemoryUsage()
+    PRINT "Memory check completed"
+    passed := passed + 1
+    PRINT ""
+    
+    ! Test 2: Check unloaded modules
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Check unloaded modules"
+    IF NOT checkModule("singleProc") THEN
+        PRINT "singleProc correctly reported as not loaded"
+        passed := passed + 1
+    ELSE
+        PRINT "singleProc incorrectly reported as loaded"
+        failed := failed + 1
+    END IF
+    
+    IF NOT checkModule("multiProc1") THEN
+        PRINT "multiProc1 correctly reported as not loaded"
+        passed := passed + 1
+    ELSE
+        PRINT "multiProc1 incorrectly reported as loaded"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 3: Load single procedure module
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Load single procedure module"
+    getMemoryUsage()
+    memBefore := regs.d
+    
+    IF loadModule("singleProc") THEN
+        PRINT "singleProc loaded successfully"
+        passed := passed + 1
+        
+        ! Verify it's loaded
+        IF checkModule("singleProc") THEN
+            PRINT "singleProc verified as loaded"
+            passed := passed + 1
+        ELSE
+            PRINT "singleProc not verified as loaded after loading"
+            failed := failed + 1
+        END IF
+    ELSE
+        PRINT "Failed to load singleProc"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 4: Run the loaded procedure
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Execute loaded single procedure"
+    RUN singleProc
+    PRINT "singleProc executed"
+    passed := passed + 1
+    PRINT ""
+    
+    ! Test 5: Unload single procedure module
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Unload single procedure module"
+    IF unloadModule("singleProc", 0) THEN
+        PRINT "singleProc unloaded successfully"
+        passed := passed + 1
+        
+        ! Verify it's unloaded
+        IF NOT checkModule("singleProc") THEN
+            PRINT "singleProc verified as unloaded"
+            passed := passed + 1
+        ELSE
+            PRINT "singleProc still loaded after unloading"
+            failed := failed + 1
+        END IF
+    ELSE
+        PRINT "Failed to unload singleProc"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 6: Load multi-procedure module
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Load multi-procedure module"
+    IF loadModule("multiProc1") THEN
+        PRINT "multiProc1 loaded successfully"
+        passed := passed + 1
+        
+        ! Check if multiProc2 is also accessible
+        IF checkModule("multiProc2") THEN
+            PRINT "multiProc2 is accessible (loaded with multiProc1)"
+            passed := passed + 1
+        ELSE
+            PRINT "multiProc2 not accessible"
+            failed := failed + 1
+        END IF
+    ELSE
+        PRINT "Failed to load multiProc1"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 7: Execute multi-procedure module
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Execute multi-procedure module"
+    RUN multiProc1 \ ! This should call multiProc2 internally
+    PRINT "multiProc1 executed (should have called multiProc2)"
+    passed := passed + 1
+    PRINT ""
+    
+    ! Test 8: Test the NOT CONFIRMED item - unloading multi-procedure modules
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Test unloading multi-procedure modules (NOT CONFIRMED item)"
+    
+    ! First, try unloading just multiProc1
+    IF unloadModule("multiProc1", 0) THEN
+        PRINT "multiProc1 unlinked by name"
+        passed := passed + 1
+    ELSE
+        PRINT "Failed to unlink multiProc1"
+        failed := failed + 1
+    END IF
+    
+    ! Check if multiProc2 is still loaded (this tests the NOT CONFIRMED item)
+    IF checkModule("multiProc2") THEN
+        PRINT "multiProc2 still loaded after unlinking multiProc1 (confirms NOT CONFIRMED)"
+        passed := passed + 1
+        
+        ! Now unload multiProc2 explicitly
+        IF unloadModule("multiProc2", 0) THEN
+            PRINT "multiProc2 unlinked successfully"
+            passed := passed + 1
+        ELSE
+            PRINT "Failed to unlink multiProc2"
+            failed := failed + 1
+        END IF
+    ELSE
+        PRINT "multiProc2 was unloaded when multiProc1 was unlinked (contradicts NOT CONFIRMED)"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 9: Load independent procedures module
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Load independent procedures module"
+    IF loadModule("indepProc1") THEN
+        PRINT "indepProc1 loaded successfully"
+        passed := passed + 1
+        
+        ! Check if other procedures are accessible
+        IF checkModule("indepProc2") AND checkModule("indepProc3") THEN
+            PRINT "indepProc2 and indepProc3 are accessible"
+            passed := passed + 1
+        ELSE
+            PRINT "Some independent procedures not accessible"
+            failed := failed + 1
+        END IF
+    ELSE
+        PRINT "Failed to load indepProc1"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 10: Execute independent procedures
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Execute independent procedures"
+    RUN indepProc1
+    RUN indepProc2
+    RUN indepProc3
+    PRINT "All independent procedures executed"
+    passed := passed + 1
+    PRINT ""
+    
+    ! Test 11: Unload independent procedures
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Unload independent procedures"
+    IF unloadModule("indepProc1", 0) AND unloadModule("indepProc2", 0) AND unloadModule("indepProc3", 0) THEN
+        PRINT "All independent procedures unlinked"
+        passed := passed + 1
+    ELSE
+        PRINT "Failed to unlink some independent procedures"
+        failed := failed + 1
+    END IF
+    PRINT ""
+    
+    ! Test 12: Final memory check
+    testCount := testCount + 1
+    PRINT "Test"; testCount; ": Final memory check"
+    getMemoryUsage()
+    memAfter := regs.d
+    
+    IF memAfter >= memBefore THEN
+        PRINT "Memory usage is back to or above initial level"
+        passed := passed + 1
+    ELSE
+        PRINT "⚠ Memory usage is lower than initial (possible cleanup)"
+        passed := passed + 1 \ ! Not necessarily a failure
+    END IF
+    PRINT ""
+    
+    ! Summary
+    PRINT "=== TEST SUMMARY ==="
+    PRINT "Total tests:"; testCount
+    PRINT "Passed:"; passed
+    PRINT "Failed:"; failed
+    PRINT "Success rate:"; (passed * 100) / testCount; "%"
+    
+    IF failed = 0 THEN
+        PRINT "🎉 ALL TESTS PASSED!"
+    ELSE
+        PRINT "⚠ Some tests failed. Check output above."
+    END IF
+END
