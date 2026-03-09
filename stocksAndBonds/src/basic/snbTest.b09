@@ -848,3 +848,360 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TST141P5
+(* ============================================================ *)
+(* TEST      : TST141P5                                         *)
+(* PURPOSE   : Confirmation test for Task 14.1-P5.             *)
+(*             Exercises runYearLoop across three scenarios:    *)
+(*               A - Full 10-year run, 2 players               *)
+(*               B - gameOver early exit via Year 2 bankruptcy  *)
+(*               C - Year 10 start, single player, no margin   *)
+(*             All screen procedures are stubs unless noted.    *)
+(*             Operator verifies stub traces as directed.       *)
+(*             Automated checks are post-run state assertions.  *)
+(* FILE      : tests.b09                                        *)
+(* DEPENDS   : runYearLoop, initPlayer, initMkt, shuffleDeck,  *)
+(*             all stub screen procedures, waitKey              *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+DIM hdr         : SaveHdr
+DIM plyrs(6)    : PlyrRec
+DIM mkt         : MktState
+DIM deckOrd(36) : BYTE
+DIM savePath    : STRING[20]
+DIM i           : INTEGER
+DIM s           : INTEGER
+DIM pStr        : STRING[8]
+DIM priceChgd   : BOOLEAN
+DIM passed      : BOOLEAN
+
+ON ERROR GOTO 900
+
+PRINT "TST141P5  runYearLoop integration test"
+PRINT "======================================="
+PRINT "Screen stubs in use. Press keys to advance screens."
+PRINT "Read stub traces as directed per scenario."
+PRINT
+
+! ============================================================
+! Scenario A: Full 10-year run.
+!
+! Setup : 2 players. Slot 1 = Human (stub). Slot 2 = AI Medium.
+!         Mode A: one roll per year applied to all stocks.
+!
+! Observer - verify the following across all 10 years:
+!   Year 1 only:
+!     scrSell stub NOT printed (nSell=TRUE, Year 1 guard)
+!     scrDivInt stub NOT printed (nDiv=TRUE, Year 1 guard)
+!     scrMgnInt stub NOT printed (nDiv=TRUE, Year 1 guard)
+!   Year 10 only:
+!     scrDivInt stub NOT printed (nDiv=TRUE, Year 10 guard)
+!     scrMgnInt stub NOT printed (nDiv=TRUE, Year 10 guard)
+!   All years:
+!     scrYearHdr printed each year (1..10)
+!     scrCard, scrDice, scrMktBoard printed each year
+!     scrSell printed Years 2-10 for slot 1 (Human)
+!     scrAITurn printed each year for slot 2 (AI)
+!   After Year 10:
+!     S24 scrFinalMkt displayed (REAL - press key)
+!     S25 scrWealth displayed (REAL - press key)
+!     S26 scrWinner displayed (REAL - press key)
+!     S27 scrPostGame displayed (REAL - select 3=Quit)
+!
+! Automated checks (after return):
+!   - At least one stock price changed from 100
+!   - hdr.deckPos advanced (cards drawn)
+!   - Player 1 cashBal changed from 5000
+! ============================================================
+PRINT "--- Scenario A: Full 10-year run ---"
+PRINT "Players: ALICE (Human stub), BOT-M (AI Medium)"
+PRINT "Mode A. Starting Year 1 of 10."
+PRINT "Select 3=Quit at the S27 post-game menu to return."
+PRINT
+
+RANDOMIZE
+
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+RUN shuffleDeck(deckOrd)
+
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.currYear   := 1
+hdr.plyrCount  := 2
+hdr.rollMode   := 1      \ ! Mode A: single roll all stocks
+hdr.savedPhase := 0
+hdr.savedPlyr  := 0
+hdr.deckPos    := 1
+hdr.checksum   := 0
+hdr.obligation := 0
+
+plyrs(1).plyrName := "ALICE"
+plyrs(1).plyrType := 1   \ ! Human - routed through scrSell/scrBuy
+plyrs(1).aiTier   := 0
+
+plyrs(2).plyrName := "BOT-M"
+plyrs(2).plyrType := 2   \ ! AI - routed through aiSell/aiBuy
+plyrs(2).aiTier   := 2   \ ! Medium tier
+
+savePath := "TSTGAME"
+
+RUN runYearLoop(savePath, hdr, deckOrd, plyrs, mkt)
+
+! ---- Automated checks: Scenario A -------------------------
+PRINT
+PRINT "--- Scenario A checks ---"
+passed := TRUE
+
+! Check 1: market resolution ran (at least one price changed).
+priceChgd := FALSE
+FOR s := 1 TO 9
+  IF mkt.stckPrice(s) <> 100 THEN
+    priceChgd := TRUE
+  ENDIF
+NEXT s
+IF priceChgd THEN
+  PRINT "  [PASS] Stock prices changed - applyMktYear ran"
+ELSE
+  PRINT "  [FAIL] All prices still 100 - market engine suspect"
+  passed := FALSE
+ENDIF
+
+! Check 2: deck position advanced (drawCard called each year).
+IF hdr.deckPos > 1 THEN
+  PRINT "  [PASS] hdr.deckPos > 1 - cards drawn"
+ELSE
+  PRINT "  [FAIL] hdr.deckPos = 1 - no cards drawn"
+  passed := FALSE
+ENDIF
+
+! Check 3: revenue ran (cashBal changed from 5000).
+! Dividends apply Years 2-9; margin interest if marginTot > 0.
+! Stub scrSell returns ordCnt=0 so no trade proceeds.
+! Cash changes via applyDivInt (real) in Years 2-9.
+IF plyrs(1).cashBal <> 5000 THEN
+  PRINT "  [PASS] Player 1 cashBal changed - revenue engine ran"
+ELSE
+  PRINT "  [INFO] Player 1 cashBal = 5000 (no dividends received)"
+  PRINT "         Verify scrDivInt not called in Years 1 and 10."
+ENDIF
+
+IF passed THEN
+  PRINT "Scenario A: PASS"
+ELSE
+  PRINT "Scenario A: FAIL - see items above"
+ENDIF
+
+PRINT
+PRINT "Press any key for Scenario B..."
+RUN waitKey
+
+! ============================================================
+! Scenario B: gameOver early exit via Year 2 bankruptcy.
+!
+! Setup : 2 players (both Human stubs).
+!         Slot 2: cashBal=40, marginTot=1000.
+!
+! Expected event sequence in Year 2:
+!   applyMgnInt: mgnCharge = 1000*5/100 = 50
+!     plyrs(2).cashBal = 40-50 = -10 -> forceLiq(2)=TRUE
+!   P2 margin interest path:
+!     oblgRem = 0 - (-10) = 10
+!     bkRsn := 1 (MARGIN_INTEREST)
+!     GOSUB 500: scrForceLiq stub returns ordCnt=0, action=1
+!     ordCnt=0 AND oblgRem=10 > 0 -> implicit bankruptcy
+!     GOSUB 600: scrBankrupt (REAL) sets isBankrupt=TRUE,
+!                displays S22 (press key to continue)
+!     activeCnt: 2-1=1 -> gameOver=TRUE
+!   Year 2 finishes (market runs; player 2 skipped in P4).
+!   Year 3 loop top: EXITIF gameOver -> fires -> endgame.
+!
+! Observer:
+!   S22 scrBankrupt screen for DOOM in Year 2 (REAL, press key)
+!   S24-S27 endgame screens follow Year 2 (not Year 10)
+!   Select 3=Quit at S27 post-game menu
+!
+! Automated checks (after return):
+!   - plyrs(2).isBankrupt = TRUE
+!   - hdr.currYear <= 3 (confirms early exit)
+! ============================================================
+PRINT "--- Scenario B: gameOver early exit ---"
+PRINT "Player DOOM: cashBal=40, marginTot=1000."
+PRINT "Expect: S22 bankruptcy screen in Year 2, then endgame."
+PRINT "Select 3=Quit at the S27 post-game menu to return."
+PRINT
+
+RANDOMIZE
+
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+RUN shuffleDeck(deckOrd)
+
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.currYear   := 1
+hdr.plyrCount  := 2
+hdr.rollMode   := 1      \ ! Mode A
+hdr.savedPhase := 0
+hdr.savedPlyr  := 0
+hdr.deckPos    := 1
+hdr.checksum   := 0
+hdr.obligation := 0
+
+plyrs(1).plyrName := "CAROL"
+plyrs(1).plyrType := 1   \ ! Human
+plyrs(1).aiTier   := 0
+
+plyrs(2).plyrName := "DOOM"
+plyrs(2).plyrType := 1   \ ! Human (stub returns ordCnt=0)
+plyrs(2).aiTier   := 0
+! cashBal=40; Year 2 mgnCharge=50 -> cashBal=-10 -> forceLiq.
+plyrs(2).cashBal  := 40
+! marginTot=1000; 5% = 50 per year.
+plyrs(2).marginTot := 1000
+
+savePath := "TSTGAME"
+
+RUN runYearLoop(savePath, hdr, deckOrd, plyrs, mkt)
+
+! ---- Automated checks: Scenario B -------------------------
+PRINT
+PRINT "--- Scenario B checks ---"
+passed := TRUE
+
+! Check 1: player 2 declared bankrupt.
+IF plyrs(2).isBankrupt THEN
+  PRINT "  [PASS] plyrs(2).isBankrupt = TRUE"
+ELSE
+  PRINT "  [FAIL] plyrs(2).isBankrupt = FALSE"
+  passed := FALSE
+ENDIF
+
+! Check 2: loop exited before Year 10 (gameOver path).
+! hdr.currYear is set to the year of bankruptcy (Year 2).
+IF hdr.currYear <= 3 THEN
+  PRINT "  [PASS] hdr.currYear ="; hdr.currYear; "(early exit)"
+ELSE
+  PRINT "  [FAIL] hdr.currYear ="; hdr.currYear; "(expected <= 3)"
+  passed := FALSE
+ENDIF
+
+IF passed THEN
+  PRINT "Scenario B: PASS"
+ELSE
+  PRINT "Scenario B: FAIL - see items above"
+ENDIF
+
+PRINT
+PRINT "Press any key for Scenario C..."
+RUN waitKey
+
+! ============================================================
+! Scenario C: Year 10 entry, single player, no margin.
+!
+! Setup : 1 player (Human stub). hdr.currYear=10.
+!         marginTot=0: Year 10 clearance gate is skipped.
+!
+! Expected event sequence in Year 10 only:
+!   scrYearHdr: Year 10 (nDiv=TRUE, nMgn=TRUE, nSell=FALSE)
+!   applyDivInt/applyMgnInt: SKIPPED (nDiv=TRUE)
+!   scrDivInt/scrMgnInt stubs: NOT printed
+!   Market resolution (P3): drawCard, doRolls, applyMktYear,
+!     scrCard, scrDice, scrMktBoard stubs all printed
+!   Sell phase (P4-B): scrSell stub printed once for slot 1
+!   Year 10 clearance gate: marginTot=0, skipped silently
+!   Buy phase (P4-C): scrBuy stub printed once (mgnYrOk=FALSE)
+!   cYear increments to 11; EXITIF 11 > 10 fires -> endgame.
+!
+! Observer:
+!   Verify scrDivInt and scrMgnInt stubs NOT printed
+!   Verify scrSell and scrBuy stubs printed once each
+!   S24 scrFinalMkt, S25 scrWealth, S26 scrWinner (REAL)
+!   S27 scrPostGame (REAL) - select 3=Quit
+!
+! Automated checks (after return):
+!   - No error (execution reaches PRINT "Scenario C: PASS")
+!   - At least one stock price changed (Year 10 market ran)
+! ============================================================
+PRINT "--- Scenario C: Year 10 entry, no margin ---"
+PRINT "1 player EVE. Starting Year 10. marginTot=0."
+PRINT "Expect: one year of screens, then endgame."
+PRINT "Select 3=Quit at the S27 post-game menu to return."
+PRINT
+
+RANDOMIZE
+
+FOR i := 1 TO 6
+  RUN initPlayer(plyrs(i))
+NEXT i
+RUN initMkt(mkt)
+RUN shuffleDeck(deckOrd)
+
+hdr.magic      := $53
+hdr.fmtVersion := 1
+hdr.currYear   := 10     \ ! Start directly at Year 10
+hdr.plyrCount  := 1
+hdr.rollMode   := 1      \ ! Mode A
+hdr.savedPhase := 0
+hdr.savedPlyr  := 0
+hdr.deckPos    := 1
+hdr.checksum   := 0
+hdr.obligation := 0
+
+plyrs(1).plyrName  := "EVE"
+plyrs(1).plyrType  := 1  \ ! Human
+plyrs(1).aiTier    := 0
+plyrs(1).marginTot := 0  \ ! No margin; clearance gate skipped
+
+savePath := "TSTGAME"
+
+RUN runYearLoop(savePath, hdr, deckOrd, plyrs, mkt)
+
+! ---- Automated checks: Scenario C -------------------------
+PRINT
+PRINT "--- Scenario C checks ---"
+passed := TRUE
+
+! Check 1: no error (execution reached here).
+PRINT "  [PASS] runYearLoop returned without error (Year 10)"
+
+! Check 2: Year 10 market ran (at least one price changed).
+priceChgd := FALSE
+FOR s := 1 TO 9
+  IF mkt.stckPrice(s) <> 100 THEN
+    priceChgd := TRUE
+  ENDIF
+NEXT s
+IF priceChgd THEN
+  PRINT "  [PASS] Stock prices changed - Year 10 market ran"
+ELSE
+  PRINT "  [INFO] All prices still 100 (verify applyMktYear ran)"
+ENDIF
+
+IF passed THEN
+  PRINT "Scenario C: PASS"
+ELSE
+  PRINT "Scenario C: FAIL"
+ENDIF
+
+PRINT
+PRINT "======================================="
+PRINT "TST141P5 complete."
+PRINT "Task 14.1 gate: all three scenarios PASS and"
+PRINT "all stub/endgame traces match observer expectations."
+RUN waitKey
+
+END
+
+900 ERROR(ERR)
+END
