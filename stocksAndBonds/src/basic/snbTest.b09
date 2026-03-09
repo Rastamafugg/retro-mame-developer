@@ -269,8 +269,8 @@ PROCEDURE runYearLoop
 (* LOCAL NAMES: BYTE fields of hdr passed to INTEGER PARAMs   *)
 (*   are staged to local INTEGER vars (bestPractices.md).      *)
 (*   Names chosen to avoid TYPE field name collisions:         *)
-(*     cYear ← hdr.currYear   pCnt ← hdr.plyrCount            *)
-(*     rMode ← hdr.rollMode                                    *)
+(*     cYear <- hdr.currYear   pCnt <- hdr.plyrCount           *)
+(*     rMode <- hdr.rollMode                                   *)
 (*                                                             *)
 (* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
 (*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
@@ -341,7 +341,7 @@ DIM mgnYrOk   : BOOLEAN  \ ! TRUE if current year allows margin buys
 
 ! ---- AI working vars (P1) ----------------------------------
 DIM prof      : AIProfile \ ! AI profile for current player's turn
-DIM tInt      : INTEGER   \ ! stages aiTier (BYTE) for initAIProf call
+DIM tInt      : INTEGER   \ ! stages aiTier BYTE; reused as loop counter
 
 ! ---- String staging (P1) -----------------------------------
 DIM pNam      : STRING[20] \ ! stages plyrName for screen calls
@@ -368,6 +368,15 @@ DIM totRcv     : INTEGER \ ! total div+int received this year (display)
 DIM nDiv       : BOOLEAN \ ! TRUE in Years 1 and 10 (no div/int)
 DIM nSell      : BOOLEAN \ ! TRUE in Year 1 (no sell phase)
 DIM nMgn       : BOOLEAN \ ! TRUE in Year 10 (no new margin)
+
+! ---- P3: Market resolution display vars --------------------
+DIM flavTxt    : STRING[160] \ ! flavour text stub (swap in Task 14.2)
+DIM sNam       : STRING[12]  \ ! stock name for split/divflag display
+DIM pNames(6)  : STRING[20]  \ ! player name array for scrSplit
+DIM shrBf(6)   : INTEGER     \ ! shares before split per player
+DIM shrAf(6)   : INTEGER     \ ! shares after split per player
+DIM evTyp      : INTEGER     \ ! event type: 1=suspended 2=reinstated
+DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
 
 ON ERROR GOTO 900
 
@@ -502,12 +511,91 @@ LOOP
   ENDIF  \ ! NOT nDiv
 
   ! ==========================================================
-  ! P3 stub: market resolution (drawCard, doRolls,
-  !          applyMktYear, scrCard, scrDice, scrMktBoard,
-  !          scrSplit, scrDivFlag, Card 1 divBonus).
-  ! Replaced in Task 14.1-P3.
+  ! P3: Market resolution.
+  ! Steps: drawCard -> getCard -> scrCard -> doRolls ->
+  !        scrDice -> applyMktYear -> scrMktBoard ->
+  !        scrSplit/scrDivFlag per stock -> Card 1 divBonus.
   ! ==========================================================
-  PRINT "  [P3 market resolution stub: Year "; cYear; "]"
+
+  ! ---- Step 3: Draw and decode situation card --------------
+  RUN drawCard(deckOrd, hdr.deckPos, cardId)
+  RUN getCard(cardId, crd)
+
+  ! ---- Step 4: Display situation card (S11) ----------------
+  ! flavTxt is a stub empty string; swapped in Task 14.2.
+  flavTxt := ""
+  RUN scrCard(cardId, crd, flavTxt, actByt)
+
+  ! ---- Step 5: Generate dice rolls and display (S12) -------
+  RUN doRolls(rMode, cYear, dOne, dTwo, rTot, rCnt, oAct)
+
+  ! Copy BYTE roll totals to INTEGER array for applyMktYear.
+  FOR s := 1 TO 9
+    rolls(s) := rTot(s)
+  NEXT s
+
+  ! hdr.rollMode passed directly (BYTE field -> BYTE param).
+  RUN scrDice(hdr.rollMode, rCnt, dOne, dTwo, rTot, actByt)
+
+  ! ---- Steps 6-8: Apply price resolution and display (S13) -
+  ! Line exceeds 79 chars; RUN statement cannot be split.
+  RUN applyMktYear(cardId, rolls, pCnt, plyrs, mkt, prcBef, mktDlt, crdDlt, spOcc, dvSusp, dvRnst)
+  ! Line exceeds 79 chars; RUN statement cannot be split.
+  RUN scrMktBoard(prcBef, mktDlt, crdDlt, mkt.stckPrice, spOcc, dvSusp, dvRnst, actByt)
+
+  ! ---- S14/S15: Split and dividend flag notifications ------
+  ! For each stock: show scrSplit if split occurred (S14);
+  ! show scrDivFlag if dividend status changed (S15).
+  FOR s := 1 TO 9
+    IF spOcc(s) THEN
+      ! Build player arrays for scrSplit display.
+      ! applyMktYear already doubled stckShrs(s) on split;
+      ! shrBf = current / 2 restores the pre-split count.
+      FOR p := 1 TO pCnt
+        pNames(p) := plyrs(p).plyrName
+        shrAf(p)  := plyrs(p).stckShrs(s)
+        shrBf(p)  := plyrs(p).stckShrs(s) / 2
+      NEXT p
+      ! Pre-split price = post-split price * 2 (integer safe).
+      oDPrc := mkt.stckPrice(s) * 2
+      ! Read stock name at position s from DATA 720.
+      RESTORE 720
+      FOR tInt := 1 TO s
+        READ sNam
+      NEXT tInt
+      ! Line exceeds 79 chars; RUN statement cannot be split.
+      RUN scrSplit(sNam, oDPrc, mkt.stckPrice(s), pCnt, pNames, shrBf, shrAf, actByt)
+    ENDIF
+    IF dvSusp(s) OR dvRnst(s) THEN
+      ! Read stock name at position s from DATA 720.
+      RESTORE 720
+      FOR tInt := 1 TO s
+        READ sNam
+      NEXT tInt
+      IF dvSusp(s) THEN
+        evTyp := 1
+      ELSE
+        evTyp := 2
+      ENDIF
+      RUN scrDivFlag(sNam, evTyp, mkt.stckPrice(s), 50, actByt)
+    ENDIF
+  NEXT s
+
+  ! ---- Card 1 dividend bonus (Years 2-9 only) --------------
+  ! crd.divBonus > 0 only for Card 1 (spec Section 4.3).
+  ! Bonus is per share held across all 9 stocks per player.
+  IF crd.divBonus > 0 AND cYear > 1 AND cYear < 10 THEN
+    FOR p := 1 TO pCnt
+      IF NOT plyrs(p).isBankrupt THEN
+        FOR s := 1 TO 9
+          IF plyrs(p).stckShrs(s) > 0 THEN
+            ! Line exceeds 79 chars; RUN statement cannot be split.
+            plyrs(p).cashBal := plyrs(p).cashBal + (plyrs(p).stckShrs(s) * crd.divBonus)
+          ENDIF
+        NEXT s
+      ENDIF
+    NEXT p
+  ENDIF
 
   ! ==========================================================
   ! P4 stub: sell phase, margin calls, forced liquidation,
@@ -528,7 +616,7 @@ PRINT "  [P5 endgame stub]"
 END
 
 ! ==========================================================
-! GOSUB 500 — Forced liquidation sub-loop (stub).
+! GOSUB 500 - Forced liquidation sub-loop (stub).
 ! Entry: p = player index; oblgRem = obligation amount.
 ! Calls scrForceLiq until oblgRem <= 0.
 ! If oblgRem > 0 and ordCnt = 0 after scrForceLiq: GOSUB 600.
@@ -538,7 +626,7 @@ END
     RETURN
 
 ! ==========================================================
-! GOSUB 600 — Bankruptcy handler (stub).
+! GOSUB 600 - Bankruptcy handler (stub).
 ! Entry: p = player index.
 ! Calls scrBankrupt; decrements activeCnt.
 ! Sets gameOver = TRUE if activeCnt <= 1.
@@ -554,6 +642,12 @@ END
 ! Annual bond interest per unit for bonds 1..3 (spec Sec 2.2).
 ! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
 710 DATA 50, 250, 500
+
+! Stock names 1..9 for split and dividend flag screens.
+! Used via RESTORE 720 + sequential READ in P3 loops.
+720 DATA "Growth Corp","Metro Props","Pioneer Mut"
+721 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+722 DATA "United Auto","Uranium Ent","Valley Power"
 
 900 ERROR(ERR)
 END
