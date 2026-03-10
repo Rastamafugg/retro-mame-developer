@@ -11,6 +11,8 @@ PROCEDURE TSTMODULE
 (*            must be packed and attr e before run.  *)
 (*            SysCall machine-lang module required.  *)
 (* ================================================== *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+
 DIM mName:STRING[32]
 DIM mAddr:INTEGER
 DIM passed:INTEGER
@@ -20,6 +22,8 @@ DIM isLoaded:BOOLEAN
 DIM shouldBeLoaded:BOOLEAN
 DIM unloaded:BOOLEAN
 DIM allDone:BOOLEAN
+DIM moduleArray(10):ModuleHeader
+DIM modCount:BYTE
 
 ON ERROR GOTO 900
 
@@ -55,6 +59,31 @@ testNum := testNum + 1
 PRINT "Test "; testNum; ": Load single-proc module"
 mName := "singleProc"
 RUN loadModule(mName, mAddr, isLoaded)
+RUN moduleParser(mAddr, 10, moduleArray, modCount)
+FOR i := 0 TO (modCount - 1)
+  PRINT "Module #"; i; ": "; TRIM$(MID$(moduleArray(i).moduleName, 1, LEN(moduleArray(i).moduleName)))
+  
+  ! Extract type and language from typeLanguage byte
+  typeCode := (moduleArray(i).typeLanguage >> 4)
+  langCode := (moduleArray(i).typeLanguage AND $0F)
+  
+  PRINT "  Type: $"; HEX$(typeCode); " Language: $"; HEX$(langCode)
+  
+  ! Extract re-entrant flag from attributes byte
+  reEntrant := ((moduleArray(i).attributes AND $80) <> 0)
+  revision := (moduleArray(i).attributes AND $0F)
+  
+  PRINT "  Re-Entrant: "; reEntrant; " Revision: "; revision
+  PRINT "  Module Size: "; moduleArray(i).moduleSize; " bytes"
+  PRINT "  Name Offset: $"; HEX$(moduleArray(i).nameOffset AND $FF00); " $"; HEX$(moduleArray(i).nameOffset AND $00FF)
+  PRINT "  Exec Offset: $"; HEX$(moduleArray(i).execOffset AND $FF00); " $"; HEX$(moduleArray(i).execOffset AND $00FF)
+  PRINT "  Storage: "; moduleArray(i).permStorageSize; " bytes"
+  PRINT ""
+
+NEXT i
+
+PRINT "Total modules found: "; modCount
+
 IF isLoaded THEN
   PRINT "singleProc load call return successfully, address: "; mAddr
   shouldBeLoaded := TRUE
@@ -480,4 +509,167 @@ END
 
 900 \ ! Error handler
 PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE moduleParser
+(* ================================================== *)
+(* PROCEDURE: moduleParser                            *)
+(* PURPOSE  : Parse a NitrOS-9 module file loaded     *)
+(*            via F$Load and enumerate all modules.   *)
+(*            Module metadata is stored in a TYPE     *)
+(*            record for each module found.           *)
+(* PARAM    : modFileAddr (INTEGER) - memory address *)
+(*            of first module header returned by      *)
+(*            F$Load system call.                     *)
+(*            maxMods (BYTE) - max number of modules  *)
+(*            to process before stopping.             *)
+(*            modules() - output array of module      *)
+(*            headers (one per module found).         *)
+(*            modCount - output: actual count found.  *)
+(* RETURN   : modCount and modules() populated via   *)
+(*            pass-by-reference parameters.          *)
+(* ERROR    : Error 216 on invalid module sync bytes *)
+(*            at file start.                          *)
+(* NOTES    : Module size field includes entire      *)
+(*            module (header + body + 3-byte CRC).   *)
+(* ================================================== *)
+
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+
+PARAM modFileAddr:INTEGER
+PARAM maxMods:BYTE
+PARAM modules():ModuleHeader
+PARAM modCount:BYTE
+
+ON ERROR GOTO 900
+
+DIM modAddr:INTEGER
+DIM syncValid,eofReached:BOOLEAN
+DIM tempHdr:ModuleHeader
+
+  modCount := 0
+  modAddr := modFileAddr
+  eofReached := FALSE
+  
+  REPEAT
+    ! Check sync bytes at current module address
+    syncValid := (PEEK(modAddr) = $87) AND (PEEK(modAddr + 1) = $CD)
+    
+    IF NOT syncValid THEN
+      IF modCount > 0 THEN
+        ! End of file (no valid sync found at offset)
+        eofReached := TRUE
+      ELSE
+        ! Invalid module at start of file
+        ERROR(216)
+      ENDIF
+    ELSE
+      IF modCount < maxMods THEN
+        ! Extract module header into array
+        RUN extractModuleHeader(modAddr, tempHdr)
+        modules(modCount) := tempHdr
+        modCount := modCount + 1
+        
+        ! Advance to next module using size field
+        modAddr := modAddr + modules(modCount - 1).moduleSize
+        
+        ! Check for address space boundary
+        IF modAddr >= 65536 THEN
+          eofReached := TRUE
+        ENDIF
+      ELSE
+        ! Reached max module limit
+        eofReached := TRUE
+      ENDIF
+    ENDIF
+    
+  UNTIL eofReached
+  
+  END
+
+900 ! Error handler
+    ERROR(ERR)
+END
+
+PROCEDURE extractModuleHeader
+(* ================================================== *)
+(* PROCEDURE: extractModuleHeader                     *)
+(* PURPOSE  : Extract a single NitrOS-9 module       *)
+(*            header at a given memory address and   *)
+(*            populate a ModuleHeader TYPE record.   *)
+(*            Includes extraction of the module name *)
+(*            string from the offset specified in    *)
+(*            the header.                            *)
+(* PARAM    : headerAddr (INTEGER) - memory address *)
+(*            of first byte of module header.        *)
+(*            modHdr (ModuleHeader) - output record  *)
+(*            to populate with header data.          *)
+(* RETURN   : modHdr parameter populated via        *)
+(*            pass-by-reference.                     *)
+(* NOTES    : Module name is read until MSB set on  *)
+(*            a character. Limited to 31 chars max. *)
+(*            Sync bytes, size, name offset, type,  *)
+(*            attributes, and executable fields are *)
+(*            all extracted.                        *)
+(* ================================================== *)
+
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+
+PARAM headerAddr:INTEGER
+PARAM modHdr:ModuleHeader
+
+ON ERROR GOTO 900
+
+DIM modNameAddr:INTEGER
+DIM nameChar:BYTE
+DIM nameIdx:BYTE
+
+  ! Extract sync bytes ($00, $01)
+  modHdr.syncByte1 := PEEK(headerAddr)
+  modHdr.syncByte2 := PEEK(headerAddr + 1)
+  
+  ! Extract module size ($02-$03, big-endian)
+  modHdr.moduleSize := (PEEK(headerAddr + 2) << 8) + PEEK(headerAddr + 3)
+  
+  ! Extract name offset ($04-$05, big-endian)
+  modHdr.nameOffset := (PEEK(headerAddr + 4) << 8) + PEEK(headerAddr + 5)
+  
+  ! Extract type/language ($06)
+  modHdr.typeLanguage := PEEK(headerAddr + 6)
+  
+  ! Extract attributes/revision ($07)
+  modHdr.attributes := PEEK(headerAddr + 7)
+  
+  ! Extract header parity check ($08)
+  modHdr.headerCheck := PEEK(headerAddr + 8)
+  
+  ! Extract execution offset ($09-$0A, big-endian)
+  modHdr.execOffset := (PEEK(headerAddr + 9) << 8) + PEEK(headerAddr + 10)
+  
+  ! Extract permanent storage size ($0B-$0C)
+  modHdr.permStorageSize := (PEEK(headerAddr + 11) << 8) + PEEK(headerAddr + 12)
+  
+  ! Extract module name from specified offset
+  modNameAddr := headerAddr + modHdr.nameOffset
+  nameIdx := 0
+  
+  ! Read name characters until MSB is set
+  REPEAT
+    nameChar := PEEK(modNameAddr + nameIdx)
+    IF nameIdx < 31 THEN
+      ! Store ASCII value (MSB cleared)
+      modHdr.moduleName[nameIdx] := CHR$(nameChar AND $7F)
+      nameIdx := nameIdx + 1
+    ENDIF
+  UNTIL (nameChar >= $80) OR (nameIdx >= 31)
+  
+  ! Null-terminate the string
+  IF nameIdx < 31 THEN
+    modHdr.moduleName[nameIdx] := CHR$(0)
+  ENDIF
+  
+  END
+
+900 ! Error handler
+    ERROR(ERR)
 END
