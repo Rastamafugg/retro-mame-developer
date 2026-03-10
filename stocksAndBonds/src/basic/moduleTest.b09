@@ -1,3 +1,274 @@
+PROCEDURE TSTMODULE
+(* ================================================== *)
+(* PROCEDURE: TSTMODULE                               *)
+(* PURPOSE:   Comprehensive module management test.  *)
+(*            Tests single-proc, multi-proc, and     *)
+(*            independent procedure module scenarios *)
+(*            using F$Link/F$Load/F$UnLoad syscalls. *)
+(*            Includes NOT CONFIRMED item from       *)
+(*            modular-development.md.                *)
+(* PRE:       singleProc, multiProc1, and indepProc1 *)
+(*            must be packed and attr e before run.  *)
+(*            SysCall machine-lang module required.  *)
+(* ================================================== *)
+DIM mName:STRING[32]
+DIM passed:INTEGER
+DIM failed:INTEGER
+DIM testNum:INTEGER
+DIM isLoaded:BOOLEAN
+DIM shouldPass:BOOLEAN
+DIM unloaded:BOOLEAN
+DIM allDone:BOOLEAN
+
+ON ERROR GOTO 900
+
+passed := 0
+failed := 0
+testNum := 0
+
+PRINT "=== MODULE MANAGEMENT TEST SUITE ==="
+PRINT ""
+
+! --- Block 1: Initial state ---
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Initial memory check"
+RUN getMemoryUsage
+passed := passed + 1
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Confirm modules not yet loaded"
+shouldPass = FALSE
+mName := "singleProc"
+GOSUB 100 \ ! Check module not loaded
+mName := "multiProc1"
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc1"
+GOSUB 100 \ ! Check module not loaded
+PRINT ""
+RUN waitKey
+
+! --- Block 2: Single procedure module ---
+PRINT "-- Single procedure module tests --"
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Load single-proc module"
+mName := "singleProc"
+RUN loadModule(mName, isLoaded)
+IF isLoaded THEN
+  PRINT "singleProc load call return successfully"
+  shouldPass := TRUE
+  GOSUB 100 \ ! Check module loaded
+ELSE
+  PRINT "FAIL: singleProc load failed"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Execute single-proc module"
+mName := "singleProc"
+RUN mName
+PRINT "singleProc executed"
+passed := passed + 1
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Unload single-proc module"
+mName := "singleProc"
+RUN unloadModule(mName, 0, unloaded)
+IF unloaded THEN
+  PRINT "singleProc unload call return successfully"
+  shouldPass = FALSE
+  GOSUB 100 \ ! Check module not loaded
+ELSE
+  PRINT "FAIL: singleProc unload call failed"
+  failed := failed + 1
+ENDIF
+PRINT ""
+RUN waitKey
+
+! --- Block 3: Multi-procedure module ---
+PRINT "-- Multi-procedure module tests --"
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Load multi-proc module"
+mName := "multiProc1"
+RUN loadModule(mName, isLoaded)
+IF isLoaded THEN
+  PRINT "multiProc1 load call return successfully"
+  passed := passed + 1
+  shouldPass = TRUE
+  mName := "multiProc2"
+  GOSUB 100 \ ! Check module loaded
+ELSE
+  PRINT "FAIL: multiProc1 load failed"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Execute multi-proc module"
+mName := "multiProc1"
+RUN mName
+PRINT "multiProc1 executed (calls multiProc2 internally)"
+passed := passed + 1
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": NOT CONFIRMED - unload multi-proc module"
+mName := "multiProc1"
+RUN unloadModule(mName, 0, unloaded)
+IF unloaded THEN
+  PRINT "multiProc1 unlinked"
+  passed := passed + 1
+  RUN checkModule(mName, isLoaded)
+  IF NOT isLoaded THEN
+    PRINT "multiProc1 verified as unloaded"
+    passed := passed + 1
+  ELSE
+    PRINT "FAIL: multiProc1 still loaded after unload"
+    failed := failed + 1
+  ENDIF
+ELSE
+  PRINT "FAIL: multiProc1 unlink failed"
+  failed := failed + 1
+ENDIF
+mName := "multiProc2"
+RUN checkModule(mName, isLoaded)
+IF isLoaded THEN
+  PRINT "multiProc2 still resident: NOT CONFIRMED item confirmed"
+  passed := passed + 1
+  RUN unloadModule(mName, 0, unloaded)
+  IF unloaded THEN
+    PRINT "multiProc2 explicitly unlinked"
+    RUN checkModule(mName, isLoaded)
+    IF NOT isLoaded THEN
+      PRINT "multiProc2 verified as unloaded"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL: multiProc2 still loaded after unload"
+      failed := failed + 1
+    ENDIF
+  ELSE
+    PRINT "FAIL: multiProc2 explicit unlink failed"
+    failed := failed + 1
+  ENDIF
+ELSE
+  PRINT "multiProc2 auto-removed with multiProc1 (not confirmed)"
+  passed := passed + 1
+ENDIF
+PRINT ""
+RUN waitKey
+
+! --- Block 4: Independent procedures module ---
+PRINT "-- Independent procedures module tests --"
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Load independent procedures module"
+mName := "indepProc1"
+RUN loadModule(mName, isLoaded)
+IF isLoaded THEN
+  PRINT "indepProc1 loaded OK"
+  passed := passed + 1
+  mName := "indepProc2"
+  RUN checkModule(mName, isLoaded)
+  IF isLoaded THEN
+    mName := "indepProc3"
+    RUN checkModule(mName, isLoaded)
+    IF isLoaded THEN
+      PRINT "indepProc2 and indepProc3 accessible"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL: indepProc3 not accessible"
+      failed := failed + 1
+    ENDIF
+  ELSE
+    PRINT "FAIL: indepProc2 not accessible"
+    failed := failed + 1
+  ENDIF
+ELSE
+  PRINT "FAIL: indepProc1 load failed"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Execute independent procedures"
+mName := "indepProc1"
+RUN mName
+mName := "indepProc2"
+RUN mName
+mName := "indepProc3"
+RUN mName
+PRINT "All independent procedures executed"
+passed := passed + 1
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Unload independent procedures"
+allDone := TRUE
+mName := "indepProc1"
+RUN unloadModule(mName, 0, unloaded)
+IF NOT unloaded THEN
+  allDone := FALSE
+ENDIF
+mName := "indepProc2"
+RUN unloadModule(mName, 0, unloaded)
+IF NOT unloaded THEN
+  allDone := FALSE
+ENDIF
+mName := "indepProc3"
+RUN unloadModule(mName, 0, unloaded)
+IF NOT unloaded THEN
+  allDone := FALSE
+ENDIF
+IF allDone THEN
+  PRINT "All independent procedures unlinked"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: Some independent procedures not unlinked"
+  failed := failed + 1
+ENDIF
+shouldPass = FALSE
+mName := "indepProc1"
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc2"
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc3"
+GOSUB 100 \ ! Check module not loaded
+PRINT ""
+RUN waitKey
+
+! --- Block 5: Final memory check ---
+testNum := testNum + 1
+PRINT "Test "; testNum; ": Final memory check"
+RUN getMemoryUsage
+passed := passed + 1
+PRINT ""
+
+PRINT "=== TEST SUMMARY ==="
+PRINT "Total tests: "; testNum
+PRINT "Passed:      "; passed
+PRINT "Failed:      "; failed
+END
+
+100 \ ! Check Module Loaded Test
+  RUN checkModule(mName, isLoaded)
+  IF NOT isLoaded THEN
+    IF shouldPass THEN
+      PRINT "FAIL: " + mName + " should be loaded but it is not"
+      failed := failed + 1
+    ELSE
+      PRINT mName + " correctly not loaded"
+      passed := passed + 1
+    ENDIF
+  ELSE
+    IF shouldPass THEN
+      PRINT mName + " correctly loaded"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL: " + mName + " should not be loaded but it is"
+      failed := failed + 1
+    ENDIF
+  ENDIF
+RETURN
+
+900 \ ! Error handler
+PRINT "TSTMODULE error ("; ERR; ")"
+PRINT "Passed so far: "; passed; "  Failed so far: "; failed
+END
+
 PROCEDURE checkModule
 (* ================================================== *)
 (* PROCEDURE: checkModule                             *)
@@ -205,263 +476,4 @@ END
 
 900 \ ! Error handler
 PRINT "waitKey error ("; ERR; ")"
-END
-
-
-PROCEDURE TSTMODULE
-(* ================================================== *)
-(* PROCEDURE: TSTMODULE                               *)
-(* PURPOSE:   Comprehensive module management test.  *)
-(*            Tests single-proc, multi-proc, and     *)
-(*            independent procedure module scenarios *)
-(*            using F$Link/F$Load/F$UnLoad syscalls. *)
-(*            Includes NOT CONFIRMED item from       *)
-(*            modular-development.md.                *)
-(* PRE:       singleProc, multiProc1, and indepProc1 *)
-(*            must be packed and attr e before run.  *)
-(*            SysCall machine-lang module required.  *)
-(* ================================================== *)
-DIM mName:STRING[32]
-DIM passed:INTEGER
-DIM failed:INTEGER
-DIM testNum:INTEGER
-DIM isLoaded:BOOLEAN
-DIM unloaded:BOOLEAN
-DIM allDone:BOOLEAN
-
-ON ERROR GOTO 900
-
-passed := 0
-failed := 0
-testNum := 0
-
-PRINT "=== MODULE MANAGEMENT TEST SUITE ==="
-PRINT ""
-
-! --- Block 1: Initial state ---
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Initial memory check"
-RUN getMemoryUsage
-passed := passed + 1
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Confirm modules not yet loaded"
-mName := "singleProc"
-RUN checkModule(mName, isLoaded)
-IF NOT isLoaded THEN
-  PRINT "singleProc correctly not loaded"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: singleProc should not be loaded yet"
-  failed := failed + 1
-ENDIF
-mName := "multiProc1"
-RUN checkModule(mName, isLoaded)
-IF NOT isLoaded THEN
-  PRINT "multiProc1 correctly not loaded"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: multiProc1 should not be loaded yet"
-  failed := failed + 1
-ENDIF
-PRINT ""
-RUN waitKey
-
-! --- Block 2: Single procedure module ---
-PRINT "-- Single procedure module tests --"
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Load single-proc module"
-mName := "singleProc"
-RUN loadModule(mName, isLoaded)
-IF isLoaded THEN
-  PRINT "singleProc loaded OK"
-  passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF isLoaded THEN
-    PRINT "singleProc verified as loaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: singleProc not verified after load"
-    failed := failed + 1
-  ENDIF
-ELSE
-  PRINT "FAIL: singleProc load failed"
-  failed := failed + 1
-ENDIF
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Execute single-proc module"
-mName := "singleProc"
-RUN mName
-PRINT "singleProc executed"
-passed := passed + 1
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Unload single-proc module"
-mName := "singleProc"
-RUN unloadModule(mName, 0, unloaded)
-IF unloaded THEN
-  PRINT "singleProc unloaded OK"
-  passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF NOT isLoaded THEN
-    PRINT "singleProc verified as unloaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: singleProc still loaded after unload"
-    failed := failed + 1
-  ENDIF
-ELSE
-  PRINT "FAIL: singleProc unload failed"
-  failed := failed + 1
-ENDIF
-PRINT ""
-RUN waitKey
-
-! --- Block 3: Multi-procedure module ---
-PRINT "-- Multi-procedure module tests --"
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Load multi-proc module"
-mName := "multiProc1"
-RUN loadModule(mName, isLoaded)
-IF isLoaded THEN
-  PRINT "multiProc1 loaded OK"
-  passed := passed + 1
-  mName := "multiProc2"
-  RUN checkModule(mName, isLoaded)
-  IF isLoaded THEN
-    PRINT "multiProc2 accessible alongside multiProc1"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: multiProc2 not accessible after multiProc1 load"
-    failed := failed + 1
-  ENDIF
-ELSE
-  PRINT "FAIL: multiProc1 load failed"
-  failed := failed + 1
-ENDIF
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Execute multi-proc module"
-mName := "multiProc1"
-RUN mName
-PRINT "multiProc1 executed (calls multiProc2 internally)"
-passed := passed + 1
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": NOT CONFIRMED - unload multi-proc module"
-mName := "multiProc1"
-RUN unloadModule(mName, 0, unloaded)
-IF unloaded THEN
-  PRINT "multiProc1 unlinked"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: multiProc1 unlink failed"
-  failed := failed + 1
-ENDIF
-mName := "multiProc2"
-RUN checkModule(mName, isLoaded)
-IF isLoaded THEN
-  PRINT "multiProc2 still resident: NOT CONFIRMED item confirmed"
-  passed := passed + 1
-  RUN unloadModule(mName, 0, unloaded)
-  IF unloaded THEN
-    PRINT "multiProc2 explicitly unlinked"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: multiProc2 explicit unlink failed"
-    failed := failed + 1
-  ENDIF
-ELSE
-  PRINT "multiProc2 auto-removed with multiProc1 (not confirmed)"
-  passed := passed + 1
-ENDIF
-PRINT ""
-RUN waitKey
-
-! --- Block 4: Independent procedures module ---
-PRINT "-- Independent procedures module tests --"
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Load independent procedures module"
-mName := "indepProc1"
-RUN loadModule(mName, isLoaded)
-IF isLoaded THEN
-  PRINT "indepProc1 loaded OK"
-  passed := passed + 1
-  mName := "indepProc2"
-  RUN checkModule(mName, isLoaded)
-  IF isLoaded THEN
-    mName := "indepProc3"
-    RUN checkModule(mName, isLoaded)
-    IF isLoaded THEN
-      PRINT "indepProc2 and indepProc3 accessible"
-      passed := passed + 1
-    ELSE
-      PRINT "FAIL: indepProc3 not accessible"
-      failed := failed + 1
-    ENDIF
-  ELSE
-    PRINT "FAIL: indepProc2 not accessible"
-    failed := failed + 1
-  ENDIF
-ELSE
-  PRINT "FAIL: indepProc1 load failed"
-  failed := failed + 1
-ENDIF
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Execute independent procedures"
-mName := "indepProc1"
-RUN mName
-mName := "indepProc2"
-RUN mName
-mName := "indepProc3"
-RUN mName
-PRINT "All independent procedures executed"
-passed := passed + 1
-
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Unload independent procedures"
-allDone := TRUE
-mName := "indepProc1"
-RUN unloadModule(mName, 0, unloaded)
-IF NOT unloaded THEN
-  allDone := FALSE
-ENDIF
-mName := "indepProc2"
-RUN unloadModule(mName, 0, unloaded)
-IF NOT unloaded THEN
-  allDone := FALSE
-ENDIF
-mName := "indepProc3"
-RUN unloadModule(mName, 0, unloaded)
-IF NOT unloaded THEN
-  allDone := FALSE
-ENDIF
-IF allDone THEN
-  PRINT "All independent procedures unlinked"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: Some independent procedures not unlinked"
-  failed := failed + 1
-ENDIF
-PRINT ""
-RUN waitKey
-
-! --- Block 5: Final memory check ---
-testNum := testNum + 1
-PRINT "Test "; testNum; ": Final memory check"
-RUN getMemoryUsage
-passed := passed + 1
-PRINT ""
-
-PRINT "=== TEST SUMMARY ==="
-PRINT "Total tests: "; testNum
-PRINT "Passed:      "; passed
-PRINT "Failed:      "; failed
-END
-
-900 \ ! Error handler
-PRINT "TSTMODULE error ("; ERR; ")"
-PRINT "Passed so far: "; passed; "  Failed so far: "; failed
 END
