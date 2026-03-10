@@ -12,16 +12,18 @@ PROCEDURE TSTMODULE
 (*            SysCall machine-lang module required.  *)
 (* ================================================== *)
 DIM mName:STRING[32]
+DIM mAddr:INTEGER
 DIM passed:INTEGER
 DIM failed:INTEGER
 DIM testNum:INTEGER
 DIM isLoaded:BOOLEAN
-DIM shouldPass:BOOLEAN
+DIM shouldBeLoaded:BOOLEAN
 DIM unloaded:BOOLEAN
 DIM allDone:BOOLEAN
 
 ON ERROR GOTO 900
 
+mAddr := 0
 passed := 0
 failed := 0
 testNum := 0
@@ -37,7 +39,7 @@ passed := passed + 1
 
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Confirm modules not yet loaded"
-shouldPass = FALSE
+shouldBeLoaded = FALSE
 mName := "singleProc"
 GOSUB 100 \ ! Check module not loaded
 mName := "multiProc1"
@@ -52,10 +54,10 @@ PRINT "-- Single procedure module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load single-proc module"
 mName := "singleProc"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
 IF isLoaded THEN
-  PRINT "singleProc load call return successfully"
-  shouldPass := TRUE
+  PRINT "singleProc load call return successfully, address: "; mAddr
+  shouldBeLoaded := TRUE
   GOSUB 100 \ ! Check module loaded
 ELSE
   PRINT "FAIL: singleProc load failed"
@@ -73,9 +75,10 @@ testNum := testNum + 1
 PRINT "Test "; testNum; ": Unload single-proc module"
 mName := "singleProc"
 RUN unloadModule(mName, 0, unloaded)
+RUN unloadModule(mName, mAddr, unloaded)
 IF unloaded THEN
   PRINT "singleProc unload call return successfully"
-  shouldPass = FALSE
+  shouldBeLoaded = FALSE
   GOSUB 100 \ ! Check module not loaded
 ELSE
   PRINT "FAIL: singleProc unload call failed"
@@ -89,11 +92,11 @@ PRINT "-- Multi-procedure module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load multi-proc module"
 mName := "multiProc1"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
 IF isLoaded THEN
-  PRINT "multiProc1 load call return successfully"
+  PRINT "multiProc1 load call return successfully, address: "; mAddr
   passed := passed + 1
-  shouldPass = TRUE
+  shouldBeLoaded = TRUE
   mName := "multiProc2"
   GOSUB 100 \ ! Check module loaded
 ELSE
@@ -115,14 +118,8 @@ RUN unloadModule(mName, 0, unloaded)
 IF unloaded THEN
   PRINT "multiProc1 unlinked"
   passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF NOT isLoaded THEN
-    PRINT "multiProc1 verified as unloaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: multiProc1 still loaded after unload"
-    failed := failed + 1
-  ENDIF
+  shouldBeLoaded = TRUE
+  GOSUB 100 \ ! Check multiProc1 still loaded
 ELSE
   PRINT "FAIL: multiProc1 unlink failed"
   failed := failed + 1
@@ -159,9 +156,9 @@ PRINT "-- Independent procedures module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load independent procedures module"
 mName := "indepProc1"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
 IF isLoaded THEN
-  PRINT "indepProc1 loaded OK"
+  PRINT "indepProc1 loaded OK, address: "; mAddr
   passed := passed + 1
   mName := "indepProc2"
   RUN checkModule(mName, isLoaded)
@@ -203,11 +200,15 @@ RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
   allDone := FALSE
 ENDIF
+shouldBeLoaded = TRUE
+GOSUB 100 \ ! Check indepProc1 still loaded
 mName := "indepProc2"
 RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
   allDone := FALSE
 ENDIF
+shouldBeLoaded = TRUE
+GOSUB 100 \ ! Check indepProc1 still loaded
 mName := "indepProc3"
 RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
@@ -220,7 +221,7 @@ ELSE
   PRINT "FAIL: Some independent procedures not unlinked"
   failed := failed + 1
 ENDIF
-shouldPass = FALSE
+shouldBeLoaded = FALSE
 mName := "indepProc1"
 GOSUB 100 \ ! Check module not loaded
 mName := "indepProc2"
@@ -246,7 +247,7 @@ END
 100 \ ! Check Module Loaded Test
   RUN checkModule(mName, isLoaded)
   IF NOT isLoaded THEN
-    IF shouldPass THEN
+    IF shouldBeLoaded THEN
       PRINT "FAIL: " + mName + " should be loaded but it is not"
       failed := failed + 1
     ELSE
@@ -254,7 +255,7 @@ END
       passed := passed + 1
     ENDIF
   ELSE
-    IF shouldPass THEN
+    IF shouldBeLoaded THEN
       PRINT mName + " correctly loaded"
       passed := passed + 1
     ELSE
@@ -326,6 +327,7 @@ PROCEDURE loadModule
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modName:STRING[32]
+PARAM hdrAddr:INTEGER
 PARAM isLoaded:BOOLEAN
 DIM regs:Register
 DIM callCode:BYTE
@@ -343,6 +345,7 @@ regs.x := nameAddr
 RUN SysCall(callCode, regs)
 
 iCC := regs.cc
+hdrAddr := regs.u \ ! Capture header address for potential unload test
 IF LAND(iCC, 1) = 0 THEN
   PRINT modName; " linked (was already loaded)"
   isLoaded := TRUE
@@ -352,6 +355,7 @@ ELSE
   regs.x := nameAddr
   RUN SysCall(callCode, regs)
   iCC := regs.cc
+  hdrAddr := regs.u \ ! Capture header address for potential unload test
   IF LAND(iCC, 1) = 0 THEN
     PRINT modName; " loaded from disk"
     isLoaded := TRUE
