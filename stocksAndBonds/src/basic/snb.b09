@@ -819,7 +819,7 @@ activeCnt := pCnt
 ! when gameOver is set by P4 bankruptcy logic.
 ! ============================================================
 LOOP
-  EXITIF cYear > 10 OR gameOver
+  EXITIF cYear > 10 OR gameOver THEN
   ENDEXIT
 
   hdr.currYear := cYear        \ ! keep hdr in sync for save checkpoints
@@ -1111,13 +1111,13 @@ LOOP
       IF NOT plyrs(p).isBankrupt THEN
         pNam := plyrs(p).plyrName
         LOOP
-          EXITIF plyrs(p).marginTot <= 0
+          EXITIF plyrs(p).marginTot <= 0 THEN
           ENDEXIT
           RUN scrMgnClr(plyrs(p), mkt, mgnClrAct)
           IF mgnClrAct = 2 THEN
             bkRsn := 2  \ ! margin call / forced clearance
             GOSUB 600
-            EXITIF TRUE
+            EXITIF TRUE THEN
             ENDEXIT
           ENDIF
         ENDLOOP
@@ -1219,7 +1219,7 @@ END
       IF ordCnt > 0 THEN
         RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
       ENDIF
-      EXITIF oblgRem <= 0
+      EXITIF oblgRem <= 0 THEN
       ENDEXIT
       ! ordCnt=0 with oblgRem>0: no assets remain; force bankruptcy.
       IF ordCnt = 0 THEN
