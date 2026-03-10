@@ -16,6 +16,7 @@ DIM passed:INTEGER
 DIM failed:INTEGER
 DIM testNum:INTEGER
 DIM isLoaded:BOOLEAN
+DIM shouldPass:BOOLEAN
 DIM unloaded:BOOLEAN
 DIM allDone:BOOLEAN
 
@@ -36,24 +37,13 @@ passed := passed + 1
 
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Confirm modules not yet loaded"
+shouldPass = FALSE
 mName := "singleProc"
-RUN checkModule(mName, isLoaded)
-IF NOT isLoaded THEN
-  PRINT "singleProc correctly not loaded"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: singleProc should not be loaded yet"
-  failed := failed + 1
-ENDIF
+GOSUB 100 \ ! Check module not loaded
 mName := "multiProc1"
-RUN checkModule(mName, isLoaded)
-IF NOT isLoaded THEN
-  PRINT "multiProc1 correctly not loaded"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: multiProc1 should not be loaded yet"
-  failed := failed + 1
-ENDIF
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc1"
+GOSUB 100 \ ! Check module not loaded
 PRINT ""
 RUN waitKey
 
@@ -64,16 +54,9 @@ PRINT "Test "; testNum; ": Load single-proc module"
 mName := "singleProc"
 RUN loadModule(mName, isLoaded)
 IF isLoaded THEN
-  PRINT "singleProc loaded OK"
-  passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF isLoaded THEN
-    PRINT "singleProc verified as loaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: singleProc not verified after load"
-    failed := failed + 1
-  ENDIF
+  PRINT "singleProc load call return successfully"
+  shouldPass := TRUE
+  GOSUB 100 \ ! Check module loaded
 ELSE
   PRINT "FAIL: singleProc load failed"
   failed := failed + 1
@@ -91,18 +74,11 @@ PRINT "Test "; testNum; ": Unload single-proc module"
 mName := "singleProc"
 RUN unloadModule(mName, 0, unloaded)
 IF unloaded THEN
-  PRINT "singleProc unloaded OK"
-  passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF NOT isLoaded THEN
-    PRINT "singleProc verified as unloaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: singleProc still loaded after unload"
-    failed := failed + 1
-  ENDIF
+  PRINT "singleProc unload call return successfully"
+  shouldPass = FALSE
+  GOSUB 100 \ ! Check module not loaded
 ELSE
-  PRINT "FAIL: singleProc unload failed"
+  PRINT "FAIL: singleProc unload call failed"
   failed := failed + 1
 ENDIF
 PRINT ""
@@ -115,17 +91,11 @@ PRINT "Test "; testNum; ": Load multi-proc module"
 mName := "multiProc1"
 RUN loadModule(mName, isLoaded)
 IF isLoaded THEN
-  PRINT "multiProc1 loaded OK"
+  PRINT "multiProc1 load call return successfully"
   passed := passed + 1
+  shouldPass = TRUE
   mName := "multiProc2"
-  RUN checkModule(mName, isLoaded)
-  IF isLoaded THEN
-    PRINT "multiProc2 accessible alongside multiProc1"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: multiProc2 not accessible after multiProc1 load"
-    failed := failed + 1
-  ENDIF
+  GOSUB 100 \ ! Check module loaded
 ELSE
   PRINT "FAIL: multiProc1 load failed"
   failed := failed + 1
@@ -145,6 +115,14 @@ RUN unloadModule(mName, 0, unloaded)
 IF unloaded THEN
   PRINT "multiProc1 unlinked"
   passed := passed + 1
+  RUN checkModule(mName, isLoaded)
+  IF NOT isLoaded THEN
+    PRINT "multiProc1 verified as unloaded"
+    passed := passed + 1
+  ELSE
+    PRINT "FAIL: multiProc1 still loaded after unload"
+    failed := failed + 1
+  ENDIF
 ELSE
   PRINT "FAIL: multiProc1 unlink failed"
   failed := failed + 1
@@ -157,7 +135,14 @@ IF isLoaded THEN
   RUN unloadModule(mName, 0, unloaded)
   IF unloaded THEN
     PRINT "multiProc2 explicitly unlinked"
-    passed := passed + 1
+    RUN checkModule(mName, isLoaded)
+    IF NOT isLoaded THEN
+      PRINT "multiProc2 verified as unloaded"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL: multiProc2 still loaded after unload"
+      failed := failed + 1
+    ENDIF
   ELSE
     PRINT "FAIL: multiProc2 explicit unlink failed"
     failed := failed + 1
@@ -235,6 +220,13 @@ ELSE
   PRINT "FAIL: Some independent procedures not unlinked"
   failed := failed + 1
 ENDIF
+shouldPass = FALSE
+mName := "indepProc1"
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc2"
+GOSUB 100 \ ! Check module not loaded
+mName := "indepProc3"
+GOSUB 100 \ ! Check module not loaded
 PRINT ""
 RUN waitKey
 
@@ -250,6 +242,27 @@ PRINT "Total tests: "; testNum
 PRINT "Passed:      "; passed
 PRINT "Failed:      "; failed
 END
+
+100 \ ! Check Module Loaded Test
+  RUN checkModule(mName, isLoaded)
+  IF NOT isLoaded THEN
+    IF shouldPass THEN
+      PRINT "FAIL: " + mName + " should be loaded but it is not"
+      failed := failed + 1
+    ELSE
+      PRINT mName + " correctly not loaded"
+      passed := passed + 1
+    ENDIF
+  ELSE
+    IF shouldPass THEN
+      PRINT mName + " correctly loaded"
+      passed := passed + 1
+    ELSE
+      PRINT "FAIL: " + mName + " should not be loaded but it is"
+      failed := failed + 1
+    ENDIF
+  ENDIF
+RETURN
 
 900 \ ! Error handler
 PRINT "TSTMODULE error ("; ERR; ")"
