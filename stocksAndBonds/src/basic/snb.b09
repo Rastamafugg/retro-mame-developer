@@ -1,3 +1,83 @@
+PROCEDURE SNB
+(* ================================================== *)
+(* PROCEDURE: SNB                                     *)
+(* PURPOSE:   Application entry point.                *)
+(*            Routes S1 -> S2 -> S7 -> game stub,     *)
+(*            or S1 -> Load -> game stub,             *)
+(*            or S1 -> Quit -> exit.                  *)
+(*            S2/S7 Back path loops until confirmed.  *)
+(* PARAMS:    None                                    *)
+(* NOTES:     setupCnt, setupMode, setupTyp, setupNam *)
+(*            use distinct names to avoid collisions  *)
+(*            with SaveHdr and PlyrRec field names.   *)
+(*            Game loop entry is a stub PRINT.        *)
+(*            Phase 8 replaces stubs.                 *)
+(* ================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM action:INTEGER
+DIM cfmAct:INTEGER
+DIM setupCnt:INTEGER
+DIM setupMode:INTEGER
+DIM setupTyp(6):INTEGER
+DIM setupNam(6):STRING[20]
+DIM hdr:SaveHdr
+DIM deckOrd(36):BYTE
+DIM plyrs(6):PlyrRec
+DIM mkt:MktState
+DIM loadOK:BOOLEAN
+DIM savPath:STRING[20]
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+action   := 0
+cfmAct   := 0
+setupCnt := 0
+setupMode := 0
+loadOK   := FALSE
+
+RUN scrStart(action)
+
+IF action = 1 THEN
+  ! New Game: S2->S7 with Back loop.
+  REPEAT
+    RUN scrSetup(setupCnt, setupTyp, setupNam, setupMode)
+    RUN scrConfirm(setupCnt, setupTyp, setupNam, setupMode, cfmAct)
+  UNTIL cfmAct = 1
+  ! Initialize all player records to starting values.
+  FOR i := 1 TO 6
+    RUN initPlayer(plyrs(i))
+  NEXT i
+  ! Copy confirmed setup into active player records.
+  FOR i := 1 TO setupCnt
+    plyrs(i).plyrName := setupNam(i)
+    plyrs(i).plyrType := setupTyp(i) \ ! INTEGER -> BYTE; values 1-2 safe
+  NEXT i
+  ! STUB: Phase 8 game loop entry replaces this PRINT.
+  PRINT
+  PRINT "STARTING GAME"
+ELSE IF action = 2 THEN
+  ! Load Game: attempt SNBGAME save file.
+  savPath := "SNBGAME"
+  RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
+  IF loadOK THEN
+    ! STUB: Phase 8 game loop resume replaces this PRINT.
+    PRINT
+    PRINT "STARTING GAME"
+  ELSE
+    PRINT "Load failed. No valid save file found."
+  ENDIF
+ENDIF \ENDIF
+! action = 3 (Quit): fall through to END.
+END
+
+900 PRINT "SNBMAIN error ("; ERR; ")"
+END
+
 PROCEDURE initPlayer
 (* ================================================= *)
 (* PROCEDURE: initPlayer                             *)
@@ -297,86 +377,6 @@ END
 
 900 \ ! Error handler
 PRINT "scrStart error ("; ERR; ")"
-END
-
-PROCEDURE SNBMAIN
-(* ================================================== *)
-(* PROCEDURE: SNBMAIN                                 *)
-(* PURPOSE:   Application entry point.               *)
-(*            Routes S1 -> S2 -> S7 -> game stub,    *)
-(*            or S1 -> Load -> game stub,             *)
-(*            or S1 -> Quit -> exit.                 *)
-(*            S2/S7 Back path loops until confirmed. *)
-(* PARAMS:    None                                    *)
-(* NOTES:     setupCnt, setupMode, setupTyp, setupNam *)
-(*            use distinct names to avoid collisions  *)
-(*            with SaveHdr and PlyrRec field names.  *)
-(*            Game loop entry is a stub PRINT.       *)
-(*            Phase 8 replaces stubs.                *)
-(* ================================================== *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM action:INTEGER
-DIM cfmAct:INTEGER
-DIM setupCnt:INTEGER
-DIM setupMode:INTEGER
-DIM setupTyp(6):INTEGER
-DIM setupNam(6):STRING[20]
-DIM hdr:SaveHdr
-DIM deckOrd(36):BYTE
-DIM plyrs(6):PlyrRec
-DIM mkt:MktState
-DIM loadOK:BOOLEAN
-DIM savPath:STRING[20]
-DIM i:INTEGER
-
-ON ERROR GOTO 900
-
-action   := 0
-cfmAct   := 0
-setupCnt := 0
-setupMode := 0
-loadOK   := FALSE
-
-RUN scrStart(action)
-
-IF action = 1 THEN
-  ! New Game: S2->S7 with Back loop.
-  REPEAT
-    RUN scrSetup(setupCnt, setupTyp, setupNam, setupMode)
-    RUN scrConfirm(setupCnt, setupTyp, setupNam, setupMode, cfmAct)
-  UNTIL cfmAct = 1
-  ! Initialize all player records to starting values.
-  FOR i := 1 TO 6
-    RUN initPlayer(plyrs(i))
-  NEXT i
-  ! Copy confirmed setup into active player records.
-  FOR i := 1 TO setupCnt
-    plyrs(i).plyrName := setupNam(i)
-    plyrs(i).plyrType := setupTyp(i) \ ! INTEGER -> BYTE; values 1-2 safe
-  NEXT i
-  ! STUB: Phase 8 game loop entry replaces this PRINT.
-  PRINT
-  PRINT "STARTING GAME"
-ELSE IF action = 2 THEN
-  ! Load Game: attempt SNBGAME save file.
-  savPath := "SNBGAME"
-  RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
-  IF loadOK THEN
-    ! STUB: Phase 8 game loop resume replaces this PRINT.
-    PRINT
-    PRINT "STARTING GAME"
-  ELSE
-    PRINT "Load failed. No valid save file found."
-  ENDIF
-ENDIF \ENDIF
-! action = 3 (Quit): fall through to END.
-END
-
-900 PRINT "SNBMAIN error ("; ERR; ")"
 END
 
 PROCEDURE scrFinalMkt
