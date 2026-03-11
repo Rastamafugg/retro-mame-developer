@@ -40,7 +40,7 @@ There are some things to note, once you decide to start developing with modules.
 - Running your new modularized procedure is as simple as calling it from the command line. Parameters passed to your procedure MUST be strings, with spaces between the procedure name and the first parameter, as well as between each parameter accepted by the procedure. For example: `mymodule param1 param2`
 - Modules can be called from other modules, allowing you to add and remove library calls as you need them.  The Basic09 syntax for calling a procedure in this manner is that same as procedure-to-procedure calls in the Basic09 environment. For example: `RUN myOtherProc(param1, "stringLiteral", 2)`
 - Ensure that you `KILL` any modular procedure loaded in this way after you no longer need it, in order to free up memory.  For example: `KILL myOtherProc`
-- **NOT CONFIRMED**: If a procedure is loaded from a module that contains multiple procedures, you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
+- If a procedure is loaded from a module that contains multiple procedures, you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
 
 ### Basic09 Example of Loading and Unloading Modular Procedures
 
