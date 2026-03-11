@@ -40,7 +40,7 @@ There are some things to note, once you decide to start developing with modules.
 - Running your new modularized procedure is as simple as calling it from the command line. Parameters passed to your procedure MUST be strings, with spaces between the procedure name and the first parameter, as well as between each parameter accepted by the procedure. For example: `mymodule param1 param2`
 - Modules can be called from other modules, allowing you to add and remove library calls as you need them.  The Basic09 syntax for calling a procedure in this manner is that same as procedure-to-procedure calls in the Basic09 environment. For example: `RUN myOtherProc(param1, "stringLiteral", 2)`
 - Ensure that you `KILL` any modular procedure loaded in this way after you no longer need it, in order to free up memory.  For example: `KILL myOtherProc`
-- If a procedure is loaded from a module that contains multiple procedures, you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
+- If a procedure is loaded from a module that contains multiple procedures (referred to as a "merged module"), you will need to explicitly remove these procedures from memory afterwards, even if they were not references by the procedure that you called.  This can be done with the Unlink call. For example: `SHELL "ex UnLink myThirdProc"`. *NOTE:* SHELL loads a DOS shell to run the command in quotes. `ex` tells the shell to exit immediately.
 
 ### Basic09 Example of Loading and Unloading Modular Procedures
 
@@ -142,14 +142,14 @@ END
 
 #### Preparing the modules to be run in NitrOS9
 
-This are the system commands that you need to run for each module in Basic09, before you can run the test. 
+These are the Basic09 system commands that you need to run for each module before you can run the test. 
 
 ##### Single Procedure Module
 
 ```
 LOAD /path/to/singleProc.b09
 PACK
-KILL singleProc
+KILL singleProc \ ! Only needed if you are continuing to run Basic09 after packing the module
 ```
 
 ##### Multiple Procedure Module
@@ -157,7 +157,7 @@ KILL singleProc
 ```
 LOAD /path/to/multiProc1.b09
 PACK* > multiProc1
-KILL multiProc1,multiProc2
+KILL multiProc1,multiProc2 \ ! Only needed if you are continuing to run Basic09 after packing the module
 ```
 
 ##### Independently Called Procedure Module
@@ -165,7 +165,7 @@ KILL multiProc1,multiProc2
 ```
 LOAD /path/to/indepProc1.b09
 PACK* > indepProc1
-KILL indepProc1,indepProc2,indepProc3
+KILL indepProc1,indepProc2,indepProc3 \ ! Only needed if you are continuing to run Basic09 after packing the module
 ```
 
 ##### Main Test Module
@@ -173,7 +173,7 @@ KILL indepProc1,indepProc2,indepProc3
 ```
 LOAD /path/to/moduleTest.b09
 PACK
-KILL moduleTest
+KILL moduleTest \ ! Only needed if you are continuing to run Basic09 after packing the module
 ```
 
 ##### Making the Modules Executable
@@ -190,3 +190,132 @@ ATTR /d0/cmds/moduleTest perm e
 #### Running the Test
 
 Once everything is setup correctly, you will just need to run the following command at the SHELL: `moduleTest`
+
+#### SysCall Alternative to Loading/Unloading Modules
+
+You can also load and unload modules using SysCall to make direct NitrOS-9 System Calls.
+
+##### Loading Modules
+
+In the loadModule procedure below, we first call F$Link, to see if the module is already in memory, then call F$Load to load the module from the executable folder, if not found.
+
+##### Unloading Modules
+
+In the unloadModule procedure below, we call F$UnLink if the module header address is passed in (returned as the U register value from both F$Link and F$Load calls), otherwise the passed-in module name is used in the system call F$UnLoad.
+
+**NOTE:** For some reason in my testing, I had to both F$UnLoad and F$UnLink the first module in my test program.  After that, it was sufficient to simply call F$UnLoad on each procedure in a target module/merged module to have the module removed from memory.
+
+```
+PROCEDURE loadModule
+(* ================================================== *)
+(* PROCEDURE: loadModule                              *)
+(* PURPOSE:   Load a named module into memory.       *)
+(*            Tries F$Link first (already in memory),*)
+(*            then F$Load to bring in from disk.     *)
+(* PARAMS:    modName  - module name to load         *)
+(*            isLoaded - TRUE if successfully loaded *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modName:STRING[32]
+PARAM hdrAddr:INTEGER
+PARAM isLoaded:BOOLEAN
+DIM regs:Register
+DIM callCode:BYTE
+DIM nameAddr:INTEGER
+DIM iCC:INTEGER
+
+ON ERROR GOTO 900
+
+isLoaded := FALSE
+nameAddr := ADDR(modName)
+
+callCode := $00 \ ! F$Link: try if already in memory
+regs.a := 0
+regs.x := nameAddr
+RUN SysCall(callCode, regs)
+
+iCC := regs.cc
+hdrAddr := regs.u \ ! Capture header address for potential unload test
+IF LAND(iCC, 1) = 0 THEN
+  PRINT modName; " linked (was already loaded)"
+  isLoaded := TRUE
+ELSE
+  callCode := $01 \ ! F$Load: load module from disk
+  regs.a := 0
+  regs.x := nameAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  hdrAddr := regs.u \ ! Capture header address for potential unload test
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " loaded from disk"
+    isLoaded := TRUE
+  ELSE
+    PRINT "Failed to load "; modName; " (err: "; regs.b; ")"
+  ENDIF
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "loadModule error ("; ERR; ")"
+ERROR(ERR)
+END
+
+
+PROCEDURE unloadModule
+(* ================================================== *)
+(* PROCEDURE: unloadModule                            *)
+(* PURPOSE:   Unload a named module from memory.     *)
+(*            If hdrAddr is nonzero, uses F$UnLink   *)
+(*            by header address. Otherwise uses      *)
+(*            F$UnLoad by module name.               *)
+(* PARAMS:    modName  - module name (for reporting) *)
+(*            hdrAddr  - module header addr (0=none) *)
+(*            unloaded - TRUE if successfully removed*)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modName:STRING[32]
+PARAM hdrAddr:INTEGER
+PARAM unloaded:BOOLEAN
+DIM regs:Register
+DIM callCode:BYTE
+DIM nameAddr:INTEGER
+DIM iCC:INTEGER
+
+ON ERROR GOTO 900
+
+unloaded := FALSE
+
+IF hdrAddr <> 0 THEN
+  callCode := $02 \ ! F$UnLink: unlink by header address
+  regs.u := hdrAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " unlinked by header"
+    unloaded := TRUE
+  ELSE
+    PRINT "Failed to unlink "; modName; " by hdr (err: "; regs.b; ")"
+  ENDIF
+ELSE
+  nameAddr := ADDR(modName)
+  callCode := $1D \ ! F$UnLoad: unload by name
+  regs.a := 0
+  regs.x := nameAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 0 THEN
+    PRINT modName; " unlinked by name"
+    unloaded := TRUE
+  ELSE
+    PRINT "Failed to unlink "; modName; " by name (err: "; regs.b; ")"
+  ENDIF
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "unloadModule error ("; ERR; ")"
+ERROR(ERR)
+END
+```
