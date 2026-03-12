@@ -3075,235 +3075,181 @@ All other SetStat calls to VRN return an Unknown Service error.
 **Term** disables VRN's VIRQ and IRQ entries.
 
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Chapter 9. System Calls**
+## Chapter 9. System Calls
 
-System calls are used to communicate between the NitrOS-9 operating system and
-assembly-language programs. There are two major types of calls—I/O calls and function
-calls.
+System calls are used to communicate between the NitrOS-9 operating system and assembly-language programs. There are two major types of calls—I/O calls and function calls.
 
 Function calls include user mode calls and system mode calls.
 
-Each system call has a mnemonic name. Names of I/O calls start with I$. For example,
-the Change Directory call is I$ChgDir. Names of function calls start with F$. For example,
-the Allocate Bits call is F$AllBit. The names are defined in the assembler-input
-conditions equate file called OS9.D.
+Each system call has a mnemonic name. Names of I/O calls start with I$. For example, the Change Directory call is I$ChgDir. Names of function calls start with F$. For example, the Allocate Bits call is F$AllBit. The names are defined in the assembler-input conditions equate file called OS9.D.
 
-System mode calls are privileged. You can execute them only while NitrOS-9 is in the
-system state (when it is processing another system call, executing a file manager or
-device driver, and so on).
+System mode calls are privileged. You can execute them only while NitrOS-9 is in the system state (when it is processing another system call, executing a file manager or device driver, and so on).
 
-System mode calls are included in this manual primarily for programmers writing device
-drivers and other system-level applications.
+System mode calls are included in this manual primarily for programmers writing device drivers and other system-level applications.
 
-### Calling Procedure...................................................................................................
+### Calling Procedure
 
 To execute any system calls, you need to use an SWI2 instruction:
 
 1. Load the 6809 registers with any appropriate parameters.
-2. Execute an SWI2 instruction, followed immediately by a constant byte, which is
-    the request code. In the references in this chapter, the first line is the system call
-    name (for example Close Path) and the second line contains the call’s mnemonic
-    name (for example I$Close), the software interrupt Code 2 (103F), and the call’s
-    request code (for example, 8F) in hexadecimal.
-3. After NitrOS-9 processes the call, it returns any parameters in the 6809 registers.
-    If an error occurs, the C bit of the condition code register is set and Register B
-    contains the appropriate error code. This feature permits a BCS or BCC instruction
-    immediately following the system call to branch either if there is an error or if no
-    error occurs.
+2. Execute an SWI2 instruction, followed immediately by a constant byte, which is     the request code. In the references in this chapter, the first line is the system call     name (for example Close Path) and the second line contains the call’s mnemonic name (for example I$Close), the software interrupt Code 2 (103F), and the call’s request code (for example, 8F) in hexadecimal.
+3. After NitrOS-9 processes the call, it returns any parameters in the 6809 registers. If an error occurs, the C bit of the condition code register is set and Register B contains the appropriate error code. This feature permits a BCS or BCC instruction immediately following the system call to branch either if there is an error or if no error occurs.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 As an example, here is the Close system call:
 
-```
-LDA PATHNUM
-SWI2
-FCB $8F
-BCS ERROR
-```
+| | |
+|-|-|
+| LDA | PATHNUM |
+| SWI2 | |
+| FCB | $8F |
+| BCS | ERROR |
+
 You can use the assembler’s _OS9_ directive to simplify the call, as follows:
 
-```
-LDA PATHNUM
-OS9 I$Close
-BCS ERROR
-```
-The ASM assembler defaults to case sensitive, but can be overridden to be case
-insensitive on mnemonic names with the ‘U’ option. The RMA assembler, included in
-the _OS-9 Level Two Development Pak_ , is case sensitive. The names in this manual have
-been spelled with upper and lower case letters, matching the defs for RMA.
+| | |
+|-|-|
+| LDA | PATHNUM |
+| OS9 | I$Close |
+| BCS | ERROR |
 
-### I/O System Calls......................................................................................................
+The ASM assembler defaults to case sensitive, but can be overridden to be case insensitive on mnemonic names with the ‘U’ option. The RMA assembler, included in the _OS-9 Level Two Development Pak_ , is case sensitive. The names in this manual have been spelled with upper and lower case letters, matching the defs for RMA.
 
-NitrOS-9’s I/O calls are easier to use than many other systems’ I/O calls. This is because
-the calling program does not have to allocate and set up _file control blocks_ , _sector
-buffers_ , and so on.
+### I/O System Calls
 
-Instead, NitrOS-9 returns a 1-byte path number whenever a process opens a path to a
-file or device. Until the path is closed, you can use this path number in later I/O requests
-to identify the file or device.
+NitrOS-9’s I/O calls are easier to use than many other systems’ I/O calls. This is because the calling program does not have to allocate and set up _file control blocks_ , _sector buffers_ , and so on.
 
-In addition, NitrOS-9 allocates and maintains its own data structures; so, you need not
-deal with them.
+Instead, NitrOS-9 returns a 1-byte path number whenever a process opens a path to a file or device. Until the path is closed, you can use this path number in later I/O requests to identify the file or device.
 
-### System Call Descriptions.........................................................................................
+In addition, NitrOS-9 allocates and maintains its own data structures; so, you need not deal with them.
 
-The rest of this chapter consists of the system call descriptions. At the top of each
-description is the system call name, followed by its mnemonic name, the SWI2 code,
-and the request code. Next are the call’s entry and exit conditions, followed by
-additional information about the code where appropriate.
+### System Call Descriptions
 
+The rest of this chapter consists of the system call descriptions. At the top of each description is the system call name, followed by its mnemonic name, the SWI2 code, and the request code. Next are the call’s entry and exit conditions, followed by additional information about the code where appropriate.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-In the system call descriptions, registers not specified as entry or exit conditions are not
-altered. Strings passed as parameters are normally terminated with a space character
-and end-of-line character, or with Bit 7 of the last character set.
+In the system call descriptions, registers not specified as entry or exit conditions are not altered. Strings passed as parameters are normally terminated with a space character and end-of-line character, or with Bit 7 of the last character set.
 
-If an error occurs on a system call, the C bit of Register CC is set and Register B contains
-the _error code_. If no error occurs, the C bit is clear and Register B contains a value of
-zero.
+If an error occurs on a system call, the C bit of Register CC is set and Register B contains the _error code_. If no error occurs, the C bit is clear and Register B contains a value of zero.
 
-### User Mode System Calls Quick Reference..............................................................
+### User Mode System Calls Quick Reference
 
 Following is a summary of the User Mode System Calls referenced in this chapter:
 
-**F$Alarm** Sets up an alarm
-**F$AllBit** Sets bits in an allocation bit map
-**F$AllRAM** Allocates RAM blocks
-**F$Chain** Chains a process to a new module
-**F$ClrBlk** Clears the specified block of memory
-**F$CmpNam** Compares two names
-**F$CpyMem** Copies external memory
-**F$CRC** Generates a cyclic redundancy check
-**F$CRCMod** Enables/Disables or reports status of module CRC checking
-**F$Debug** Reboots the Coco to Disk BASIC
-**F$DelBit** Deallocates bits in an allocation bit map
-**F$DelRAM** Deallocates RAM blocks
-**F$Exit** Terminates a process
-**F$Fork** Starts a new process
-**F$GBlkMp** Gets a copy of a system block map
-**F$GPrDsc** Gets a copy of a process descriptor
-**F$Icpt** Set a signal intercept trap
-**F$ID** Returns a process ID
-**F$Link** Links to a memory module
-**F$Load** Loads a module from mass storage
-**F$MapBlk** Maps the specified blocks
-**F$Mem** Changes a process’s data area size
-**F$NMLink** Links to a module; does not map the module into the user’s address
-space
+| | |
+|-|-|
+| **F$Alarm** | Sets up an alarm |
+| **F$AllBit** | Sets bits in an allocation bit map |
+| **F$AllRAM** | Allocates RAM blocks |
+| **F$Chain** | Chains a process to a new module |
+| **F$ClrBlk** | Clears the specified block of memory |
+| **F$CmpNam** | Compares two names |
+| **F$CpyMem** | Copies external memory |
+| **F$CRC** | Generates a cyclic redundancy check |
+| **F$CRCMod** | Enables/Disables or reports status of module CRC checking |
+| **F$Debug** | Reboots the Coco to Disk BASIC |
+| **F$DelBit** | Deallocates bits in an allocation bit map |
+| **F$DelRAM** | Deallocates RAM blocks |
+| **F$Exit** | Terminates a process |
+| **F$Fork** | Starts a new process |
+| **F$GBlkMp** | Gets a copy of a system block map |
+| **F$GPrDsc** | Gets a copy of a process descriptor |
+| **F$Icpt** | Set a signal intercept trap |
+| **F$ID** | Returns a process ID |
+| **F$Link** | Links to a memory module |
+| **F$Load** | Loads a module from mass storage |
+| **F$MapBlk** | Maps the specified blocks |
+| **F$Mem** | Changes a process’s data area size |
+| **F$NMLink** | Links to a module; does not map the module into the user’s address space |
+| **F$NMLoad** | Loads a module but does not map it into the user’s address space |
+| **F$PErr** | Prints an error message |
+| **F$PrsNam** | Parses a pathlist name |
+| **F$SchBit** | Searches a bit map |
+| **F$Send** | Sends a signal to a process |
+| **F$Sleep** | Suspends a process |
+| **F$SPrior** | Sets a process’s priority |
+| **F$SSWI** | Sets a software interrupt vector |
+| **F$STime** | Sets a system time |
+| **F$SUser** | Sets a user ID number |
+| **F$Time** | Returns the current time |
+| **F$UnLink** | Unlinks a module |
+| **F$UnLoad** | Unlinks a module by name |
+| **F$Wait** | Waits for a signal |
+| **I$Attach** | Attaches to an I/O device |
+| **I$ChgDir** | Changes a working directory |
+| **I$Close** | Closes a path |
+| **I$Create** | Creates a new file |
+| **I$Delete** | Deletes a file |
+| **I$DeletX** | Deletes a file from the execution directory |
+| **I$Detach** | Detaches an I/O device |
+| **I$Dup** | Duplicates a path |
+| **I$GetStt** | Gets a device’s status |
+| **I$MakDir** | Creates a directory file |
+| **I$ModDsc** | Modify bytes in a device descriptor |
+| **I$Open** | Opens a path to an existing file |
+| **I$Read** | Reads data from a device |
+| **I$ReadLn** | Reads a line of data from a device |
+| **I$Seek** | Positions a file pointer |
+| **I$SetStt** | Sets a device’s status |
+| **I$Write** | Writes data to a device |
+| **I$WritLn** | Writes a data line to a device |
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**F$NMLoad** Loads a module but does not map it into the user’s address space
-**F$PErr** Prints an error message
-**F$PrsNam** Parses a pathlist name
-**F$SchBit** Searches a bit map
-**F$Send** Sends a signal to a process
-**F$Sleep** Suspends a process
-**F$SPrior** Sets a process’s priority
-**F$SSWI** Sets a software interrupt vector
-**F$STime** Sets a system time
-**F$SUser** Sets a user ID number
-**F$Time** Returns the current time
-**F$UnLink** Unlinks a module
-**F$UnLoad** Unlinks a module by name
-**F$Wait** Waits for a signal
-**I$Attach** Attaches to an I/O device
-**I$ChgDir** Changes a working directory
-**I$Close** Closes a path
-**I$Create** Creates a new file
-**I$Delete** Deletes a file
-**I$DeletX** Deletes a file from the execution directory
-**I$Detach** Detaches an I/O device
-**I$Dup** Duplicates a path
-**I$GetStt** Gets a device’s status
-**I$MakDir** Creates a directory file
-**I$ModDsc** Modify bytes in a device descriptor
-**I$Open** Opens a path to an existing file
-**I$Read** Reads data from a device
-**I$ReadLn** Reads a line of data from a device
-**I$Seek** Positions a file pointer
-**I$SetStt** Sets a device’s status
-**I$Write** Writes data to a device
-**I$WritLn** Writes a data line to a device
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-### System Mode Calls Quick Reference......................................................................
+### System Mode Calls Quick Reference
 
 Following is a summary of the System Mode Calls referenced in this chapter:
 
-**F$All64** Allocates a 64-byte memory block
-**F$AlHRAM** Allocates high RAM
-**F$AllImg** Allocates image RAM blocks
-**F$AllPrc** Allocates a process descriptor
-**F$AllTsk** Allocates a process task number
-**F$AProc** Enters active process queue
-**F$Boot** Performs a system bootstrap
-**F$BtMem** Performs a memory request bootstrap
-**F$DATLog** Converts a DAT block offset to a logical address
-**F$DelImg** Deallocates image RAM blocks
-**F$DelPrc** Deallocates a process descriptor
-**F$DelTsk** Deallocates a process task number
-**F$ELink** Links modules using a module directory entry
-**F$FModul** Finds a module directory entry
-**F$Find64** Finds a 64-byte memory block
-**F$FreeHB** Gets a free high block
-**F$FreeLB** Gets a free low block
-**F$GCMDir** Compacts module directory entries
-**F$GProcP** Gets a process’s pointer
-**F$IODel** Deletes an I/O module
-**F$IOQu** Puts an entry into an I/O queue
-**F$IRQ** Makes an entry into IRQ polling table
-**F$LDABX** Loads Register A from 0,X in Task B
-**F$LDAXY** Loads A[X,[Y]]
-**F$LDDDXY** Loads D[D+X,[Y]]
-**F$Move** Moves data to a different address space
-**F$NProc** Starts the next process
-**F$RelTsk** Releases a task number
-**F$ResTsk** Reserves a task number
-**F$Ret64** Returns a 64-byte memory block
-**F$SetImg** Sets a process DAT image
-**F$SetTsk** Sets a process’s task DAT registers
+| | |
+|-|-|
+| **F$All64** | Allocates a 64-byte memory block |
+| **F$AlHRAM** | Allocates high RAM |
+| **F$AllImg** | Allocates image RAM blocks |
+| **F$AllPrc** | Allocates a process descriptor |
+| **F$AllTsk** | Allocates a process task number |
+| **F$AProc** | Enters active process queue |
+| **F$Boot** | Performs a system bootstrap |
+| **F$BtMem** | Performs a memory request bootstrap |
+| **F$DATLog** | Converts a DAT block offset to a logical address |
+| **F$DelImg** | Deallocates image RAM blocks |
+| **F$DelPrc** | Deallocates a process descriptor |
+| **F$DelTsk** | Deallocates a process task number |
+| **F$ELink** | Links modules using a module directory entry |
+| **F$FModul** | Finds a module directory entry |
+| **F$Find64** | Finds a 64-byte memory block |
+| **F$FreeHB** | Gets a free high block |
+| **F$FreeLB** | Gets a free low block |
+| **F$GCMDir** | Compacts module directory entries |
+| **F$GProcP** | Gets a process’s pointer |
+| **F$IODel** | Deletes an I/O module |
+| **F$IOQu** | Puts an entry into an I/O queue |
+| **F$IRQ** | Makes an entry into IRQ polling table |
+| **F$LDABX** | Loads Register A from 0,X in Task B |
+| **F$LDAXY** | Loads A[X,[Y]] |
+| **F$LDDDXY** | Loads D[D+X,[Y]] |
+| **F$Move** | Moves data to a different address space |
+| **F$NProc** | Starts the next process |
+| **F$RelTsk** | Releases a task number |
+| **F$ResTsk** | Reserves a task number |
+| **F$Ret64** | Returns a 64-byte memory block |
+| **F$SetImg** | Sets a process DAT image |
+| **F$SetTsk** | Sets a process’s task DAT registers |
+| **F$SLink** | Performs a system link |
+| **F$SRqMem** | Performs a system memory request |
+| **F$SRtMem** | Performs a system memory return |
+| **F$SSvc** | Installs a function request |
+| **F$STABX** | Stores Register A at 0,X in Task B |
+| **F$VIRQ** | Makes an entry in a virtual IRQ polling table |
+| **F$VModul** | Validates a module |
 
+### User System Calls
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**F$SLink** Performs a system link
-**F$SRqMem** Performs a system memory request
-**F$SRtMem** Performs a system memory return
-**F$SSvc** Installs a function request
-**F$STABX** Stores Register A at 0,X in Task B
-**F$VIRQ** Makes an entry in a virtual IRQ polling table
-**F$VModul** Validates a module
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-### User System Calls...................................................................................................
-
-**Set an Alarm Sets an alarm, or a signal to send to a
-specified process ID, at a specified time
-OS9 F$Alarm 103F 1E**
+| | |
+|-|-|
+| **Set an Alarm** | **Sets an alarm, or a signal to send to a specified process ID, at a specified time** |
+| OS9 F$Alarm 103F 1E | |
 
 **Entry Conditions**
-X _relative address of 6-byte time packet
-(YYMMDDHHMMSS)
-(not needed if D=0000)
-= operation to perform (A:B = D)
+| | |
+|-|-|
+| X | relative address of 6-byte time packet (YYMMDDHHMMSS) (not needed if D=0000) |
+| | = operation to perform (A:B = D) |
 A = 00
 B = Function
 00 = clear the setting
