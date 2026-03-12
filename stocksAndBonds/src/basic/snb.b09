@@ -342,920 +342,548 @@ END
 900 ERROR(ERR)
 END
 
-PROCEDURE scrStart
+PROCEDURE memMapGet
 (* ================================================== *)
-(* PROCEDURE: scrStart                                *)
-(* PURPOSE:   Display S1 start screen. Return player *)
-(*            menu selection.                        *)
-(* PARAMS:    action - receives selection on return: *)
-(*              1 = New Game                         *)
-(*              2 = Load Game                        *)
-(*              3 = Quit                             *)
-(* EFFECTS:   Clears screen. Blocks until valid key. *)
-(* NOTE:      action is INTEGER; must match          *)
-(*            getMenuKey choice:INTEGER.             *)
+(* PROCEDURE: memMapGet                               *)
+(* PURPOSE:   Look up a procedure in the memory map. *)
+(*            depIdx=0: returns name of the packed   *)
+(*            module this procedure resides in.      *)
+(*            depIdx=1..8: returns the Nth module    *)
+(*            dependency of that module. Returns ""  *)
+(*            if procedure not found or no Nth dep.  *)
+(* PARAMS:    procNam - procedure name to look up    *)
+(*            depIdx  - 0=own module, 1..8=Nth dep   *)
+(*            result  - returned module name or ""   *)
+(* DATA:      10 fields/record:                      *)
+(*              procName, modName, dep1..dep8        *)
+(*            Unused dep slots padded with "".       *)
+(*            End sentinel: record starting with "." *)
 (* ================================================== *)
-PARAM action:INTEGER
+PARAM procNam : STRING[20]
+PARAM depIdx  : INTEGER
+PARAM result  : STRING[20]
+DIM nm    : STRING[20]
+DIM tmp   : STRING[20]
+DIM i     : INTEGER
+DIM found : BOOLEAN
 
 ON ERROR GOTO 900
 
-RUN clrScr
+result := ""
+found  := FALSE
 
-PRINT
-PRINT "  STOCKS AND BONDS"
-PRINT "  ================"
-PRINT
-PRINT "  1. New Game"
-PRINT "  2. Load Game"
-PRINT "  3. Quit"
-PRINT
-PRINT "  Select (1-3): ";
-
-RUN getMenuKey(1, 3, action)
-PRINT
-END
-
-900 \ ! Error handler
-PRINT "scrStart error ("; ERR; ")"
-END
-
-PROCEDURE scrFinalMkt
-(* ============================================================ *)
-(* PROCEDURE : scrFinalMkt                                      *)
-(* PURPOSE   : S24 Final Market Board. Displays all 9 stocks   *)
-(*             with final prices and dividend status after      *)
-(*             Year 10 market resolution. No dividends or       *)
-(*             interest shown; Year 10 exemption per spec       *)
-(*             Section 13.                                      *)
-(* PARAMS    : mkt - final market state (read-only)            *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
-(* ============================================================ *)
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM mkt : MktState
-
-DIM sNam(9) : STRING[14]
-DIM s       : INTEGER
-DIM pStr    : STRING[8]
-
-ON ERROR GOTO 900
-
-sNam(1) := "Growth Corp"
-sNam(2) := "Metro Props"
-sNam(3) := "Pioneer Mut"
-sNam(4) := "Shady Brooks"
-sNam(5) := "Stryker Drlg"
-sNam(6) := "Tri-City Trn"
-sNam(7) := "United Auto"
-sNam(8) := "Uranium Ent"
-sNam(9) := "Valley Power"
-
-RUN clrScr
-PRINT "=== FINAL MARKET BOARD (S24) ==="
-PRINT
-PRINT " #  STOCK          PRICE  STATUS"
-PRINT " -  -------------  -----  --------"
-
-FOR s := 1 TO 9
-  RUN fmtMoney(mkt.stckPrice(s), pStr)
-  PRINT " "; s; "  "; sNam(s); "  "; pStr; "  ";
-  IF mkt.stckPrice(s) = 0 THEN
-    PRINT "BANKRUPT"
-  ELSE IF mkt.divSuspnd(s) THEN
-    PRINT "DIV SUSP"
-  ELSE
-    PRINT "OK"
-  ENDIF \ENDIF
-NEXT s
-
-PRINT
-RUN waitKey
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE scrWealth
-(* ============================================================ *)
-(* PROCEDURE : scrWealth                                        *)
-(* PURPOSE   : S25 Final Wealth Summary. Computes totalWealth  *)
-(*             per spec Section 13 for each player, sorts      *)
-(*             players descending by totalWealth, and displays  *)
-(*             cash / stock / bond / total breakdown per       *)
-(*             player in rank order. Bankrupt players are       *)
-(*             included in display but flagged.                *)
-(*             totalWealth = cashBal                           *)
-(*               + sum(stckShrs(i) * stckPrice(i)) for i=1..9 *)
-(*               + sum(bondUnts(j) * parVal(j))    for j=1..3 *)
-(* PARAMS    : plyrs     - all player records (read-only)      *)
-(*             plyrCount - number of players (1..6)            *)
-(*             mkt       - final market state (read-only)      *)
-(*             wlth      - output: wealth indexed by plyr slot *)
-(*             srtOrd    - output: player slots desc by wealth *)
-(* NOTE      : INTEGER overflow if totalWealth exceeds 32767.  *)
-(*             Bounded by game rules; not enforced here.       *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM plyrs(6)  : PlyrRec
-PARAM plyrCount : INTEGER
-PARAM mkt       : MktState
-PARAM wlth(6)   : INTEGER
-PARAM srtOrd(6) : INTEGER
-
-DIM bPar(3)  : INTEGER
-DIM s        : INTEGER
-DIM i        : INTEGER
-DIM j        : INTEGER
-DIM p        : INTEGER
-DIM maxPos   : INTEGER
-DIM tmp      : INTEGER
-DIM stckVal  : INTEGER
-DIM bndVal   : INTEGER
-DIM pStr     : STRING[8]
-
-ON ERROR GOTO 900
-
-bPar(1) := 1000
-bPar(2) := 5000
-bPar(3) := 10000
-
-! --- Compute totalWealth per player slot --------------------
-FOR i := 1 TO plyrCount
-  wlth(i) := plyrs(i).cashBal
-  FOR s := 1 TO 9
-    wlth(i) := wlth(i) + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
-  NEXT s
-  FOR j := 1 TO 3
-    wlth(i) := wlth(i) + (plyrs(i).bondUnts(j) * bPar(j))
-  NEXT j
-NEXT i
-
-! --- Init sort order (1..plyrCount) -------------------------
-FOR i := 1 TO plyrCount
-  srtOrd(i) := i
-NEXT i
-
-! --- Selection sort descending by wlth ----------------------
-FOR i := 1 TO plyrCount - 1
-  maxPos := i
-  FOR j := i + 1 TO plyrCount
-    IF wlth(srtOrd(j)) > wlth(srtOrd(maxPos)) THEN
-      maxPos := j
-    ENDIF
-  NEXT j
-  IF maxPos <> i THEN
-    tmp           := srtOrd(i)
-    srtOrd(i)     := srtOrd(maxPos)
-    srtOrd(maxPos) := tmp
-  ENDIF
-NEXT i
-
-! --- Display ranked results ---------------------------------
-RUN clrScr
-PRINT "=== FINAL WEALTH SUMMARY (S25) ==="
-PRINT
-
-FOR p := 1 TO plyrCount
-  i := srtOrd(p)
-
-  ! Compute stock and bond components for display.
-  stckVal := 0
-  FOR s := 1 TO 9
-    stckVal := stckVal + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
-  NEXT s
-  bndVal := 0
-  FOR j := 1 TO 3
-    bndVal := bndVal + (plyrs(i).bondUnts(j) * bPar(j))
-  NEXT j
-
-  PRINT " "; p; "  "; plyrs(i).plyrName
-  RUN fmtMoney(plyrs(i).cashBal, pStr)
-  PRINT "    Cash:"; pStr; "  ";
-  RUN fmtMoney(stckVal, pStr)
-  PRINT "Stk:"; pStr; "  ";
-  RUN fmtMoney(bndVal, pStr)
-  PRINT "Bnd:"; pStr; "  ";
-  RUN fmtMoney(wlth(i), pStr)
-  PRINT "Tot:"; pStr
-  IF plyrs(i).isBankrupt THEN
-    PRINT "    [BANKRUPT]"
-  ENDIF
-  PRINT
-NEXT p
-
-RUN waitKey
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE scrWinner
-(* ============================================================ *)
-(* PROCEDURE : scrWinner                                        *)
-(* PURPOSE   : S26 Winner Declaration. Finds the highest       *)
-(*             totalWealth among non-bankrupt players and       *)
-(*             declares all players at that value as winners.  *)
-(*             Tie: two or more players share highest wealth   *)
-(*             (spec Section 13). Bankrupt players excluded    *)
-(*             from winner consideration (spec Section 12).    *)
-(* PARAMS    : plyrs     - all player records (read-only)      *)
-(*             plyrCount - number of players (1..6)            *)
-(*             wlth      - totalWealth per player slot         *)
-(*             srtOrd    - player slots in descending order    *)
-(*                         (output of scrWealth)               *)
-(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-PARAM plyrs(6)  : PlyrRec
-PARAM plyrCount : INTEGER
-PARAM wlth(6)   : INTEGER
-PARAM srtOrd(6) : INTEGER
-
-DIM i    : INTEGER
-DIM topW : INTEGER
-DIM pStr : STRING[8]
-
-ON ERROR GOTO 900
-
-! Find highest wealth among non-bankrupt players.
-! -32767 sentinel: no valid wealth can be lower after liquidation.
-topW := -32767
-FOR i := 1 TO plyrCount
-  IF NOT plyrs(i).isBankrupt THEN
-    IF wlth(i) > topW THEN
-      topW := wlth(i)
-    ENDIF
-  ENDIF
-NEXT i
-
-RUN clrScr
-PRINT "=== WINNER DECLARATION (S26) ==="
-PRINT
-
-IF topW = -32767 THEN
-  ! Degenerate: all players bankrupt.
-  PRINT "  No winner: all players eliminated."
-ELSE
-  RUN fmtMoney(topW, pStr)
-  PRINT "  WINNER(S) with total wealth $"; pStr
-  PRINT
-  ! Iterate srtOrd so winners display in rank order.
-  FOR i := 1 TO plyrCount
-    IF NOT plyrs(srtOrd(i)).isBankrupt THEN
-      IF wlth(srtOrd(i)) = topW THEN
-        PRINT "  *** "; plyrs(srtOrd(i)).plyrName; " ***"
-      ENDIF
-    ENDIF
-  NEXT i
-ENDIF
-
-PRINT
-RUN waitKey
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE scrPostGame
-(* ============================================================ *)
-(* PROCEDURE : scrPostGame                                      *)
-(* PURPOSE   : S27 Post-Game Menu. Presents options to start   *)
-(*             a new game, load a saved game, or quit.         *)
-(* PARAMS    : action - receives selection on return:          *)
-(*               1 = New Game                                 *)
-(*               2 = Load Game                                *)
-(*               3 = Quit                                     *)
-(* SIDE EFX  : Clears screen. Blocks until valid key.          *)
-(* ============================================================ *)
-PARAM action : INTEGER
-
-ON ERROR GOTO 900
-
-RUN clrScr
-PRINT
-PRINT "  GAME OVER"
-PRINT "  ========="
-PRINT
-PRINT "  1. New Game"
-PRINT "  2. Load Game"
-PRINT "  3. Quit"
-PRINT
-PRINT "  Select (1-3): ";
-RUN getMenuKey(1, 3, action)
-PRINT
-END
-
-900 ERROR(ERR)
-END
-
-PROCEDURE runYearLoop
-(* ============================================================ *)
-(* PROCEDURE : runYearLoop                                      *)
-(* PURPOSE   : Main year-loop integrating all game phases for  *)
-(*             Years 1..10. Covers:                            *)
-(*               P2: revenue (applyDivInt) and margin charge   *)
-(*                   (applyMgnInt + scrMgnInt per player)      *)
-(*               P3: market resolution (drawCard, doRolls,     *)
-(*                   applyMktYear, scrCard, scrDice,           *)
-(*                   scrMktBoard, scrSplit, scrDivFlag)        *)
-(*               P4: sell and buy phases per player; forced    *)
-(*                   liquidation and bankruptcy sub-loops      *)
-(*               P5: endgame detection (Year 10 or last player *)
-(*                   standing); routes to scrFinalMkt,         *)
-(*                   scrWealth, scrWinner, scrPostGame         *)
-(*             Save/resume uses savedPhase 0..3 in hdr.        *)
-(*                                                             *)
-(* PARAMS    : savePath - filename for mid-game save calls     *)
-(*             hdr      - game header; currYear, plyrCount,    *)
-(*                        rollMode, deckPos modified in place  *)
-(*             deckOrd  - shuffled deck; deckPos advances      *)
-(*             plyrs    - all 6 player records; modified in    *)
-(*                        place throughout the loop            *)
-(*             mkt      - market state; prices updated each    *)
-(*                        year by applyMktYear                 *)
-(*                                                             *)
-(* LOCAL NAMES: BYTE fields of hdr passed to INTEGER PARAMs   *)
-(*   are staged to local INTEGER vars (bestPractices.md).      *)
-(*   Names chosen to avoid TYPE field name collisions:         *)
-(*     cYear <- hdr.currYear   pCnt <- hdr.plyrCount           *)
-(*     rMode <- hdr.rollMode                                   *)
-(*                                                             *)
-(* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
-(*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
-(*             marginTot, isBankrupt. Modifies mkt.stckPrice,  *)
-(*             mkt.divSuspnd. Writes to disk on save.          *)
-(*                                                             *)
-(* NOTE      : Caller must seed RND before calling.            *)
-(*             doRolls and shuffleDeck advance the sequence.   *)
-(* ============================================================ *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
-PARAM savePath    : STRING[20]
-PARAM hdr         : SaveHdr
-PARAM deckOrd(36) : BYTE
-PARAM plyrs(6)    : PlyrRec
-PARAM mkt         : MktState
-
-! ---- Staged scalars from hdr BYTE fields (P1) ---------------
-DIM cYear     : INTEGER  \ ! staged: hdr.currYear
-DIM pCnt      : INTEGER  \ ! staged: hdr.plyrCount
-DIM rMode     : INTEGER  \ ! staged: hdr.rollMode
-
-! ---- Market resolution (P1) --------------------------------
-DIM cardId    : INTEGER  \ ! drawn card ID (1..36)
-DIM crd       : CardRec  \ ! populated by getCard for divBonus check
-DIM dOne(9)   : BYTE     \ ! die 1 per stock slot (1..6)
-DIM dTwo(9)   : BYTE     \ ! die 2 per stock slot (1..6)
-DIM rTot(9)   : BYTE     \ ! roll total per stock slot (2..12)
-DIM rolls(9)  : INTEGER  \ ! INTEGER copy of rTot for applyMktYear
-DIM rCnt      : BYTE     \ ! populated roll slot count from doRolls
-DIM oAct      : BOOLEAN  \ ! TRUE if Mode C 2/12 override fired
-DIM prcBef(9) : INTEGER  \ ! price after mkt table, before card delta
-DIM mktDlt(9) : INTEGER  \ ! market table delta per stock
-DIM crdDlt(9) : INTEGER  \ ! card delta per stock
-DIM spOcc(9)  : BOOLEAN  \ ! TRUE if split triggered this stock
-DIM dvSusp(9) : BOOLEAN  \ ! TRUE if dividends newly suspended
-DIM dvRnst(9) : BOOLEAN  \ ! TRUE if dividends reinstated
-
-! ---- Player turn working vars (P1) -------------------------
-DIM p         : INTEGER  \ ! player loop index (1..pCnt)
-DIM s         : INTEGER  \ ! stock index (1..9)
-DIM b         : INTEGER  \ ! bond index (1..3)
-DIM ordTyp(12): INTEGER  \ ! order type: 1=STOCK 2=BOND
-DIM ordId(12) : INTEGER  \ ! asset index per order
-DIM ordQty(12): INTEGER  \ ! quantity per order
-DIM ordPur(12): INTEGER  \ ! purchase type: 1=CASH 2=MARGIN (buy only)
-DIM ordCnt    : INTEGER  \ ! number of orders in current batch
-DIM mgnRpy    : INTEGER  \ ! margin repayment amount for buy phase
-DIM actInt    : INTEGER  \ ! action return from INTEGER-action screens
-DIM actByt    : BYTE     \ ! action return from BYTE-action screens
-
-! ---- Margin interest and forced liquidation (P1) -----------
-DIM forceLiq(6): BOOLEAN \ ! TRUE per player if cashBal went negative
-DIM oblgRem   : INTEGER  \ ! outstanding forced liquidation obligation
-DIM mgnChg    : INTEGER  \ ! margin interest charge for scrMgnInt display
-DIM cashBef   : INTEGER  \ ! cashBal before bulk call (reused div+mgn)
-
-! ---- Buy phase eligibility (P1) ----------------------------
-DIM mgnElig   : BOOLEAN  \ ! TRUE if player has prior cash purchase
-DIM mgnYrOk   : BOOLEAN  \ ! TRUE if current year allows margin buys
-
-! ---- AI working vars (P1) ----------------------------------
-DIM prof      : AIProfile \ ! AI profile for current player's turn
-DIM tInt      : INTEGER   \ ! stages aiTier BYTE; reused as loop counter
-
-! ---- String staging (P1) -----------------------------------
-DIM pNam      : STRING[20] \ ! stages plyrName for screen calls
-DIM pStr      : STRING[8]  \ ! fmtMoney output buffer
-
-! ---- Endgame and wealth summary (P1) -----------------------
-DIM gameOver  : BOOLEAN  \ ! TRUE when game ends before Year 10
-DIM activeCnt : INTEGER  \ ! count of non-bankrupt players
-DIM wlth(6)   : INTEGER  \ ! computed total wealth per player
-DIM srtOrd(6) : INTEGER  \ ! wealth sort order (index into plyrs)
-
-! ---- Card 1 dividend bonus (P1) ----------------------------
-DIM divBns    : INTEGER  \ ! divBonus from drawn card (0 unless Card 1)
-
-! ---- P2: Revenue sub-loop working vars ---------------------
-DIM cashBefA(6): INTEGER \ ! cashBal snapshot per player before bulk call
-DIM divRcv(9)  : INTEGER \ ! per-stock dividend received (for scrDivInt)
-DIM bndRcv(3)  : INTEGER \ ! per-bond interest received (for scrDivInt)
-DIM divRate(9) : INTEGER \ ! dividend rate per stock (spec Sec 2.1)
-DIM bndRate(3) : INTEGER \ ! bond interest per unit (spec Sec 2.2)
-DIM totRcv     : INTEGER \ ! total div+int received this year (display)
-
-! ---- P2: Year header flags ---------------------------------
-DIM nDiv       : BOOLEAN \ ! TRUE in Years 1 and 10 (no div/int)
-DIM nSell      : BOOLEAN \ ! TRUE in Year 1 (no sell phase)
-DIM nMgn       : BOOLEAN \ ! TRUE in Year 10 (no new margin)
-
-! ---- P3: Market resolution display vars --------------------
-DIM flavTxt    : STRING[160] \ ! flavour text stub (swap in Task 14.2)
-DIM sNam       : STRING[12]  \ ! stock name for split/divflag display
-DIM pNames(6)  : STRING[20]  \ ! player name array for scrSplit
-DIM shrBf(6)   : INTEGER     \ ! shares before split per player
-DIM shrAf(6)   : INTEGER     \ ! shares after split per player
-DIM evTyp      : INTEGER     \ ! event type: 1=suspended 2=reinstated
-DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
-
-! ---- P4-A: Forced liquidation and bankruptcy vars ----------
-DIM liqAct     : BYTE    \ ! scrForceLiq action: 1=SUBMIT 2=BANKRUPTCY
-DIM bkRsn      : BYTE    \ ! scrBankrupt reason: 1=MGN_INT 2=MGN_CALL
-
-! ---- P4-B: Sell phase vars ---------------------------------
-DIM decAct(12) : BYTE    \ ! scrAITurn decision action codes (1=SELL)
-DIM sNam14     : STRING[14] \ ! STRING[14] staging for scrMgnCall param
-
-! ---- P4-C: Buy phase vars ----------------------------------
-DIM mgnClrAct  : BYTE    \ ! scrMgnClr action: 1=SUBMIT 2=BANKRUPTCY
-DIM decCnt     : INTEGER  \ ! scrAITurn display entry count (>= ordCnt)
-
-! ---- P5: Endgame vars --------------------------------------
-DIM pgAct      : INTEGER  \ ! scrPostGame action: 1=New 2=Load 3=Quit
-
-ON ERROR GOTO 900
-
-! ---- Initialize staged scalars and loop state --------------
-cYear     := hdr.currYear
-pCnt      := hdr.plyrCount
-rMode     := hdr.rollMode
-gameOver  := FALSE
-activeCnt := pCnt
-
-! ============================================================
-! Main year loop (Years hdr.currYear..10).
-! LOOP/EXITIF used instead of FOR/NEXT to allow early exit
-! when gameOver is set by P4 bankruptcy logic.
-! ============================================================
+RESTORE 100
 LOOP
-  EXITIF cYear > 10 OR gameOver THEN
+  EXITIF found THEN
   ENDEXIT
-
-  hdr.currYear := cYear        \ ! keep hdr in sync for save checkpoints
-
-  ! ---- Compute year flags for scrYearHdr and guards --------
-  nDiv  := FALSE
-  nSell := FALSE
-  nMgn  := FALSE
-  IF cYear = 1 OR cYear = 10 THEN
-    nDiv := TRUE
-  ENDIF
-  IF cYear = 1 THEN
-    nSell := TRUE
-  ENDIF
-  IF cYear = 10 THEN
-    nMgn := TRUE
-  ENDIF
-
-  ! ---- S8: Year header screen ------------------------------
-  RUN scrYearHdr(cYear, 10, hdr.rollMode, nDiv, nMgn, nSell, actByt)
-
-  ! ==========================================================
-  ! P2: Revenue and margin sub-loops.
-  ! Skipped in Year 1 and Year 10 (nDiv = TRUE).
-  ! Dividend pass runs before market resolution so players
-  ! receive dividends at pre-resolution prices per spec Sec 6.
-  ! ==========================================================
-  IF NOT nDiv THEN
-
-    ! ---- Dividend and interest pass (Steps 1-2 per spec) ---
-    ! Capture cashBal before bulk apply for per-player display.
-    FOR p := 1 TO pCnt
-      cashBefA(p) := plyrs(p).cashBal
-    NEXT p
-
-    ! Load rates from local DATA (lines 700-710).
-    ! applyDivInt uses its own DATA; these copies are for the
-    ! per-player scrDivInt display computation only.
-    RESTORE 700
-    FOR s := 1 TO 9
-      READ divRate(s)
-    NEXT s
-    RESTORE 710
-    FOR b := 1 TO 3
-      READ bndRate(b)
-    NEXT b
-
-    ! Apply dividends and bond interest to all players at once.
-    RUN applyDivInt(cYear, pCnt, plyrs, mkt)
-
-    ! Show S9 dividend summary to each active player.
-    FOR p := 1 TO pCnt
-      IF NOT plyrs(p).isBankrupt THEN
-        totRcv := 0
-
-        ! Compute per-stock dividends matching applyDivInt logic.
-        FOR s := 1 TO 9
-          divRcv(s) := 0
-          IF NOT mkt.divSuspnd(s) THEN
-            IF divRate(s) > 0 THEN
-              IF plyrs(p).stckShrs(s) > 0 THEN
-                divRcv(s) := divRate(s) * plyrs(p).stckShrs(s)
-                totRcv := totRcv + divRcv(s)
-              ENDIF
-            ENDIF
-          ENDIF
-        NEXT s
-
-        ! Compute per-bond interest matching applyDivInt logic.
-        FOR b := 1 TO 3
-          bndRcv(b) := 0
-          IF plyrs(p).bondUnts(b) > 0 THEN
-            bndRcv(b) := bndRate(b) * plyrs(p).bondUnts(b)
-            totRcv := totRcv + bndRcv(b)
-          ENDIF
-        NEXT b
-
-        pNam    := plyrs(p).plyrName
-        cashBef := cashBefA(p)
-        ! Line exceeds 79 chars; RUN statement cannot be split.
-        RUN scrDivInt(cYear, pNam, cashBef, divRcv, bndRcv, totRcv, plyrs(p).cashBal, actByt)
-      ENDIF
-    NEXT p
-
-    ! ---- Margin interest pass (Step 3 per spec) ------------
-    ! Initialize forceLiq; re-capture cashBal before apply.
-    FOR p := 1 TO pCnt
-      forceLiq(p) := FALSE
-      cashBefA(p) := plyrs(p).cashBal
-    NEXT p
-
-    ! Deduct 5% annual charge; set forceLiq where cashBal < 0.
-    RUN applyMgnInt(cYear, pCnt, plyrs, forceLiq)
-
-    ! Show S10 margin screen to each player with outstanding margin.
-    FOR p := 1 TO pCnt
-      IF NOT plyrs(p).isBankrupt THEN
-        IF plyrs(p).marginTot > 0 THEN
-          pNam    := plyrs(p).plyrName
-          ! mgnChg: 5% = marginTot / 20. Safe for all INTEGER values.
-          ! Matches the formula used in applyMgnInt exactly.
-          mgnChg  := plyrs(p).marginTot / 20
-          cashBef := cashBefA(p)
-          ! Line exceeds 79 chars; RUN statement cannot be split.
-          RUN scrMgnInt(cYear, pNam, plyrs(p).marginTot, mgnChg, cashBef, plyrs(p).cashBal, forceLiq(p), actInt)
-          IF forceLiq(p) THEN
-            ! oblgRem = absolute value of negative cashBal.
-            oblgRem := 0 - plyrs(p).cashBal
-            bkRsn   := 1  \ ! margin interest triggered this path
-            GOSUB 500
-          ENDIF
-        ENDIF
-      ENDIF
-    NEXT p
-
-  ENDIF  \ ! NOT nDiv
-
-  ! ==========================================================
-  ! P3: Market resolution.
-  ! Steps: drawCard -> getCard -> scrCard -> doRolls ->
-  !        scrDice -> applyMktYear -> scrMktBoard ->
-  !        scrSplit/scrDivFlag per stock -> Card 1 divBonus.
-  ! ==========================================================
-
-  ! ---- Step 3: Draw and decode situation card --------------
-  RUN drawCard(deckOrd, hdr.deckPos, cardId)
-  RUN getCard(cardId, crd)
-
-  ! ---- Step 4: Display situation card (S11) ----------------
-  ! flavTxt is a stub empty string; swapped in Task 14.2.
-  flavTxt := ""
-  RUN scrCard(cardId, crd, flavTxt, actByt)
-
-  ! ---- Step 5: Generate dice rolls and display (S12) -------
-  RUN doRolls(rMode, cYear, dOne, dTwo, rTot, rCnt, oAct)
-
-  ! Copy BYTE roll totals to INTEGER array for applyMktYear.
-  FOR s := 1 TO 9
-    rolls(s) := rTot(s)
-  NEXT s
-
-  ! hdr.rollMode passed directly (BYTE field -> BYTE param).
-  RUN scrDice(hdr.rollMode, rCnt, dOne, dTwo, rTot, actByt)
-
-  ! ---- Steps 6-8: Apply price resolution and display (S13) -
-  ! Line exceeds 79 chars; RUN statement cannot be split.
-  RUN applyMktYear(cardId, rolls, pCnt, plyrs, mkt, prcBef, mktDlt, crdDlt, spOcc, dvSusp, dvRnst)
-  ! Line exceeds 79 chars; RUN statement cannot be split.
-  RUN scrMktBoard(prcBef, mktDlt, crdDlt, mkt.stckPrice, spOcc, dvSusp, dvRnst, actByt)
-
-  ! ---- S14/S15: Split and dividend flag notifications ------
-  ! For each stock: show scrSplit if split occurred (S14);
-  ! show scrDivFlag if dividend status changed (S15).
-  FOR s := 1 TO 9
-    IF spOcc(s) THEN
-      ! Build player arrays for scrSplit display.
-      ! applyMktYear already doubled stckShrs(s) on split;
-      ! shrBf = current / 2 restores the pre-split count.
-      FOR p := 1 TO pCnt
-        pNames(p) := plyrs(p).plyrName
-        shrAf(p)  := plyrs(p).stckShrs(s)
-        shrBf(p)  := plyrs(p).stckShrs(s) / 2
-      NEXT p
-      ! Pre-split price = post-split price * 2 (integer safe).
-      oDPrc := mkt.stckPrice(s) * 2
-      ! Read stock name at position s from DATA 720.
-      RESTORE 720
-      FOR tInt := 1 TO s
-        READ sNam
-      NEXT tInt
-      ! Line exceeds 79 chars; RUN statement cannot be split.
-      RUN scrSplit(sNam, oDPrc, mkt.stckPrice(s), pCnt, pNames, shrBf, shrAf, actByt)
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  IF nm = procNam THEN
+    IF depIdx = 0 THEN
+      READ result
+      FOR i := 1 TO 8
+        READ tmp
+      NEXT i
+    ELSE
+      READ tmp \ ! skip modName field
+      FOR i := 1 TO depIdx - 1
+        READ tmp \ ! skip deps before target index
+      NEXT i
+      READ result
+      FOR i := depIdx + 1 TO 8
+        READ tmp \ ! skip deps after target index
+      NEXT i
     ENDIF
-    IF dvSusp(s) OR dvRnst(s) THEN
-      ! Read stock name at position s from DATA 720.
-      RESTORE 720
-      FOR tInt := 1 TO s
-        READ sNam
-      NEXT tInt
-      IF dvSusp(s) THEN
-        evTyp := 1
-      ELSE
-        evTyp := 2
-      ENDIF
-      RUN scrDivFlag(sNam, evTyp, mkt.stckPrice(s), 50, actByt)
-    ENDIF
-  NEXT s
-
-  ! ---- Card 1 dividend bonus (Years 2-9 only) --------------
-  ! crd.divBonus > 0 only for Card 1 (spec Section 4.3).
-  ! Bonus is per share held across all 9 stocks per player.
-  IF crd.divBonus > 0 AND cYear > 1 AND cYear < 10 THEN
-    FOR p := 1 TO pCnt
-      IF NOT plyrs(p).isBankrupt THEN
-        FOR s := 1 TO 9
-          IF plyrs(p).stckShrs(s) > 0 THEN
-            ! Line exceeds 79 chars; RUN statement cannot be split.
-            plyrs(p).cashBal := plyrs(p).cashBal + (plyrs(p).stckShrs(s) * crd.divBonus)
-          ENDIF
-        NEXT s
-      ENDIF
-    NEXT p
+    found := TRUE
+  ELSE
+    FOR i := 1 TO 9
+      READ tmp \ ! skip remaining 9 fields of non-matching record
+    NEXT i
   ENDIF
-
-  ! ==========================================================
-  ! P4-B: Sell phase.
-  ! Skipped in Year 1 (nSell = TRUE).
-  ! Human players: scrSell -> applySells.
-  ! AI players: aiSell -> applySells -> scrAITurn.
-  ! Post-sell: check margin call per stock per player.
-  ! ==========================================================
-  IF NOT nSell THEN
-
-    FOR p := 1 TO pCnt
-      IF NOT plyrs(p).isBankrupt THEN
-        pNam   := plyrs(p).plyrName
-        ordCnt := 0
-
-        IF plyrs(p).plyrType = 1 THEN
-
-          ! ---- Human sell phase ----------------------------
-          RUN scrSell(cYear, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actByt)
-          IF ordCnt > 0 THEN
-            RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
-          ENDIF
-
-        ELSE
-
-          ! ---- AI sell phase -------------------------------
-          tInt := plyrs(p).aiTier
-          RUN initAIProf(tInt, prof)
-          RUN aiSell(cYear, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
-          IF ordCnt > 0 THEN
-            RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
-          ENDIF
-          ! Build decAct: all sell-phase AI orders are SELL (code 1).
-          FOR tInt := 1 TO ordCnt
-            decAct(tInt) := 1
-          NEXT tInt
-          ! actByt := 1 stages phase=SELL (BYTE) for scrAITurn.
-          actByt := 1
-          RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
-
-        ENDIF
-
-        ! ---- Post-sell margin call check ------------------
-        ! Trigger if any margin-held stock is at or below $25.
-        ! bkRsn := 2 = MARGIN_CALL for scrBankrupt in GOSUB 600.
-        FOR s := 1 TO 9
-          IF plyrs(p).mgnHeld(s) THEN
-            IF mkt.stckPrice(s) <= 25 THEN
-              ! Read stock name s from DATA 720 into STRING[12],
-              ! then widen to STRING[14] for scrMgnCall param.
-              RESTORE 720
-              FOR tInt := 1 TO s
-                READ sNam
-              NEXT tInt
-              sNam14  := sNam
-              bkRsn   := 2
-              RUN scrMgnCall(pNam, sNam14, mkt.stckPrice(s), 25, plyrs(p).marginTot)
-              oblgRem := plyrs(p).marginTot
-              GOSUB 500
-            ENDIF
-          ENDIF
-        NEXT s
-
-      ENDIF
-    NEXT p
-
-  ENDIF  \ ! NOT nSell
-
-  ! ==========================================================
-  ! P4-C: Year 10 margin clearance gate and buy phase.
-  ! Clearance: all players with marginTot > 0 must clear
-  ! before the buy phase opens. Loop re-enters scrMgnClr
-  ! until marginTot = 0 or player declares bankruptcy.
-  ! Buy phase: human via scrBuy; AI via aiBuy + scrAITurn.
-  ! mgnYrOk is FALSE in Year 10; no new margin purchases.
-  ! ==========================================================
-
-  mgnYrOk := TRUE
-  IF cYear = 10 THEN
-    mgnYrOk := FALSE
-  ENDIF
-
-  ! ---- Year 10 forced margin clearance (S23) ---------------
-  IF cYear = 10 THEN
-    FOR p := 1 TO pCnt
-      IF NOT plyrs(p).isBankrupt THEN
-        pNam := plyrs(p).plyrName
-        LOOP
-          EXITIF plyrs(p).marginTot <= 0 THEN
-          ENDEXIT
-          RUN scrMgnClr(plyrs(p), mkt, mgnClrAct)
-          IF mgnClrAct = 2 THEN
-            bkRsn := 2  \ ! margin call / forced clearance
-            GOSUB 600
-            EXITIF TRUE THEN
-            ENDEXIT
-          ENDIF
-        ENDLOOP
-      ENDIF
-    NEXT p
-  ENDIF
-
-  ! ---- Buy phase (all years including Year 10) --------------
-  FOR p := 1 TO pCnt
-    IF NOT plyrs(p).isBankrupt THEN
-      pNam    := plyrs(p).plyrName
-      ordCnt  := 0
-      mgnRpy  := 0
-      mgnElig := plyrs(p).hadCashPur
-
-      IF plyrs(p).plyrType = 1 THEN
-
-        ! ---- Human buy phase --------------------------------
-        RUN scrBuy(cYear, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
-        IF mgnRpy > 0 THEN
-          plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
-          plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
-        ENDIF
-        IF ordCnt > 0 THEN
-          RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
-        ENDIF
-
-      ELSE
-
-        ! ---- AI buy phase -----------------------------------
-        tInt := plyrs(p).aiTier
-        RUN initAIProf(tInt, prof)
-        ! Line exceeds 79 chars; RUN statement cannot be split.
-        RUN aiBuy(cYear, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
-        IF mgnRpy > 0 THEN
-          plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
-          plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
-        ENDIF
-        IF ordCnt > 0 THEN
-          RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
-        ENDIF
-
-        ! Build decAct for scrAITurn: BUY=2 per order.
-        ! If mgnRpy > 0, append a REPAY entry after buy orders.
-        FOR tInt := 1 TO ordCnt
-          decAct(tInt) := 2
-        NEXT tInt
-        decCnt := ordCnt
-        IF mgnRpy > 0 THEN
-          IF decCnt < 12 THEN
-            decCnt             := decCnt + 1
-            decAct(decCnt)     := 3  \ ! REPAY
-            ordTyp(decCnt)     := 0  \ ! N/A for repay entry
-            ordId(decCnt)      := 0
-            ordQty(decCnt)     := mgnRpy
-          ENDIF
-        ENDIF
-        ! actByt := 2 stages phase=BUY (BYTE) for scrAITurn.
-        actByt := 2
-        RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, decCnt)
-
-      ENDIF
-    ENDIF
-  NEXT p
-
-  cYear := cYear + 1
 ENDLOOP
 
-! ==========================================================
-! P5: Endgame sequence.
-! Reached when EXITIF cYear > 10 OR gameOver fires.
-! scrWealth computes wlth and srtOrd; scrWinner reads them.
-! pgAct returned to caller (SNBMAIN) for routing.
-! ==========================================================
-RUN scrFinalMkt(mkt)
-RUN scrWealth(plyrs, pCnt, mkt, wlth, srtOrd)
-RUN scrWinner(plyrs, pCnt, wlth, srtOrd)
-RUN scrPostGame(pgAct)
+END
+
+! ---- Proc-to-module map (10 fields per record) ------
+! Format: procName, moduleName, modDep1..modDep8
+! modDep fields list the packed modules that the
+! procedure's own module depends on at runtime.
+! Unused dep slots are padded with "".
+! End sentinel record begins with ".".
+
+! --- snbUtil (no deps) ---
+100 DATA "clrScr","snbUtil","","","","","","","",""
+101 DATA "printAt","snbUtil","","","","","","","",""
+102 DATA "fmtMoney","snbUtil","","","","","","","",""
+103 DATA "getMenuKey","snbUtil","","","","","","","",""
+104 DATA "waitKey","snbUtil","","","","","","","",""
+105 DATA "getNumIn","snbUtil","","","","","","","",""
+! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
+106 DATA "SNB","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+107 DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+108 DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+109 DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+110 DATA "scrGameOver","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+111 DATA "scrSetup","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+112 DATA "scrConfirm","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+! --- snbSaveLoad (deps: snbUtil) ---
+113 DATA "saveGame","snbSaveLoad","snbUtil","","","","","","",""
+114 DATA "loadGame","snbSaveLoad","snbUtil","","","","","","",""
+! --- snbEndGame (deps: snbUtil) ---
+115 DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","",""
+116 DATA "scrWealth","snbEndGame","snbUtil","","","","","","",""
+117 DATA "scrWinner","snbEndGame","snbUtil","","","","","","",""
+118 DATA "scrPostGame","snbEndGame","snbUtil","","","","","","",""
+! --- snbLoop (deps: all operational modules) ---
+! Record spans two DATA lines; 5 fields each = 10 total.
+119 DATA "runYearLoop","snbLoop","snbUtil","snbMktEng","snbMktScr"
+120 DATA "snbTrade","snbMargin","snbAI","snbEndGame","snbSaveLoad"
+! --- snbMktEng (deps: snbUtil) ---
+121 DATA "getMktDelta","snbMktEng","snbUtil","","","","","","",""
+122 DATA "getCard","snbMktEng","snbUtil","","","","","","",""
+123 DATA "resolvePrice","snbMktEng","snbUtil","","","","","","",""
+124 DATA "applyMktYear","snbMktEng","snbUtil","","","","","","",""
+125 DATA "applyDivInt","snbMktEng","snbUtil","","","","","","",""
+126 DATA "applyMgnInt","snbMktEng","snbUtil","","","","","","",""
+127 DATA "drawCard","snbMktEng","snbUtil","","","","","","",""
+128 DATA "shuffleDeck","snbMktEng","snbUtil","","","","","","",""
+129 DATA "doRolls","snbMktEng","snbUtil","","","","","","",""
+! --- snbMktScr (deps: snbUtil, snbMktEng) ---
+130 DATA "scrYearHdr","snbMktScr","snbUtil","snbMktEng","","","","","",""
+131 DATA "scrDivInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
+132 DATA "scrMgnInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
+133 DATA "scrCard","snbMktScr","snbUtil","snbMktEng","","","","","",""
+134 DATA "scrDice","snbMktScr","snbUtil","snbMktEng","","","","","",""
+135 DATA "scrMktBoard","snbMktScr","snbUtil","snbMktEng","","","","","",""
+136 DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","",""
+137 DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","",""
+! --- snbTrade (deps: snbUtil) ---
+138 DATA "scrSell","snbTrade","snbUtil","","","","","","",""
+139 DATA "scrBuy","snbTrade","snbUtil","","","","","","",""
+140 DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","",""
+141 DATA "scrAITurn","snbTrade","snbUtil","","","","","","",""
+142 DATA "applySells","snbTrade","snbUtil","","","","","","",""
+143 DATA "applyBuys","snbTrade","snbUtil","","","","","","",""
+! --- snbMargin (deps: snbUtil, snbTrade) ---
+144 DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","",""
+145 DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","",""
+146 DATA "scrForceLiq","snbMargin","snbUtil","snbTrade","","","","","",""
+147 DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","",""
+148 DATA "scrMgnClr","snbMargin","snbUtil","snbTrade","","","","","",""
+! --- snbAI (deps: snbUtil) ---
+149 DATA "initAIProf","snbAI","snbUtil","","","","","","",""
+150 DATA "aiSell","snbAI","snbUtil","","","","","","",""
+151 DATA "aiBuy","snbAI","snbUtil","","","","","","",""
+! --- end sentinel ---
+152 DATA ".",".",  "","","","","","","",""
+
+900 ERROR(ERR)
+END
+
+PROCEDURE memModGet
+(* ================================================== *)
+(* PROCEDURE: memModGet                               *)
+(* PURPOSE:   Return the Nth procedure name in a     *)
+(*            packed module. prcIdx=1..12. Returns   *)
+(*            "" when prcIdx exceeds the module's    *)
+(*            procedure count, or if modNam is not   *)
+(*            found.                                 *)
+(*            Used by memReport to enumerate procs   *)
+(*            for presence checks, and by memRelease *)
+(*            to enumerate procs for F$UnLoad.       *)
+(* PARAMS:    modNam  - packed module name           *)
+(*            prcIdx  - procedure index (1..12)      *)
+(*            result  - returned procedure name      *)
+(* DATA:      13 fields per record:                  *)
+(*              modName, proc1..proc12               *)
+(*            Unused proc slots padded with "".      *)
+(*            End sentinel: record starting with "." *)
+(* ================================================== *)
+PARAM modNam : STRING[20]
+PARAM prcIdx : INTEGER
+PARAM result : STRING[20]
+DIM nm    : STRING[20]
+DIM tmp   : STRING[20]
+DIM i     : INTEGER
+DIM found : BOOLEAN
+
+ON ERROR GOTO 900
+
+result := ""
+found  := FALSE
+
+RESTORE 100
+LOOP
+  EXITIF found THEN
+  ENDEXIT
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  IF nm = modNam THEN
+    FOR i := 1 TO prcIdx - 1
+      READ tmp \ ! skip procs before target index
+    NEXT i
+    READ result
+    FOR i := prcIdx + 1 TO 12
+      READ tmp \ ! skip procs after target index
+    NEXT i
+    found := TRUE
+  ELSE
+    FOR i := 1 TO 12
+      READ tmp \ ! skip all 12 proc slots
+    NEXT i
+  ENDIF
+ENDLOOP
 
 END
 
-! ==========================================================
-! GOSUB 500 - Forced liquidation sub-loop.
-! Entry: p       = current player index
-!        oblgRem = obligation amount (positive INTEGER)
-!        bkRsn   = reason code for scrBankrupt if triggered
-!        pNam    = player name (already staged by caller)
-! Loops scrForceLiq until obligation cleared, player declares
-! bankruptcy (liqAct=2), or no orders submitted with obligation
-! still outstanding (implicit bankruptcy).
-! ==========================================================
-500 LOOP
-      ! Line exceeds 79 chars; RUN statement cannot be split.
-      RUN scrForceLiq(pNam, oblgRem, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, liqAct)
-      IF liqAct = 2 THEN
-        GOSUB 600
-        RETURN
+! ---- Module-to-procs map (13 fields per record) -----
+! Format: modName, proc1..proc12
+! Unused proc slots padded with "".
+! End sentinel record begins with ".".
+
+! --- snbUtil (6 procs) ---
+100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
+101 DATA "waitKey","getNumIn","","","","","",""
+! --- snbSetup (7 procs) ---
+102 DATA "snbSetup","SNB","initPlayer","initMkt","scrStart"
+103 DATA "scrGameOver","scrSetup","scrConfirm","","","","",""
+! --- snbSaveLoad (2 procs) ---
+104 DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","","",""
+! --- snbEndGame (4 procs) ---
+105 DATA "snbEndGame","scrFinalMkt","scrWealth","scrWinner","scrPostGame"
+106 DATA "","","","","","","",""
+! --- snbLoop (1 proc) ---
+107 DATA "snbLoop","runYearLoop","","","","","","","","","","",""
+! --- snbMktEng (9 procs) ---
+108 DATA "snbMktEng","getMktDelta","getCard","resolvePrice","applyMktYear"
+109 DATA "applyDivInt","applyMgnInt","drawCard","shuffleDeck","doRolls"
+110 DATA "","",""
+! --- snbMktScr (8 procs) ---
+111 DATA "snbMktScr","scrYearHdr","scrDivInt","scrMgnInt","scrCard"
+112 DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","","",""
+! --- snbTrade (6 procs) ---
+113 DATA "snbTrade","scrSell","scrBuy","scrMgnRepay","scrAITurn"
+114 DATA "applySells","applyBuys","","","","","",""
+! --- snbMargin (5 procs) ---
+115 DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrForceLiq","scrBankrupt"
+116 DATA "scrMgnClr","","","","","","",""
+! --- snbAI (3 procs) ---
+117 DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","","",""
+! --- end sentinel ---
+118 DATA ".","","","","","","","","","","","",""
+
+900 ERROR(ERR)
+END
+
+PROCEDURE memReport
+(* ================================================== *)
+(* PROCEDURE: memReport                               *)
+(* PURPOSE:   Display current process memory and     *)
+(*            loaded status for each game module.    *)
+(*            Uses F$Mem to get total process memory.*)
+(*            For each module, attempts F$Link on    *)
+(*            the module's first procedure; reports  *)
+(*            LOADED or not loaded. Undoes test link *)
+(*            immediately if link succeeds.          *)
+(* PARAMS:    None                                   *)
+(* SIDE EFX  : Prints to stdout. Does not modify     *)
+(*            module load state.                     *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nm       : STRING[20]
+DIM iCC      : INTEGER
+DIM hiB      : INTEGER
+DIM loB      : INTEGER
+DIM i        : INTEGER
+DIM firstPrc : STRING[20]
+DIM nameAddr : INTEGER
+
+ON ERROR GOTO 900
+
+! --- Display total process memory via F$Mem ----------
+callCode := $07 \ ! F$Mem: query process memory size
+regs.a   := 0
+regs.b   := 0
+RUN SysCall(callCode, regs)
+hiB := regs.a \ ! Stage BYTE fields to INTEGER for PRINT
+loB := regs.b
+PRINT "=== MEMORY REPORT ==="
+PRINT "Process memory (hi:lo): "; hiB; " : "; loB
+PRINT
+
+! --- Check each module for resident status -----------
+PRINT "Module          Status"
+PRINT "--------------------"
+RESTORE 100
+LOOP
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  GOSUB 800
+ENDLOOP
+
+PRINT
+END
+
+800 \ ! GOSUB: check if module nm is loaded; print result.
+    ! Gets first proc of nm via memModGet; tries F$Link on it.
+    ! If F$Link succeeds (carry clear): module is resident;
+    ! undo test link with F$UnLink and report LOADED.
+    RUN memModGet(nm, 1, firstPrc)
+    IF firstPrc = "" THEN
+      PRINT nm; ": unknown module"
+      RETURN
+    ENDIF
+    nameAddr := ADDR(firstPrc)
+    callCode := $00 \ ! F$Link: test for residency by name
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+      PRINT nm; ": LOADED"
+    ELSE
+      PRINT nm; ": not loaded"
+    ENDIF
+    RETURN
+
+! Module names to check (one per line; "." sentinel)
+100 DATA "snbUtil"
+101 DATA "snbSetup"
+102 DATA "snbSaveLoad"
+103 DATA "snbEndGame"
+104 DATA "snbLoop"
+105 DATA "snbMktEng"
+106 DATA "snbMktScr"
+107 DATA "snbTrade"
+108 DATA "snbMargin"
+109 DATA "snbAI"
+110 DATA "."
+
+900 PRINT "memReport error ("; ERR; ")"
+ERROR(ERR)
+END
+
+PROCEDURE memEnsure
+(* ================================================== *)
+(* PROCEDURE: memEnsure                               *)
+(* PURPOSE:   Ensure a procedure and all modules its *)
+(*            module depends on are resident before  *)
+(*            the procedure is called. Resolves one  *)
+(*            level of module dependencies via the   *)
+(*            memMapGet data table.                  *)
+(*            For each module (own + deps): tries    *)
+(*            F$Link to check residency. If not      *)
+(*            resident, loads via F$Load. F$Link     *)
+(*            success is immediately undone to avoid *)
+(*            inflating the link count.              *)
+(*            ok=FALSE if procNam not found in map.  *)
+(* PARAMS:    procNam - procedure name to prepare    *)
+(*            ok      - TRUE if all loads succeeded  *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(*            snbUtil is assumed permanently loaded; *)
+(*            memEnsure still loads it if absent.   *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM procNam : STRING[20]
+PARAM ok      : BOOLEAN
+DIM modNam   : STRING[20]
+DIM depNam   : STRING[20]
+DIM pNam     : STRING[20]
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nameAddr : INTEGER
+DIM iCC      : INTEGER
+DIM i        : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! Resolve own module name from the map
+RUN memMapGet(procNam, 0, modNam)
+IF modNam = "" THEN
+  PRINT "memEnsure: proc not in map: "; procNam
+  GOTO 900
+ENDIF
+
+! Load own module
+pNam := modNam
+GOSUB 800
+
+! Load each module dependency (depIdx 1..8)
+i := 1
+LOOP
+  EXITIF i > 8 THEN
+  ENDEXIT
+  RUN memMapGet(procNam, i, depNam)
+  EXITIF depNam = "" THEN
+  ENDEXIT
+  pNam := depNam
+  GOSUB 800
+  i := i + 1
+ENDLOOP
+
+ok := TRUE
+END
+
+800 \ ! GOSUB: load module pNam if not already resident.
+    ! Step 1: F$Link to test if module is resident.
+    !         Carry clear = success (already loaded).
+    !         Immediately F$UnLink to undo test link.
+    ! Step 2: If F$Link failed, F$Load from disk.
+    !         Carry set after F$Load = load failed;
+    !         print warning but do not abort (ok stays
+    !         TRUE; caller decides if proc is critical).
+    nameAddr := ADDR(pNam)
+    callCode := $00 \ ! F$Link: check residency by name
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+    ELSE
+      callCode := $01 \ ! F$Load: load module from disk
+      regs.a   := 0
+      regs.x   := nameAddr
+      RUN SysCall(callCode, regs)
+      iCC := regs.cc
+      IF LAND(iCC, 1) <> 0 THEN
+        PRINT "memEnsure: load failed: "; pNam
       ENDIF
-      IF ordCnt > 0 THEN
-        RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
+    ENDIF
+    RETURN
+
+900 PRINT "memEnsure error ("; ERR; ")"
+ERROR(ERR)
+END
+
+PROCEDURE memRelease
+(* ================================================== *)
+(* PROCEDURE: memRelease                              *)
+(* PURPOSE:   Unload the module containing procNam   *)
+(*            and any of its module dependencies     *)
+(*            that are not in the keepMods list.     *)
+(*            snbUtil is never unloaded regardless   *)
+(*            of keepMods contents.                  *)
+(*            For each module to unload: iterates    *)
+(*            all its procedures via memModGet and   *)
+(*            issues F$UnLoad on each by name.       *)
+(*            ok=FALSE if procNam not found in map.  *)
+(* PARAMS:    procNam      - procedure being retired *)
+(*            keepMods(8)  - module names to retain  *)
+(*            keepCnt      - entries in keepMods     *)
+(*            ok           - TRUE on completion      *)
+(* NOTES:     STRING array PARAMs require hardware   *)
+(*            verification on NitrOS-9/6809.         *)
+(*            Caller must pass keepCnt=0 and an      *)
+(*            empty keepMods(8) if no modules are    *)
+(*            to be retained beyond snbUtil.         *)
+(*            F$UnLoad errors are silently ignored;  *)
+(*            module may have been already unloaded. *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM procNam     : STRING[20]
+PARAM keepMods(8) : STRING[20]
+PARAM keepCnt     : INTEGER
+PARAM ok          : BOOLEAN
+DIM ownMod   : STRING[20]
+DIM modNam   : STRING[20]
+DIM depNam   : STRING[20]
+DIM prcNam   : STRING[20]
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nameAddr : INTEGER
+DIM iCC      : INTEGER
+DIM i        : INTEGER
+DIM j        : INTEGER
+DIM keep     : BOOLEAN
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! Resolve own module name
+RUN memMapGet(procNam, 0, ownMod)
+IF ownMod = "" THEN
+  PRINT "memRelease: proc not in map: "; procNam
+  GOTO 900
+ENDIF
+
+! snbUtil is never unloaded
+IF ownMod = "snbUtil" THEN
+  ok := TRUE
+  END
+ENDIF
+
+! Check if own module is in the keep list
+keep := FALSE
+FOR i := 1 TO keepCnt
+  IF keepMods(i) = ownMod THEN
+    keep := TRUE
+  ENDIF
+NEXT i
+IF NOT keep THEN
+  modNam := ownMod
+  GOSUB 810
+ENDIF
+
+! Process each module dependency
+i := 1
+LOOP
+  EXITIF i > 8 THEN
+  ENDEXIT
+  RUN memMapGet(procNam, i, depNam)
+  EXITIF depNam = "" THEN
+  ENDEXIT
+  IF depNam <> "snbUtil" THEN
+    keep := FALSE
+    FOR j := 1 TO keepCnt
+      IF keepMods(j) = depNam THEN
+        keep := TRUE
       ENDIF
-      EXITIF oblgRem <= 0 THEN
+    NEXT j
+    IF NOT keep THEN
+      modNam := depNam
+      GOSUB 810
+    ENDIF
+  ENDIF
+  i := i + 1
+ENDLOOP
+
+ok := TRUE
+END
+
+810 \ ! GOSUB: F$UnLoad all procs in module modNam.
+    ! Uses memModGet to enumerate proc names (indices 1..12).
+    ! Stops at first empty result (no more procs in module).
+    ! F$UnLoad errors ignored; proc may already be absent.
+    j := 1
+    LOOP
+      EXITIF j > 12 THEN
       ENDEXIT
-      ! ordCnt=0 with oblgRem>0: no assets remain; force bankruptcy.
-      IF ordCnt = 0 THEN
-        GOSUB 600
-        RETURN
-      ENDIF
+      RUN memModGet(modNam, j, prcNam)
+      EXITIF prcNam = "" THEN
+      ENDEXIT
+      nameAddr := ADDR(prcNam)
+      callCode := $1D \ ! F$UnLoad: unlink module by name
+      regs.a   := 0
+      regs.x   := nameAddr
+      RUN SysCall(callCode, regs)
+      j := j + 1
     ENDLOOP
     RETURN
 
-! ==========================================================
-! GOSUB 600 - Bankruptcy handler.
-! Entry: p     = current player index
-!        bkRsn = reason: 1=MARGIN_INTEREST 2=MARGIN_CALL
-! scrBankrupt sets plyrs(p).isBankrupt := TRUE internally.
-! Decrements activeCnt; sets gameOver when one player remains.
-! ==========================================================
-600 RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, bkRsn, cYear)
-    activeCnt := activeCnt - 1
-    IF activeCnt <= 1 THEN
-      gameOver := TRUE
-    ENDIF
-    RETURN
-
-! Dividend per share per stock 1..9 (spec Section 2.1).
-! GrwCorp Metro Pioneer Shady Stryker TriCity UAuto Uranium ValPwr
-700 DATA 1, 0, 4, 7, 0, 0, 2, 6, 3
-
-! Annual bond interest per unit for bonds 1..3 (spec Sec 2.2).
-! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
-710 DATA 50, 250, 500
-
-! Stock names 1..9 for split and dividend flag screens.
-! Used via RESTORE 720 + sequential READ in P3 loops.
-720 DATA "Growth Corp","Metro Props","Pioneer Mut"
-721 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
-722 DATA "United Auto","Uranium Ent","Valley Power"
-
-900 ERROR(ERR)
+900 PRINT "memRelease error ("; ERR; ")"
+ERROR(ERR)
 END

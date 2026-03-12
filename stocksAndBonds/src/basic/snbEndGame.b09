@@ -1,0 +1,272 @@
+
+PROCEDURE scrFinalMkt
+(* ============================================================ *)
+(* PROCEDURE : scrFinalMkt                                      *)
+(* PURPOSE   : S24 Final Market Board. Displays all 9 stocks   *)
+(*             with final prices and dividend status after      *)
+(*             Year 10 market resolution. No dividends or       *)
+(*             interest shown; Year 10 exemption per spec       *)
+(*             Section 13.                                      *)
+(* PARAMS    : mkt - final market state (read-only)            *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* ============================================================ *)
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM mkt : MktState
+
+DIM sNam(9) : STRING[14]
+DIM s       : INTEGER
+DIM pStr    : STRING[8]
+
+ON ERROR GOTO 900
+
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+
+RUN clrScr
+PRINT "=== FINAL MARKET BOARD (S24) ==="
+PRINT
+PRINT " #  STOCK          PRICE  STATUS"
+PRINT " -  -------------  -----  --------"
+
+FOR s := 1 TO 9
+  RUN fmtMoney(mkt.stckPrice(s), pStr)
+  PRINT " "; s; "  "; sNam(s); "  "; pStr; "  ";
+  IF mkt.stckPrice(s) = 0 THEN
+    PRINT "BANKRUPT"
+  ELSE IF mkt.divSuspnd(s) THEN
+    PRINT "DIV SUSP"
+  ELSE
+    PRINT "OK"
+  ENDIF \ENDIF
+NEXT s
+
+PRINT
+RUN waitKey
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrWealth
+(* ============================================================ *)
+(* PROCEDURE : scrWealth                                        *)
+(* PURPOSE   : S25 Final Wealth Summary. Computes totalWealth  *)
+(*             per spec Section 13 for each player, sorts      *)
+(*             players descending by totalWealth, and displays  *)
+(*             cash / stock / bond / total breakdown per       *)
+(*             player in rank order. Bankrupt players are       *)
+(*             included in display but flagged.                *)
+(*             totalWealth = cashBal                           *)
+(*               + sum(stckShrs(i) * stckPrice(i)) for i=1..9 *)
+(*               + sum(bondUnts(j) * parVal(j))    for j=1..3 *)
+(* PARAMS    : plyrs     - all player records (read-only)      *)
+(*             plyrCount - number of players (1..6)            *)
+(*             mkt       - final market state (read-only)      *)
+(*             wlth      - output: wealth indexed by plyr slot *)
+(*             srtOrd    - output: player slots desc by wealth *)
+(* NOTE      : INTEGER overflow if totalWealth exceeds 32767.  *)
+(*             Bounded by game rules; not enforced here.       *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM plyrs(6)  : PlyrRec
+PARAM plyrCount : INTEGER
+PARAM mkt       : MktState
+PARAM wlth(6)   : INTEGER
+PARAM srtOrd(6) : INTEGER
+
+DIM bPar(3)  : INTEGER
+DIM s        : INTEGER
+DIM i        : INTEGER
+DIM j        : INTEGER
+DIM p        : INTEGER
+DIM maxPos   : INTEGER
+DIM tmp      : INTEGER
+DIM stckVal  : INTEGER
+DIM bndVal   : INTEGER
+DIM pStr     : STRING[8]
+
+ON ERROR GOTO 900
+
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+
+! --- Compute totalWealth per player slot --------------------
+FOR i := 1 TO plyrCount
+  wlth(i) := plyrs(i).cashBal
+  FOR s := 1 TO 9
+    wlth(i) := wlth(i) + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
+  NEXT s
+  FOR j := 1 TO 3
+    wlth(i) := wlth(i) + (plyrs(i).bondUnts(j) * bPar(j))
+  NEXT j
+NEXT i
+
+! --- Init sort order (1..plyrCount) -------------------------
+FOR i := 1 TO plyrCount
+  srtOrd(i) := i
+NEXT i
+
+! --- Selection sort descending by wlth ----------------------
+FOR i := 1 TO plyrCount - 1
+  maxPos := i
+  FOR j := i + 1 TO plyrCount
+    IF wlth(srtOrd(j)) > wlth(srtOrd(maxPos)) THEN
+      maxPos := j
+    ENDIF
+  NEXT j
+  IF maxPos <> i THEN
+    tmp           := srtOrd(i)
+    srtOrd(i)     := srtOrd(maxPos)
+    srtOrd(maxPos) := tmp
+  ENDIF
+NEXT i
+
+! --- Display ranked results ---------------------------------
+RUN clrScr
+PRINT "=== FINAL WEALTH SUMMARY (S25) ==="
+PRINT
+
+FOR p := 1 TO plyrCount
+  i := srtOrd(p)
+
+  ! Compute stock and bond components for display.
+  stckVal := 0
+  FOR s := 1 TO 9
+    stckVal := stckVal + (plyrs(i).stckShrs(s) * mkt.stckPrice(s))
+  NEXT s
+  bndVal := 0
+  FOR j := 1 TO 3
+    bndVal := bndVal + (plyrs(i).bondUnts(j) * bPar(j))
+  NEXT j
+
+  PRINT " "; p; "  "; plyrs(i).plyrName
+  RUN fmtMoney(plyrs(i).cashBal, pStr)
+  PRINT "    Cash:"; pStr; "  ";
+  RUN fmtMoney(stckVal, pStr)
+  PRINT "Stk:"; pStr; "  ";
+  RUN fmtMoney(bndVal, pStr)
+  PRINT "Bnd:"; pStr; "  ";
+  RUN fmtMoney(wlth(i), pStr)
+  PRINT "Tot:"; pStr
+  IF plyrs(i).isBankrupt THEN
+    PRINT "    [BANKRUPT]"
+  ENDIF
+  PRINT
+NEXT p
+
+RUN waitKey
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrWinner
+(* ============================================================ *)
+(* PROCEDURE : scrWinner                                        *)
+(* PURPOSE   : S26 Winner Declaration. Finds the highest       *)
+(*             totalWealth among non-bankrupt players and       *)
+(*             declares all players at that value as winners.  *)
+(*             Tie: two or more players share highest wealth   *)
+(*             (spec Section 13). Bankrupt players excluded    *)
+(*             from winner consideration (spec Section 12).    *)
+(* PARAMS    : plyrs     - all player records (read-only)      *)
+(*             plyrCount - number of players (1..6)            *)
+(*             wlth      - totalWealth per player slot         *)
+(*             srtOrd    - player slots in descending order    *)
+(*                         (output of scrWealth)               *)
+(* SIDE EFX  : Clears screen. Returns after waitKey.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+PARAM plyrs(6)  : PlyrRec
+PARAM plyrCount : INTEGER
+PARAM wlth(6)   : INTEGER
+PARAM srtOrd(6) : INTEGER
+
+DIM i    : INTEGER
+DIM topW : INTEGER
+DIM pStr : STRING[8]
+
+ON ERROR GOTO 900
+
+! Find highest wealth among non-bankrupt players.
+! -32767 sentinel: no valid wealth can be lower after liquidation.
+topW := -32767
+FOR i := 1 TO plyrCount
+  IF NOT plyrs(i).isBankrupt THEN
+    IF wlth(i) > topW THEN
+      topW := wlth(i)
+    ENDIF
+  ENDIF
+NEXT i
+
+RUN clrScr
+PRINT "=== WINNER DECLARATION (S26) ==="
+PRINT
+
+IF topW = -32767 THEN
+  ! Degenerate: all players bankrupt.
+  PRINT "  No winner: all players eliminated."
+ELSE
+  RUN fmtMoney(topW, pStr)
+  PRINT "  WINNER(S) with total wealth $"; pStr
+  PRINT
+  ! Iterate srtOrd so winners display in rank order.
+  FOR i := 1 TO plyrCount
+    IF NOT plyrs(srtOrd(i)).isBankrupt THEN
+      IF wlth(srtOrd(i)) = topW THEN
+        PRINT "  *** "; plyrs(srtOrd(i)).plyrName; " ***"
+      ENDIF
+    ENDIF
+  NEXT i
+ENDIF
+
+PRINT
+RUN waitKey
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE scrPostGame
+(* ============================================================ *)
+(* PROCEDURE : scrPostGame                                      *)
+(* PURPOSE   : S27 Post-Game Menu. Presents options to start   *)
+(*             a new game, load a saved game, or quit.         *)
+(* PARAMS    : action - receives selection on return:          *)
+(*               1 = New Game                                 *)
+(*               2 = Load Game                                *)
+(*               3 = Quit                                     *)
+(* SIDE EFX  : Clears screen. Blocks until valid key.          *)
+(* ============================================================ *)
+PARAM action : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  GAME OVER"
+PRINT "  ========="
+PRINT
+PRINT "  1. New Game"
+PRINT "  2. Load Game"
+PRINT "  3. Quit"
+PRINT
+PRINT "  Select (1-3): ";
+RUN getMenuKey(1, 3, action)
+PRINT
+END
+
+900 ERROR(ERR)
+END
