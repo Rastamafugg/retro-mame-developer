@@ -1,0 +1,225 @@
+PROCEDURE printAt
+(* ================================================== *)
+(* PROCEDURE: printAt                                 *)
+(* PURPOSE:   Position cursor and print text.        *)
+(* PARAMS:    row - target row offset (0-based)      *)
+(*            col - target column (1-based, per TAB) *)
+(*            txt - text to display                  *)
+(* EFFECTS:   Prints row newlines then TAB to col.   *)
+(*            Intended for use after clrScr.         *)
+(* NOTE:      row/col are INTEGER per bestPractices; *)
+(*            callers pass integer literals.         *)
+(* ================================================== *)
+PARAM row, col:INTEGER
+PARAM txt:STRING
+
+DIM r:INTEGER
+
+ON ERROR GOTO 900
+
+FOR r := 1 TO row
+  PRINT
+NEXT r
+PRINT TAB(col); txt
+END
+
+900 \ ! Error handler
+PRINT "printAt error ("; ERR; ")"
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE clrScr
+(* ================================================== *)
+(* PROCEDURE: clrScr                                  *)
+(* PURPOSE:   Clear the terminal screen via path 1.  *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Sends ASCII form-feed (12) to path 1.  *)
+(*            Cursor moves to top-left of terminal.  *)
+(* ================================================== *)
+DIM clsChar:BYTE
+
+ON ERROR GOTO 900
+
+clsChar := 12 \ ! ASCII form-feed clears terminal screen
+PUT #1, clsChar
+END
+
+900 \ ! Error handler
+PRINT "clrScr error ("; ERR; ")"
+END
+
+PROCEDURE fmtMoney
+(* ================================================== *)
+(* PROCEDURE: fmtMoney                                *)
+(* PURPOSE:   Right-justify an INTEGER into a 7-char *)
+(*            field, returned in result (STRING[8]). *)
+(* PARAMS:    amt    - value to format (INTEGER)      *)
+(*            result - receives formatted string      *)
+(* EFFECTS:   result is always exactly 7 characters. *)
+(*            Negative values include leading minus.  *)
+(* LIMITS:    Field width 7 holds -32767 to 32767.   *)
+(*            -32768 produces 8 chars and overflows. *)
+(* ================================================== *)
+PARAM amt:INTEGER
+PARAM result:STRING[8]
+
+DIM raw:STRING[8]
+DIM sLen:INTEGER
+DIM padLen:INTEGER
+DIM p:INTEGER
+
+ON ERROR GOTO 900
+
+raw := TRIM$(STR$(amt)) \ ! digit string, no trailing spaces
+sLen := LEN(raw)
+padLen := 7 - sLen
+
+result := ""
+FOR p := 1 TO padLen
+  result := result + " "
+NEXT p
+result := result + raw
+END
+
+900 \ ! Error handler
+PRINT "fmtMoney error ("; ERR; ")"
+END
+
+PROCEDURE getMenuKey
+(* ================================================== *)
+(* PROCEDURE: getMenuKey                              *)
+(* PURPOSE:   Block until a key in [minKey,maxKey]   *)
+(*            is pressed. Returns its numeric value. *)
+(* PARAMS:    minKey - lowest valid choice (INTEGER) *)
+(*            maxKey - highest valid choice (INTEGER)*)
+(*            choice - receives validated value      *)
+(* EFFECTS:   Reads path 0 raw. Invalid keys are    *)
+(*            silently discarded (no echo).          *)
+(* NOTE:      minKey/maxKey are INTEGER per          *)
+(*            bestPractices; callers pass literals.  *)
+(* ================================================== *)
+PARAM minKey, maxKey, choice:INTEGER
+
+DIM k:STRING[1]
+DIM kVal:INTEGER
+
+ON ERROR GOTO 900
+
+k    := ""
+kVal := 0
+
+REPEAT
+  GET #0, k
+  IF k >= "1" AND k <= "9" THEN \ ! guard: digits only, skip VAL on other input
+    kVal := VAL(k)
+  ELSE
+    kVal := 0 \ ! non-digit: force fail, loop continues silently
+  ENDIF
+UNTIL kVal >= minKey AND kVal <= maxKey
+
+choice := kVal
+END
+
+900 \ ! Error handler
+PRINT "getMenuKey error ("; ERR; ")"
+END
+
+PROCEDURE getNumIn
+(* ============================================================ *)
+(* PROCEDURE : getNumIn                                         *)
+(* PURPOSE   : Safe wrapper around VAL. Attempts to convert     *)
+(*             str to an INTEGER. Returns ok=FALSE and val=0    *)
+(*             if str contains non-numeric content (VAL would   *)
+(*             otherwise throw a runtime error).                *)
+(*             Caller is responsible for guarding the empty-    *)
+(*             string case before calling; empty str here       *)
+(*             will produce ok=FALSE and val=0.                 *)
+(* PARAMS    : str   - raw input string to convert              *)
+(*             value - converted INTEGER value; 0 on failure    *)
+(*             ok    - TRUE if conversion succeeded             *)
+(* SIDE EFX  : None.                                            *)
+(* ============================================================ *)
+PARAM str : STRING[8]
+PARAM value : INTEGER
+PARAM ok  : BOOLEAN
+DIM numErr : BOOLEAN
+
+ON ERROR GOTO 900
+
+numErr := FALSE
+
+! Attempt VAL. On non-numeric input, Basic09 fires a runtime
+! error. ON ERROR GOTO 100 catches it and sets numErr flag.
+! GOTO 110 skips the flag-set on the success path.
+ON ERROR GOTO 100
+value := VAL(str)
+GOTO 110
+
+100 numErr := TRUE
+    value  := 0
+
+110 ON ERROR GOTO 900
+
+ok := NOT numErr
+END
+
+900 ERROR(ERR)
+END
+
+PROCEDURE shuffleDeck
+(* ============================================================ *)
+(* PROCEDURE : shuffleDeck                                      *)
+(* PURPOSE   : Populate deckOrd with card IDs 1..36 then apply *)
+(*             a Fisher-Yates in-place shuffle. All index       *)
+(*             arithmetic is INTEGER. RND must be seeded by the *)
+(*             caller before the first call.                    *)
+(* PARAMS    : deckOrd(36) - receives the shuffled deck order   *)
+(*             (modified in place, passed by reference)         *)
+(* SIDE EFX  : Modifies deckOrd. Advances the RND sequence.    *)
+(* ============================================================ *)
+PARAM deckOrd(36) : BYTE
+DIM i   : INTEGER
+DIM j   : INTEGER
+DIM tmp : BYTE
+
+ON ERROR GOTO 900
+
+! Step 1: populate deck with sequential card IDs 1..36
+FOR i := 1 TO 36
+  deckOrd(i) := i
+NEXT i
+
+! Step 2: Fisher-Yates shuffle
+! For each position i from 36 down to 2, pick a random j in [1..i]
+! and swap deckOrd(i) with deckOrd(j).
+FOR i := 36 TO 2 STEP -1
+  j := INT(RND(i)) + 1
+  tmp := deckOrd(j)
+  deckOrd(j) := deckOrd(i)
+  deckOrd(i) := tmp
+NEXT i
+END
+
+900 ERROR(ERR)
+END
