@@ -2565,7 +2565,7 @@ Syntax:
   SEEK #<int expr>,<real expr>
 ```
 
-SEER changes the file pointer address of a mass storage file, which is the address of the next data byte(s) that are to be read or written. Therefore, this statement is essential for random access of data on files using the GET and PUT statements.
+SEEK changes the file pointer address of a mass storage file, which is the address of the next data byte(s) that are to be read or written. Therefore, this statement is essential for random access of data on files using the GET and PUT statements.
 
 The first expression specifies the path number of the file and must evaluate to a byte value. The second expression specifies the desired file pointer address, and must evaluate to a REAL value in the range 0 <= result <= 2,147,483,648. 2Any fractional part of the result is truncated. Of course the actual maximum file size depends on the capacity of the device.
 

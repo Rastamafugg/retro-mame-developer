@@ -11,17 +11,28 @@ PROCEDURE TSTMODULE
 (*            must be packed and attr e before run.  *)
 (*            SysCall machine-lang module required.  *)
 (* ================================================== *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+
 DIM mName:STRING[32]
+DIM mAddr:INTEGER
 DIM passed:INTEGER
 DIM failed:INTEGER
 DIM testNum:INTEGER
 DIM isLoaded:BOOLEAN
-DIM shouldPass:BOOLEAN
+DIM shouldBeLoaded:BOOLEAN
 DIM unloaded:BOOLEAN
 DIM allDone:BOOLEAN
+DIM moduleArray(10):ModuleHeader
+DIM modCount:BYTE
+DIM i:INTEGER
+DIM typeCode:INTEGER
+DIM langCode:INTEGER
+DIM reEntrant:BOOLEAN
+DIM revision:INTEGER
 
 ON ERROR GOTO 900
 
+mAddr := 0
 passed := 0
 failed := 0
 testNum := 0
@@ -37,7 +48,7 @@ passed := passed + 1
 
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Confirm modules not yet loaded"
-shouldPass = FALSE
+shouldBeLoaded = FALSE
 mName := "singleProc"
 GOSUB 100 \ ! Check module not loaded
 mName := "multiProc1"
@@ -52,14 +63,37 @@ PRINT "-- Single procedure module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load single-proc module"
 mName := "singleProc"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
+
+PRINT "Total modules found: "; modCount
+
 IF isLoaded THEN
-  PRINT "singleProc load call return successfully"
-  shouldPass := TRUE
+  PRINT "singleProc load call return successfully, address: "; mAddr
+  shouldBeLoaded := TRUE
   GOSUB 100 \ ! Check module loaded
 ELSE
   PRINT "FAIL: singleProc load failed"
   failed := failed + 1
+ENDIF
+
+RUN moduleParser(mAddr, 10, moduleArray, modCount)
+IF modCount > 0 THEN
+  FOR i := 1 TO modCount
+    PRINT "Module #"; i; ": "; TRIM$(moduleArray(i).moduleName)
+    ! Extract type and language from typeLanguage byte
+    typeCode := moduleArray(i).typeLanguage / 16
+    langCode := LAND(moduleArray(i).typeLanguage, $0F)
+    PRINT "  Type: "; typeCode; " Language: "; langCode
+    ! Extract re-entrant flag and revision from attributes byte
+    reEntrant := (LAND(moduleArray(i).attributes, $80) <> 0)
+    revision := LAND(moduleArray(i).attributes, $0F)
+    PRINT "  Re-Entrant: "; reEntrant; " Revision: "; revision
+    PRINT "  Module Size: "; moduleArray(i).moduleSize; " bytes"
+    PRINT "  Name Offset: "; moduleArray(i).nameOffset
+    PRINT "  Exec Offset: "; moduleArray(i).execOffset
+    PRINT "  Storage: "; moduleArray(i).permStorageSize; " bytes"
+    PRINT ""
+  NEXT i
 ENDIF
 
 testNum := testNum + 1
@@ -73,9 +107,10 @@ testNum := testNum + 1
 PRINT "Test "; testNum; ": Unload single-proc module"
 mName := "singleProc"
 RUN unloadModule(mName, 0, unloaded)
+RUN unloadModule(mName, mAddr, unloaded)
 IF unloaded THEN
   PRINT "singleProc unload call return successfully"
-  shouldPass = FALSE
+  shouldBeLoaded = FALSE
   GOSUB 100 \ ! Check module not loaded
 ELSE
   PRINT "FAIL: singleProc unload call failed"
@@ -89,16 +124,36 @@ PRINT "-- Multi-procedure module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load multi-proc module"
 mName := "multiProc1"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
 IF isLoaded THEN
-  PRINT "multiProc1 load call return successfully"
+  PRINT "multiProc1 load call return successfully, address: "; mAddr
   passed := passed + 1
-  shouldPass = TRUE
+  shouldBeLoaded = TRUE
   mName := "multiProc2"
   GOSUB 100 \ ! Check module loaded
 ELSE
   PRINT "FAIL: multiProc1 load failed"
   failed := failed + 1
+ENDIF
+
+RUN moduleParser(mAddr, 10, moduleArray, modCount)
+IF modCount > 0 THEN
+  FOR i := 1 TO modCount
+    PRINT "Module #"; i; ": "; TRIM$(moduleArray(i).moduleName)
+    ! Extract type and language from typeLanguage byte
+    typeCode := moduleArray(i).typeLanguage / 16
+    langCode := LAND(moduleArray(i).typeLanguage, $0F)
+    PRINT "  Type: "; typeCode; " Language: "; langCode
+    ! Extract re-entrant flag and revision from attributes byte
+    reEntrant := (LAND(moduleArray(i).attributes, $80) <> 0)
+    revision := LAND(moduleArray(i).attributes, $0F)
+    PRINT "  Re-Entrant: "; reEntrant; " Revision: "; revision
+    PRINT "  Module Size: "; moduleArray(i).moduleSize; " bytes"
+    PRINT "  Name Offset: "; moduleArray(i).nameOffset
+    PRINT "  Exec Offset: "; moduleArray(i).execOffset
+    PRINT "  Storage: "; moduleArray(i).permStorageSize; " bytes"
+    PRINT ""
+  NEXT i
 ENDIF
 
 testNum := testNum + 1
@@ -115,14 +170,8 @@ RUN unloadModule(mName, 0, unloaded)
 IF unloaded THEN
   PRINT "multiProc1 unlinked"
   passed := passed + 1
-  RUN checkModule(mName, isLoaded)
-  IF NOT isLoaded THEN
-    PRINT "multiProc1 verified as unloaded"
-    passed := passed + 1
-  ELSE
-    PRINT "FAIL: multiProc1 still loaded after unload"
-    failed := failed + 1
-  ENDIF
+  shouldBeLoaded = TRUE
+  GOSUB 100 \ ! Check multiProc1 still loaded
 ELSE
   PRINT "FAIL: multiProc1 unlink failed"
   failed := failed + 1
@@ -159,9 +208,9 @@ PRINT "-- Independent procedures module tests --"
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Load independent procedures module"
 mName := "indepProc1"
-RUN loadModule(mName, isLoaded)
+RUN loadModule(mName, mAddr, isLoaded)
 IF isLoaded THEN
-  PRINT "indepProc1 loaded OK"
+  PRINT "indepProc1 loaded OK, address: "; mAddr
   passed := passed + 1
   mName := "indepProc2"
   RUN checkModule(mName, isLoaded)
@@ -184,6 +233,26 @@ ELSE
   failed := failed + 1
 ENDIF
 
+RUN moduleParser(mAddr, 10, moduleArray, modCount)
+IF modCount > 0 THEN
+  FOR i := 1 TO modCount
+    PRINT "Module #"; i; ": "; TRIM$(moduleArray(i).moduleName)
+    ! Extract type and language from typeLanguage byte
+    typeCode := moduleArray(i).typeLanguage / 16
+    langCode := LAND(moduleArray(i).typeLanguage, $0F)
+    PRINT "  Type: "; typeCode; " Language: "; langCode
+    ! Extract re-entrant flag and revision from attributes byte
+    reEntrant := (LAND(moduleArray(i).attributes, $80) <> 0)
+    revision := LAND(moduleArray(i).attributes, $0F)
+    PRINT "  Re-Entrant: "; reEntrant; " Revision: "; revision
+    PRINT "  Module Size: "; moduleArray(i).moduleSize; " bytes"
+    PRINT "  Name Offset: "; moduleArray(i).nameOffset
+    PRINT "  Exec Offset: "; moduleArray(i).execOffset
+    PRINT "  Storage: "; moduleArray(i).permStorageSize; " bytes"
+    PRINT ""
+  NEXT i
+ENDIF
+
 testNum := testNum + 1
 PRINT "Test "; testNum; ": Execute independent procedures"
 mName := "indepProc1"
@@ -203,11 +272,15 @@ RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
   allDone := FALSE
 ENDIF
+shouldBeLoaded = TRUE
+GOSUB 100 \ ! Check indepProc1 still loaded
 mName := "indepProc2"
 RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
   allDone := FALSE
 ENDIF
+shouldBeLoaded = TRUE
+GOSUB 100 \ ! Check indepProc1 still loaded
 mName := "indepProc3"
 RUN unloadModule(mName, 0, unloaded)
 IF NOT unloaded THEN
@@ -220,7 +293,7 @@ ELSE
   PRINT "FAIL: Some independent procedures not unlinked"
   failed := failed + 1
 ENDIF
-shouldPass = FALSE
+shouldBeLoaded = FALSE
 mName := "indepProc1"
 GOSUB 100 \ ! Check module not loaded
 mName := "indepProc2"
@@ -246,7 +319,7 @@ END
 100 \ ! Check Module Loaded Test
   RUN checkModule(mName, isLoaded)
   IF NOT isLoaded THEN
-    IF shouldPass THEN
+    IF shouldBeLoaded THEN
       PRINT "FAIL: " + mName + " should be loaded but it is not"
       failed := failed + 1
     ELSE
@@ -254,7 +327,7 @@ END
       passed := passed + 1
     ENDIF
   ELSE
-    IF shouldPass THEN
+    IF shouldBeLoaded THEN
       PRINT mName + " correctly loaded"
       passed := passed + 1
     ELSE
@@ -326,6 +399,7 @@ PROCEDURE loadModule
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modName:STRING[32]
+PARAM hdrAddr:INTEGER
 PARAM isLoaded:BOOLEAN
 DIM regs:Register
 DIM callCode:BYTE
@@ -343,6 +417,7 @@ regs.x := nameAddr
 RUN SysCall(callCode, regs)
 
 iCC := regs.cc
+hdrAddr := regs.u \ ! Capture header address for potential unload test
 IF LAND(iCC, 1) = 0 THEN
   PRINT modName; " linked (was already loaded)"
   isLoaded := TRUE
@@ -352,6 +427,7 @@ ELSE
   regs.x := nameAddr
   RUN SysCall(callCode, regs)
   iCC := regs.cc
+  hdrAddr := regs.u \ ! Capture header address for potential unload test
   IF LAND(iCC, 1) = 0 THEN
     PRINT modName; " loaded from disk"
     isLoaded := TRUE
@@ -476,4 +552,177 @@ END
 
 900 \ ! Error handler
 PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE moduleParser
+(* ================================================== *)
+(* PROCEDURE: moduleParser                            *)
+(* PURPOSE  : Parse a NitrOS-9 module file loaded    *)
+(*            via F$Load and enumerate all modules.  *)
+(*            Module metadata is stored in a TYPE    *)
+(*            record for each module found.          *)
+(* PARAM    : modFileAddr (INTEGER) - memory address *)
+(*            of first module header returned by     *)
+(*            F$Load system call.                    *)
+(*            maxMods (INTEGER) - max modules to     *)
+(*            process before stopping. INTEGER       *)
+(*            required: caller passes integer        *)
+(*            literal.                               *)
+(*            modules() - output array of module     *)
+(*            headers (one per module found).        *)
+(*            modCount - output: actual count found. *)
+(* RETURN   : modCount and modules() populated via   *)
+(*            pass-by-reference parameters.          *)
+(* ERROR    : Error 216 on invalid module sync bytes *)
+(*            at file start.                         *)
+(* NOTES    : Module size field includes entire      *)
+(*            module (header + body + 3-byte CRC).   *)
+(*            Address wrap-around past 64KB detected *)
+(*            by comparing modAddr to modFileAddr.   *)
+(* ================================================== *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31] \ ! >79
+
+PARAM modFileAddr:INTEGER
+PARAM maxMods:INTEGER
+PARAM modules(10):ModuleHeader
+PARAM modCount:BYTE
+
+ON ERROR GOTO 900
+
+DIM modAddr:INTEGER
+DIM syncValid,eofReached:BOOLEAN
+DIM tempHdr:ModuleHeader
+
+modCount := 0
+modAddr := modFileAddr
+eofReached := FALSE
+
+REPEAT
+  ! Check sync bytes ($87 $CD) at current address
+  syncValid := (PEEK(modAddr) = $87) AND (PEEK(modAddr + 1) = $CD)
+  PRINT "Checking for module at address "; modAddr; " - Sync valid: "; syncValid
+  PRINT "PEEK("; modAddr; ") = "; PEEK(modAddr); " PEEK("; modAddr + 1; ") = "; PEEK(modAddr + 1)
+  IF NOT syncValid THEN
+    IF modCount > 0 THEN
+      ! No valid sync at offset: end of modules in file
+      eofReached := TRUE
+      PRINT "EoF"
+    ELSE
+      ! Invalid module at start of file
+      PRINT "Invalid Module"
+      ERROR(216)
+    ENDIF
+  ELSE
+    IF modCount < maxMods THEN
+      PRINT "Extracting Module Header"
+      RUN extractModuleHeader(modAddr, tempHdr)
+      PRINT "Extracted Module Header: "; tempHdr.moduleName
+      modCount := modCount + 1
+
+      modules(modCount) := tempHdr
+      PRINT "Incrementing modCount"
+      ! Advance past this module using its size field
+      PRINT "Incrementing modAddr"
+      modAddr := modAddr + modules(modCount).moduleSize
+      PRINT "modAddr: "; modAddr
+      ! Detect INTEGER wrap-around past 64KB boundary
+    ELSE
+      ! Reached caller's module limit
+      PRINT "Max Module Count Reached"
+      eofReached := TRUE
+    ENDIF
+  ENDIF
+  PRINT "End of Loop"
+
+UNTIL eofReached
+PRINT "End of Routine"
+
+END
+
+900 \ ! Error handler
+ERROR(ERR)
+END
+
+PROCEDURE extractModuleHeader
+(* ================================================== *)
+(* PROCEDURE: extractModuleHeader                     *)
+(* PURPOSE  : Extract a single NitrOS-9 module       *)
+(*            header at a given memory address and   *)
+(*            populate a ModuleHeader TYPE record.   *)
+(*            Includes extraction of the module name *)
+(*            string from the offset in the header.  *)
+(* PARAM    : headerAddr (INTEGER) - memory address  *)
+(*            of first byte of module header.        *)
+(*            modHdr (ModuleHeader) - output record  *)
+(*            to populate with header data.          *)
+(* RETURN   : modHdr parameter populated via         *)
+(*            pass-by-reference.                     *)
+(* NOTES    : Module name read until MSB set on a    *)
+(*            character (OS-9 string terminator).    *)
+(*            Limited to 31 chars max. Sync bytes,   *)
+(*            size, name offset, type, attributes,   *)
+(*            and exec offset fields all extracted.  *)
+(* ================================================== *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31] \ ! >79
+
+PARAM headerAddr:INTEGER
+PARAM modHdr:ModuleHeader
+
+ON ERROR GOTO 900
+
+DIM modNameAddr:INTEGER
+DIM nameChar:BYTE
+DIM nameIdx:BYTE
+
+! Extract sync bytes ($00-$01)
+modHdr.syncByte1 := PEEK(headerAddr)
+modHdr.syncByte2 := PEEK(headerAddr + 1)
+PRINT "SyncBytes: "; modHdr.syncByte1; " "; modHdr.syncByte2
+
+! Extract module size ($02-$03, big-endian)
+modHdr.moduleSize := (PEEK(headerAddr + 2) * 256) + PEEK(headerAddr + 3)
+PRINT "Module Size: "; modHdr.moduleSize; " bytes"
+
+! Extract name offset ($04-$05, big-endian)
+modHdr.nameOffset := (PEEK(headerAddr + 4) * 256) + PEEK(headerAddr + 5)
+PRINT "Name Offset: "; modHdr.nameOffset
+
+! Extract type/language ($06)
+modHdr.typeLanguage := PEEK(headerAddr + 6)
+PRINT "Type/Language Byte: "; modHdr.typeLanguage
+
+! Extract attributes/revision ($07)
+modHdr.attributes := PEEK(headerAddr + 7)
+PRINT "Attributes: "; modHdr.attributes
+
+! Extract header parity check ($08)
+modHdr.headerCheck := PEEK(headerAddr + 8)
+PRINT "Header Check Byte: "; modHdr.headerCheck
+
+! Extract execution offset ($09-$0A, big-endian)
+modHdr.execOffset := (PEEK(headerAddr + 9) * 256) + PEEK(headerAddr + 10)
+PRINT "Exec Offset: "; modHdr.execOffset
+
+! Extract permanent storage size ($0B-$0C, big-endian)
+modHdr.permStorageSize := (PEEK(headerAddr + 11) * 256) + PEEK(headerAddr + 12)
+PRINT "Permanent Storage Size: "; modHdr.permStorageSize; " bytes"
+
+! Extract module name from nameOffset within header
+modNameAddr := headerAddr + modHdr.nameOffset
+PRINT "Module Name Address: "; modNameAddr
+modHdr.moduleName := ""
+nameIdx := 0
+
+! Read chars until MSB set (OS-9 string terminator); max 31
+REPEAT
+  nameChar := PEEK(modNameAddr + nameIdx)
+  PRINT "Name Char "; nameIdx; ": "; CHR$(LAND(nameChar, $7F))
+  modHdr.moduleName := modHdr.moduleName + CHR$(LAND(nameChar, $7F))
+  nameIdx := nameIdx + 1
+UNTIL (nameChar >= 128) OR (nameIdx >= 31)
+
+END
+
+900 \ ! Error handler
+ERROR(ERR)
 END

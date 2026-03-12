@@ -35,6 +35,43 @@ END
 900 ERROR(ERR)
 END
 
+PROCEDURE scrStart
+(* ================================================== *)
+(* PROCEDURE: scrStart                                *)
+(* PURPOSE:   Display S1 start screen. Return player *)
+(*            menu selection.                        *)
+(* PARAMS:    action - receives selection on return: *)
+(*              1 = New Game                         *)
+(*              2 = Load Game                        *)
+(*              3 = Quit                             *)
+(* EFFECTS:   Clears screen. Blocks until valid key. *)
+(* NOTE:      action is INTEGER; must match          *)
+(*            getMenuKey choice:INTEGER.             *)
+(* ================================================== *)
+PARAM action:INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  STOCKS AND BONDS"
+PRINT "  ================"
+PRINT
+PRINT "  1. New Game"
+PRINT "  2. Load Game"
+PRINT "  3. Quit"
+PRINT
+PRINT "  Select (1-3): ";
+
+RUN getMenuKey(1, 3, action)
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "scrStart error ("; ERR; ")"
+END
+
 PROCEDURE scrSetup
 (* ================================================== *)
 (* PROCEDURE: scrSetup                                *)
