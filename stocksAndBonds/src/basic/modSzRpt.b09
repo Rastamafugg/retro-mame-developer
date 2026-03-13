@@ -1,0 +1,203 @@
+PROCEDURE modSzRpt
+(* ================================================== *)
+(* PROCEDURE: modSzRpt                                *)
+(* PURPOSE:   Load a named packed module, report the *)
+(*            size of each constituent procedure via *)
+(*            header traversal, and print the total. *)
+(*            Designed for populating the memory-    *)
+(*            cost file. Unloads the module on exit. *)
+(*            Pass the module name as a command-line *)
+(*            argument: modSzRpt snbSaveLoad         *)
+(* PARAMS:    modNam - packed module name to measure *)
+(* USAGE:     Run from NitrOS-9 shell:               *)
+(*              modSzRpt <moduleName>                *)
+(*            No argument: prints usage and exits.   *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam     : STRING[20]
+DIM regs         : Register
+DIM callCode     : BYTE
+DIM iCC          : INTEGER
+DIM nameAddr     : INTEGER
+DIM hdrAddr      : INTEGER
+DIM totalBytes   : INTEGER \ ! sum returned by getMemSize
+DIM totalModSz   : INTEGER \ ! running sum from walk loop
+DIM curAddr      : INTEGER \ ! traversal pointer
+DIM sync1        : INTEGER \ ! PEEK result for sync byte 1
+DIM sync2        : INTEGER \ ! PEEK result for sync byte 2
+DIM modSzHi      : INTEGER \ ! hi byte of moduleSize field
+DIM modSzLo      : INTEGER \ ! lo byte of moduleSize field
+DIM modSz        : INTEGER \ ! moduleSize for current module
+DIM modIdx       : INTEGER \ ! count of modules found
+DIM prcNam       : STRING[20] \ ! unload name staging
+
+ON ERROR GOTO 900
+
+! --- Usage guard ------------------------------------------
+IF modNam = "" THEN
+  PRINT "Usage: modSzRpt <moduleName>"
+  PRINT
+  PRINT "  Loads the named packed module, traverses all"
+  PRINT "  constituent procedure headers, and prints the"
+  PRINT "  byte size of each. Reports total at end."
+  PRINT
+  PRINT "  Example: modSzRpt snbSaveLoad"
+  PRINT "  Example: modSzRpt snbMktEng"
+  END
+ENDIF
+
+PRINT "=== modSzRpt: "; modNam; " ==="
+PRINT
+
+! --- Load module ------------------------------------------
+nameAddr := ADDR(modNam)
+callCode := $01          \ ! F$Load: load module from disk
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC     := regs.cc
+hdrAddr := regs.u        \ ! U register = first header address
+IF LAND(iCC, 1) <> 0 THEN
+  PRINT "FAIL: F$Load "; modNam; " failed (err: "; regs.b; ")"
+  PRINT "Ensure module is packed and attr e."
+  END
+ENDIF
+PRINT "Loaded. hdrAddr = "; hdrAddr
+PRINT
+
+! --- getMemSize cross-check -------------------------------
+RUN getMemSize(hdrAddr, totalBytes)
+PRINT "getMemSize reports: "; totalBytes; " bytes total"
+PRINT
+
+! --- Per-module walk --------------------------------------
+PRINT "Per-procedure breakdown:"
+totalModSz := 0
+modIdx     := 0
+curAddr    := hdrAddr
+LOOP
+  sync1 := PEEK(curAddr)
+  sync2 := PEEK(curAddr + 1)
+  EXITIF sync1 <> $87 OR sync2 <> $CD THEN
+  ENDEXIT
+  modSzHi    := PEEK(curAddr + 2) \ ! moduleSize hi byte
+  modSzLo    := PEEK(curAddr + 3) \ ! moduleSize lo byte
+  modSz      := modSzHi * 256 + modSzLo
+  EXITIF modSz <= 0 THEN           \ ! guard: corrupt header
+  ENDEXIT
+  modIdx     := modIdx + 1
+  totalModSz := totalModSz + modSz
+  PRINT "  Proc "; modIdx; ": "; modSz; " bytes at $"; curAddr
+  curAddr    := curAddr + modSz
+ENDLOOP
+
+PRINT
+PRINT "Procedures found : "; modIdx
+PRINT "totalModSz (walk): "; totalModSz; " bytes"
+PRINT "getMemSize check : "; totalBytes; " bytes"
+IF totalModSz = totalBytes THEN
+  PRINT "Cross-check      : PASS (values match)"
+ELSE
+  PRINT "Cross-check      : FAIL (mismatch; check traversal)"
+ENDIF
+PRINT
+
+! --- Unload module ----------------------------------------
+PRINT "Unloading "; modNam; "..."
+RUN memModGet(modNam, 1, prcNam) \ ! get first proc name
+modIdx := 1
+LOOP
+  EXITIF prcNam = "" THEN
+  ENDEXIT
+  nameAddr := ADDR(prcNam)
+  callCode := $1D        \ ! F$UnLoad: unload by name
+  regs.a   := 0
+  regs.x   := nameAddr
+  RUN SysCall(callCode, regs)
+  modIdx := modIdx + 1
+  RUN memModGet(modNam, modIdx, prcNam) \ ! next proc name
+ENDLOOP
+PRINT "Unload complete."
+END
+
+900 \ ! Error handler
+PRINT "modSzRpt error ("; ERR; ")"
+ERROR(ERR)
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE getMemSize
+(* ================================================== *)
+(* PROCEDURE: getMemSize                              *)
+(* PURPOSE:   Walk a loaded merged module starting   *)
+(*            at hdrAddr, summing the moduleSize     *)
+(*            field of each constituent module.      *)
+(*            Returns total byte count in totalBytes.*)
+(*            Caller obtains hdrAddr from the U      *)
+(*            register after F$Link or F$Load.       *)
+(*            Traversal stops when sync bytes        *)
+(*            $87/$CD are absent at the next header  *)
+(*            position, or if moduleSize <= 0.       *)
+(* PARAMS:    hdrAddr    - first module header addr  *)
+(*            totalBytes - sum of all moduleSize     *)
+(*                         fields found (output)     *)
+(* SIDE EFX:  None. Memory is read-only via PEEK.   *)
+(* NOTE:      moduleSize at header offset +2/+3,     *)
+(*            big-endian. Mirrors moduleParser       *)
+(*            traversal logic (moduleTest.b09).      *)
+(* ================================================== *)
+PARAM hdrAddr    : INTEGER
+PARAM totalBytes : INTEGER
+DIM curAddr : INTEGER \ ! address of current module header
+DIM modSzHi : INTEGER \ ! hi byte of moduleSize field
+DIM modSzLo : INTEGER \ ! lo byte of moduleSize field
+DIM modSz   : INTEGER \ ! moduleSize for current module
+DIM sync1   : INTEGER \ ! PEEK result for sync byte 1
+DIM sync2   : INTEGER \ ! PEEK result for sync byte 2
+
+ON ERROR GOTO 900
+
+totalBytes := 0
+curAddr    := hdrAddr
+
+LOOP
+  sync1 := PEEK(curAddr)       \ ! expect $87
+  sync2 := PEEK(curAddr + 1)   \ ! expect $CD
+  EXITIF sync1 <> $87 OR sync2 <> $CD THEN
+  ENDEXIT
+  modSzHi    := PEEK(curAddr + 2) \ ! moduleSize hi byte
+  modSzLo    := PEEK(curAddr + 3) \ ! moduleSize lo byte
+  modSz      := modSzHi * 256 + modSzLo
+  EXITIF modSz <= 0 THEN           \ ! guard: corrupt header
+  ENDEXIT
+  totalBytes := totalBytes + modSz
+  curAddr    := curAddr + modSz    \ ! advance to next header
+ENDLOOP
+END
+
+900 \ ! Error handler
+PRINT "getMemSize error ("; ERR; ")"
+ERROR(ERR)
+END
