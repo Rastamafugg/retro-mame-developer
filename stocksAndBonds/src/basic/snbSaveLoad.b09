@@ -1,3 +1,15 @@
+PROCEDURE snbSaveLoad
+(* ================================================== *)
+(* PROCEDURE: snbSaveLoad                             *)
+(* PURPOSE:   README entry for snbSaveLoad module.    *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbSaveLoad"
+PRINT "  saveGame"
+PRINT "  loadGame"
+END
+
 PROCEDURE saveGame
 (* ============================================================ *)
 (* PROCEDURE : saveGame                                         *)

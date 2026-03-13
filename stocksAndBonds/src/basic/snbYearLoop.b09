@@ -1,3 +1,13 @@
+PROCEDURE snbYearLoop
+(* ================================================== *)
+(* PROCEDURE: snbYearLoop                             *)
+(* PURPOSE:   README entry for snbYearLoop module.    *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbYearLoop"
+PRINT "  runYearLoop"
+END
 
 PROCEDURE runYearLoop
 (* ============================================================ *)

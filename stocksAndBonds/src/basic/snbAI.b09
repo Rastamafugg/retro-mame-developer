@@ -1,3 +1,15 @@
+PROCEDURE snbAI
+(* ================================================== *)
+(* PROCEDURE: snbAI                                   *)
+(* PURPOSE:   README entry for snbAI module.          *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbAI"
+PRINT "  initAIProf"
+PRINT "  aiSell"
+PRINT "  aiBuy"
+END
 
 PROCEDURE initAIProf
 (* ================================================= *)

@@ -1,3 +1,18 @@
+PROCEDURE snbMemMgmt
+(* ================================================== *)
+(* PROCEDURE: snbMemMgmt                              *)
+(* PURPOSE:   README entry for snbMemMgmt module.     *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbMemMgmt"
+PRINT "  memMapGet"
+PRINT "  memModGet"
+PRINT "  memReport"
+PRINT "  memEnsure"
+PRINT "  memRelease"
+END
+
 PROCEDURE memMapGet
 (* ================================================== *)
 (* PROCEDURE: memMapGet                               *)

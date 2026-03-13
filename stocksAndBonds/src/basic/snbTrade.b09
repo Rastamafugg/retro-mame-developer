@@ -1,3 +1,19 @@
+PROCEDURE snbTrade
+(* ================================================== *)
+(* PROCEDURE: snbTrade                                *)
+(* PURPOSE:   README entry for snbTrade module.       *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbTrade"
+PRINT "  scrSell"
+PRINT "  scrBuy"
+PRINT "  scrMgnRepay"
+PRINT "  scrAITurn"
+PRINT "  applySells"
+PRINT "  applyBuys"
+END
+
 PROCEDURE scrSell
 (* ============================================================ *)
 (* PROCEDURE : scrSell                                          *)

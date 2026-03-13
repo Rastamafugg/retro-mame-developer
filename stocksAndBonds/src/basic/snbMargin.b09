@@ -1,3 +1,18 @@
+PROCEDURE snbMargin
+(* ================================================== *)
+(* PROCEDURE: snbMargin                               *)
+(* PURPOSE:   README entry for snbMargin module.      *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbMargin"
+PRINT "  scrMgnCall"
+PRINT "  applyLiqOrdr"
+PRINT "  scrForceLiq"
+PRINT "  scrBankrupt"
+PRINT "  scrMgnClr"
+END
+
 PROCEDURE scrMgnCall
 (* ============================================================ *)
 (* PROCEDURE : scrMgnCall                                       *)

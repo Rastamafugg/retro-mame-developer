@@ -1,3 +1,22 @@
+PROCEDURE snbMktEng
+(* ================================================== *)
+(* PROCEDURE: snbMktEng                               *)
+(* PURPOSE:   README entry for snbMktEng module.      *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbMktEng"
+PRINT "  getMktDelta"
+PRINT "  getCard"
+PRINT "  resolvePrice"
+PRINT "  applyMktYear"
+PRINT "  applyDivInt"
+PRINT "  applyMgnInt"
+PRINT "  drawCard"
+PRINT "  shuffleDeck"
+PRINT "  doRolls"
+END
+
 PROCEDURE doRolls
 (* ============================================================ *)
 (* PROCEDURE : doRolls                                          *)

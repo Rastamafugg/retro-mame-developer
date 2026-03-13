@@ -1,3 +1,19 @@
+PROCEDURE snbUtil
+(* ================================================== *)
+(* PROCEDURE: snbUtil                                 *)
+(* PURPOSE:   README entry for snbUtil module.        *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbUtil"
+PRINT "  clrScr"
+PRINT "  printAt"
+PRINT "  fmtMoney"
+PRINT "  getMenuKey"
+PRINT "  waitKey"
+PRINT "  getNumIn"
+END
+
 PROCEDURE printAt
 (* ================================================== *)
 (* PROCEDURE: printAt                                 *)

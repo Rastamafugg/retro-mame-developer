@@ -1,3 +1,20 @@
+PROCEDURE snbMktScr
+(* ================================================== *)
+(* PROCEDURE: snbMktScr                               *)
+(* PURPOSE:   README entry for snbMktScr module.      *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbMktScr"
+PRINT "  scrYearHdr"
+PRINT "  scrDivInt"
+PRINT "  scrMgnInt"
+PRINT "  scrCard"
+PRINT "  scrDice"
+PRINT "  scrMktBoard"
+PRINT "  scrSplit"
+PRINT "  scrDivFlag"
+END
 
 PROCEDURE scrYearHdr
 (* ============================================================ *)
