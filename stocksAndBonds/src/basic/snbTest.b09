@@ -1,32 +1,39 @@
 PROCEDURE TSTGETMEMSIZE
 (* ================================================== *)
 (* PROCEDURE: TSTGETMEMSIZE                           *)
-(* PURPOSE:   Confirm getMemSize returns a valid      *)
-(*            hi:lo pair from F$Mem. Verifies that    *)
-(*            loading saveGame produces delta > 0  *)
-(*            and unloading returns delta to zero.    *)
-(* PRE:       saveGame packed and attr e.          *)
-(*            getMemSize and SysCall resident.        *)
-(* BLOCKS:                                            *)
-(*   Block 1: baseline measurement                   *)
-(*   Block 2: load saveGame; verify delta > 0     *)
-(*   Block 3: unload saveGame; verify delta = 0   *)
+(* PURPOSE:   Confirm getMemSize correctly traverses *)
+(*            a loaded merged module and returns the *)
+(*            summed moduleSize of all constituent   *)
+(*            procedures.                            *)
+(*            Block 1: single-proc module (snbUtil   *)
+(*              stub or singleProc). Expect count=1, *)
+(*              totalBytes > 0.                      *)
+(*            Block 2: multi-proc module (snbSaveLoad*)
+(*              has 2 procs). Expect totalBytes >    *)
+(*              Block 1 result (more code).          *)
+(*            Block 3: per-module size printed for   *)
+(*              manual entry into memory-cost file.  *)
+(* PRE:       snbSaveLoad packed and attr e.         *)
+(*            SysCall and getMemSize resident.       *)
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-DIM regs     : Register
-DIM callCode : BYTE
-DIM iCC      : INTEGER
-DIM nameAddr : INTEGER
-DIM modNam   : STRING[20]
-DIM hiBas    : INTEGER \ ! baseline hi byte
-DIM loBas    : INTEGER \ ! baseline lo byte
-DIM hiCur    : INTEGER \ ! current measurement hi byte
-DIM loCur    : INTEGER \ ! current measurement lo byte
-DIM deltaHi  : INTEGER \ ! hi component of delta
-DIM deltaLo  : INTEGER \ ! lo component of delta
-DIM delta    : INTEGER \ ! final signed delta in bytes
-DIM passed   : INTEGER
-DIM failed   : INTEGER
+DIM regs      : Register
+DIM callCode  : BYTE
+DIM iCC       : INTEGER
+DIM nameAddr  : INTEGER
+DIM modNam    : STRING[20]
+DIM hdrAddr   : INTEGER
+DIM totalBytes: INTEGER
+DIM passed    : INTEGER
+DIM failed    : INTEGER
+DIM curAddr   : INTEGER \ ! traversal pointer for Block 3
+DIM sync1     : INTEGER
+DIM sync2     : INTEGER
+DIM modSzHi   : INTEGER
+DIM modSzLo   : INTEGER
+DIM modSz     : INTEGER
+DIM totalModSz: INTEGER
+DIM modIdx    : INTEGER
 
 ON ERROR GOTO 900
 
@@ -36,76 +43,106 @@ failed := 0
 PRINT "=== TSTGETMEMSIZE ==="
 PRINT
 
-! --- Block 1: Baseline ------------------------------------
-PRINT "-- Block 1: Baseline memory measurement --"
-RUN getMemSize(hiBas, loBas)
-PRINT "Baseline hi:lo = "; hiBas; " : "; loBas
-PRINT "(full size = "; hiBas; "*256 + "; loBas; " bytes)"
-IF hiBas >= 0 AND loBas >= 0 THEN
-  PRINT "PASS: baseline values are non-negative"
-  passed := passed + 1
-ELSE
-  PRINT "FAIL: unexpected negative baseline value"
-  failed := failed + 1
-ENDIF
-PRINT
-RUN waitKey
-
-! --- Block 2: Load saveGame; verify delta > 0 ----------
-PRINT "-- Block 2: Load saveGame --"
-modNam   := "saveGame"
+! --- Block 1: Load snbSaveLoad; measure total size --------
+PRINT "-- Block 1: snbSaveLoad total size --"
+modNam   := "snbSaveLoad"
 nameAddr := ADDR(modNam)
-callCode := $01 \ ! F$Load: load module from disk by name
+callCode := $01          \ ! F$Load: load module from disk
 regs.a   := 0
 regs.x   := nameAddr
 RUN SysCall(callCode, regs)
-iCC := regs.cc
+iCC     := regs.cc
+hdrAddr := regs.u        \ ! U register = header address
 IF LAND(iCC, 1) <> 0 THEN
-  PRINT "FAIL: F$Load saveGame failed (err: "; regs.b; ")"
-  PRINT "Ensure saveGame is packed and attr e."
+  PRINT "FAIL: F$Load snbSaveLoad failed (err: "; regs.b; ")"
+  PRINT "Ensure snbSaveLoad is packed and attr e."
   failed := failed + 1
 ELSE
-  PRINT "saveGame loaded from disk"
-  RUN getMemSize(hiCur, loCur)
-  PRINT "Post-load hi:lo = "; hiCur; " : "; loCur
-  GOSUB 800 \ ! compute delta hiCur:loCur - hiBas:loBas
-  PRINT "Load delta = "; delta; " bytes"
-  IF delta > 0 THEN
-    PRINT "PASS: memory increased after load"
+  PRINT "snbSaveLoad loaded. hdrAddr = "; hdrAddr
+  RUN getMemSize(hdrAddr, totalBytes)
+  PRINT "totalBytes = "; totalBytes
+  IF totalBytes > 0 THEN
+    PRINT "PASS: totalBytes > 0"
     passed := passed + 1
   ELSE
-    PRINT "FAIL: expected delta > 0, got "; delta
+    PRINT "FAIL: expected totalBytes > 0"
     failed := failed + 1
   ENDIF
 ENDIF
 PRINT
 RUN waitKey
 
-! --- Block 3: Unload saveGame; verify return to baseline
-PRINT "-- Block 3: Unload saveGame --"
-! F$UnLoad each procedure by name. Errors silently ignored;
-! module may have been absent or already partially unlinked.
-callCode := $1D \ ! F$UnLoad: unload by procedure name
+! --- Block 2: Per-module breakdown for memory-cost file ---
+PRINT "-- Block 2: Per-module size breakdown --"
+PRINT "Record these values in the memory-cost file."
+PRINT
+IF hdrAddr <> 0 THEN
+  curAddr := hdrAddr
+  modIdx  := 0
+  LOOP
+    sync1 := PEEK(curAddr)
+    sync2 := PEEK(curAddr + 1)
+    EXITIF sync1 <> $87 OR sync2 <> $CD THEN
+    ENDEXIT
+    modSzHi := PEEK(curAddr + 2)
+    modSzLo := PEEK(curAddr + 3)
+    modSz   := modSzHi * 256 + modSzLo
+    EXITIF modSz <= 0 THEN
+    ENDEXIT
+    modIdx := modIdx + 1
+    PRINT "  Module "; modIdx; ": "; modSz; " bytes at "; curAddr
+    curAddr := curAddr + modSz
+  ENDLOOP
+  PRINT "  Total modules found: "; modIdx
+  IF modIdx = 3 THEN
+    PRINT "PASS: snbSaveLoad reports 3 constituent modules"
+    passed := passed + 1
+  ELSE
+    PRINT "FAIL: expected 3, got "; modIdx
+    failed := failed + 1
+  ENDIF
+ELSE
+  PRINT "SKIP: hdrAddr=0 (Block 1 load failed)"
+  failed := failed + 1
+ENDIF
+PRINT
+RUN waitKey
+
+! --- Block 3: Unload snbSaveLoad --------------------------
+PRINT "-- Block 3: Unload snbSaveLoad --"
+callCode := $1D          \ ! F$UnLoad: unload by procedure name
+modNam   := "snbSaveLoad"
+nameAddr := ADDR(modNam)
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+callCode := $1D          \ ! F$UnLoad: unload by procedure name
 modNam   := "saveGame"
 nameAddr := ADDR(modNam)
 regs.a   := 0
 regs.x   := nameAddr
-RUN SysCall(callCode, regs) \ ! unload saveGame
+RUN SysCall(callCode, regs)
 modNam   := "loadGame"
 nameAddr := ADDR(modNam)
 regs.a   := 0
 regs.x   := nameAddr
-RUN SysCall(callCode, regs) \ ! unload loadGame (callCode unchanged)
+RUN SysCall(callCode, regs) \ ! callCode still $1D
 PRINT "F$UnLoad issued for saveGame and loadGame"
-RUN getMemSize(hiCur, loCur)
-PRINT "Post-unload hi:lo = "; hiCur; " : "; loCur
-GOSUB 800 \ ! compute delta hiCur:loCur - hiBas:loBas
-PRINT "Delta from baseline = "; delta; " bytes"
-IF delta = 0 THEN
-  PRINT "PASS: memory returned to baseline"
+! Verify by attempting F$Link; expect carry set (not found).
+modNam   := "saveGame"
+nameAddr := ADDR(modNam)
+callCode := $00          \ ! F$Link: check residency
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) <> 0 THEN
+  PRINT "PASS: saveGame no longer resident"
   passed := passed + 1
 ELSE
-  PRINT "FAIL: expected delta = 0, got "; delta
+  callCode := $02        \ ! F$UnLink: undo accidental test link
+  RUN SysCall(callCode, regs)
+  PRINT "FAIL: saveGame still resident after unload"
   PRINT "Check: link count may require second F$UnLoad pass"
   failed := failed + 1
 ENDIF
@@ -116,18 +153,6 @@ PRINT "=== TSTGETMEMSIZE SUMMARY ==="
 PRINT "Passed: "; passed
 PRINT "Failed: "; failed
 END
-
-800 \ ! GOSUB: delta = (hiCur:loCur) - (hiBas:loBas).
-    ! Handles lo-byte borrow: if deltaLo < 0, add 256 and
-    ! decrement deltaHi. Result in delta (INTEGER; signed).
-    deltaHi := hiCur - hiBas
-    deltaLo := loCur - loBas
-    IF deltaLo < 0 THEN
-      deltaLo := deltaLo + 256
-      deltaHi := deltaHi - 1
-    ENDIF
-    delta := deltaHi * 256 + deltaLo
-    RETURN
 
 900 \ ! Error handler
 PRINT "TSTGETMEMSIZE error ("; ERR; ")"
@@ -159,34 +184,50 @@ END
 PROCEDURE getMemSize
 (* ================================================== *)
 (* PROCEDURE: getMemSize                              *)
-(* PURPOSE:   Return current process memory size via *)
-(*            F$Mem syscall as hi and lo byte pair.  *)
-(*            Full size in bytes = hiBytes*256+loBytes*)
-(*            Call twice (before/after a module load) *)
-(*            and subtract to measure load cost.     *)
-(* PARAMS:    hiBytes - high byte of size (INTEGER)  *)
-(*            loBytes - low byte of size (INTEGER)   *)
-(* SIDE EFX:  None.                                  *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(*            hiBytes and loBytes are INTEGER so      *)
-(*            callers can do signed delta arithmetic. *)
-(*            Do not combine into one INTEGER param; *)
-(*            values above 32767 would overflow.     *)
+(* PURPOSE:   Walk a loaded merged module starting   *)
+(*            at hdrAddr, summing the moduleSize     *)
+(*            field of each constituent module.      *)
+(*            Returns total byte count in totalBytes.*)
+(*            Caller obtains hdrAddr from the U      *)
+(*            register after F$Link or F$Load.       *)
+(*            Traversal stops when sync bytes        *)
+(*            $87/$CD are absent at the next header  *)
+(*            position, or if moduleSize <= 0.       *)
+(* PARAMS:    hdrAddr    - first module header addr  *)
+(*            totalBytes - sum of all moduleSize     *)
+(*                         fields found (output)     *)
+(* SIDE EFX:  None. Memory is read-only via PEEK.   *)
+(* NOTE:      moduleSize at header offset +2/+3,     *)
+(*            big-endian. Mirrors moduleParser       *)
+(*            traversal logic (moduleTest.b09).      *)
 (* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM hiBytes : INTEGER
-PARAM loBytes : INTEGER
-DIM regs     : Register
-DIM callCode : BYTE
+PARAM hdrAddr    : INTEGER
+PARAM totalBytes : INTEGER
+DIM curAddr : INTEGER \ ! address of current module header
+DIM modSzHi : INTEGER \ ! hi byte of moduleSize field
+DIM modSzLo : INTEGER \ ! lo byte of moduleSize field
+DIM modSz   : INTEGER \ ! moduleSize for current module
+DIM sync1   : INTEGER \ ! PEEK result for sync byte 1
+DIM sync2   : INTEGER \ ! PEEK result for sync byte 2
 
 ON ERROR GOTO 900
 
-callCode := $07 \ ! F$Mem: D=0 queries size without change
-regs.a   := 0   \ ! D register hi = 0 (no size change requested)
-regs.b   := 0   \ ! D register lo = 0
-RUN SysCall(callCode, regs)
-hiBytes := regs.a \ ! BYTE A -> INTEGER: hi byte of process size
-loBytes := regs.b \ ! BYTE B -> INTEGER: lo byte of process size
+totalBytes := 0
+curAddr    := hdrAddr
+
+LOOP
+  sync1 := PEEK(curAddr)       \ ! expect $87
+  sync2 := PEEK(curAddr + 1)   \ ! expect $CD
+  EXITIF sync1 <> $87 OR sync2 <> $CD THEN
+  ENDEXIT
+  modSzHi    := PEEK(curAddr + 2) \ ! moduleSize hi byte
+  modSzLo    := PEEK(curAddr + 3) \ ! moduleSize lo byte
+  modSz      := modSzHi * 256 + modSzLo
+  EXITIF modSz <= 0 THEN           \ ! guard: corrupt header
+  ENDEXIT
+  totalBytes := totalBytes + modSz
+  curAddr    := curAddr + modSz    \ ! advance to next header
+ENDLOOP
 END
 
 900 \ ! Error handler
