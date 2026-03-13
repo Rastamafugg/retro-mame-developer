@@ -1171,114 +1171,67 @@ PDs have three sections. The first section, which is ten bytes long, is the same
 
 ## Chapter 5. Random Block File Manager
 
-The random block file manager (RBF manager) supports _disk storage_. It is a re-entrant
-subroutine package called by the I/O manager for I/O system calls to random-access
-devices. It maintains the logical and physical file structures.
+The random block file manager (RBF manager) supports _disk storage_. It is a re-entrant subroutine package called by the I/O manager for I/O system calls to random-access devices. It maintains the logical and physical file structures.
 
-During normal operation, the RBF manager requests allocation and deallocation of 256-
-byte data buffers. Usually, one buffer is required for each open file. When physical I/O
-functions are necessary, the RBF manager directly calls the subroutines in the associated
-device drivers. All data transfers are performed using 256-byte data blocks (pages).
+During normal operation, the RBF manager requests allocation and deallocation of 256-byte data buffers. Usually, one buffer is required for each open file. When physical I/O functions are necessary, the RBF manager directly calls the subroutines in the associated device drivers. All data transfers are performed using 256-byte data blocks (pages).
 
-The RBF manager does not deal directly with physical addresses such as tracks and
-cylinders. Instead, it passes to the device drivers address parameters, using a standard
-address called a _logical sector number_ , or _LSN_. LSNs are integers from 0 to _n_ -1, where _n_
-is the maximum number of sectors on the media. The driver translates the logical sector
-number to actual cylinder/track/sector values.
+The RBF manager does not deal directly with physical addresses such as tracks and cylinders. Instead, it passes to the device drivers address parameters, using a standard address called a _logical sector number_ , or _LSN_. LSNs are integers from 0 to _n_ -1, where _n_ is the maximum number of sectors on the media. The driver translates the logical sector number to actual cylinder/track/sector values.
 
-Because the RBF manager supports many devices that have different performance and
-storage capacities, it is highly parameter-driven. The physical parameters it uses are
-stored on the media itself.
+Because the RBF manager supports many devices that have different performance and storage capacities, it is highly parameter-driven. The physical parameters it uses are stored on the media itself.
 
-On disk systems, the parameters are written on the first few sectors of Track 0. The
-device drivers also use the information, particularly the physical parameters stored on
-Sector 0. These parameters are written by the FORMAT program that initializes and
+On disk systems, the parameters are written on the first few sectors of Track 0. The device drivers also use the information, particularly the physical parameters stored on Sector 0. These parameters are written by the FORMAT program that initializes and
 tests the disk.
 
-### Logical and Physical Disk Organization.....................................................................
+### Logical and Physical Disk Organization
 
-All disks used by NitrOS-9 store basic information, file structure, and storage allocation
-information on these first few sectors.
+All disks used by NitrOS-9 store basic information, file structure, and storage allocation information on these first few sectors.
 
-LSN 0 is the _identification sector_. Starting at LSN 1 is the _disk allocation map_ **_,_** which is
-usually a single sector for floppy drives, but can be multiple sectors for hard drives. The
-first sector following the end of the disk allocation map marks the beginning of the disk's
-root directory. The following section tells more about LSN 0 and the disk allocation map.
+LSN 0 is the _identification sector_. Starting at LSN 1 is the _disk allocation map_ **_,_** which is usually a single sector for floppy drives, but can be multiple sectors for hard drives. The first sector following the end of the disk allocation map marks the beginning of the disk's root directory. The following section tells more about LSN 0 and the disk allocation map.
 
+#### Identification Sector (LSN 0)
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-#### Identification Sector (LSN 0).................................................................................
+LSN 0 contains a description of the physical and logical characteristics of the disk. These characteristics are set by the FORMAT command program when the disk is initialized.
 
-LSN 0 contains a description of the physical and logical characteristics of the disk. These
-characteristics are set by the FORMAT command program when the disk is initialized.
+The following table gives the NitrOS-9 mnemonic name, byte address, size, and description of each value stored in this LSN 0.
 
-The following table gives the NitrOS-9 mnemonic name, byte address, size, and
-description of each value stored in this LSN 0.
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| DD.TOT | $00 | 3 | Number of sectors on disk |
+| DD.TKS | $03 | 1 | Track size (in sectors) |
+| DD.MAP | $04 | 2 | Number of bytes in the allocation bit map |
+| DD.BIT | $06 | 2 | Number of sectors per cluster |
+| DD.DIR | $08 | 3 | Starting sector of the root directory |
+| DD.OWN | $0B | 2 | Owner’s user number |
+| DD.ATT | $0D | 1 | Disk attributes |
+| DD.DSK | $0E | 2 | Disk identification (for internal use) |
+| DD.FMT | $10 | 1 | Disk format, density, number of sides |
+| DD.SPT | $11 | 2 | Number of sectors per track |
+| DD.RES | $13 | 2 | Reserved for future use |
+| DD.BT | $15 | 3 | Starting sector of the bootstrap file |
+| DD.BSZ | $18 | 2 | Size of the bootstrap file (in bytes) |
+| DD.DAT | $1A | 5 | Time of creation (Y:M:D:H:M). Year is 1900 + byte value. |
+| DD.NAM | $1F | 32 | Volume name in which the last character has the most significant  bit set |
+| DD.OPT | $3F | | Path descriptor options |
 
-**Name Relative
-Address**
+#### Disk Allocation Map Sector (LSN 1)
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-DD.TOT $00 3 Number of sectors on disk
-DD.TKS $03 1 Track size (in sectors)
-DD.MAP $04 2 Number of bytes in the allocation bit map
-DD.BIT $06 2 Number of sectors per cluster
-DD.DIR $08 3 Starting sector of the root directory
-DD.OWN $0B 2 Owner’s user number
-DD.ATT $0D 1 Disk attributes
-DD.DSK $0E 2 Disk identification (for internal use)
-DD.FMT $10 1 Disk format, density, number of sides
-DD.SPT $11 2 Number of sectors per track
-DD.RES $13 2 Reserved for future use
-DD.BT $15 3 Starting sector of the bootstrap file
-DD.BSZ $18 2 Size of the bootstrap file (in bytes)
-DD.DAT $1A 5 Time of creation (Y:M:D:H:M). Year is 1900 + byte
-value.
-DD.NAM $1F 32 Volume name in which the last character has the most
-significant bit set
-DD.OPT $3F Path descriptor options
+LSN 1 is the start of the _disk allocation map_ , which is created by FORMAT. This map shows which sectors are allocated to the files and which are free for future use.
 
-**Disk Allocation Map Sector (LSN 1)**
+Each bit in the allocation map represents a sector or cluster of sectors on the disk. If the bit is set, the sector is considered to be in use, defective, or non-existent. If the bit is cleared, the corresponding cluster is available. The allocation map usually starts at LSN
 
-LSN 1 is the start of the _disk allocation map_ , which is created by FORMAT. This map
-shows which sectors are allocated to the files and which are free for future use.
+1. The number of sectors it requires varies according to how many bits are needed for the map. DD.MAP specifies the actual number of bytes used in the map.
 
-Each bit in the allocation map represents a sector or cluster of sectors on the disk. If the
-bit is set, the sector is considered to be in use, defective, or non-existent. If the bit is
-cleared, the corresponding cluster is available. The allocation map usually starts at LSN
+Multiple sector allocation maps allow the number of sectors/cluster to be as small as possible for high volume media.
 
+The FORMAT utility bases the size of the allocation map on the size and number of sectors per cluster.
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-1. The number of sectors it requires varies according to how many bits are needed for
-the map. DD.MAP specifies the actual number of bytes used in the map.
+The DD.MAP value in LSN 0 specifies the number of bytes (in LSN 1) that are used in the map.
 
-Multiple sector allocation maps allow the number of sectors/cluster to be as small as
-possible for high volume media.
+Each bit in the disk allocation map corresponds to one sector cluster on the disk. The DD.BIT value in LSN 0 specifies the number of sectors per cluster. The number is an integral power of 2 (1, 2, 4, 8, 16, and so on).
 
-The FORMAT utility bases the size of the allocation map on the size and number of
-sectors per cluster.
+If a cluster is available, the corresponding bit is cleared. If it is allocated, non-existent, or physically defective, the corresponding bit is set.
 
-The DD.MAP value in LSN 0 specifies the number of bytes (in LSN 1) that are used in the
-map.
-
-Each bit in the disk allocation map corresponds to one sector cluster on the disk. The
-DD.BIT value in LSN 0 specifies the number of sectors per cluster. The number is an
-integral power of 2 (1, 2, 4, 8, 16, and so on).
-
-If a cluster is available, the corresponding bit is cleared. If it is allocated, non-existent, or
-physically defective, the corresponding bit is set.
-
-#### Root Directory......................................................................................................
+#### Root Directory
 
 This file is the parent directory of all other files and directories on the disk. It is the
 directory accessed using the physical device name (such as /D1). Usually, it immediately
@@ -1286,637 +1239,404 @@ follows the Allocation Map. The location of the root directory file descriptor i
 in DD.DIR. The root directory contains an entry for each file that resides in the directory,
 including other directories.
 
-#### File Descriptor Sector...........................................................................................
+#### File Descriptor Sector
 
-The first sector of every file is the _file descriptor_. It contains the logical and physical
-description of the file.
+The first sector of every file is the _file descriptor_. It contains the logical and physical description of the file.
 
 The following table describes the contents of the file descriptor.
 
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| FD.ATT | $00 | 1 | File attributes: D S PE PW PR E W R (see next chart) |
+| FD.OWN | $01 | 2 | Owner’s user ID |
+| FD.DAT | $03 | 5 | Date last modified (Y:M:D:H:M). Year is 1900 + byte value. |
+| FD.LNK | $08 | 1 | Link count |
+| FD.SIZ | $09 | 4 | File size (number of bytes) |
+| FD.Creat | $0D | 3 | Date created (Y M D). Year is 1900 + byte value. |
+| FD.SEG | $10 | 240 | Segment list (see next chart) |
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
+**FD.ATT**. The attribute byte contains the file permission bits. When set the bits indicate the following:
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-FD.ATT $00 1 File attributes: D S PE PW PR E W R (see next chart)
-FD.OWN $01 2 Owner’s user ID
-FD.DAT $03 5 Date last modified (Y:M:D:H:M). Year is 1900 + byte
-value.
-FD.LNK $08 1 Link count
-FD.SIZ $09 4 File size (number of bytes)
-FD.Creat $0D 3 Date created (Y M D). Year is 1900 + byte value.
-FD.SEG $10 240 Segment list (see next chart)
+| | |
+|-|-|
+| Bit 7 | Directory |
+| Bit 6 | Single user |
+| Bit 5 | Public execute |
+| Bit 4 | Public write |
+| Bit 3 | Public read |
+| Bit 2 | Execute |
+| Bit 1 | Write |
+| Bit 0 | Read |
 
-**FD.ATT**. The attribute byte contains the file permission bits. When set the bits indicate
-the following:
+**FD.SEG.** The segment list consists of a maximum of 48 5-byte entries that have the size and address of each file block in logical order. Each entry has the block’s 3-byte LSN and 2-byte size (in sectors). **NOTE:** RBF is currently limited to segments being no larger than 2048 ($800) sectors. The entry following the last segment is zero.
 
-```
-Bit 7 Directory
-Bit 6 Single user
-Bit 5 Public execute
-Bit 4 Public write
-Bit 3 Public read
-Bit 2 Execute
-Bit 1 Write
-Bit 0 Read
-```
-**FD.SEG.** The segment list consists of a maximum of 48 5-byte entries that have the size
-and address of each file block in logical order. Each entry has the block’s 3-byte LSN and
-2-byte size (in sectors). **NOTE:** RBF is currently limited to segments being no larger than
-2048 ($800) sectors. The entry following the last segment is zero.
+After creation, a file has no data segments allocated to it until the first write. (Write operations past the current end-of-file cause sectors to be added to the file. The first write is always past the end-of-file.)
 
-After creation, a file has no data segments allocated to it until the first write. (Write
-operations past the current end-of-file cause sectors to be added to the file. The first
-write is always past the end-of-file.)
+If the file has no segments, it is given an initial segment. Usually, this segment has the number of sectors specified by the minimum allocation entry in the device descriptor. If, however, the number of sectors requested is more than the minimum, the initial segment has the requested number.
 
-If the file has no segments, it is given an initial segment. Usually, this segment has the
-number of sectors specified by the minimum allocation entry in the device descriptor. If,
+Later expansions of the file usually are also made in minimum allocation increments. Whenever possible, NitrOS-9 expands the last segment instead of adding a segment. When the file is closed, NitrOS-9 truncates unused sectors in the last segment.
 
+NitrOS-9 tries to minimize the number of storage segments used in a file. In fact, many files have only one segment. In such cases, no extra read operations are needed to randomly access any byte in the file.
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-however, the number of sectors requested is more than the minimum, the initial
-segment has the requested number.
+If a file is repeatedly closed, opened, and expanded, it can become fragmented so that it has many segments. You can avoid this fragmentation by writing a byte at the highest address you want to be used on a file. Do this before writing any other data.
 
-Later expansions of the file usually are also made in minimum allocation increments.
-Whenever possible, NitrOS-9 expands the last segment instead of adding a segment.
-When the file is closed, NitrOS-9 truncates unused sectors in the last segment.
+### Directories
 
-NitrOS-9 tries to minimize the number of storage segments used in a file. In fact, many
-files have only one segment. In such cases, no extra read operations are needed to
-randomly access any byte in the file.
-
-If a file is repeatedly closed, opened, and expanded, it can become fragmented so that it
-has many segments. You can avoid this fragmentation by writing a byte at the highest
-address you want to be used on a file. Do this before writing any other data.
-
-### Directories................................................................................................................
-
-_Disk directories_ are files that have the D attribute set. A directory contains an integral
-number of entries, each of which can hold the name and LSN of a file or another
+_Disk directories_ are files that have the D attribute set. A directory contains an integral number of entries, each of which can hold the name and LSN of a file or another
 directory.
 
-Each directory entry contains 29 bytes for the filename followed by three bytes for the
-LSN of the file’s descriptor sector. The filename is left-justified in the field with the most
-significant bit of the last character set. Unused entries have a zero byte in the first
-filename character position.
+Each directory entry contains 29 bytes for the filename followed by three bytes for the LSN of the file’s descriptor sector. The filename is left-justified in the field with the most significant bit of the last character set. Unused entries have a zero byte in the first filename character position.
 
-Every disk has a master directory called the root directory. The DD.DIR value in LSN 0
-(identification sector) specifies the starting sector of the root directory.
+Every disk has a master directory called the root directory. The DD.DIR value in LSN 0 (identification sector) specifies the starting sector of the root directory.
 
-### The RBF Manager Definitions of the Path Descriptor...............................................
+### The RBF Manager Definitions of the Path Descriptor
 
-As stated earlier in this chapter, the PD.FST section of the path descriptor is reserved for
-and defined by the file manager. The following table describes the use of this section by
-the RBF manager. For your convenience, it also includes the other sections of the PD.
+As stated earlier in this chapter, the PD.FST section of the path descriptor is reserved for and defined by the file manager. The following table describes the use of this section by the RBF manager. For your convenience, it also includes the other sections of the PD.
 
+**Universal Section (Same for all file managers and device drivers)**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| PD.PD | $00 | 1 | Path number |
+| PD.MOD | $01 | 1 | Access mode: |
+| | | | 1 = read |
+| | | | 2 = write |
+| | | | 3 = update |
+| PD.CNT | $02 | 1 | Number of open images (paths using this PD) |
+| PD.DEV | $03 | 2 | Address of the associated device table entry |
+| PD.CPR | $05 | 1 | Current process ID |
+| PD.RGS | $06 | 2 | Address of the caller’s 6809 register stack |
+| PD.BUF | $08 | 2 | Address of the 256-byte data buffer (if used) |
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-Universal Section (Same for all file managers and device drivers)
-PD.PD $00 1 Path number
-PD.MOD $01 1 Access mode
-1 = read
-2 = write
-3 = update
-PD.CNT $02 1 Number of open images (paths using this PD)
-PD.DEV $03 2 Address of the associated device table entry
-PD.CPR $05 1 Current process ID
-PD.RGS $06 2 Address of the caller’s 6809 register stack
-PD.BUF $08 2 Address of the 256-byte data buffer (if used)
-
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-The RBF manager Path Descriptor Definitions (PD.FST Section)
-PD.SMF $0A 1 State flag:
-Bit 0 = current buffer is altered
-Bit 1 = current sector is in the buffer
-Bit 2 = descriptor sector is in the buffer
-PD.CP $0B 4 Current logical file position (byte address)
-PD.SIZ $0F 4 File size
-PD.SBL $13 3 Segment beginning logical sector number (LSN)
-PD.SBP $16 3 Segment beginning physical sector number (PSN)
-PD.SSZ $19 3 Segment size
-PD.DSK $1C 2 Disk ID (for internal use only)
-PD.DTB $1E 2 Address of drive table
+**The RBF manager Path Descriptor Definitions (PD.FST Section)**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| PD.SMF | $0A | 1 | State flag: |
+| | | | Bit 0 = current buffer is altered |
+| | | | Bit 1 = current sector is in the buffer |
+| | | | Bit 2 = descriptor sector is in the buffer |
+| PD.CP | $0B | 4 | Current logical file position (byte address) |
+| PD.SIZ | $0F | 4 | File size |
+| PD.SBL | $13 | 3 | Segment beginning logical sector number (LSN) |
+| PD.SBP | $16 | 3 | Segment beginning physical sector number (PSN) |
+| PD.SSZ | $19 | 3 | Segment size |
+| PD.DSK | $1C | 2 | Disk ID (for internal use only) |
+| PD.DTB | $1E | 2 | Address of drive table |
 
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-The RBF manager Option Section Definitions (PD.OPT Section)
-(Copied from the device descriptor)
-PD.DTP $20 1 Device class
-0 = SCF
-1 = RBF
-2 = PIPE
-3 = SBF
-PD.DRV $21 1 Drive number (0.. _n_ )
-PD.STP $22 1 Step rate
-PD.TYP $23 1 Device type
-PD.DNS $24 1 Density capability
-PD.CYL $25 2 Number of cylinders (tracks)
-PD.SID $27 1 Number of sides (surfaces)
-PD.VFY $28 1 0 = verify disk writes
-PD.SCT $29 2 Default number of sectors per track
-PD.T0S $2B 2 Default number of sectors per track (Track 0)
-PD.ILV $2D 1 Sector interleave factor
-PD.SAS $2E 1 Segment allocation size
-PD.TFM $2F 1 DMA transfer mode
-PD.EXTEN $30 2 Path extension for record locking
-PD.STOFF $32 1 Sector/track offsets
-(Not copied from the device descriptor)
-PD.ATT $33 1 File attributes (D S PE PW PR E W R)
-PD.FD $34 3 File descriptor PSN
-PD.DFD $37 3 Directory file descriptor PSN
-PD.DCP $3A 4 File’s directory entry pointer
-PD.DVT $3E 2 Address of the device table entry
+**The RBF manager Option Section Definitions (PD.OPT Section)**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| (Copied from the device descriptor) |
+| PD.DTP | $20 | 1 | Device class: |
+| | | | 0 = SCF |
+| | | | 1 = RBF |
+| | | | 2 = PIPE |
+| | | | 3 = SBF |
+| PD.DRV | $21 | 1 | Drive number (0.. _n_ ) |
+| PD.STP | $22 | 1 | Step rate |
+| PD.TYP | $23 | 1 | Device type |
+| PD.DNS | $24 | 1 | Density capability |
+| PD.CYL | $25 | 2 | Number of cylinders (tracks) |
+| PD.SID | $27 | 1 | Number of sides (surfaces) |
+| PD.VFY | $28 | 1 | 0 = verify disk writes |
+| PD.SCT | $29 | 2 | Default number of sectors per track |
+| PD.T0S | $2B | 2 | Default number of sectors per track (Track 0) |
+| PD.ILV | $2D | 1 | Sector interleave factor |
+| PD.SAS | $2E | 1 | Segment allocation size |
+| PD.TFM | $2F | 1 | DMA transfer mode |
+| PD.EXTEN | $30 | 2 | Path extension for record locking |
+| PD.STOFF | $32 | 1 | Sector/track offsets |
+| (Not copied from the device descriptor) |
+| PD.ATT | $33 | 1 | File attributes (D S PE PW PR E W R) |
+| PD.FD | $34 | 3 | File descriptor PSN |
+| PD.DFD | $37 | 3 | Directory file descriptor PSN |
+| PD.DCP | $3A | 4 | File’s directory entry pointer |
+| PD.DVT | $3E | 2 | Address of the device table entry |
 
 Any values not determined by this table default to zero.
 
+### RBF-Type Device Descriptor Modules
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-### RBF-Type Device Descriptor Modules......................................................................
+This section describes the use of the initialization table contained in the device descriptor modules for RBF-type devices. The following values are those the I/O manager copies from the device descriptor to the path descriptor.
 
-This section describes the use of the initialization table contained in the device
-descriptor modules for RBF-type devices. The following values are those the I/O
-manager copies from the device descriptor to the path descriptor.
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| | $00-$11 | | Standard device descriptor module header |
+| IT.DTP | $12 | 1 | Device type: |
+| | | | 0 = SCF |
+| | | | 1 = RBF |
+| | | | 2 = PIPE |
+| | | | 3 = SBF |
+| IT.DRV | $13 | 1 | Drive number |
+| IT.STP | $14 | 1 | Step rate |
+| IT.TYP | $15 | 1 | Device type (see RBF path descriptor) |
+| IT.DNS | $16 | 1 | Media density: Always 1 (double) (see following information) |
+| IT.CYL | $17 | 2 | Number of cylinders (tracks) |
+| IT.SID | $19 | 1 | Number of sides |
+| IT.VFY | $1A | 1 | 0 = Verify disk writes |
+| | | | 1 = no verify |
+| IT.SCT | $1B | 2 | Default number of sectors per track |
+| IT.T0S | $1D | 2 | Default number of sectors per track (Track 0) |
+| IT.ILV | $1F | 1 | Sector interleave factor |
+| IT.SAS | $20 | 1 | Minimum size of segment allocation (number of sectors to be allocated at one time) |
 
-**Name Relative
-Address**
+**IT.DRV** is used to associate a 1-byte integer with each drive that a controller handles. Number the drives for each controller as 0 to _n_ -1, where _n_ is the maximum number of drives the controller can handle.
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-$00-$11 Standard device descriptor module header
-IT.DTP $12 1 Device type:
-0 = SCF
-1 = RBF
-2 = PIPE
-3 = SBF
-IT.DRV $13 1 Drive number
-IT.STP $14 1 Step rate
-IT.TYP $15 1 Device type (see RBF path descriptor)
-IT.DNS $16 1 Media density:
-Always 1 (double)
-(see following information)
-IT.CYL $17 2 Number of cylinders (tracks)
-IT.SID $19 1 Number of sides
-IT.VFY $1A 1 0 = Verify disk writes
-1 = no verify
-IT.SCT $1B 2 Default number of sectors per track
-IT.T0S $1D 2 Default number of sectors per track (Track 0)
-IT.ILV $1F 1 Sector interleave factor
-IT.SAS $20 1 Minimum size of segment allocation (number of sectors
-to be allocated at one time)
-**IT.DRV** is used to associate a 1-byte integer with each drive that a controller handles.
-Number the drives for each controller as 0 to _n_ -1, where _n_ is the maximum number of
-drives the controller can handle.
+**IT.TYP** specifies the device type (all types).The high bit (bit 7) specifies if it is a hard drive or a floppy drive; the meaning of bits 0 to 4 change depending on this type:
 
-**IT.TYP** specifies the device type (all types).The high bit (bit 7) specifies if it is a hard drive
-or a floppy drive; the meaning of bits 0 to 4 change depending on this type:
-
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
 **Bit definitions common to floppy and hard drives:**
-Bit 7 0 = Floppy diskette
-1 = Hard drive
-Bit 6 0 = Standard NitrOS-9 format
-1 = Non-Standard format
-Bit 5 0 = Non-Coco format
-1 = Coco format
+| | |
+|-|-|
+| Bit 7 | 0 = Floppy diskette |
+| | 1 = Hard drive |
+| Bit 6 | 0 = Standard NitrOS-9 format |
+| | 1 = Non-Standard format |
+| Bit 5 | 0 = Non-Coco format |
+| | 1 = Coco format |
+
 **Bit definitions 0 to 4 for floppy drives:**
-Bit 4 Reserved for future use/special drivers
-Bit 3 Reserved for future use/special drivers
-Bit 2 0 = 256 byte physical sectors
-1 = 512 byte physical sectors
-Bit 1 0 = Sector base offset=0 (sector #'s start at 0)
-1 = Sector base offset=1 (sector #'s start at 1)
-Bit 0 0 = 5.25" floppy
-1 = 3.5" floppy (actually doesn't affect driver)
+| | |
+|-|-|
+| Bit 4 | Reserved for future use/special drivers |
+| Bit 3 | Reserved for future use/special drivers |
+| Bit 2 | 0 = 256 byte physical sectors |
+| | 1 = 512 byte physical sectors |
+| Bit 1 | 0 = Sector base offset=0 (sector #'s start at 0) |
+| | 1 = Sector base offset=1 (sector #'s start at 1) |
+| Bit 0 | 0 = 5.25" floppy |
+| | 1 = 3.5" floppy (actually doesn't affect driver) |
+
 **Bit definitions 0 to 4 for hard drives:**
-Bit 4 0 = Do not query drive for size
-1 = Query drive for size
-Bit 3 Reserved for future use/special drivers
-Bit 2 Reserved for future use/special drivers
-Bits 0-1 00=256 bytes/sector
-01=512 bytes/sector
-10=1024 bytes/sector
-11=2048 bytes/sector
+| | |
+|-|-|
+| Bit 4 | 0 = Do not query drive for size |
+| | 1 = Query drive for size |
+| Bit 3 | Reserved for future use/special drivers |
+| Bit 2 | Reserved for future use/special drivers |
+| Bits 0-1 | 00=256 bytes/sector |
+| | 01=512 bytes/sector |
+| | 10=1024 bytes/sector |
+| | 11=2048 bytes/sector |
 
 **IT.DNS** specifies the density capabilities (floppy diskette only):
-Bit 0 0 = Single bit density (FM)
-1 = Double bit density (MFM)
-Bit 1 0 = Single-track density (5 inch, 48/135 tracks per inch)
-1 = Double-track density (5 inch, 96 tracks per inch)
-Bit 2 0 = Single density track 0
-1 = Double density track 0
+| | |
+|-|-|
+| Bit 0 | 0 = Single bit density (FM) |
+| | 1 = Double bit density (MFM) |
+| Bit 1 | 0 = Single-track density (5 inch, 48/135 tracks per inch) |
+| | 1 = Double-track density (5 inch, 96 tracks per inch) |
+| Bit 2 | 0 = Single density track 0 |
+| | 1 = Double density track 0 |
 
 **IT.SAS** specifies the minimum number of sectors allocated at one time.
 
+The above constitutes all of initialization table used by floppy drives and the CocoSDC. For some older hard drive system (like SuperDriver SCSI, etc.), this table gets extended with the following additional values:
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-The above constitutes all of initialization table used by floppy drives and the CocoSDC. For
-some older hard drive system (like SuperDriver SCSI, etc.), this table gets extended with the
-following additional values:
-
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-IT.TFM $21 1 DMA Transfer Mode (Reserved For Future Use)
-IT.Exten $22 2 Path Extension (PE) for record locking
-IT.ST0ff $24 1 Sector/Track offsets (for “foreign” disk formats)
-IT.WPC $25 1 Write Precomp cylinder/4 (used on some older drives)
-IT.OFS $26 2 Starting cylinder offset (for partitions on some older
-hard drives)
-IT.RWC $28 2 Reduced write current cylinder (used on some older
-hard drives)
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| IT.TFM | $21 | 1 | DMA Transfer Mode (Reserved For Future Use) |
+| IT.Exten | $22 | 2 | Path Extension (PE) for record locking |
+| IT.ST0ff | $24 | 1 | Sector/Track offsets (for “foreign” disk formats) |
+| IT.WPC | $25 | 1 | Write Precomp cylinder/4 (used on some older drives) |
+| IT.OFS | $26 | 2 | Starting cylinder offset (for partitions on some older hard drives) |
+| IT.RWC | $28 | 2 | Reduced write current cylinder (used on some older hard drives) |
 
 **NOTE: The Superdriver redefines from Relative address $25 (IT.WPC) onwards
 differently than the older hard drive drivers did:**
 
-**Name Relative
-Address**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| IT.SOFF1 | $25 | 3 | SuperDriver offset (partition offset by physical number?) |
+| IT.LLDRV | $28 | 2 | SuperDriver offset (logical drive # for RGB/HDBDos?) |
+| IT.MPI | $29 | 1 | CocoSDC/SuperDriver (Reserved for future use) |
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-IT.SOFF1 $25 3 SuperDriver offset (partition offset by physical
-number?)
-IT.LLDRV $28 2 SuperDriver offset (logical drive # for RGB/HDBDos?)
-IT.MPI $29 1 CocoSDC/SuperDriver (Reserved for future use)
+#### RBF Record Locking
 
-#### RBF Record Locking..............................................................................................
+Record locking is a general term that refers to methods designed to preserve the integrity of files that can be accessed by more than one user or process. The NitrOS- 9 implementation of record locking is designed to be as invisible as possible. This means that existing programs do not have to be rewritten to take advantage of record locking facilities. You can usually write new programs without special concern for multi-user activity.
 
-Record locking is a general term that refers to methods designed to preserve the
-integrity of files that can be accessed by more than one user or process. The NitrOS- 9
-implementation of record locking is designed to be as invisible as possible. This means
-that existing programs do not have to be rewritten to take advantage of record locking
-facilities. You can usually write new programs without special concern for multi-user
-activity.
+Record locking involves detecting and preventing conflicts during record access. Whenever a process modifies a record, the system locks out other procedures from accessing the file. It defers access to other procedures until it is safe for them to write to the record. The system does not lock records during reads; so, multiple processes can read the records at the same time.
 
+#### Record Locking and Unlocking
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-Record locking involves detecting and preventing conflicts during record access.
-Whenever a process modifies a record, the system locks out other procedures from
-accessing the file. It defers access to other procedures until it is safe for them to write to
-the record. The system does not lock records during reads; so, multiple processes can
-read the records at the same time.
+To detect conflicts, NitrOS-9 must recognize when a record is being updated. The RBF manager provides true record locking on a byte basis. A typical record update sequence is:
 
-#### Record Locking and Unlocking..............................................................................
+| | | |
+|-|-|-|
+| OS9 | I$Read | program reads record |
+| | | RECORD is LOCKED |
+| | . | |
+| | . | program updates record |
+| | . | |
+| OS9 | I$Seek | reposition to record |
+| OS9 | I$Writerecord | is rewritten |
+| | | RECORD IS RELEASED |
 
-To detect conflicts, NitrOS-9 must recognize when a record is being updated. The RBF
-manager provides true record locking on a byte basis. A typical record update sequence
-is:
+When a file is opened in update mode, any read causes locking of the record being accessed. This happens because the RBF manager cannot determine in advance if the record is to be updated. The record stays locked until the next read, write, or close.
 
-```
-OS9 I$Read program reads record
-RECORD is LOCKED
-.
-```
-. program updates record
-.
-OS9 I$Seek reposition to record
-OS9 I$Writerecord is rewritten
-RECORD IS RELEASED
+However, when a file is opened in the read or execute modes, the system does not lock accessed records because the records cannot be updated in these two modes.
 
-When a file is opened in update mode, any read causes locking of the record being
-accessed. This happens because the RBF manager cannot determine in advance if the
-record is to be updated. The record stays locked until the next read, write, or close.
+A subtle but important problem exists for programs that interrogate a data base and occasionally update its data. If you neglect to release a record after accessing it, the record might be locked indefinitely. This problem is characteristic of record locking systems and you can avoid it with careful programming.
 
-However, when a file is opened in the read or execute modes, the system does not lock
-accessed records because the records cannot be updated in these two modes.
+Only one portion of a file can be locked at a time. If an application requires more than one record to be locked, open multiple paths to the same file and lock the record accessed by each path. RBF notices that the same process owns both paths and keeps them from locking each other.
 
-A subtle but important problem exists for programs that interrogate a data base and
-occasionally update its data. If you neglect to release a record after accessing it, the
-record might be locked indefinitely. This problem is characteristic of record locking
-systems and you can avoid it with careful programming.
+#### Non-Shareable Files
 
-Only one portion of a file can be locked at a time. If an application requires more than
-one record to be locked, open multiple paths to the same file and lock the record
-accessed by each path. RBF notices that the same process owns both paths and keeps
-them from locking each other.
+Sometimes (although rarely), you must create a file that can never be accessed by more than one user at a time. To lock the file, you set the single-user bit in the file’s attribute byte. You can do this by using the proper option when the file is created, or later using the NitrOS-9 ATTR command. Once the single-user bit is set, only one use can open the file at a time. If other users attempt to open the file, Error 253 (Non-Shareable file busy) is returned. Note, however, that non-shareable means only one path can be opened to a file at one time. Do not allow two processes to concurrently access a non-shareable file through the same path.
 
+More commonly, you need to declare a file as single-user only during the execution of a specific program. You can do this by opening the file with the single-user bit set. For example, suppose a process is sorting a file. With the file’s single-user bit set, NitrOS-9 treats the file exactly as though it had a single-user attribute. If another process attempts to open the file, NitrOS-9 returns Error 253.
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-#### Non-Shareable Files..............................................................................................
+You can duplicate non-shareable files by using the I$Dup system call. This means that it can be inherited and therefore accessible to more than one process at a time. Single-user means only that the file can be opened only once.
 
-Sometimes (although rarely), you must create a file that can never be accessed by more
-than one user at a time. To lock the file, you set the single-user bit in the file’s attribute
-byte. You can do this by using the proper option when the file is created, or later using
-the NitrOS-9 ATTR command. Once the single-user bit is set, only one use can open the
-file at a time. If other users attempt to open the file, Error 253 (Non-Shareable file busy)
-is returned. Note, however, that non-shareable means only one path can be opened to a
-file at one time. Do not allow two processes to concurrently access a non-shareable file
-through the same path.
+#### End-of-File Lock
 
-More commonly, you need to declare a file as single-user only during the execution of a
-specific program. You can do this by opening the file with the single-user bit set. For
-example, suppose a process is sorting a file. With the file’s single-user bit set, NitrOS- 9
-treats the file exactly as though it had a single-user attribute. If another process
-attempts to open the file, NitrOS-9 returns Error 253.
+A special case of record locking occurs when a user reads or writes data at the end of a file, creating an _EOF Lock_. An EOF Lock keeps the end of the file locked until a process performs a read or write that it is not at the end of the file. It prevents problems that might otherwise occur when two users want to simultaneously extend a file. The EOF Lock is the only case in which a write call automatically causes portions of a file to be locked. An interesting and useful side effect of the EOF Lock function occurs if a program creates a file for sequential output. As soon as the program creates the file, EOF Lock is set and no other process can _pass_ the writer in processing the file. For example, if an assembler redirects a listing to a disk file, and a spooler utility tries to print a line from the file it is written, record locking makes the spooler wait and stay at least one step behind the assembler.
 
-You can duplicate non-shareable files by using the I$Dup system call. This means that it
-can be inherited and therefore accessible to more than one process at a time. Single-
-user means only that the file can be opened only once.
+#### Deadlock Detection
 
-#### End-of-File Lock....................................................................................................
+A _deadly embrace_ , or deadlock, typically occurs when two processes attempt to gain control of two or more disk areas at the same time. If each process gets one area (locking the other process), both processes become permanently stuck. Each waits for a segment that can never become free. This situation is not restricted to any particular record locking scheme or operating system.
 
-A special case of record locking occurs when a user reads or writes data at the end of a
-file, creating an _EOF Lock_. An EOF Lock keeps the end of the file locked until a process
-performs a read or write that it is not at the end of the file. It prevents problems that
-might otherwise occur when two users want to simultaneously extend a file. The EOF
-Lock is the only case in which a write call automatically causes portions of a file to be
-locked. An interesting and useful side effect of the EOF Lock function occurs if a program
-creates a file for sequential output. As soon as the program creates the file, EOF Lock is
-set and no other process can _pass_ the writer in processing the file. For example, if an
-assembler redirects a listing to a disk file, and a spooler utility tries to print a line from
-the file it is written, record locking makes the spooler wait and stay at least one step
-behind the assembler.
+When a deadly embrace occurs, RBF returns a deadlock error (Error 254) to the process that caused NitrOS-9 to detect the deadlock. To avoid deadlocks, make sure that processes always access records of shared files in the same sequence.
 
+When a deadlock error occurs, it is not sufficient for a program to retry the operation that caused the error. If all processes use this strategy, none can ever succeed. For any process to proceed, at least one must cancel operation to release control over a requesting segment.
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-#### Deadlock Detection..............................................................................................
+### RBF-Type Device Driver Modules
 
-A _deadly embrace_ , or deadlock, typically occurs when two processes attempt to gain
-control of two or more disk areas at the same time. If each process gets one area
-(locking the other process), both processes become permanently stuck. Each waits for a
-segment that can never become free. This situation is not restricted to any particular
-record locking scheme or operating system.
+An RBF-type device driver module contains a package of subroutines that perform sector-oriented I/O to or from a specific hardware controller. Such a module is usually re-entrant. Because of this, one copy of one device driver module can simultaneously run several devices that use identical I/O controllers.
 
-When a deadly embrace occurs, RBF returns a deadlock error (Error 254) to the process
-that caused NitrOS-9 to detect the deadlock. To avoid deadlocks, make sure that
-processes always access records of shared files in the same sequence.
+The I/O manager allocates a permanent memory area for each device driver. The size of the memory area is given in the device driver module header. The I/O manager and the RBF manager use some of this area. The device driver can use the rest in any manner. This area is used as follows:
 
-When a deadlock error occurs, it is not sufficient for a program to retry the operation
-that caused the error. If all processes use this strategy, none can ever succeed. For any
-process to proceed, at least one must cancel operation to release control over a
-requesting segment.
+#### The RBF Device Memory Area Definitions
 
-### RBF-Type Device Driver Modules.............................................................................
-
-An RBF-type device driver module contains a package of subroutines that perform
-sector-oriented I/O to or from a specific hardware controller. Such a module is usually
-re-entrant. Because of this, one copy of one device driver module can simultaneously
-run several devices that use identical I/O controllers.
-
-The I/O manager allocates a permanent memory area for each device driver. The size of
-the memory area is given in the device driver module header. The I/O manager and the
-RBF manager use some of this area. The device driver can use the rest in any manner.
-This area is used as follows:
-
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-#### The RBF Device Memory Area Definitions............................................................
-
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-V.PAGE $00 1 Port extended address bits A20-A16
-V.PORT $01 2 Device base address (defined by the I/O
-manager)
-V.LPRC $03 1 ID of the last active process (not used by RBF
-device drivers)
-V.BUSY $04 1 ID of the current process using driver (defined by
-RBF)
-0 = no current process
-V.WAKE $05 1 ID of the process waiting for I/O completion
-(defined by the device driver)
-V.USER $06 0 Beginning of file manager specific storage
-V.NDRV $06 1 Maximum number of drives the controller can
-use (defined by the device driver)
-$07 8 Reserved
-DRVBEG $0F 0 Beginning of the drive tables
-TABLES $0F DRVMEM*N Space for number of tables reserved ( _n_ )
-FREE 0 Beginning of space available for driver
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| V.PAGE | $00 | 1 | Port extended address bits A20-A16 |
+| V.PORT | $01 | 2 | Device base address (defined by the I/O manager) |
+| V.LPRC | $03 | 1 | ID of the last active process (not used by RBF device drivers) |
+| V.BUSY | $04 | 1 | ID of the current process using driver (defined by RBF) |
+| | | | 0 = no current process |
+| V.WAKE | $05 | 1 | ID of the process waiting for I/O completion (defined by the device driver) |
+| V.USER | $06 | 0 | Beginning of file manager specific storage |
+| V.NDRV | $06 | 1 | Maximum number of drives the controller can use (defined by the device driver) |
+| | $07 | 8 | Reserved |
+| DRVBEG | $0F | 0 | Beginning of the drive tables |
+| TABLES | $0F | DRVMEM*N | Space for number of tables reserved ( _n_ ) |
+| FREE | | 0 | Beginning of space available for driver |
 
 These values are defined in files in the DEFS directory.
 
-**TABLES**. This area contains one table for each drive that the controller handles. (The RBF
-manager assumes that there are as many tables as indicated by V.NDRV.) Some time
-after the driver Init routine is called, the RBF manager issues a request for the driver to
-read LSN 0 from a drive table by copying the first part of LSN 0 (up to DD.SIZ) into the
-table. Following is the format of each drive table:
+**TABLES**. This area contains one table for each drive that the controller handles. (The RBF manager assumes that there are as many tables as indicated by V.NDRV.) Some time after the driver Init routine is called, the RBF manager issues a request for the driver to read LSN 0 from a drive table by copying the first part of LSN 0 (up to DD.SIZ) into the table. Following is the format of each drive table:
 
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-DD.TOT $00 3 Number of sectors
-DD.TKS $03 1 Track size (in sectors)
-DD.MAP $04 2 Number of bytes in the allocation bit map
-DD.BIT $06 2 Number of sectors per bit (cluster size)
-DD.DIR $08 3 Address (LSN) of the root directory
-
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-DD.OWN $0B 2 Owner’s user number
-DD.ATT $0D 1 Disk access attributes (D S PE PW PR E W R)
-DD.DSK $0F 2 Disk ID (a pseudo-random number used to detect
-diskette swaps)
-DD.FMT $10 1 Media format
-DD.SPT $11 2 Number of sectors per track. (Track 0 can use a
-different value specified by IT.T0S in the device
-descriptor.)
-DD.RES $13 2 Reserved for future use
-DD.SIZ $15 0 Minimum size of device descriptor
-V.TRAK $15 2 Number of the current track (the track that the
-head is on, and the track updated by the driver)
-V.BMB $17 1 Bit-map use flag:
-0 = Bit map is not in use (Disk driver routines must
-not alter V.BMB)
-V.FILEHD $18 2 Open file list for this drive
-V.DISKID $1A 2 Disk ID
-V.BMAPSZ $1C 1 Size of bitmap
-V.MAPSCT $1D 1 Lowest reasonable bitmap sector
-V.RESBIT $1E 1 Reserved bitmap sector
-V.SCTKOF $1F 1 Sector/track byte
-V.SCOFST $20 1 Sector offset split from byte above
-V.TKOFST $22 4 Reserved for future use
-DRVMEM $26. Size of each drive table
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| DD.TOT | $00 | 3 | Number of sectors |
+| DD.TKS | $03 | 1 | Track size (in sectors) |
+| DD.MAP | $04 | 2 | Number of bytes in the allocation bit map |
+| DD.BIT | $06 | 2 | Number of sectors per bit (cluster size) |
+| DD.DIR | $08 | 3 | Address (LSN) of the root directory |
+| DD.OWN | $0B | 2 | Owner’s user number |
+| DD.ATT | $0D | 1 | Disk access attributes (D S PE PW PR E W R) |
+| DD.DSK | $0F | 2 | Disk ID (a pseudo-random number used to detect diskette swaps) |
+| DD.FMT | $10 | 1 | Media format |
+| DD.SPT | $11 | 2 | Number of sectors per track. (Track 0 can use a different value specified by IT.T0S in the device descriptor.) |
+| DD.RES | $13 | 2 | Reserved for future use |
+| DD.SIZ | $15 | 0 | Minimum size of device descriptor |
+| V.TRAK | $15 | 2 | Number of the current track (the track that the head is on, and the track updated by the driver) |
+| V.BMB | $17 | 1 | Bit-map use flag: 0 = Bit map is not in use (Disk driver routines must not alter V.BMB) |
+| V.FILEHD | $18 | 2 | Open file list for this drive |
+| V.DISKID | $1A | 2 | Disk ID |
+| V.BMAPSZ | $1C | 1 | Size of bitmap |
+| V.MAPSCT | $1D | 1 | Lowest reasonable bitmap sector |
+| V.RESBIT | $1E | 1 | Reserved bitmap sector |
+| V.SCTKOF | $1F | 1 | Sector/track byte |
+| V.SCOFST | $20 | 1 | Sector offset split from byte above |
+| V.TKOFST | $22 | 4 | Reserved for future use |
+| DRVMEM | $26 |. | Size of each drive table |
 
 The format attributes (DD.FMT) are these:
 
-```
-Bit 0 Number of sides
-0 = Single-sided
-1 = Double-sided
-Bit 1 Density
-0 = Single-density
-1 = Double-density
-Bit 2 Track density
-0 = Single (48 tracks per inch)
-1 = Double (96 tracks per inch)
-```
+| | |
+|-|-|
+| Bit 0 | Number of sides |
+| | 0 = Single-sided |
+| | 1 = Double-sided |
+| Bit 1 | Density |
+| | 0 = Single-density |
+| | 1 = Double-density |
+| Bit 2 | Track density |
+| | 0 = Single (48 tracks per inch) |
+| | 1 = Double (96 tracks per inch) |
+| Bit 5 | |
+| | 0 = Double Density track 0 |
+| | 1 = Single Density track 0 |
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-```
-Bit 5
-0 = Double Density track 0
-1 = Single Density track 0
-```
-#### RBF Device Driver Subroutines.............................................................................
+#### RBF Device Driver Subroutines
 
-Like all device driver modules, RBF device drivers use a standard executable memory
-module format.
+Like all device driver modules, RBF device drivers use a standard executable memory module format.
 
-The execution offset address in the module header points to a branch table that has six
-3-byte entries. Each entry is typically a long branch (LBRA) to the corresponding
-subroutine. The branch table is defined as follows:
+The execution offset address in the module header points to a branch table that has six 3-byte entries. Each entry is typically a long branch (LBRA) to the corresponding subroutine. The branch table is defined as follows:
 
-ENTRY LBRA INIT Initialize drive
-LBRA READ Read sector
-LBRA WRITE Write sector
-LBRA GETSTA Get status
-LBRA SETSTA Set status
-LBRA TERM Terminate device
+| | | | |
+|-|-|-|-|
+| ENTRY | LBRA | INIT | Initialize drive |
+| | LBRA | READ | Read sector |
+| | LBRA | WRITE | Write sector |
+| | LBRA | GETSTA | Get status |
+| | LBRA | SETSTA | Set status |
+| | LBRA | TERM | Terminate device |
 
-Ensure that each subroutine exits with the C bit of the condition code register cleared if
-no error occurred. If an error occurs, set the C bit and return an appropriate error code
-in Register B.
+Ensure that each subroutine exits with the C bit of the condition code register cleared if no error occurred. If an error occurs, set the C bit and return an appropriate error code in Register B.
 
-The rest of this chapter describes the RBF device driver subroutines and their entry and
-exit conditions.
+The rest of this chapter describes the RBF device driver subroutines and their entry and exit conditions.
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Init....................................................................................................................
+### Init
 
 **Initializes a device and the device’s memory area.**
 
 **Entry Conditions:**
-Y address of the device descriptor
-U address of the device memory area
+| | |
+|-|-|
+| Y | address of the device descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
-1. If you want NitrOS-9 to verify disk writes, use the Request Memory system
-    call (F$SRqMem) to allocate a 256-byte buffer area in which a sector can be
-    read back and verified after a write.
-2. You must initialize the device memory area. For floppy diskette controllers,
-    initialization typically consists of:
-    A. Initializing V.NDRV to the number of drives with which the controller
-       works
-    B. Initializing DD.TOT (in the drive table) to a non-zero value so that Sector
-       0 can be read or written
+1. If you want NitrOS-9 to verify disk writes, use the Request Memory system call (F$SRqMem) to allocate a 256-byte buffer area in which a sector can be read back and verified after a write.
+2. You must initialize the device memory area. For floppy diskette controllers, initialization typically consists of:
+
+    A. Initializing V.NDRV to the number of drives with which the controller works
+
+    B. Initializing DD.TOT (in the drive table) to a non-zero value so that Sector 0 can be read or written
+
     C. Initializing V.TRAK to $FF so that the first seek finds Track 0
-    D. Placing the IRQ service routing on the IRQ polling list, using the Set IRQ
-       system call (F$IRQ)
+
+    D. Placing the IRQ service routing on the IRQ polling list, using the Set IRQ system call (F$IRQ)
+
     E. Initializing the device control registers (enabling interrupts if necessary)
-3. Prior to being called, the device memory area is cleared (set to zero),
-    except for V.PAGE and V.PORT. (These areas contain the 24-bit device
-    address.) Ensure the driver initializes each drive table appropriately for the
-    type of diskette that the driver expects to be used on the corresponding
-    drive.
+3. Prior to being called, the device memory area is cleared (set to zero), except for V.PAGE and V.PORT. (These areas contain the 24-bit device address.) Ensure the driver initializes each drive table appropriately for the type of diskette that the driver expects to be used on the corresponding drive.
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Read..................................................................................................................
+### Read
 
 **Reads a 256-byte sector from a disk and places it in a 256-byte sector buffer.**
 
 **Entry Conditions:**
-B MSB of the disk’s LSN
-X LSW of the disk’s LSN
-Y address of the path descriptor
-U address of the device memory area
+| | |
+|-|-|
+| B | MSB of the disk’s LSN |
+| X | LSW of the disk’s LSN |
+| Y | address of the path descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
@@ -1925,39 +1645,34 @@ B _error code_ (if any)
     2. Get the drive number from PD.DRV in the path descriptor.
     3. Compute the physical disk address from the logical sector number.
     4. Initiate the Read operation
-    5. Copy V.BUSY to V.WAKE. The driver goes to sleep and waits for the I/O to
-       complete. (The IRQ service routine is responsible for sending a wakeup signal.)
-       After awakening, the driver tests V.WAKE to see if it is clear. If it is not clear,
-       the driver goes back to sleep.
-- Whenever you read LSN 0, you must copy the first part of this sector into the
-    proper drive table. (Get the drive number from PD.DRV in the path descriptor.)
-    The number of bytes to copy is in DD.SIZ. Use the drive number (PD.DRV) to
-    compute the offset for the corresponding drive table as follows:
+    5. Copy V.BUSY to V.WAKE. The driver goes to sleep and waits for the I/O to complete. (The IRQ service routine is responsible for sending a wakeup signal.) After awakening, the driver tests V.WAKE to see if it is clear. If it is not clear, the driver goes back to sleep.
+- Whenever you read LSN 0, you must copy the first part of this sector into the proper drive table. (Get the drive number from PD.DRV in the path descriptor.) The number of bytes to copy is in DD.SIZ. Use the drive number (PD.DRV) to compute the offset for the corresponding drive table as follows:
 
-```
-LDA PD.DRV,Y Get the drive number
-LDB #DRVMEM Get the size of a drive table
-MUL
-LEAX DRVBEG,U Get the address of the first table
-LEAX D,X Compute the address of the table
-```
+| | | |
+|-|-|-|
+| LDA | PD.DRV,Y | Get the drive number |
+| LDB | #DRVMEM | Get the size of a drive table |
+| MUL | | |
+| LEAX | DRVBEG,U | Get the address of the first table |
+| LEAX | D,X | Compute the address of the table |
 
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Write.................................................................................................................
+### Write
 
 **Writes a 256-byte sector buffer to a disk.**
 
 **Entry Conditions:**
-B MSB of the disk LSN
-X LSW of the disk LSN
-Y address of the path descriptor
-U address of the device memory area
+| | |
+|-|-|
+| B | MSB of the disk LSN |
+| X | LSW of the disk LSN |
+| Y | address of the path descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
@@ -1966,34 +1681,21 @@ B _error code_ (if any)
     2. Get the drive number from PD.DRV in the path descriptor.
     3. Compute the physical disk address from the logical sector number.
     4. Initiate the Write operation.
-    5. Copy V.BUSY to V.WAKE. The driver then goes to sleep and waits for the I/O
-       to complete. (The IRQ service routine sends the wakeup signal.) After
-       awakening, the driver tests V.WAKE to see if it is clear. If it is not, the driver
-       goes back to sleep. If the disk controller cannot be interrupt-driven, it is
-       necessary to perform a programmed I/O transfer.
-    6. If PD.VFY in the path descriptor is equal to zero, read the sector back in and
-       verify that it is written correctly. Verification usually does not involve a
-       comparison of all of the data bytes.
-- If disk writes are to be verified, the Init routine must request the buffer in
-    which to place the sector when it is read back. Do not copy LSN 0 into the drive
-    table when reading it back for verification.
-- Use the drive number (PD.DRV) to compute the offset to the corresponding
-    drive table as shown for the Read routine.
+    5. Copy V.BUSY to V.WAKE. The driver then goes to sleep and waits for the I/O to complete. (The IRQ service routine sends the wakeup signal.) After awakening, the driver tests V.WAKE to see if it is clear. If it is not, the driver goes back to sleep. If the disk controller cannot be interrupt-driven, it is necessary to perform a programmed I/O transfer.
+    6. If PD.VFY in the path descriptor is equal to zero, read the sector back in and verify that it is written correctly. Verification usually does not involve a comparison of all of the data bytes.
+- If disk writes are to be verified, the Init routine must request the buffer in which to place the sector when it is read back. Do not copy LSN 0 into the drive table when reading it back for verification.
+- Use the drive number (PD.DRV) to compute the offset to the corresponding drive table as shown for the Read routine.
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### GetStats and SetStats.......................................................................................
+### GetStats and SetStats
 
 **Reads or changes device’s operating parameters.**
 
 **Entry Conditions:**
-U address of the device memory area
-Y address of the path descriptor
-The function code must be pulled from getting the callers register stack ptr
-(PD.RGS,y), and then the code itself from the R$B offset within that stack
-(see below)."
+| | |
+|-|-|
+| U | address of the device memory area |
+| Y | address of the path descriptor |
+| | The function code must be pulled from getting the callers register stack ptr (PD.RGS,y), and then the code itself from the R$B offset within that stack (see below). |
 
 **Exit Conditions:**
 CC carry set on error
@@ -2001,165 +1703,93 @@ B _error code_ (if any)
 
 **Additional Information:**
 
-1. Get/set the device’s operating parameters (status) as specified for the Get
-    Status and Set Status system calls. GetStat and SetStat are wild card calls.
-2. It might be necessary to examine or change the register stack that contains
-    the values of the 6809 registers at the time of the call. The address of the
-    register stack is in PD.RGS, which is located in the path descriptor. You can
-    use the following offsets to access any value in the register stack (It is
-    recommended that you get these values from the /dd/defs/os9.d, with the
-    H6309 value set appropriately, so that the offsets are correct for your CPU
-    ( **NOTE: All system calls currently only use 6809 registers (for compatibility)**
-    **for passing parameters, but the offsets need to be adjusted between**
-    **CPU's)** :
+1. Get/set the device’s operating parameters (status) as specified for the Get Status and Set Status system calls. GetStat and SetStat are wild card calls.
+2. It might be necessary to examine or change the register stack that contains the values of the 6809 registers at the time of the call. The address of the register stack is in PD.RGS, which is located in the path descriptor. You can use the following offsets to access any value in the register stack (It is recommended that you get these values from the /dd/defs/os9.d, with the H6309 value set appropriately, so that the offsets are correct for your CPU **(NOTE: All system calls currently only use 6809 registers (for compatibility) for passing parameters, but the offsets need to be adjusted between CPU's)**:
 
-**Reg. Relative
-Address
-(6809)**
-
-```
-Relative
-Address
-(6309)
-```
-```
-Size 6809
-Register
-```
-R$CC $00 $00 1 Condition code
-register
-R$D $01 $01 2 Register D
-R$A $01 $01 1 Register A
-R$B $02 $02 1 Register B
-R$DP $03 $05 1 Register DP
-
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-R$X $04 $06 2 Register X
-R$Y $06 $08 2 Register Y
-R$U $08 $0A 2 Register U
-R$PC $0A $0C 2 Program
-counter
+|Reg. | Relative Address (6809) | Relative Address (6309) | Size | 6809 Register |
+|-|-|-|-|-|
+| R$CC | $00 | $00 | 1 | Condition code register |
+| R$D | $01 | $01 | 2 | Register D |
+| R$A | $01 | $01 | 1 | Register A |
+| R$B | $02 | $02 | 1 | Register B |
+| R$DP | $03 | $05 | 1 | Register DP |
+| R$X | $04 | $06 | 2 | Register X |
+| R$Y | $06 | $08 | 2 | Register Y |
+| R$U | $08 | $0A | 2 | Register U |
+| R$PC | $0A | $0C | 2 | Program counter |
 
 3. Register D overlays Registers A and B.
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Term.................................................................................................................
+### Term
 
 **Terminate a device.**
 
 **Entry Conditions:**
-U address of the device memory area
+| | |
+|-|-|
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
-- This routine is called when a device is no longer in use in the system (when the
-    link count of its device descriptor module becomes zero).
+- This routine is called when a device is no longer in use in the system (when the link count of its device descriptor module becomes zero).
 - Following is a typical routine for using Term:
     1. Wait until any pending I/O is completed.
     2. Disable the device interrupts.
     3. Remove the device from the IRQ polling list.
-    4. If the Init routine reserved a 256-byte buffer for verifying disk writes, return
-       the memory with the Return System Memory system call (F$SRtMem).
+    4. If the Init routine reserved a 256-byte buffer for verifying disk writes, return the memory with the Return System Memory system call (F$SRtMem).
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### IRQ Service Routine..........................................................................................
+### IRQ Service Routine
 
 **Services device interrupts**
 
 **Additional Information:**
 
-- The IRQ Service routine sends a wakeup signal to the process indicated by the
-    process ID in V.WAKE when the I/O is complete. It then clears V.WAKE as a flag
-    to indicate to the main program that the IRQ has indeed occurred
-- When the IRQ Service routine finishes servicing an interrupt, it must clear the
-    carry and exit with an RTS instruction.
-- Although this routine is not included in the device driver module branch table
-    and is not called directly by the RBF manager, it is a key routine in interrupt-
-    driven drivers. Its function is to:
-    1. Service the device interrupts (receive data from device or send data to it).
-       The IRQ Service routine puts its data into and gets its data from buffers that
-       are defined in the device memory area.
-    2. Wake up a process that is waiting for I/O to be completed. To do this, the
-       routine checks to see if there is a process ID in V.WAKE (if the bit is non-
-       zero); if so, it sends a wakeup signal to that process.
-    3. If the device is ready to send more data, and the out buffer is empty,
-       disable the device’s _ready to transmit_ interrupts.
+- The IRQ Service routine sends a wakeup signal to the process indicated by the process ID in V.WAKE when the I/O is complete. It then clears V.WAKE as a flag to indicate to the main program that the IRQ has indeed occurred
+- When the IRQ Service routine finishes servicing an interrupt, it must clear the carry and exit with an RTS instruction.
+- Although this routine is not included in the device driver module branch table and is not called directly by the RBF manager, it is a key routine in interrupt-driven drivers. Its function is to:
+    1. Service the device interrupts (receive data from device or send data to it). The IRQ Service routine puts its data into and gets its data from buffers that are defined in the device memory area.
+    2. Wake up a process that is waiting for I/O to be completed. To do this, the routine checks to see if there is a process ID in V.WAKE (if the bit is non-zero); if so, it sends a wakeup signal to that process.
+    3. If the device is ready to send more data, and the out buffer is empty, disable the device’s _ready to transmit_ interrupts.
 
-
-```
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Boot (Bootstrap Module)..................................................................................
+### Boot (Bootstrap Module)
 
 **Loads the boot file into RAM.**
 
 **Entry Conditions:**
-None
+| | |
+|-|-|
+| None | |
 
 **Exit Conditions:**
-D size of the boot file (in bytes)
-X address at which the boot file was loaded into memory
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| D | size of the boot file (in bytes) |
+| X | address at which the boot file was loaded into memory |
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
-1. The Boot module is not part of the disk driver. It is a separate module that
-    is stored on the boot track of the system disk with Krn and REL.
-2. The bootstrap module contains one subroutine that loads the bootstrap file
-    and related information into memory. It uses the standard executable
-    module format with a module type of $C. The execution offset in the
-    module header contains the offset to the entry point of this subroutine.
-3. The module gets the starting sector number and size of the OS9Boot file
-    from LSN 0. NitrOS-9 allocates a memory area large enough for the Boot
-    file. Then, it loads the Boot file into this memory area.
+1. The Boot module is not part of the disk driver. It is a separate module that is stored on the boot track of the system disk with Krn and REL.
+2. The bootstrap module contains one subroutine that loads the bootstrap file and related information into memory. It uses the standard executable module format with a module type of $C. The execution offset in the module header contains the offset to the entry point of this subroutine.
+3. The module gets the starting sector number and size of the OS9Boot file from LSN 0. NitrOS-9 allocates a memory area large enough for the Boot file. Then, it loads the Boot file into this memory area.
 4. Following is a typical routine for using Boot:
-    A. Read LSN 0 from the disk into a buffer area. The Boot
-       module must pick its own buffer area. LSN 0 contains the
-       values for DD.BT (the 24-bit LSN of the bootstrap file), and
-       DD.BSZ (the size of the bootstrap file in bytes).
+    A. Read LSN 0 from the disk into a buffer area. The Boot module must pick its own buffer area. LSN 0 contains the values for DD.BT (the 24-bit LSN of the bootstrap file), and DD.BSZ (the size of the bootstrap file in bytes).
     B. Get the 24-bit LSN of the bootstrap file from DD.BT.
-    C. Get the size of the bootstrap file from DD.BSZ. The Boot
-       module is contained in one logically contiguous block
-       beginning at the logical sector specified in DD.BT and
-       extending for DD.BSZ/256+1 sectors.
-    D. Use the NitrOS-9 Request System Memory system call
-       (F$SRqMem) to request the memory area in which the
-       Boot file is loaded.
+    C. Get the size of the bootstrap file from DD.BSZ. The Boot module is contained in one logically contiguous block beginning at the logical sector specified in DD.BT and extending for DD.BSZ/256+1 sectors.
+    D. Use the NitrOS-9 Request System Memory system call (F$SRqMem) to request the memory area in which the Boot file is loaded.
     E. Read the Boot file into this memory area.
+    F. Return the size of the Boot file and its location. Boot file is loaded.
 
+## Chapter 6. Sequential Character File Manager
 
-Chapter 5. Random Block File Manager NitrOS-9 EOU Technical Reference Manual
+The Sequential Character File Manager (SCF) supports devices that operate on a character-by-character basis. These include terminals, printers, and modems.
 
-```
-F. Return the size of the Boot file and its location. Boot file is
-loaded.
-```
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-## Chapter 6. Sequential Character File Manager.................................................................
-
-The Sequential Character File Manager (SCF) supports devices that operate on a
-character-by-character basis. These include terminals, printers, and modems.
-
-SCF is a re-entrant subroutine package. The I/O manager calls the SCF manager for I/O
-system handling of sequential, character-oriented devices. The SCF manager includes
-the extensive I/O editing functions typical of line-oriented operations, such as:
+SCF is a re-entrant subroutine package. The I/O manager calls the SCF manager for I/O system handling of sequential, character-oriented devices. The SCF manager includes the extensive I/O editing functions typical of line-oriented operations, such as:
 
 - character insert
 - character delete
@@ -2170,639 +1800,425 @@ the extensive I/O editing functions typical of line-oriented operations, such as
 - screen pause
 - return delay padding
 
-The SCF-type device driver modules are VTIO, SCBBT, and SCBBP, and VRN. They run the
-video display, printer, serial ports, and nil device respectively. See the _NitrOS- 9
-Commands_ manual for additional Color Computer I/O devices.
+The SCF-type device driver modules are VTIO, SCBBT, and SCBBP, and VRN. They run the video display, printer, serial ports, and nil device respectively. See the _NitrOS-9 Commands_ manual for additional Color Computer I/O devices.
 
-### SCF Line Editing Functions........................................................................................
+### SCF Line Editing Functions
 
-The SCF manager supports two sets of read and write functions. I$Read and I$Write
-pass data with no modification. I$ReadLn and I$WritLn provide full line editing of device
-functions.
+The SCF manager supports two sets of read and write functions. I$Read and I$Write pass data with no modification. I$ReadLn and I$WritLn provide full line editing of device functions.
 
-#### Read and Write.....................................................................................................
+#### Read and Write
 
-The Read and Write system calls to SCF-type devices correspond to the BASIC09 GET and
-PUT statements. While they perform little modification to the data they pass, they do
-filter out keyboard interrupt, keyboard terminate, and pause characters. (Editing is
-disabled if the corresponding character in the path descriptor contains a zero).
+The Read and Write system calls to SCF-type devices correspond to the BASIC09 GET and PUT statements. While they perform little modification to the data they pass, they do filter out keyboard interrupt, keyboard terminate, and pause characters. (Editing is disabled if the corresponding character in the path descriptor contains a zero).
 
+Carriage returns are not followed by line feeds or nulls automatically, and the high order bits are passed as sent/received.
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-Carriage returns are not followed by line feeds or nulls automatically, and the high order
-bits are passed as sent/received.
+#### Read Line and Write Line
 
-#### Read Line and Write Line......................................................................................
+The Read Line and Write Line system calls to SCF-type devices correspond to the BASIC09 INPUT, PRINT, READ, and WRITE statements. They provide full line editing of all functions enabled for a particular device.
 
-The Read Line and Write Line system calls to SCF-type devices correspond to the
-BASIC09 INPUT, PRINT, READ, and WRITE statements. They provide full line editing of all
-functions enabled for a particular device.
+The system initializes I$ReadLn and I$WritLn functions when you first use a particular device. (NitrOS-9 copies the option table from the device descriptor table associated with the specific device.
 
-The system initializes I$ReadLn and I$WritLn functions when you first use a particular
-device. (NitrOS-9 copies the option table from the device descriptor table associated
-with the specific device.
+Later, you can alter the calls—either from assembly-language programs (using the Get Status system call), or from the keyboard (using the TMODE command). All bytes transferred by I$ReadLn and I$WritLn have the high order bit cleared.
 
-Later, you can alter the calls—either from assembly-language programs (using the Get
-Status system call), or from the keyboard (using the TMODE command). All bytes
-transferred by I$ReadLn and I$WritLn have the high order bit cleared.
+NitrOS-9 supports extended editing keys in SCF input devices compared to the original OS-9. These additional keys are:
 
-NitrOS-9 supports extended editing keys in SCF input devices compared to the original
-OS-9. These additional keys are:
+| Key | Editing Function |
+|-|-|
+| Left Arrow | Move left one character in edit buffer* |
+| Right Arrow | Move right one character in edit buffer* |
+| Ctrl-Left Arrow | Delete character under cursor ** |
+| Ctrl-Right Arrow | Insert character under cursor ** |
+| Shift-Left Arrow | Move to beginning of line |
+| Shift-Right Arrow | Move to end of line |
 
-**Key Editing Function**
-Left Arrow Move left one character in edit buffer*
-Right Arrow Move right one character in edit buffer*
-Ctrl-Left Arrow Delete character under cursor **
-Ctrl-Right Arrow Insert character under cursor **
-Shift-Left Arrow Move to beginning of line
-Shift-Right Arrow Move to end of line
+**\*** = cursor movement requires backspace path option to be non destructive (not backspace-space-backspace).
 
-* = cursor movement requires backspace path option to be non destructive (not
-backspace-space-backspace).
-** = These values are hard-coded into SCF, and are not able to be set from device or
-path descriptors.
-You can also pre-fill the keyboard input buffer with the SS.Fill SetStat system call (see the
-System Calls section for details)
+**\*\*** = These values are hard-coded into SCF, and are not able to be set from device or path descriptors.
 
+You can also pre-fill the keyboard input buffer with the SS.Fill SetStat system call (see the System Calls section for details)
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-#### SCF Definitions of the Path Descriptor.................................................................
+### SCF Definitions of the Path Descriptor
 
-The PD.FST and PD.OPT sections of the path descriptor are reserved for and used by the
-SCF file manager.
+The PD.FST and PD.OPT sections of the path descriptor are reserved for and used by the SCF file manager.
 
-The following table describes the SCF manager’s use of PD.FST and PD.OPT. For your
-convenience, the table also includes the other sections of the path descriptor.
+The following table describes the SCF manager’s use of PD.FST and PD.OPT. For your convenience, the table also includes the other sections of the path descriptor.
 
-The PD.OPT section contains the values that determine the line editing functions. It
-contains many device operating parameters that can be read or written by the Set
-Status or Get Status system call. Any values not set by this table default to zero.
+The PD.OPT section contains the values that determine the line editing functions. It contains many device operating parameters that can be read or written by the Set Status or Get Status system call. Any values not set by this table default to zero.
 
-```
-Note : You can disable most of the editing functions by setting the
-corresponding control character in the path descriptor to zero. You can use
-the Set Status system call or the TMODE command to do this. Or, you can
-go a step further by setting the corresponding control character value in the
-device descriptor module to zero.
-```
-To determine the default settings for a specific device, you can inspect the device
-descriptor.
+**Note:** You can disable most of the editing functions by setting the corresponding control character in the path descriptor to zero. You can use the Set Status system call or the TMODE command to do this. Or, you can go a step further by setting the corresponding control character value in the device descriptor module to zero.
 
-**Universal Section
-Name Relative
-Address**
+To determine the default settings for a specific device, you can inspect the device descriptor.
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-Universal Section (Same for all file managers)
-PD.PD $00 1 Path number
-PD.MOD $01 1 Access mode:
-1 = read
-2 = write
-3 = update
-PD.CNT $02 1 Number of open images (paths using this path
-descriptor)
-PD.DEV $03 2 Address of the associated device table entry
-PD.CPR $05 1 Current process ID
-PD.RGS $06 2 Address of the caller’s 6809 register stack
-PD.BUF $08 2 Address of the 256-byte data buffer (if used)
+**Universal Section**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| Universal Section (Same for all file managers) |
+| PD.PD | $00 | 1 | Path number |
+| PD.MOD | $01 | 1 | Access mode: |
+| | | | 1 = read |
+| | | | 2 = write |
+| | | | 3 = update |
+| PD.CNT | $02 | 1 | Number of open images (paths using this path descriptor) |
+| PD.DEV | $03 | 2 | Address of the associated device table entry |
+| PD.CPR | $05 | 1 | Current process ID |
+| PD.RGS | $06 | 2 | Address of the caller’s 6809 register stack |
+| PD.BUF | $08 | 2 | Address of the 256-byte data buffer (if used) |
 
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| SCF Path Descriptor Definitions (PD.FST Section) |
+| PD.DV2 | $0A | 2 | Device table address of the second (echo) device |
+| PD.RAW | $0C | 1 | Edit flag: |
+| | | | 0 = raw mode |
+| | | | 1 = edit mode |
+| PD.MAX | $0D | 2 | Read Line maximum character count |
+| PD.MIN | $0F | 1 | Devices are _mine_ if cleared |
+| PD.STS | $10 | 2 | Status routine module address |
+| PD.STM | $12 | 2 | Reserved for status routine |
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| SCF Option Section Definition (PD.OPT Section) |
+| (Copied from the device descriptor) |
+| PD.DTP | $20 | 1 | Device class: |
+| | | | 0 = SCF |
+| | | | 1 = RBF |
+| | | | 2 = PIPE |
+| | | | 3 = SBF |
+| PD.UPC | $21 | 1 | Case: |
+| | | | 0 = uppercase and lowercase |
+| | | | 1 = uppercase only |
+| PD.BSO | $22 | 1 | Backspace: |
+| | | | 0 = backspace |
+| | | | 1 = backspace, space, and backspace |
+| PD.DLO | $23 | 1 | Delete: |
+| | | | 0 = backspace over line |
+| | | | 1 = carriage return, line feed |
+| PD.EKO | $24 | 1 | Echo: |
+| | | | 0 = no echo |
+| | | | 1 = echo |
+| PD.ALF | $25 | 1 | Auto line feed: |
+| | | | 0 = no auto line feed |
+| | | | 1 = auto line feed |
+| PD.NUL | $26 | 1 | End-of-line null count: |
+| | | | _N_ = number of nulls ($00) sent after each carriage return or carriage return and line feed ( _n_ = $00-$FF) |
+| PD.PAU | $27 | 1 | End of page pause: |
+| | | | 0 = no pause |
+| | | | 1 = pause |
+| PD.PAG | $28 | 1 | Number of lines per page |
+| PD.BSP | $29 | 1 | Backspace character |
+| PD.DEL | $2A | 1 | Delete-line character |
+| PD.EOR | $2B | 1 | End-of-record character (End-of-line character)  Read only. Normally set to $0D |
+| | | | 0 = Terminate read-line only at the end of the file |
+| PD.EOF | $2C | 1 | End-of-file character (read only) |
+| PD.RPR | $2D | 1 | Reprint-line character |
+| PD.DUP | $2E | 1 | Duplicate-last-line character |
+| PD.PSC | $2F | 1 | Pause character |
+| PD.INT | $30 | 1 | Keyboard-interrupt character |
+| PD.QUT | $31 | 1 | Keyboard-terminate character |
+| PD.BSE | $32 | 1 | Backspace-echo character |
+| PD.OVF | $33 | 1 | Line-overflow character (bell CTRL-G) |
+| PD.PAR | $34 | 1 | Device initialization value (parity) |
+| PD.BAU | $35 | 1 | Software settable baud rate |
+| PD.D2P | $36 | 2 | Offset to second device name string |
+| PD.XON | $38 | 1 | ACIA XON character |
+| PD.XOFF | $39 | 1 | ACIA XOFF character |
+| PD.ERR | $3A | 1 | Most recent I/O error status |
+| PD.TBL | $3B | 2 | Copy of device table address |
+| PD.PLP | $3D | 2 | Path descriptor list pointer |
+| PD.PST | $3F | 1 | Current path status |
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-SCF Path Descriptor Definitions (PD.FST Section)
-PD.DV2 $0A 2 Device table address of the second (echo) device
-PD.RAW $0C 1 Edit flag:
-0 = raw mode
-1 = edit mode
-PD.MAX $0D 2 Read Line maximum character count
-PD.MIN $0F 1 Devices are _mine_ if cleared
-PD.STS $10 2 Status routine module address
-PD.STM $12 2 Reserved for status routine
+**PD.EOF** specifies the end-of-file character. If this is the first and only character that is input to the SCF device, SCF returns an end-of-file error on Read or ReadLn.
 
-**Name Relative
-Address**
+**PD.PSC** specifies the pause character, which suspends output to the device before the next end-of-record character. The pause character also deletes any type-ahead input for ReadLn.
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-SCF Option Section Definition (PD.OPT Section)
-(Copied from the device descriptor)
-PD.DTP $20 1 Device class:
-0 = SCF
-1 = RBF
-2 = PIPE
-3 = SBF
-PD.UPC $21 1 Case:
-0 = uppercase and lowercase
-1 = uppercase only
-PD.BSO $22 1 Backspace:
-0 = backspace
-1 = backspace, space, and backspace
-PD.DLO $23 1 Delete:
-0 = backspace over line
-1 = carriage return, line feed
-PD.EKO $24 1 Echo:
-0 = no echo
-1 = echo
-PD.ALF $25 1 Auto line feed:
-0 = no auto line feed
-1 = auto line feed
-PD.NUL $26 1 End-of-line null count:
+**PD.INT** specifies the keyboard-interrupt character. When the character is received, the system sends a keyboard-terminate signal to the last user of a path. The character also terminates the current I/O request (if any) with an error identical to the keyboard interrupt signal code.
 
+**PD.QUT** specifies the keyboard-terminate character. When this character is received, the system sends a keyboard-terminate signal to the last user of a path. The system also cancels the current I/O request (if any) by sending an error code identical to the keyboard interrupt signal code.
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-_N_ = number of nulls ($00) sent after each carriage
-return or carriage return and line feed ( _n_ = $00-$FF)
-PD.PAU $27 1 End of page pause:
-0 = no pause
-1 = pause
-PD.PAG $28 1 Number of lines per page
-PD.BSP $29 1 Backspace character
-PD.DEL $2A 1 Delete-line character
-PD.EOR $2B 1 End-of-record character (End-of-line character) Read
-only. Normally set to $0D
-0 = Terminate read-line only at the end of the file
-PD.EOF $2C 1 End-of-file character (read only)
-PD.RPR $2D 1 Reprint-line character
-PD.DUP $2E 1 Duplicate-last-line character
-PD.PSC $2F 1 Pause character
-PD.INT $30 1 Keyboard-interrupt character
-PD.QUT $31 1 Keyboard-terminate character
-PD.BSE $32 1 Backspace-echo character
-PD.OVF $33 1 Line-overflow character (bell CTRL-G)
-PD.PAR $34 1 Device initialization value (parity)
-PD.BAU $35 1 Software settable baud rate
-PD.D2P $36 2 Offset to second device name string
-PD.XON $38 1 ACIA XON character
-PD.XOFF $39 1 ACIA XOFF character
-PD.ERR $3A 1 Most recent I/O error status
-PD.TBL $3B 2 Copy of device table address
-PD.PLP $3D 2 Path descriptor list pointer
-PD.PST $3F 1 Current path status
+**PD.PAR** specifies the parity information for external serial devices. For screens, it instead has these bit flags:
 
-**PD.EOF** specifies the end-of-file character. If this is the first and only character that is
-input to the SCF device, SCF returns an end-of-file error on Read or ReadLn.
-
-**PD.PSC** specifies the pause character, which suspends output to the device before the
-next end-of-record character. The pause character also deletes any type-ahead input for
-ReadLn.
-
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**PD.INT** specifies the keyboard-interrupt character. When the character is received, the
-system sends a keyboard-terminate signal to the last user of a path. The character also
-terminates the current I/O request (if any) with an error identical to the keyboard
-interrupt signal code.
-
-**PD.QUT** specifies the keyboard-terminate character. When this character is received,
-the system sends a keyboard-terminate signal to the last user of a path. The system also
-cancels the current I/O request (if any) by sending an error code identical to the
-keyboard interrupt signal code.
-
-**PD.PAR** specifies the parity information for external serial devices. For screens, it
-instead has these bit flags:
-%0XXXXXXX = VDG window.
-%1XXXXXXX = Co(Grf/Win) window.
-%0XXXXXX0 = True lowercase on VDG window.
-%0XXXXXX1 = Inverse video lowercase on VDG window.
+    %0XXXXXXX = VDG window.
+    %1XXXXXXX = Co(Grf/Win) window.
+    %0XXXXXX0 = True lowercase on VDG window.
+    %0XXXXXX1 = Inverse video lowercase on VDG window.
 
 **PD.BAU** specifies baud rate, word length, and stop bit information for serial devices.
 
-**PD.XON** contains either the character used to enable transmission of characters or a
-null character that disables the use of XON.
+**PD.XON** contains either the character used to enable transmission of characters or a null character that disables the use of XON.
 
-**PD.XOFF** contains either the character used to disable transmission of characters or a
-null character that disables the use of XOFF.
+**PD.XOFF** contains either the character used to disable transmission of characters or a null character that disables the use of XOFF.
 
-### SCF-Type Device Descriptor Modules.......................................................................
+### SCF-Type Device Descriptor Modules
 
-The following chart shows how the initialization table in the device descriptors is used
-for SCF-type devices. The values are those the I/O manager copies from the device
-descriptor to the path descriptor.
+The following chart shows how the initialization table in the device descriptors is used for SCF-type devices. The values are those the I/O manager copies from the device descriptor to the path descriptor.
 
-An SCF editing function is turned off if its corresponding value is set to zero. For
-example, if IT.EOF is set to zero, there is no end-of-file character.
+An SCF editing function is turned off if its corresponding value is set to zero. For example, if IT.EOF is set to zero, there is no end-of-file character.
 
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| (header) | $00-$11 | Standard device descriptor module header |
+| IT.DVC | $12 | 1 | Device class: |
+| | | | 0 = SCF |
+| | | | 1 = RBF |
+| | | | 2 = PIPE |
+| | | | 3 = SBF |
+| IT.UPC | $13 | 1 | Case: |
+| | | | 0 = upper- and lowercase |
+| | | | 1 = uppercase only |
+| IT.BSO | $14 | 1 | Backspace: |
+| | | | 0 = backspace |
+| | | | 1 = backspace, space, and backspace |
+| IT.DLO | $15 | 1 | Delete: |
+| | | | 0 = backspace over line |
+| | | | 1 = carriage return |
+| IT.EKO | $16 | 1 | Echo: |
+| | | | 0 = echo off |
+| | | | 1 = echo on |
+| IT.ALF | $17 | 1 | Auto line feed: |
+| | | | 0 = auto line feed disabled |
+| | | | 1 = auto line feed enabled |
+| IT.NUL | $18 | 1 | End-of-line null count |
+| IT.PAU | $19 | 1 | Pause: |
+| | | | 0 = end-of-page pause disabled |
+| | | | 1 = end-of-page pause enabled |
+| IT.PAG | $1A | 1 | Number of lines per page |
+| IT.BSP | $1B | 1 | Backspace character |
+| IT.DEL | $1C | 1 | Delete-line character |
+| IT.EOR | $1D | 1 | End-of-record character |
+| IT.EOF | $1E | 1 | End-of-file character |
+| IT.RPR | $1F | 1 | Reprint-line character |
+| IT.DUP | $20 | 1 | Duplicate-last-line character |
+| IT.PSC | $21 | 1 | Pause character |
+| IT.INT | $22 | 1 | Interrupt character |
+| IT.QUT | $23 | 1 | Quit character |
+| IT.BSE | $24 | 1 | Backspace echo character |
+| IT.OVF | $25 | 1 | Line-overflow character (bell) |
+| IT.PAR | $26 | 1 | Initialization value—used to initialize a device control register when a path is opened to it (parity) |
+| IT.BAU | $27 | 1 | Baud rate |
+| IT.D2P | $28 | 2 | Attached device name string offset |
+| IT.XON | $2A | 1 | X-ON character |
+| IT.XOFF | $2B | 1 | X-OFF character |
+| IT.COL | $2C | 1 | Number of columns for display |
+| IT.ROW | $2D | 1 | Number of rows for display |
+| IT.WND | $2E | 1 | Window number |
+| IT.VAL | $2F | 1 | Data in rest of descriptor is valid |
+| IT.STY | $30 | 1 | Window type |
+| IT.CPX | $31 | 1 | X cursor position |
+| IT.CPY | $32 | 1 | Y cursor position |
+| IT.FGC | $33 | 1 | Foreground color |
+| IT.BGC | $34 | 1 | Background color |
+| IT.BDC | $35 | 1 | Border color |
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
+### SCF-Type Device Driver Modules
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-(header) $00-$11 Standard device descriptor module header
-IT.DVC $12 1 Device class:
-0 = SCF
-1 = RBF
-2 = PIPE
-3 = SBF
-IT.UPC $13 1 Case:
-0 = upper- and lowercase
-1 = uppercase only
-IT.BSO $14 1 Backspace:
-0 = backspace
-1 = backspace, space, and backspace
-IT.DLO $15 1 Delete:
-0 = backspace over line
-1 = carriage return
-IT.EKO $16 1 Echo:
-0 = echo off
-1 = echo on
-IT.ALF $17 1 Auto line feed:
-0 = auto line feed disabled
-1 = auto line feed enabled
-IT.NUL $18 1 End-of-line null count
-IT.PAU $19 1 Pause:
-0 = end-of-page pause disabled
-1 = end-of-page pause enabled
-IT.PAG $1A 1 Number of lines per page
-IT.BSP $1B 1 Backspace character
-IT.DEL $1C 1 Delete-line character
-IT.EOR $1D 1 End-of-record character
-IT.EOF $1E 1 End-of-file character
-IT.RPR $1F 1 Reprint-line character
-IT.DUP $20 1 Duplicate-last-line character
-IT.PSC $21 1 Pause character
-IT.INT $22 1 Interrupt character
-IT.QUT $23 1 Quit character
+An SCF-type device driver module contains a package of subroutines that perform raw (unformatted) data I/O transfers to or from a specific hardware controller. Such a module is usually re-entrant so that one copy of the module can simultaneously run several devices that use identical I/O controllers. The I/O manager allocates a permanent memory area for each controller sharing the driver.
 
+The size of the memory area is defined in the device driver module header. The I/O manager and SCF use some of the memory area. The device driver can use the rest in any way (typically as variables and buffers). Typically, the driver uses the area as follows:
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-IT.BSE $24 1 Backspace echo character
-IT.OVF $25 1 Line-overflow character (bell)
-IT.PAR $26 1 Initialization value—used to initialize a device control
-register when a path is opened to it (parity)
-IT.BAU $27 1 Baud rate
-IT.D2P $28 2 Attached device name string offset
-IT.XON $2A 1 X-ON character
-IT.XOFF $2B 1 X-OFF character
-IT.COL $2C 1 Number of columns for display
-IT.ROW $2D 1 Number of rows for display
-IT.WND $2E 1 Window number
-IT.VAL $2F 1 Data in rest of descriptor is valid
-IT.STY $30 1 Window type
-IT.CPX $31 1 X cursor position
-IT.CPY $32 1 Y cursor position
-IT.FGC $33 1 Foreground color
-IT.BGC $34 1 Background color
-IT.BDC $35 1 Border color
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| V.PAGE | $00 | 1 | Port extended 24-bit address |
+| V.PORT | $01 | 2 | Device base address (defined by the I/O manager) |
+| V.LPRC | $03 | 1 | ID of the last active process |
+| V.BUSY | $04 | 1 | ID of the active process (defined by SCF): |
+| | | | 0 = no active process |
+| V.WAKE | $05 | 1 | ID of the process to reawaken after the device completes I/O (defined by the device driver): |
+| | | | 0 = no waiting process |
+| V.USER | $06 | 0 | Beginning of file manager specific storage |
+| V.TYPE | $06 | 1 | Device type or parity |
+| V.LINE | $07 | 1 | Lines left until the end of the page |
+| V.PAUS | $08 | 1 | Pause request: |
+| | | | 0 = no pause requested |
+| V.DEV2 | $09 | 2 | Attached device memory area (echo output device) |
+| V.INTR | $0B | 1 | Interrupt character |
+| V.QUIT | $0C | 1 | Quit character |
+| V.PCHR | $0D | 1 | Pause character |
+| V.ERR | $0E | 1 | Error accumulator |
+| V.XON | $0F | 1 | XON character |
+| V.XOFF | $10 | 1 | XOFF character |
+| V.KANJI | $11 | 1 | Reserved |
+| V.KBUF | $12 | 2 | Reserved |
+| V.MODADR | $14 | 2 | Reserved |
+| V.PDLHD | $16 | 2 | Path descriptor list header |
+| V.RSV | $18 | 5 | Reserved |
+| V.SCF | $1D | 0 | End of SCF memory requirements |
+| FREE | $1D | 0 | Free for the device driver to use |
 
+**V.LPRC** contains the process ID of the last process to use the device. The IRQ service routine sends this process the proper signal if it receives a quit character or an interrupt character. V.LPRC is defined by SCF.
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-### SCF-Type Device Driver Modules..............................................................................
+**V.BUSY** contains the process ID of the process that is using the device. (If the device is not being used, V.BUSY contains a zero.) The process ID is used by SCF to prevent more than one process from using the device at the same time. V.BUSY is defined by SCF.
 
-An SCF-type device driver module contains a package of subroutines that perform raw
-(unformatted) data I/O transfers to or from a specific hardware controller. Such a
-module is usually re-entrant so that one copy of the module can simultaneously run
-several devices that use identical I/O controllers. The I/O manager allocates a
-permanent memory area for each controller sharing the driver.
+### SCF Device Driver Subroutines
 
-The size of the memory area is defined in the device driver module header. The I/O
-manager and SCF use some of the memory area. The device driver can use the rest in
-any way (typically as variables and buffers). Typically, the driver uses the area as follows:
+Like all device drivers, SCF device drivers use a standard executable memory module format.
 
-**Name Relative
-Address**
+The execution offset address in the module header points to a branch table that has six 3-byte entries. Each entry is typically an LBRA to the corresponding subroutine. The branch table is defined as follows:
 
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-V.PAGE $00 1 Port extended 24-bit address
-V.PORT $01 2 Device base address (defined by the I/O manager)
-V.LPRC $03 1 ID of the last active process
-V.BUSY $04 1 ID of the active process (defined by SCF):
-0 = no active process
-V.WAKE $05 1 ID of the process to reawaken after the device
-completes I/O (defined by the device driver):
-0 = no waiting process
-V.USER $06 0 Beginning of file manager specific storage
-V.TYPE $06 1 Device type or parity
-V.LINE $07 1 Lines left until the end of the page
-V.PAUS $08 1 Pause request:
-0 = no pause requested
-V.DEV2 $09 2 Attached device memory area (echo output device)
-V.INTR $0B 1 Interrupt character
-V.QUIT $0C 1 Quit character
-V.PCHR $0D 1 Pause character
-V.ERR $0E 1 Error accumulator
-V.XON $0F 1 XON character
+| | | | |
+|-|-|-|-|
+| ENTRY | LBRA | INIT | Initialize driver |
+| | LBRA | READ | Read character |
+| | LBRA | WRITE | Write character |
+| | LBRA | GETSTA | Get status |
+| | LBRA | SETSTA | Set status |
+| | LBRA | TERM | Terminate device |
 
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-V.XOFF $10 1 XOFF character
-V.KANJI $11 1 Reserved
-V.KBUF $12 2 Reserved
-V.MODADR $14 2 Reserved
-V.PDLHD $16 2 Path descriptor list header
-V.RSV $18 5 Reserved
-V.SCF $1D 0 End of SCF memory requirements
-FREE $1D 0 Free for the device driver to use
-
-**V.LPRC** contains the process ID of the last process to use the device. The IRQ service
-routine sends this process the proper signal if it receives a quit character or an interrupt
-character. V.LPRC is defined by SCF.
-
-**V.BUSY** contains the process ID of the process that is using the device. (If the device is
-not being used, V.BUSY contains a zero.) The process ID is used by SCF to prevent more
-than one process from using the device at the same time. V.BUSY is defined by SCF.
-
-#### SCF Device Driver Subroutines.............................................................................
-
-Like all device drivers, SCF device drivers use a standard executable memory module
-format.
-
-The execution offset address in the module header points to a branch table that has six
-3-byte entries. Each entry is typically an LBRA to the corresponding subroutine. The
-branch table is defined as follows:
-
-ENTRY LBRA INIT Initialize driver
-LBRA READ Read character
-LBRA WRITE Write character
-LBRA GETSTA Get status
-LBRA SETSTA Set status
-LBRA TERM Terminate device
-
-If no error occurs, each subroutine exits with the C bit in the Condition Code register
-cleared. If an error occurs, each subroutine sets the C bit and returns an appropriate
-error code in Register B.
+If no error occurs, each subroutine exits with the C bit in the Condition Code register cleared. If an error occurs, each subroutine sets the C bit and returns an appropriate error code in Register B.
 
 The rest of this chapter describes these subroutines and their entry and exit conditions.
 
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Init....................................................................................................................
+### Init
 
 **Initializes device control registers and enables interrupts if necessary.**
 
 **Entry Conditions:**
-Y address of the device descriptor
-U address of the device memory area
+| | |
+|-|-|
+| Y | address of the device descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
-1. Prior to being called, the device memory area is cleared (set to zero),
-    except for V.PAGE and V.PORT. (V.PAGE and V.PORT contain the device
-    address.) There is no need to initialize the part of the memory area used by
-    the I/O manager and SCF.
+1. Prior to being called, the device memory area is cleared (set to zero), except for V.PAGE and V.PORT. (V.PAGE and V.PORT contain the device address.) There is no need to initialize the part of the memory area used by the I/O manager and SCF.
 2. Follow these steps to use Init:
     A. Initialize the device memory area.
-    B. Place the IRQ service routine on the IRQ polling list, using the Set
-       IRQ system call (F$IRQ).
+    B. Place the IRQ service routine on the IRQ polling list, using the Set IRQ system call (F$IRQ).
     C. Initialize the device control registers.
 
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Read..................................................................................................................
+### Read
 
 **Reads the next character from the input buffer.**
 
 **Entry Conditions:**
-Y address of the path descriptor
-U address of the device memory area
+| | |
+|-|-|
+| Y | address of the path descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-A character read
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| A | character read |
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
 1. This is a step by step description of a Read operation:
     A. Read gets the next character from the input buffer.
-    B. If no data is ready, Read copies its process ID from V.BUSY
-       into V.WAKE. It then uses the Sleep system call to put
-       itself to sleep.
-    C. Later, when Read receives data, the IRQ service routine
-       leaves the data in a buffer. Then, the routine checks
-       V.WAKE to see if any process is waiting for the device to
-       complete I/O. If so, the IRQ service routine sends a
-       wakeup signal to the waiting process.
-2. Data buffers are not automatically allocated. If a buffer is used, it defines it
-    in the device memory area.
+    B. If no data is ready, Read copies its process ID from V.BUSY into V.WAKE. It then uses the Sleep system call to put itself to sleep.
+    C. Later, when Read receives data, the IRQ service routine leaves the data in a buffer. Then, the routine checks V.WAKE to see if any process is waiting for the device to complete I/O. If so, the IRQ service routine sends a wakeup signal to the waiting process.
+2. Data buffers are not automatically allocated. If a buffer is used, it defines it in the device memory area.
 
+### Write
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Write.................................................................................................................
-
-**Sends a character (places a data byte in an output buffer) and enables the device
-output interrupts.**
+**Sends a character (places a data byte in an output buffer) and enables the device output interrupts.**
 
 **Entry Conditions:**
-A character to write
-Y address of the path descriptor
-U address of the device memory area
+| | |
+|-|-|
+| A | character to write |
+| Y | address of the path descriptor |
+| U | address of the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
-1. If the data buffer is full, Write copies its process ID from V.BUSY into
-    V.WAKE. Write then puts itself to sleep.
-    Later, when the IRQ service routine transmits a character and makes room
-    for more data, it checks V.WAKE to see if there is a process waiting for the
-    device to complete I/O. If there is, the routine sends a wakeup signal to
-    that process.
-2. Write must ensure that the IRQ service routine that starts it begins to place
-    data in the buffer. After an interrupt is generated, the IRQ service routine
-    continues to transmit data until the data buffer is empty. Then, it disables
-    the device’s ready-to-transmit interrupts.
-3. Data buffers are not allocated automatically. If a buffer is used, define it in
-    the device memory area.
+1. If the data buffer is full, Write copies its process ID from V.BUSY into V.WAKE. Write then puts itself to sleep. Later, when the IRQ service routine transmits a character and makes room for more data, it checks V.WAKE to see if there is a process waiting for the device to complete I/O. If there is, the routine sends a wakeup signal to that process.
+2. Write must ensure that the IRQ service routine that starts it begins to place data in the buffer. After an interrupt is generated, the IRQ service routine continues to transmit data until the data buffer is empty. Then, it disables the device’s ready-to-transmit interrupts.
+3. Data buffers are not allocated automatically. If a buffer is used, define it in the device memory area.
 
+### GetSta and SetSta
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### GetSta and SetSta.............................................................................................
-
-**Gets/sets device operating parameters (status) as specified for the Get Status and
-Set Status system calls. GetSta and SetSta are wildcard calls.**
+**Gets/sets device operating parameters (status) as specified for the Get Status and Set Status system calls. GetSta and SetSta are wildcard calls.**
 
 **Entry Conditions:**
-A Function Code
-Y address of the path descriptor
-U address of the device memory area
-Other registers depend on the function code.
+| | |
+|-|-|
+| A | Function Code |
+| Y | address of the path descriptor |
+| U | address of the device memory area |
+| | Other registers depend on the function code. |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
-Other registers depend on the function code
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
+| | Other registers depend on the function code |
 
 **Additional Information:**
 
-1. Any codes not defined by the I/O manager or SCF are passed to the device
-    driver.
-2. You might need to examine or change the register stack that contains the
-    values of the 6809 registers at the time of the call. The address of the
-    register stack can be found in PD.RGS, which is located in the path
-    descriptor.
-3. You can use the following offsets to access any value in the register packet
-    (It is recommended that you get these values from the /dd/defs/os9.d, with
-    the H6309 value set appropriately, so that the offsets are correct for your
-    CPU ( **NOTE: All system calls currently only use 6809 registers (for**
-    **compatibility) for passing parameters, but the offsets need to be adjusted**
-    **between CPU's)** :
+1. Any codes not defined by the I/O manager or SCF are passed to the device driver.
+2. You might need to examine or change the register stack that contains the values of the 6809 registers at the time of the call. The address of the register stack can be found in PD.RGS, which is located in the path descriptor.
+3. You can use the following offsets to access any value in the register packet (It is recommended that you get these values from the /dd/defs/os9.d, with the H6309 value set appropriately, so that the offsets are correct for your CPU **(NOTE: All system calls currently only use 6809 registers (for compatibility) for passing parameters, but the offsets need to be adjusted between CPU's)**:
 
-**Reg. Relative
-Address
-(6809)**
-
-```
-Relative
-Address
-(6309)
-```
-```
-Size 6809
-Register
-```
-R$CC $00 $00 1 Condition code register
-R$D $01 $01 2 Register D
-R$A $01 $01 1 Register A
-R$B $02 $02 1 Register B
-
-
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-R$DP $03 $05 1 Register DP
-R$X $04 $06 2 Register X
-R$Y $06 $08 2 Register Y
-R$U $08 $0A 2 Register U
-R$PC $0A $0C 2 Program counter
+| Reg. | Relative Address (6809) | Relative Address (6309) | Size | 6809 Register |
+|-|-|-|-|
+| R$CC | $00 | $00 | 1 | Condition code register |
+| R$D | $01 | $01 | 2 | Register D |
+| R$A | $01 | $01 | 1 | Register A |
+| R$B | $02 | $02 | 1 | Register B |
+| R$DP | $03 | $05 | 1 | Register DP |
+| R$X | $04 | $06 | 2 | Register X |
+| R$Y | $06 | $08 | 2 | Register Y |
+| R$U | $08 | $0A | 2 | Register U |
+| R$PC | $0A | $0C | 2 | Program counter |
 
 The function code is retrieved from R$B on the caller’s stack.
 
+### Term
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### Term.................................................................................................................
-
-**Terminates a device. Term is called when a device is no longer in use (when the link
-count of the device descriptor module becomes zero).**
+**Terminates a device. Term is called when a device is no longer in use (when the link count of the device descriptor module becomes zero).**
 
 **Entry Conditions:**
-U pointer to the device memory area
+| | |
+|-|-|
+| U | pointer to the device memory area |
 
 **Exit Conditions:**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information:**
 
 1. To use Term:
-    A. Wait until the IRQ service routine empties the output
-       buffer.
+    A. Wait until the IRQ service routine empties the output buffer.
     B. Disable the device interrupts.
     C. Remove the device from the IRQ polling list.
-2. When Term closes the last path to a device, NitrOS-9 returns to the
-    memory pool the memory that the device used. If the device has been
-    attached to the system using the I$Attach system call, NitrOS-9 does not
-    return the static storage for the driver until an I$Detach call is made to the
-    device. Modules contained in the Boot file are never terminated, even if
-    their link counts reach zero.
+2. When Term closes the last path to a device, NitrOS-9 returns to the memory pool the memory that the device used. If the device has been attached to the system using the I$Attach system call, NitrOS-9 does not return the static storage for the driver until an I$Detach call is made to the device. Modules contained in the Boot file are never terminated, even if their link counts reach zero.
 
+### IRQ Service Routine
 
-```
-Chapter 6. Sequential Character File Manager NitrOS-9 EOU Technical Reference Manual
-```
-##### IRQ Service Routine........................................................................................
-
-**Receives device interrupts. When I/O is complete, the routine sends a wakeup signal
-to the process identified by the process ID in V.WAKE. The routine also clears V.WAKE
-as a flag to indicate to the main program that the IRQ has occurred.**
+**Receives device interrupts. When I/O is complete, the routine sends a wakeup signal to the process identified by the process ID in V.WAKE. The routine also clears V.WAKE as a flag to indicate to the main program that the IRQ has occurred.**
 
 **Additional Information:**
 
-1. The IRQ Service Routine is not included in the device driver branch tables,
-    and is not called directly by SCF. However, it is a key routine in device
-    drivers.
-2. When the IRQ Service routine finishes servicing an interrupt, the routine
-    must clear the carry and exit with an RTS instructions.
+1. The IRQ Service Routine is not included in the device driver branch tables, and is not called directly by SCF. However, it is a key routine in device drivers.
+2. When the IRQ Service routine finishes servicing an interrupt, the routine must clear the carry and exit with an RTS instructions.
 3. Here is a typical sequence of events that the IRQ Service Routing performs:
-    A. Service the device interrupts (receive data from the
-       device or send data to it). Ensure this routine puts its data
-       into and gets its data from buffers that are defined in the
-       device memory area.
-    B. Wake up any process that is waiting for I/O to complete.
-       To do this, the routine checks to see if there is a process
-       ID in V.WAKE (a value other than zero); if so, it sends a
-       wakeup signal to that process.
-    C. If the device is ready to send more data, and the output
-       buffer is empty, disable the device’s ready-to-transmit
-       interrupts.
-    D. If a pause character is received, set V.PAUS in the
-       attached device storage area to a value other than zero.
-       The address of the attached device memory area is in
-       V.DEV2.
-    E. If a keyboard terminate or interrupt character is received,
-       signal the process in V.LPRC (last known process) if any.
+    A. Service the device interrupts (receive data from the device or send data to it). Ensure this routine puts its data into and gets its data from buffers that are defined in the device memory area.
+    B. Wake up any process that is waiting for I/O to complete. To do this, the routine checks to see if there is a process ID in V.WAKE (a value other than zero); if so, it sends a wakeup signal to that process.
+    C. If the device is ready to send more data, and the output buffer is empty, disable the device’s ready-to-transmit interrupts.
+    D. If a pause character is received, set V.PAUS in the attached device storage area to a value other than zero. The address of the attached device memory area is in V.DEV2.
+    E. If a keyboard terminate or interrupt character is received, signal the process in V.LPRC (last known process) if any.
 
 
-```
-Chapter 7. The Pipe File Manager (PIPEMAN) NitrOS-9 EOU Technical Reference Manual
-```
-## Chapter 7. The Pipe File Manager (PIPEMAN)................................................................
+## Chapter 7. The Pipe File Manager (PIPEMAN)
 
 The Pipe file manager handles control or processes that use paths to pipes. Pipes allow
 concurrently executing processes to send each other data by using the output of one
