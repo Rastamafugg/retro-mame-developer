@@ -6,39 +6,24 @@ measurement. Module sizes populated by Step 1 hardware pilot.
 
 ---
 
-## 1. Entry Procedure Renaming
+## 1. Entry Procedures
 
 Each packed module file is named after the first procedure in its PACK list.
 All such entry procedures must carry the `snb` prefix for consistent file
-grouping. The table below records every rename and any new stub procedures
-to be added.
+grouping. The table below records every entry procedure for each module.
 
-| Current Procedure | New Procedure | Module File   | Action              | Source File         |
-|-------------------|---------------|---------------|---------------------|---------------------|
-| `SNB`             | `snbMain`     | `snbMain`     | Rename              | `snb.b09`           |
-| `runYearLoop`     | `snbYearLoop` | `snbYearLoop` | Rename              | `snbGameLoop.b09`   |
-| *(none)*          | `snbUtil`     | `snbUtil`     | Add stub entry proc | `snb.b09`           |
-| *(none)*          | `snbSaveLoad` | `snbSaveLoad` | Add stub entry proc | `snbSaveLoad.b09`   |
-| *(none)*          | `snbMktEng`   | `snbMktEng`   | Add stub entry proc | `snbMktEng.b09`     |
-| *(none)*          | `snbMktScr`   | `snbMktScr`   | Add stub entry proc | `snbMktScr.b09`     |
-| *(none)*          | `snbTrade`    | `snbTrade`    | Add stub entry proc | `snbTrade.b09`      |
-| *(none)*          | `snbMargin`   | `snbMargin`   | Add stub entry proc | `snbMargin.b09`     |
-| *(none)*          | `snbAI`       | `snbAI`       | Add stub entry proc | `snbAI.b09`         |
-| *(none)*          | `snbEndGame`  | `snbEndGame`  | Add stub entry proc | `snbEndGame.b09`    |
-
-**Stub entry proc contract:** A stub entry is a procedure with the module's
-name, no PARAMs, an `ON ERROR GOTO 900` handler, a single `PRINT` of the
-module name for trace confirmation, and `END`. It is the first procedure in
-the PACK list and exists solely to give the module file its `snb`-prefixed
-name. It is never called by game logic.
-
-**`memMapGet` and `memModGet` impact:** The `snbMain` and `snbYearLoop`
-renames require updating the DATA records in both maps. The module name keys
-(`snbSetup` → `snbMain`, `snbLoop` → `snbYearLoop`) must change, and the
-procedure name fields that reference `SNB` and `runYearLoop` must be updated
-to match. All other module names are already `snb`-prefixed and require only
-addition of the new stub proc name as the first listed procedure in the
-`memModGet` DATA records.
+| Entry Procedure | Module File   | Source File         |
+|-----------------|---------------|---------------------|
+| `SNB`           | `SNB`         | `snb.b09`           |
+| `snbYearLoop`   | `snbYearLoop` | `snbGameLoop.b09`   |
+| `snbUtil`       | `snbUtil`     | `snb.b09`           |
+| `snbSaveLoad`   | `snbSaveLoad` | `snbSaveLoad.b09`   |
+| `snbMktEng`     | `snbMktEng`   | `snbMktEng.b09`     |
+| `snbMktScr`     | `snbMktScr`   | `snbMktScr.b09`     |
+| `snbTrade`      | `snbTrade`    | `snbTrade.b09`      |
+| `snbMargin`     | `snbMargin`   | `snbMargin.b09`     |
+| `snbAI`         | `snbAI`       | `snbAI.b09`         |
+| `snbEndGame`    | `snbEndGame`  | `snbEndGame.b09`    |
 
 ---
 
@@ -48,7 +33,7 @@ addition of the new stub proc name as the first listed procedure in the
 |----------------|-----------------------------------------------------------------------------------------------|----------------------|
 | `snbUtil`      | clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                         | *(none)*             |
 | `snbMemMgmt`   | memMapGet, memModGet, memReport, memEnsure, memRelease                                        | *(none)*             |
-| `snbMain`      | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, scrGameOver                         | snbUtil, snbSaveLoad |
+| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, scrGameOver                         | snbUtil, snbSaveLoad |
 | `snbSaveLoad`  | saveGame, loadGame                                                                            | snbUtil              |
 | `snbYearLoop`  | runYearLoop                                                                                   | snbUtil              |
 | `snbMktEng`    | getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
@@ -70,7 +55,7 @@ F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 |----------------|------------|------------------|---------------------------|---------------|
 | `snbUtil`      | 7          | —                | — (baseline)              | —             |
 | `snbMemMgmt`   | 5          | —                | — (baseline)              | —             |
-| `snbMain`      | 7          | —                | —                         | —             |
+| `SNB`          | 7          | —                | —                         | —             |
 | `snbSaveLoad`  | 2          | —                | —                         | —             |
 | `snbYearLoop`  | 1          | —                | —                         | —             |
 | `snbMktEng`    | 8          | —                | —                         | —             |
@@ -128,10 +113,10 @@ Section 6 for the permanent-resident policy.
 
 | Field              | Value                                |
 |--------------------|--------------------------------------|
-| Load on Entry      | snbUtil, snbMemMgmt, snbMain         |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain         |
+| Load on Entry      | snbUtil, snbMemMgmt, SNB             |
+| Required Resident  | snbUtil, snbMemMgmt, SNB             |
 | Release on Exit    | *(none)*                             |
-| Notes              | snbUtil is never released after load. snbMain remains through PH-04. |
+| Notes              | snbUtil is never released after load. SNB remains through PH-04. |
 
 ---
 
@@ -140,9 +125,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                |
 |--------------------|--------------------------------------|
 | Load on Entry      | *(none)*                             |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain         |
+| Required Resident  | snbUtil, snbMemMgmt, SNB             |
 | Release on Exit    | *(none)*                             |
-| Notes              | scrStart is within snbMain. No additional loads. |
+| Notes              | scrStart is within SNB. No additional loads. |
 
 ---
 
@@ -151,9 +136,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                |
 |--------------------|--------------------------------------|
 | Load on Entry      | *(none)*                             |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain         |
+| Required Resident  | snbUtil, snbMemMgmt, SNB             |
 | Release on Exit    | *(none)*                             |
-| Notes              | scrSetup and scrConfirm are within snbMain. No additional loads needed until PH-04. |
+| Notes              | scrSetup and scrConfirm are within SNB. No additional loads needed until PH-04. |
 
 ---
 
@@ -162,9 +147,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                     |
 |--------------------|-------------------------------------------|
 | Load on Entry      | snbSaveLoad                               |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain, snbSaveLoad |
+| Required Resident  | snbUtil, snbMemMgmt, SNB, snbSaveLoad     |
 | Release on Exit    | snbSaveLoad                               |
-| Notes              | snbSaveLoad loaded only for the duration of the load call. Released immediately on success or failure. snbMain remains through PH-04. |
+| Notes              | snbSaveLoad loaded only for the duration of the load call. Released immediately on success or failure. SNB remains through PH-04. |
 
 ---
 
@@ -173,9 +158,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                |
 |--------------------|------------------------------------------------------|
 | Load on Entry      | snbYearLoop                                          |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain, snbMktEng, snbYearLoop |
-| Release on Exit    | snbMain                                              |
-| Notes              | initPlayer and initMkt execute within snbMain. shuffleDeck requires snbUtil. snbMain is released after initialization is complete and before snbYearLoop begins its first iteration. snbMktEng is retained into PH-05/PH-06 to avoid an immediate load at PH-07. |
+| Required Resident  | snbUtil, snbMemMgmt, SNB, snbMktEng, snbYearLoop     |
+| Release on Exit    | SNB                                                  |
+| Notes              | initPlayer and initMkt execute within SNB. shuffleDeck requires snbUtil. SNB is released after initialization is complete and before snbYearLoop begins its first iteration. snbMktEng is retained into PH-05/PH-06 to avoid an immediate load at PH-07. |
 
 ---
 
@@ -272,9 +257,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                              |
 |--------------------|----------------------------------------------------|
 | Load on Entry      | *(none; depends on S27 selection)*                 |
-| Required Resident  | snbUtil, snbMemMgmt, snbMain                       |
-| Release on Exit    | snbMain (on Quit)                                  |
-| Notes              | S27 New Game: load snbMain → return to PH-02. S27 Load Game: load snbMain + snbSaveLoad → PH-03 → PH-04. S27 Quit: release all, exit. snbMain must be loaded fresh at S27 New Game/Load since it was released at PH-04 exit. |
+| Required Resident  | snbUtil, snbMemMgmt, SNB                           |
+| Release on Exit    | SNB (on Quit)                                      |
+| Notes              | S27 New Game: load SNB → return to PH-02. S27 Load Game: load SNB + snbSaveLoad → PH-03 → PH-04. S27 Quit: release all, exit. SNB must be loaded fresh at S27 New Game/Load since it was released at PH-04 exit. |
 
 ---
 
@@ -297,11 +282,11 @@ represent the primary memory savings opportunities:
 
 | Group A                     | Group B                         | Reason Never Co-Resident               |
 |-----------------------------|---------------------------------|----------------------------------------|
-| snbMain                     | snbYearLoop (after PH-04)       | Setup complete before loop begins      |
+| SNB                         | snbYearLoop (after PH-04)       | Setup complete before loop begins      |
 | snbMktEng + snbMktScr       | snbTrade + snbAI + snbMargin    | Market phase ends before trade begins  |
 | snbMktEng + snbMktScr       | snbEndGame                      | Market is Year 1–9 only                |
 | snbTrade + snbMargin + snbAI| snbEndGame                      | Trade complete before endgame screens  |
-| snbMain                     | snbEndGame                      | Setup and endgame do not overlap       |
+| SNB                         | snbEndGame                      | Setup and endgame do not overlap       |
 
 ---
 
@@ -335,7 +320,7 @@ available headroom, but it is the conservative default.
    cleanup), the combined footprint may be tight. Measure before finalizing
    PH-11 placement.
 
-4. **Post-game snbMain reload:** PH-13 requires snbMain to be reloaded from
+4. **Post-game SNB reload:** PH-13 requires SNB to be reloaded from
    disk. Verify that the disk file is present and attr'd correctly after the
-   game loop has been running. This is a cold load, not a link, if snbMain
+   game loop has been running. This is a cold load, not a link, if SNB
    was fully unloaded at PH-04 exit.
