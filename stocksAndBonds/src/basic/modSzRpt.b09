@@ -105,8 +105,8 @@ PRINT
 
 ! --- Unload module ----------------------------------------
 PRINT "Unloading "; modNam; "..."
-RUN memModGet(modNam, 1, prcNam) \ ! get first proc name
 modIdx := 1
+RUN memModGet(modNam, modIdx, prcNam) \ ! get first proc name
 LOOP
   EXITIF prcNam = "" THEN
   ENDEXIT
@@ -123,29 +123,6 @@ END
 
 900 \ ! Error handler
 PRINT "modSzRpt error ("; ERR; ")"
-ERROR(ERR)
-END
-
-PROCEDURE waitKey
-(* ================================================== *)
-(* PROCEDURE: waitKey                                 *)
-(* PURPOSE:   Display continue prompt, block on key. *)
-(* PARAMS:    None                                    *)
-(* EFFECTS:   Prints prompt to stdout. Reads one     *)
-(*            character from path 0. Discards input. *)
-(*            Prints newline after keypress.         *)
-(* ================================================== *)
-DIM k:STRING[1]
-
-ON ERROR GOTO 900
-
-PRINT "Press any key to continue...";
-GET #0, k
-PRINT
-END
-
-900 \ ! Error handler
-PRINT "waitKey error ("; ERR; ")"
 END
 
 PROCEDURE getMemSize
