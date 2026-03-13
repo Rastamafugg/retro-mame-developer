@@ -29,19 +29,19 @@ grouping. The table below records every entry procedure for each module.
 
 ## 2. Module Roster
 
-| Module File    | Constituent Procedures                                                                        | Deps at Runtime      |
-|----------------|-----------------------------------------------------------------------------------------------|----------------------|
-| `snbUtil`      | clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                         | *(none)*             |
-| `snbMemMgmt`   | memMapGet, memModGet, memReport, memEnsure, memRelease                                        | *(none)*             |
-| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, scrGameOver                         | snbUtil, snbSaveLoad |
-| `snbSaveLoad`  | saveGame, loadGame                                                                            | snbUtil              |
-| `snbYearLoop`  | runYearLoop                                                                                   | snbUtil              |
-| `snbMktEng`    | getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
-| `snbMktScr`    | scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
-| `snbTrade`     | scrSell, scrBuy, scrMgnRepay, scrAITurn, applySells, applyBuys                                | snbUtil              |
-| `snbMargin`    | scrMgnCall, applyLiqOrdr, scrForceLiq, scrBankrupt, scrMgnClr, scrMgnInt                      | snbUtil, snbTrade    |
-| `snbAI`        | initAIProf, aiSell, aiBuy                                                                     | snbUtil              |
-| `snbEndGame`   | scrFinalMkt, scrWealth, scrWinner, scrPostGame                                                | snbUtil              |
+| Module File    | Constituent Procedures                                                                                   | Deps at Runtime      |
+|----------------|----------------------------------------------------------------------------------------------------------|----------------------|
+| `snbUtil`      | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                           | *(none)*             |
+| `snbMemMgmt`   | snbMemMgmt, memMapGet, memModGet, memReport, memEnsure, memRelease                                       | *(none)*             |
+| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, scrGameOver                                    | snbUtil, snbSaveLoad |
+| `snbSaveLoad`  | snbSaveLoad, saveGame, loadGame                                                                          | snbUtil              |
+| `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
+| `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
+| `snbMktScr`    | snbMktScr, scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
+| `snbTrade`     | snbTrade, scrSell, scrBuy, scrMgnRepay, scrAITurn, applySells, applyBuys                                 | snbUtil              |
+| `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrForceLiq, scrBankrupt, scrMgnClr, scrMgnInt                      | snbUtil, snbTrade    |
+| `snbAI`        | snbAI, initAIProf, aiSell, aiBuy                                                                         | snbUtil              |
+| `snbEndGame`   | snbEndGame, scrFinalMkt, scrWealth, scrWinner, scrPostGame                                               | snbUtil              |
 
 ---
 
@@ -53,17 +53,17 @@ F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 
 | Module File    | Proc Count | Disk Bytes (TBD) | Var Footprint Delta (TBD) | Measured Date |
 |----------------|------------|------------------|---------------------------|---------------|
-| `snbUtil`      | 7          | —                | — (baseline)              | —             |
-| `snbMemMgmt`   | 5          | —                | — (baseline)              | —             |
-| `SNB`          | 7          | —                | —                         | —             |
-| `snbSaveLoad`  | 2          | —                | —                         | —             |
-| `snbYearLoop`  | 1          | —                | —                         | —             |
-| `snbMktEng`    | 8          | —                | —                         | —             |
-| `snbMktScr`    | 7          | —                | —                         | —             |
-| `snbTrade`     | 6          | —                | —                         | —             |
-| `snbMargin`    | 6          | —                | —                         | —             |
-| `snbAI`        | 3          | —                | —                         | —             |
-| `snbEndGame`   | 4          | —                | —                         | —             |
+| `snbUtil`      | 8          | —                | — (baseline)              | —             |
+| `snbMemMgmt`   | 6          | —                | — (baseline)              | —             |
+| `SNB`          | 8          | —                | —                         | —             |
+| `snbSaveLoad`  | 3          | —                | —                         | —             |
+| `snbYearLoop`  | 2          | —                | —                         | —             |
+| `snbMktEng`    | 9          | —                | —                         | —             |
+| `snbMktScr`    | 8          | —                | —                         | —             |
+| `snbTrade`     | 7          | —                | —                         | —             |
+| `snbMargin`    | 7          | —                | —                         | —             |
+| `snbAI`        | 4          | —                | —                         | —             |
+| `snbEndGame`   | 5          | —                | —                         | —             |
 
 ---
 
