@@ -31,6 +31,13 @@ DIM modSzLo      : INTEGER \ ! lo byte of moduleSize field
 DIM modSz        : INTEGER \ ! moduleSize for current module
 DIM modIdx       : INTEGER \ ! count of modules found
 DIM prcNam       : STRING[20] \ ! unload name staging
+DIM nmOfsHi  : INTEGER \ ! name offset hi byte from header
+DIM nmOfsLo  : INTEGER \ ! name offset lo byte from header
+DIM nmOfs    : INTEGER \ ! combined name offset
+DIM nmAddr   : INTEGER \ ! address of first name char
+DIM nmChar   : INTEGER \ ! current name char (PEEK result)
+DIM nmIdx    : INTEGER \ ! name char index
+DIM procName : STRING[31] \ ! extracted procedure name
 
 ON ERROR GOTO 900
 
@@ -88,7 +95,20 @@ LOOP
   ENDEXIT
   modIdx     := modIdx + 1
   totalModSz := totalModSz + modSz
-  PRINT "  Proc "; modIdx; ": "; modSz; " bytes at $"; curAddr
+  nmOfsHi    := PEEK(curAddr + 4) \ ! name offset hi byte
+  nmOfsLo    := PEEK(curAddr + 5) \ ! name offset lo byte
+  nmOfs      := nmOfsHi * 256 + nmOfsLo
+  nmAddr     := curAddr + nmOfs
+  procName   := ""
+  nmIdx      := 0
+  LOOP
+    nmChar := PEEK(nmAddr + nmIdx)
+    procName := procName + CHR$(LAND(nmChar, $7F))
+    nmIdx  := nmIdx + 1
+    EXITIF nmChar >= 128 OR nmIdx >= 31 THEN
+    ENDEXIT
+  ENDLOOP
+  PRINT "  Proc "; modIdx; " ("; procName; "): "; modSz; " bytes"
   curAddr    := curAddr + modSz
 ENDLOOP
 
