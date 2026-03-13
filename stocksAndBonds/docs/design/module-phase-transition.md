@@ -65,6 +65,74 @@ F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 | `snbAI`        | 4          | —                | —                         | —             |
 | `snbEndGame`   | 5          | —                | —                         | —             |
 
+| Module File    | Procedure      | Mem Size (Bytes) |
+|----------------|----------------|------------------|
+| `snbUtil`      | snbUtil        | —                |
+| `snbUtil`      | clrScr         | —                |
+| `snbUtil`      | printAt        | —                |
+| `snbUtil`      | fmtMoney       | —                |
+| `snbUtil`      | getMenuKey     | —                |
+| `snbUtil`      | waitKey        | —                |
+| `snbUtil`      | getNumIn       | —                |
+| `snbUtil`      | shuffleDeck    | —                |
+| `snbMemMgmt`   | snbMemMgmt     | —                |
+| `snbMemMgmt`   | memMapGet      | —                |
+| `snbMemMgmt`   | memModGet      | —                |
+| `snbMemMgmt`   | memReport      | —                |
+| `snbMemMgmt`   | memEnsure      | —                |
+| `snbMemMgmt`   | memRelease     | —                |
+| `SNB`          | SNB            | —                |
+| `SNB`          | initPlayer     | —                |
+| `SNB`          | initMkt        | —                |
+| `SNB`          | scrStart       | —                |
+| `SNB`          | scrSetup       | —                |
+| `SNB`          | scrConfirm     | —                |
+| `SNB`          | scrGameOver    | —                |
+| `snbSaveLoad`  | snbSaveLoad    | —                |
+| `snbSaveLoad`  | saveGame       | —                |
+| `snbSaveLoad`  | loadGame       | —                |
+| `snbYearLoop`  | snbYearLoop    | —                |
+| `snbYearLoop`  | runYearLoop    | —                |
+| `snbMktEng`    | snbMktEng      | —                |
+| `snbMktEng`    | getMktDelta    | —                |
+| `snbMktEng`    | getCard        | —                |
+| `snbMktEng`    | resolvePrice   | —                |
+| `snbMktEng`    | applyMktYear   | —                |
+| `snbMktEng`    | applyDivInt    | —                |
+| `snbMktEng`    | applyMgnInt    | —                |
+| `snbMktEng`    | drawCard       | —                |
+| `snbMktEng`    | doRolls        | —                |
+| `snbMktScr`    | snbMktScr      | —                |
+| `snbMktScr`    | scrYearHdr     | —                |
+| `snbMktScr`    | scrDivInt      | —                |
+| `snbMktScr`    | scrDivFlag     | —                |
+| `snbMktScr`    | scrCard        | —                |
+| `snbMktScr`    | scrDice        | —                |
+| `snbMktScr`    | scrMktBoard    | —                |
+| `snbMktScr`    | scrSplit       | —                |
+| `snbTrade`     | snbTrade       | —                |
+| `snbTrade`     | scrSell        | —                |
+| `snbTrade`     | scrBuy         | —                |
+| `snbTrade`     | scrMgnRepay    | —                |
+| `snbTrade`     | scrAITurn      | —                |
+| `snbTrade`     | applySells     | —                |
+| `snbTrade`     | applyBuys      | —                |
+| `snbMargin`    | snbMargin      | —                |
+| `snbMargin`    | scrMgnCall     | —                |
+| `snbMargin`    | applyLiqOrdr   | —                |
+| `snbMargin`    | scrForceLiq    | —                |
+| `snbMargin`    | scrBankrupt    | —                |
+| `snbMargin`    | scrMgnClr      | —                |
+| `snbMargin`    | scrMgnInt      | —                |
+| `snbAI`        | snbAI          | —                |
+| `snbAI`        | initAIProf     | —                |
+| `snbAI`        | aiSell         | —                |
+| `snbAI`        | aiBuy          | —                |
+| `snbEndGame`   | snbEndGame     | —                |
+| `snbEndGame`   | scrFinalMkt    | —                |
+| `snbEndGame`   | scrWealth      | —                |
+| `snbEndGame`   | scrWinner      | —                |
+| `snbEndGame`   | scrPostGame    | —                |
 ---
 
 ## 4. Phase Definitions
