@@ -33,7 +33,7 @@ grouping. The table below records every entry procedure for each module.
 |----------------|----------------------------------------------------------------------------------------------------------|----------------------|
 | `snbUtil`      | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                           | *(none)*             |
 | `snbMemMgmt`   | snbMemMgmt, memMapGet, memModGet, memReport, memEnsure, memRelease                                       | *(none)*             |
-| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, scrGameOver                                    | snbUtil, snbSaveLoad |
+| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm                                                 | snbUtil, snbSaveLoad |
 | `snbSaveLoad`  | snbSaveLoad, saveGame, loadGame                                                                          | snbUtil              |
 | `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
 | `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
@@ -51,88 +51,74 @@ To be populated by hardware measurement during Step 1 pilot and subsequent
 phases. `getMemSize` delta is measured as: F$Mem total after load minus
 F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 
-| Module File    | Proc Count | Disk Bytes (TBD) | Var Footprint Delta (TBD) | Measured Date |
-|----------------|------------|------------------|---------------------------|---------------|
-| `snbUtil`      | 8          | —                | — (baseline)              | —             |
-| `snbMemMgmt`   | 6          | —                | — (baseline)              | —             |
-| `SNB`          | 8          | —                | —                         | —             |
-| `snbSaveLoad`  | 3          | —                | —                         | —             |
-| `snbYearLoop`  | 2          | —                | —                         | —             |
-| `snbMktEng`    | 9          | —                | —                         | —             |
-| `snbMktScr`    | 8          | —                | —                         | —             |
-| `snbTrade`     | 7          | —                | —                         | —             |
-| `snbMargin`    | 7          | —                | —                         | —             |
-| `snbAI`        | 4          | —                | —                         | —             |
-| `snbEndGame`   | 5          | —                | —                         | —             |
-
 | Module File    | Procedure      | Mem Size (Bytes) |
 |----------------|----------------|------------------|
-| `snbUtil`      | snbUtil        | —                |
-| `snbUtil`      | clrScr         | —                |
-| `snbUtil`      | printAt        | —                |
-| `snbUtil`      | fmtMoney       | —                |
-| `snbUtil`      | getMenuKey     | —                |
-| `snbUtil`      | waitKey        | —                |
-| `snbUtil`      | getNumIn       | —                |
-| `snbUtil`      | shuffleDeck    | —                |
-| `snbMemMgmt`   | snbMemMgmt     | —                |
-| `snbMemMgmt`   | memMapGet      | —                |
-| `snbMemMgmt`   | memModGet      | —                |
-| `snbMemMgmt`   | memReport      | —                |
-| `snbMemMgmt`   | memEnsure      | —                |
-| `snbMemMgmt`   | memRelease     | —                |
-| `SNB`          | SNB            | —                |
-| `SNB`          | initPlayer     | —                |
-| `SNB`          | initMkt        | —                |
-| `SNB`          | scrStart       | —                |
-| `SNB`          | scrSetup       | —                |
-| `SNB`          | scrConfirm     | —                |
-| `SNB`          | scrGameOver    | —                |
-| `snbSaveLoad`  | snbSaveLoad    | —                |
-| `snbSaveLoad`  | saveGame       | —                |
-| `snbSaveLoad`  | loadGame       | —                |
-| `snbYearLoop`  | snbYearLoop    | —                |
-| `snbYearLoop`  | runYearLoop    | —                |
-| `snbMktEng`    | snbMktEng      | —                |
-| `snbMktEng`    | getMktDelta    | —                |
-| `snbMktEng`    | getCard        | —                |
-| `snbMktEng`    | resolvePrice   | —                |
-| `snbMktEng`    | applyMktYear   | —                |
-| `snbMktEng`    | applyDivInt    | —                |
-| `snbMktEng`    | applyMgnInt    | —                |
-| `snbMktEng`    | drawCard       | —                |
-| `snbMktEng`    | doRolls        | —                |
-| `snbMktScr`    | snbMktScr      | —                |
-| `snbMktScr`    | scrYearHdr     | —                |
-| `snbMktScr`    | scrDivInt      | —                |
-| `snbMktScr`    | scrDivFlag     | —                |
-| `snbMktScr`    | scrCard        | —                |
-| `snbMktScr`    | scrDice        | —                |
-| `snbMktScr`    | scrMktBoard    | —                |
-| `snbMktScr`    | scrSplit       | —                |
-| `snbTrade`     | snbTrade       | —                |
-| `snbTrade`     | scrSell        | —                |
-| `snbTrade`     | scrBuy         | —                |
-| `snbTrade`     | scrMgnRepay    | —                |
-| `snbTrade`     | scrAITurn      | —                |
-| `snbTrade`     | applySells     | —                |
-| `snbTrade`     | applyBuys      | —                |
-| `snbMargin`    | snbMargin      | —                |
-| `snbMargin`    | scrMgnCall     | —                |
-| `snbMargin`    | applyLiqOrdr   | —                |
-| `snbMargin`    | scrForceLiq    | —                |
-| `snbMargin`    | scrBankrupt    | —                |
-| `snbMargin`    | scrMgnClr      | —                |
-| `snbMargin`    | scrMgnInt      | —                |
-| `snbAI`        | snbAI          | —                |
-| `snbAI`        | initAIProf     | —                |
-| `snbAI`        | aiSell         | —                |
-| `snbAI`        | aiBuy          | —                |
-| `snbEndGame`   | snbEndGame     | —                |
-| `snbEndGame`   | scrFinalMkt    | —                |
-| `snbEndGame`   | scrWealth      | —                |
-| `snbEndGame`   | scrWinner      | —                |
-| `snbEndGame`   | scrPostGame    | —                |
+| `snbUtil`      | snbUtil        | 133              |
+| `snbUtil`      | clrScr         | 97               |
+| `snbUtil`      | printAt        | 136              |
+| `snbUtil`      | fmtMoney       | 233              |
+| `snbUtil`      | getMenuKey     | 214              |
+| `snbUtil`      | waitKey        | 136              |
+| `snbUtil`      | getNumIn       | 128              |
+| `snbUtil`      | shuffleDeck    | 219              |
+| `snbMemMgmt`   | snbMemMgmt     | 133              |
+| `snbMemMgmt`   | memMapGet      | 3604             |
+| `snbMemMgmt`   | memModGet      | 1366             |
+| `snbMemMgmt`   | memReport      | 840              |
+| `snbMemMgmt`   | memEnsure      | 656              |
+| `snbMemMgmt`   | memRelease     | 826              |
+| `SNB`          | SNB            | 827              |
+| `SNB`          | initPlayer     | 316              |
+| `SNB`          | initMkt        | 146              |
+| `SNB`          | scrStart       | 241              |
+| `SNB`          | scrSetup       | 505              |
+| `SNB`          | scrConfirm     | 470              |
+| `snbSaveLoad`  | snbSaveLoad    | 87               |
+| `snbSaveLoad`  | saveGame       | 455              |
+| `snbSaveLoad`  | loadGame       | 650              |
+| `snbYearLoop`  | snbYearLoop    | 76               |
+| `snbYearLoop`  | runYearLoop    | 5537             |
+| `snbMktEng`    | snbMktEng      | 199              |
+| `snbMktEng`    | getMktDelta    | 911              |
+| `snbMktEng`    | getCard        | 1644             |
+| `snbMktEng`    | resolvePrice   | 222              |
+| `snbMktEng`    | applyMktYear   | 865              |
+| `snbMktEng`    | applyDivInt    | 619              |
+| `snbMktEng`    | applyMgnInt    | 318              |
+| `snbMktEng`    | drawCard       | 133              |
+| `snbMktEng`    | doRolls        | 763              |
+| `snbMktScr`    | snbMktScr      | 174              |
+| `snbMktScr`    | scrYearHdr     | 370              |
+| `snbMktScr`    | scrDivInt      | 848              |
+| `snbMktScr`    | scrDivFlag     | 353              |
+| `snbMktScr`    | scrCard        | 673              |
+| `snbMktScr`    | scrDice        | 671              |
+| `snbMktScr`    | scrMktBoard    | 724              |
+| `snbMktScr`    | scrSplit       | 422              |
+| `snbTrade`     | snbTrade       | 141              |
+| `snbTrade`     | scrSell        | 2806             |
+| `snbTrade`     | scrBuy         | 3595             |
+| `snbTrade`     | scrMgnRepay    | 669              |
+| `snbTrade`     | scrAITurn      | 1052             |
+| `snbTrade`     | applySells     | 633              |
+| `snbTrade`     | applyBuys      | 630              |
+| `snbMargin`    | snbMargin      | 138              |
+| `snbMargin`    | scrMgnCall     | 403              |
+| `snbMargin`    | applyLiqOrdr   | 680              |
+| `snbMargin`    | scrForceLiq    | 2660             |
+| `snbMargin`    | scrBankrupt    | 608              |
+| `snbMargin`    | scrMgnClr      | 3513             |
+| `snbMargin`    | scrMgnInt      | 590              |
+| `snbAI`        | snbAI          | 86               |
+| `snbAI`        | initAIProf     | 800              |
+| `snbAI`        | aiSell         | 2536             |
+| `snbAI`        | aiBuy          | 2756             |
+| `snbEndGame`   | snbEndGame     | 121              |
+| `snbEndGame`   | scrFinalMkt    | 646              |
+| `snbEndGame`   | scrWealth      | 1143             |
+| `snbEndGame`   | scrWinner      | 550              |
+| `snbEndGame`   | scrPostGame    | 206              |
+
 ---
 
 ## 4. Phase Definitions
