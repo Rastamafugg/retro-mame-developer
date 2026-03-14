@@ -1,0 +1,316 @@
+PROCEDURE snbSetup
+(* ================================================== *)
+(* PROCEDURE: snbSetup                                *)
+(* PURPOSE:   Application setup logic.                *)
+(*            Routes S1 -> S2 -> S7 -> game stub,     *)
+(*            or S1 -> Load -> game stub,             *)
+(*            or S1 -> Quit -> exit.                  *)
+(*            S2/S7 Back path loops until confirmed.  *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM action:INTEGER
+DIM cfmAct:INTEGER
+DIM setupCnt:INTEGER
+DIM setupMode:INTEGER
+DIM setupTyp(6):INTEGER
+DIM setupNam(6):STRING[20]
+DIM hdr:SaveHdr
+DIM deckOrd(36):BYTE
+DIM plyrs(6):PlyrRec
+DIM mkt:MktState
+DIM loadOK:BOOLEAN
+DIM savPath:STRING[20]
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+action   := 0
+cfmAct   := 0
+setupCnt := 0
+setupMode := 0
+loadOK   := FALSE
+
+RUN scrStart(action)
+
+IF action = 1 THEN
+  ! New Game: S2->S7 with Back loop.
+  REPEAT
+    RUN scrSetup(setupCnt, setupTyp, setupNam, setupMode)
+    RUN scrConfirm(setupCnt, setupTyp, setupNam, setupMode, cfmAct)
+  UNTIL cfmAct = 1
+  ! Initialize all player records to starting values.
+  FOR i := 1 TO 6
+    RUN initPlayer(plyrs(i))
+  NEXT i
+  ! Copy confirmed setup into active player records.
+  FOR i := 1 TO setupCnt
+    plyrs(i).plyrName := setupNam(i)
+    plyrs(i).plyrType := setupTyp(i) \ ! INTEGER -> BYTE; values 1-2 safe
+  NEXT i
+  ! STUB: Phase 8 game loop entry replaces this PRINT.
+  PRINT
+  PRINT "STARTING GAME"
+ELSE IF action = 2 THEN
+  ! Load Game: attempt SNBGAME save file.
+  savPath := "SNBGAME"
+  RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
+  IF loadOK THEN
+    ! STUB: Phase 8 game loop resume replaces this PRINT.
+    PRINT
+    PRINT "STARTING GAME"
+  ELSE
+    PRINT "Load failed. No valid save file found."
+  ENDIF
+ENDIF \ENDIF
+! action = 3 (Quit): fall through to END.
+END
+
+900 PRINT "SNBMAIN error ("; ERR; ")"
+END
+
+PROCEDURE initPlayer
+(* ================================================= *)
+(* PROCEDURE: initPlayer                             *)
+(* PURPOSE  : Initialize a single PlyrRec to game-  *)
+(*            start values per spec Section 3.       *)
+(*            cashBal=5000, all shares/bonds zero,   *)
+(*            marginTot=0, isBankrupt=FALSE,         *)
+(*            hadCashPur=FALSE. All other fields     *)
+(*            set to safe defaults.                  *)
+(* PARAMS   : plyr - PlyrRec to initialize (by ref) *)
+(* SIDE FX  : Modifies plyr in place.                *)
+(* ================================================= *)
+
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+
+PARAM plyr: PlyrRec
+
+DIM i: INTEGER
+
+ON ERROR GOTO 900
+
+plyr.plyrName   := ""
+plyr.plyrType   := 0
+plyr.aiTier     := 0
+plyr.cashBal    := 5000
+plyr.marginTot  := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+
+FOR i := 1 TO 9
+    plyr.stckShrs(i) := 0
+    plyr.mgnHeld(i)  := FALSE
+NEXT i
+
+FOR i := 1 TO 3
+    plyr.bondUnts(i) := 0
+NEXT i
+
+END
+
+900 PRINT "initPlayer error ("; ERR; ")"
+END
+
+PROCEDURE initMkt
+(* ================================================= *)
+(* PROCEDURE: initMkt                                *)
+(* PURPOSE  : Initialize MktState to game-start     *)
+(*            values per spec Section 2.1.           *)
+(*            All stckPrice set to StockStartPrice   *)
+(*            (100). All divSuspnd set to FALSE.     *)
+(* PARAMS   : mkt - MktState to initialize (by ref) *)
+(* SIDE FX  : Modifies mkt in place.                 *)
+(* ================================================= *)
+
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+
+PARAM mkt: MktState
+
+DIM i: INTEGER
+
+ON ERROR GOTO 900
+
+FOR i := 1 TO 9
+    mkt.stckPrice(i) := 100
+    mkt.divSuspnd(i) := FALSE
+NEXT i
+
+END
+
+900 PRINT "initMkt error ("; ERR; ")"
+END
+
+PROCEDURE scrStart
+(* ================================================== *)
+(* PROCEDURE: scrStart                                *)
+(* PURPOSE:   Display S1 start screen. Return player *)
+(*            menu selection.                        *)
+(* PARAMS:    action - receives selection on return: *)
+(*              1 = New Game                         *)
+(*              2 = Load Game                        *)
+(*              3 = Quit                             *)
+(* EFFECTS:   Clears screen. Blocks until valid key. *)
+(* NOTE:      action is INTEGER; must match          *)
+(*            getMenuKey choice:INTEGER.             *)
+(* ================================================== *)
+PARAM action:INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  STOCKS AND BONDS"
+PRINT "  ================"
+PRINT
+PRINT "  1. New Game"
+PRINT "  2. Load Game"
+PRINT "  3. Quit"
+PRINT
+PRINT "  Select (1-3): ";
+
+RUN getMenuKey(1, 3, action)
+PRINT
+END
+
+900 PRINT "scrStart error ("; ERR; ")"
+END
+
+PROCEDURE scrSetup
+(* ================================================== *)
+(* PROCEDURE: scrSetup                                *)
+(* PURPOSE:   Display S2 new game setup screen.      *)
+(*            Collect player count, names, types,    *)
+(*            and market roll mode.                  *)
+(* PARAMS:    plyrCount  - receives player count 1-6 *)
+(*            plyrType   - receives type per player  *)
+(*                         1=Human  2=Computer       *)
+(*            plyrName   - receives name per player  *)
+(*            rollMode   - receives roll mode        *)
+(*                         1=A  2=B  3=C             *)
+(* NOTES:     plyrType is INTEGER array; callers     *)
+(*            copy to PlyrRec.plyrType (BYTE).       *)
+(*            getMenuKey result type requires        *)
+(*            INTEGER array elements.               *)
+(* ================================================== *)
+PARAM plyrCount:INTEGER
+PARAM plyrType(6):INTEGER
+PARAM plyrName(6):STRING[20]
+PARAM rollMode:INTEGER
+
+DIM i:INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  NEW GAME SETUP"
+PRINT "  =============="
+PRINT
+PRINT "  Number of players (1-6): ";
+RUN getMenuKey(1, 6, plyrCount)
+PRINT plyrCount
+
+FOR i := 1 TO plyrCount
+  PRINT
+  PRINT "  Player "; i; ":"
+  INPUT "    Name: ", plyrName(i)
+  PRINT "    Type  1=Human  2=Computer: ";
+  RUN getMenuKey(1, 2, plyrType(i))
+  IF plyrType(i) = 1 THEN
+    PRINT "Human"
+  ELSE
+    PRINT "Computer"
+  ENDIF
+NEXT i
+
+PRINT
+PRINT "  Roll mode  1=A  2=B  3=C: ";
+RUN getMenuKey(1, 3, rollMode)
+IF rollMode = 1 THEN
+  PRINT "A"
+ELSE IF rollMode = 2 THEN
+  PRINT "B"
+ELSE
+  PRINT "C"
+ENDIF \ENDIF
+END
+
+900 PRINT "scrSetup error ("; ERR; ")"
+END
+
+PROCEDURE scrConfirm
+(* ================================================== *)
+(* PROCEDURE: scrConfirm                              *)
+(* PURPOSE:   Display S7 setup confirmation screen.  *)
+(*            Show setup summary. Return player      *)
+(*            choice to proceed or go back.          *)
+(* PARAMS:    plyrCount  - number of players (1-6)   *)
+(*            plyrType   - type per player            *)
+(*                         1=Human  2=Computer       *)
+(*            plyrName   - name per player            *)
+(*            rollMode   - market roll mode           *)
+(*                         1=A  2=B  3=C             *)
+(*            action     - receives selection:        *)
+(*                         1=Confirm  2=Back         *)
+(* NOTES:     plyrType is INTEGER array matching     *)
+(*            scrSetup output. Callers copy to       *)
+(*            PlyrRec.plyrType (BYTE) on confirm.    *)
+(* ================================================== *)
+PARAM plyrCount:INTEGER
+PARAM plyrType(6):INTEGER
+PARAM plyrName(6):STRING[20]
+PARAM rollMode:INTEGER
+PARAM action:INTEGER
+
+DIM i:INTEGER
+DIM modeLabel:STRING[1]
+
+ON ERROR GOTO 900
+
+RUN clrScr
+
+PRINT
+PRINT "  CONFIRM SETUP"
+PRINT "  ============="
+PRINT
+
+FOR i := 1 TO plyrCount
+  PRINT "  Player "; i; ":  "; plyrName(i); "  ";
+  IF plyrType(i) = 1 THEN
+    PRINT "(Human)"
+  ELSE
+    PRINT "(Computer)"
+  ENDIF
+NEXT i
+
+PRINT
+
+IF rollMode = 1 THEN
+  modeLabel := "A"
+ELSE IF rollMode = 2 THEN
+  modeLabel := "B"
+ELSE
+  modeLabel := "C"
+ENDIF \ENDIF
+
+PRINT "  Roll Mode:  "; modeLabel
+PRINT
+PRINT "  1. Confirm"
+PRINT "  2. Back"
+PRINT
+PRINT "  Select (1-2): ";
+
+RUN getMenuKey(1, 2, action)
+PRINT
+END
+
+900 PRINT "scrConfirm error ("; ERR; ")"
+END

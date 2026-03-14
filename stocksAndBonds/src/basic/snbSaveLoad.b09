@@ -70,7 +70,7 @@ END
 900 IF pathOpen THEN
       CLOSE #path
     ENDIF
-    ERROR(ERR)
+    PRINT "Error writing save file: "; ERR
 END
 
 PROCEDURE loadGame

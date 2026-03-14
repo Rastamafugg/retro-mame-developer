@@ -250,7 +250,7 @@ ENDLOOP
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrForceLiq error ("; ERR; ")"
 END
 
 PROCEDURE scrMgnClr
@@ -558,6 +558,6 @@ plyr.marginTot := plyr.marginTot - actualRpy
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrMgnClr error ("; ERR; ")"
 END
 

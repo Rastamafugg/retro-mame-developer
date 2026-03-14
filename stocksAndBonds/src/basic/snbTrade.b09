@@ -99,7 +99,7 @@ NEXT i
 
 END
 
-900 ERROR(ERR)
+900 PRINT "applySells error ("; ERR; ")"
 END
 
 PROCEDURE applyBuys
@@ -214,7 +214,7 @@ NEXT i
 
 END
 
-900 ERROR(ERR)
+900 PRINT "applyBuys error ("; ERR; ")"
 END
 
 PROCEDURE scrMgnRepay
@@ -286,7 +286,7 @@ ENDWHILE
 amtToRpy := amt
 END
 
-900 ERROR(ERR)
+900 PRINT "scrMgnRepay error ("; ERR; ")"
 END
 
 PROCEDURE scrAITurn
@@ -407,5 +407,5 @@ RUN waitKey
 
 END
 
-900 ERROR(ERR)
+900 PRINT "scrAITurn error ("; ERR; ")"
 END

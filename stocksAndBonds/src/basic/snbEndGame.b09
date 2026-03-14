@@ -64,7 +64,7 @@ PRINT
 RUN waitKey
 END
 
-900 ERROR(ERR)
+900 PRINT "scrFinalMkt error ("; ERR; ")"
 END
 
 PROCEDURE scrWealth
@@ -181,7 +181,7 @@ NEXT p
 RUN waitKey
 END
 
-900 ERROR(ERR)
+900 PRINT "scrWealth error ("; ERR; ")"
 END
 
 PROCEDURE scrWinner
@@ -249,7 +249,7 @@ PRINT
 RUN waitKey
 END
 
-900 ERROR(ERR)
+900 PRINT "scrWinner error ("; ERR; ")"
 END
 
 PROCEDURE scrPostGame
@@ -281,5 +281,5 @@ RUN getMenuKey(1, 3, action)
 PRINT
 END
 
-900 ERROR(ERR)
+900 PRINT "scrPostGame error ("; ERR; ")"
 END

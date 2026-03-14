@@ -383,7 +383,6 @@ END
 
 900 \ ! Error handler
 PRINT "checkModule error ("; ERR; ")"
-ERROR(ERR)
 END
 
 
@@ -439,7 +438,6 @@ END
 
 900 \ ! Error handler
 PRINT "loadModule error ("; ERR; ")"
-ERROR(ERR)
 END
 
 
@@ -497,7 +495,6 @@ END
 
 900 \ ! Error handler
 PRINT "unloadModule error ("; ERR; ")"
-ERROR(ERR)
 END
 
 
@@ -529,7 +526,6 @@ END
 
 900 \ ! Error handler
 PRINT "getMemoryUsage error ("; ERR; ")"
-ERROR(ERR)
 END
 
 
@@ -640,7 +636,7 @@ PRINT "End of Routine"
 END
 
 900 \ ! Error handler
-ERROR(ERR)
+PRINT "moduleParser error ("; ERR; ")"
 END
 
 PROCEDURE extractModuleHeader
@@ -724,5 +720,5 @@ UNTIL (nameChar >= 128) OR (nameIdx >= 31)
 END
 
 900 \ ! Error handler
-ERROR(ERR)
+PRINT "extractModuleHeader error ("; ERR; ")"
 END

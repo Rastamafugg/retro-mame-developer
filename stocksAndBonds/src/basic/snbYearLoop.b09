@@ -615,5 +615,5 @@ END
 721 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
 722 DATA "United Auto","Uranium Ent","Valley Power"
 
-900 ERROR(ERR)
+900 PRINT "runYearLoop error ("; ERR; ")"
 END

@@ -156,7 +156,7 @@ ENDIF \ENDIF
 
 END
 
-900 ERROR(ERR)
+900 PRINT "doRolls error ("; ERR; ")"
 END
 
 PROCEDURE getMktDelta
@@ -227,7 +227,7 @@ DATA  21, -19,  21,  16,   4,   8, -10,  10, -11,  18, -23
 DATA  25,  22,  18, -14, -12,  -8,  10,  14, -18, -22, -25
 DATA   8,  -2,   7,   4,   3,   5,   4,   6,  -4,  -4,  -7
 
-900 ERROR(ERR)
+900 PRINT "getMktDelta error ("; ERR; ")"
 END
 
 PROCEDURE getCard
@@ -315,7 +315,7 @@ DATA     1, 4,  1,   8,  2,   5,  3,   5,  7,   7,  0
 DATA     1, 3,  3,  -8,  5,   8,  8,   5,  0,   0,  0
 DATA     2, 3,  1,  -8,  2,  -5,  7,  -7,  0,   0,  0
 
-900 ERROR(ERR)
+900 PRINT "getCard error ("; ERR; ")"
 END
 
 PROCEDURE resolvePrice
@@ -387,7 +387,7 @@ ENDIF
 
 END
 
-900 ERROR(ERR)
+900 PRINT "resolvePrice error ("; ERR; ")"
 END
 
 PROCEDURE applyMktYear
@@ -510,7 +510,7 @@ NEXT s
 
 END
 
-900 ERROR(ERR)
+900 PRINT "applyMktYear error ("; ERR; ")"
 END
 
 PROCEDURE applyDivInt
@@ -594,7 +594,7 @@ END
 ! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
 200 DATA 50, 250, 500
 
-900 ERROR(ERR)
+900 PRINT "applyDivInt error ("; ERR; ")"
 END
 
 PROCEDURE applyMgnInt
@@ -652,7 +652,7 @@ NEXT p
 
 END
 
-900 ERROR(ERR)
+900 PRINT "applyMgnInt error ("; ERR; ")"
 END
 
 PROCEDURE drawCard
@@ -686,5 +686,5 @@ IF deckPos > 36 THEN
 ENDIF
 END
 
-900 ERROR(ERR)
+900 PRINT "drawCard error ("; ERR; ")"
 END
