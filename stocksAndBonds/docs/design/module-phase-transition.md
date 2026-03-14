@@ -97,20 +97,20 @@ F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 | `snbMktScr`    | scrDice        | 671              |
 | `snbMktScr`    | scrMktBoard    | 724              |
 | `snbMktScr`    | scrSplit       | 422              |
-| `snbTrade`     | snbTrade       | 141              |
+| `snbTrade`     | snbTrade       | 116              |
 | `snbTrade`     | scrMgnRepay    | 669              |
 | `snbTrade`     | scrAITurn      | 1052             |
 | `snbTrade`     | applySells     | 633              |
 | `snbTrade`     | applyBuys      | 630              |
-| `snbBuySell`   | snbBuySell     |                  |
+| `snbBuySell`   | snbBuySell     | 82               |
 | `snbBuySell`   | scrSell        | 2806             |
 | `snbBuySell`   | scrBuy         | 3595             |
-| `snbMargin`    | snbMargin      | 138              |
+| `snbMargin`    | snbMargin      | 106              |
 | `snbMargin`    | scrMgnCall     | 403              |
 | `snbMargin`    | applyLiqOrdr   | 680              |
 | `snbMargin`    | scrBankrupt    | 608              |
 | `snbMargin`    | scrMgnInt      | 590              |
-| `snbMgnScr`    | snbMgnScr      |                  |
+| `snbMgnScr`    | snbMgnScr      | 87               |
 | `snbMgnScr`    | scrForceLiq    | 2660             |
 | `snbMgnScr`    | scrMgnClr      | 3513             |
 | `snbAI`        | snbAI          | 86               |

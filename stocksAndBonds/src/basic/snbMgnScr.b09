@@ -2,7 +2,7 @@ PROCEDURE snbMgnScr
 (* ================================================== *)
 (* PROCEDURE: snbMgnScr                               *)
 (* PURPOSE:   README entry for snbMgnScr module.      *)
-(*            Lists all procedures in this module.   *)
+(*            Lists all procedures in this module.    *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbMgnScr"
