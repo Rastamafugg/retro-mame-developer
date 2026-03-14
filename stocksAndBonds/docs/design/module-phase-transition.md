@@ -38,8 +38,10 @@ grouping. The table below records every entry procedure for each module.
 | `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
 | `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
 | `snbMktScr`    | snbMktScr, scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
-| `snbTrade`     | snbTrade, scrSell, scrBuy, scrMgnRepay, scrAITurn, applySells, applyBuys                                 | snbUtil              |
-| `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrForceLiq, scrBankrupt, scrMgnClr, scrMgnInt                      | snbUtil, snbTrade    |
+| `snbTrade`     | snbTrade, scrMgnRepay, scrAITurn, applySells, applyBuys                                                  | snbUtil              |
+| `snbBuySell`   | snbBuySell, scrSell, scrBuy                                                                              | snbUtil              |
+| `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrBankrupt, scrMgnInt                                              | snbUtil, snbTrade    |
+| `snbMgnScr`    | snbMgnScr, scrForceLiq, scrMgnClr                                                                        | snbUtil, snbTrade    |
 | `snbAI`        | snbAI, initAIProf, aiSell, aiBuy                                                                         | snbUtil              |
 | `snbEndGame`   | snbEndGame, scrFinalMkt, scrWealth, scrWinner, scrPostGame                                               | snbUtil              |
 
@@ -96,19 +98,21 @@ F$Mem total before load, for each module loaded in isolation over `snbUtil`.
 | `snbMktScr`    | scrMktBoard    | 724              |
 | `snbMktScr`    | scrSplit       | 422              |
 | `snbTrade`     | snbTrade       | 141              |
-| `snbTrade`     | scrSell        | 2806             |
-| `snbTrade`     | scrBuy         | 3595             |
 | `snbTrade`     | scrMgnRepay    | 669              |
 | `snbTrade`     | scrAITurn      | 1052             |
 | `snbTrade`     | applySells     | 633              |
 | `snbTrade`     | applyBuys      | 630              |
+| `snbBuySell`   | snbBuySell     |                  |
+| `snbBuySell`   | scrSell        | 2806             |
+| `snbBuySell`   | scrBuy         | 3595             |
 | `snbMargin`    | snbMargin      | 138              |
 | `snbMargin`    | scrMgnCall     | 403              |
 | `snbMargin`    | applyLiqOrdr   | 680              |
-| `snbMargin`    | scrForceLiq    | 2660             |
 | `snbMargin`    | scrBankrupt    | 608              |
-| `snbMargin`    | scrMgnClr      | 3513             |
 | `snbMargin`    | scrMgnInt      | 590              |
+| `snbMgnScr`    | snbMgnScr      |                  |
+| `snbMgnScr`    | scrForceLiq    | 2660             |
+| `snbMgnScr`    | scrMgnClr      | 3513             |
 | `snbAI`        | snbAI          | 86               |
 | `snbAI`        | initAIProf     | 800              |
 | `snbAI`        | aiSell         | 2536             |
@@ -211,7 +215,7 @@ Section 6 for the permanent-resident policy.
 
 | Field              | Value                                                |
 |--------------------|------------------------------------------------------|
-| Load on Entry      | snbYearLoop                                          |
+| Load on Entry      | snbYearLoop, snbMktEng                               |
 | Required Resident  | snbUtil, snbMemMgmt, SNB, snbMktEng, snbYearLoop     |
 | Release on Exit    | SNB                                                  |
 | Notes              | initPlayer and initMkt execute within SNB. shuffleDeck requires snbUtil. SNB is released after initialization is complete and before snbYearLoop begins its first iteration. snbMktEng is retained into PH-05/PH-06 to avoid an immediate load at PH-07. |
