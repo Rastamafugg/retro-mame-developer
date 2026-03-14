@@ -369,5 +369,3 @@ available headroom, but it is the conservative default.
 ## 9. Open Items
 
 1. **Dependency slot limit:** `memMapGet` DATA records currently support 8 dependency slots per procedure. After full decomposition, verify no load target requires more than 8 module deps. Resize the DATA schema if needed before any DATA record is finalized.
-
-2. **Post-game SNB reload:** PH-13 requires SNB to be reloaded from disk. Verify that the disk file is present and attr'd correctly after the game loop has been running. This is a cold load, not a link, if SNB was fully unloaded at PH-04 exit.
