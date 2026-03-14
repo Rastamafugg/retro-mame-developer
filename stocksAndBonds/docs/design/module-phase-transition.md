@@ -58,22 +58,22 @@ phases. `modSzRpt` is reporting tool for generating these values.
 | Module File    | Procedure      | Mem Size (Bytes) |
 |----------------|----------------|------------------|
 | `snbUtil`      | snbUtil        | 133              |
-| `snbUtil`      | clrScr         | 97               |
 | `snbUtil`      | printAt        | 136              |
-| `snbUtil`      | fmtMoney       | 233              |
-| `snbUtil`      | getMenuKey     | 214              |
 | `snbUtil`      | waitKey        | 136              |
+| `snbUtil`      | clrScr         | 97               |
+| `snbUtil`      | fmtMoney       | 223              |
+| `snbUtil`      | getMenuKey     | 214              |
 | `snbUtil`      | getNumIn       | 128              |
 | `snbUtil`      | shuffleDeck    | 219              |
-| `SNB`          | SNB            |                  |
-| `SNB`          | memMapGet      | 3604             |
-| `SNB`          | memModGet      | 1366             |
-| `SNB`          | memReport      | 840              |
-| `SNB`          | memEnsure      | 656              |
-| `SNB`          | memRelease     | 826              |
-| `snbSetup`     | snbSetup       | 827              |
-| `snbSetup`     | initPlayer     | 316              |
-| `snbSetup`     | initMkt        | 146              |
+| `SNB`          | SNB            | 270              |
+| `SNB`          | memMapGet      | 3638             |
+| `SNB`          | memModGet      | 1495             |
+| `SNB`          | memReport      | 875              |
+| `SNB`          | memEnsure      | 654              |
+| `SNB`          | memRelease     | 834              |
+| `snbSetup`     | snbSetup       | 832              |
+| `snbSetup`     | initPlayer     | 342              |
+| `snbSetup`     | initMkt        | 169              |
 | `snbSetup`     | scrStart       | 241              |
 | `snbSetup`     | scrSetup       | 505              |
 | `snbSetup`     | scrConfirm     | 470              |

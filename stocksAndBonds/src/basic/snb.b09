@@ -2,10 +2,39 @@ PROCEDURE SNB
 (* ================================================== *)
 (* PROCEDURE: SNB                                     *)
 (* PURPOSE:   Application entry point.                *)
-(*            Bootstraps other application logic      *)
+(*            PH-00: loads snbUtil.                   *)
+(*            PH-01: loads snbSetup and transfers     *)
+(*            control to the pre-game screens.        *)
+(*            Post-game loop deferred; see            *)
+(*            module-phase-transition.md Decision 2.  *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
+DIM pNam : STRING[20]
+DIM ok   : BOOLEAN
 
+ON ERROR GOTO 900
+
+! PH-00: Load snbUtil. clrScr used as map key;
+! snbUtil entry proc is not in memMapGet by design.
+pNam := "clrScr"
+RUN memEnsure(pNam, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to load snbUtil"
+  END
+ENDIF
+
+! PH-01: Load snbSetup and its deps (snbUtil, snbSaveLoad).
+pNam := "snbSetup"
+RUN memEnsure(pNam, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to load snbSetup"
+  END
+ENDIF
+
+RUN snbSetup
+END
+
+900 PRINT "SNB error ("; ERR; ")"
 END
 
 PROCEDURE memMapGet
