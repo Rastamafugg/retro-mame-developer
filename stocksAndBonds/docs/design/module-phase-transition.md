@@ -15,17 +15,18 @@ grouping. The table below records every entry procedure for each module.
 | Entry Procedure | Module File   | Source File         |
 |-----------------|---------------|---------------------|
 | `SNB`           | `SNB`         | `snb.b09`           |
-| `snbYearLoop`   | `snbYearLoop` | `snbGameLoop.b09`   |
-| `snbUtil`       | `snbUtil`     | `snb.b09`           |
-| `snbSaveLoad`   | `snbSaveLoad` | `snbSaveLoad.b09`   |
-| `snbMktEng`     | `snbMktEng`   | `snbMktEng.b09`     |
-| `snbMktScr`     | `snbMktScr`   | `snbMktScr.b09`     |
-| `snbTrade`      | `snbTrade`    | `snbTrade.b09`      |
+| `snbAI`         | `snbAI`       | `snbAI.b09`         |
 | `snbBuySell`    | `snbBuySell`  | `snbBuySell.b09`    |
+| `snbEndGame`    | `snbEndGame`  | `snbEndGame.b09`    |
 | `snbMargin`     | `snbMargin`   | `snbMargin.b09`     |
 | `snbMgnScr`     | `snbMgnScr`   | `snbMgnScr.b09`     |
-| `snbAI`         | `snbAI`       | `snbAI.b09`         |
-| `snbEndGame`    | `snbEndGame`  | `snbEndGame.b09`    |
+| `snbMktEng`     | `snbMktEng`   | `snbMktEng.b09`     |
+| `snbMktScr`     | `snbMktScr`   | `snbMktScr.b09`     |
+| `snbSaveLoad`   | `snbSaveLoad` | `snbSaveLoad.b09`   |
+| `snbSetup`      | `snbSetup`    | `snbSetup.b09`      |
+| `snbTrade`      | `snbTrade`    | `snbTrade.b09`      |
+| `snbUtil`       | `snbUtil`     | `snb.b09`           |
+| `snbYearLoop`   | `snbYearLoop` | `snbYearLoop.b09`   |
 
 ---
 
@@ -33,19 +34,19 @@ grouping. The table below records every entry procedure for each module.
 
 | Module File    | Constituent Procedures                                                                                   | Deps at Runtime      |
 |----------------|----------------------------------------------------------------------------------------------------------|----------------------|
-| `snbUtil`      | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                           | *(none)*             |
-| `snbMemMgmt`   | snbMemMgmt, memMapGet, memModGet, memReport, memEnsure, memRelease                                       | *(none)*             |
-| `SNB`          | SNB, initPlayer, initMkt, scrStart, scrSetup, scrConfirm                                                 | snbUtil, snbSaveLoad |
-| `snbSaveLoad`  | snbSaveLoad, saveGame, loadGame                                                                          | snbUtil              |
-| `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
-| `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
-| `snbMktScr`    | snbMktScr, scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
-| `snbTrade`     | snbTrade, scrMgnRepay, scrAITurn, applySells, applyBuys                                                  | snbUtil              |
+| `SNB`          | SNB, memMapGet, memModGet, memReport, memEnsure, memRelease                                              | *(none)*             |
+| `snbAI`        | snbAI, initAIProf, aiSell, aiBuy                                                                         | snbUtil              |
 | `snbBuySell`   | snbBuySell, scrSell, scrBuy                                                                              | snbUtil              |
+| `snbEndGame`   | snbEndGame, scrFinalMkt, scrWealth, scrWinner, scrPostGame                                               | snbUtil              |
 | `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrBankrupt, scrMgnInt                                              | snbUtil, snbTrade    |
 | `snbMgnScr`    | snbMgnScr, scrForceLiq, scrMgnClr                                                                        | snbUtil, snbTrade    |
-| `snbAI`        | snbAI, initAIProf, aiSell, aiBuy                                                                         | snbUtil              |
-| `snbEndGame`   | snbEndGame, scrFinalMkt, scrWealth, scrWinner, scrPostGame                                               | snbUtil              |
+| `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
+| `snbMktScr`    | snbMktScr, scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
+| `snbSaveLoad`  | snbSaveLoad, saveGame, loadGame                                                                          | snbUtil              |
+| `snbSetup`     | snbSetup, initPlayer, initMkt, scrStart, scrSetup, scrConfirm                                            | snbUtil, snbSaveLoad |
+| `snbTrade`     | snbTrade, scrMgnRepay, scrAITurn, applySells, applyBuys                                                  | snbUtil              |
+| `snbUtil`      | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                           | *(none)*             |
+| `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
 
 ---
 
@@ -64,18 +65,18 @@ phases. `modSzRpt` is reporting tool for generating these values.
 | `snbUtil`      | waitKey        | 136              |
 | `snbUtil`      | getNumIn       | 128              |
 | `snbUtil`      | shuffleDeck    | 219              |
-| `snbMemMgmt`   | snbMemMgmt     | 133              |
-| `snbMemMgmt`   | memMapGet      | 3604             |
-| `snbMemMgmt`   | memModGet      | 1366             |
-| `snbMemMgmt`   | memReport      | 840              |
-| `snbMemMgmt`   | memEnsure      | 656              |
-| `snbMemMgmt`   | memRelease     | 826              |
-| `SNB`          | SNB            | 827              |
-| `SNB`          | initPlayer     | 316              |
-| `SNB`          | initMkt        | 146              |
-| `SNB`          | scrStart       | 241              |
-| `SNB`          | scrSetup       | 505              |
-| `SNB`          | scrConfirm     | 470              |
+| `SNB`          | SNB            |                  |
+| `SNB`          | memMapGet      | 3604             |
+| `SNB`          | memModGet      | 1366             |
+| `SNB`          | memReport      | 840              |
+| `SNB`          | memEnsure      | 656              |
+| `SNB`          | memRelease     | 826              |
+| `snbSetup`     | snbSetup       | 827              |
+| `snbSetup`     | initPlayer     | 316              |
+| `snbSetup`     | initMkt        | 146              |
+| `snbSetup`     | scrStart       | 241              |
+| `snbSetup`     | scrSetup       | 505              |
+| `snbSetup`     | scrConfirm     | 470              |
 | `snbSaveLoad`  | snbSaveLoad    | 87               |
 | `snbSaveLoad`  | saveGame       | 455              |
 | `snbSaveLoad`  | loadGame       | 650              |
@@ -170,12 +171,12 @@ Section 6 for the permanent-resident policy.
 
 ### PH-00 — Launch
 
-| Field              | Value                                |
-|--------------------|--------------------------------------|
-| Load on Entry      | snbUtil, snbMemMgmt, SNB             |
-| Required Resident  | snbUtil, snbMemMgmt, SNB             |
-| Release on Exit    | *(none)*                             |
-| Notes              | snbUtil is never released after load. SNB remains through PH-04. |
+| Field              | Value                                       |
+|--------------------|---------------------------------------------|
+| Load on Entry      | SNB, snbUtil                                |
+| Required Resident  | SNB, snbUtil                                |
+| Release on Exit    | *(none)*                                    |
+| Notes              | SNB, snbUtil are never released after load. |
 
 ---
 
@@ -183,10 +184,10 @@ Section 6 for the permanent-resident policy.
 
 | Field              | Value                                |
 |--------------------|--------------------------------------|
-| Load on Entry      | *(none)*                             |
-| Required Resident  | snbUtil, snbMemMgmt, SNB             |
+| Load on Entry      | snbSetup                             |
+| Required Resident  | SNB, snbUtil                         |
 | Release on Exit    | *(none)*                             |
-| Notes              | scrStart is within SNB. No additional loads. |
+| Notes              | snbSetup remains through PH-04.      |
 
 ---
 
@@ -195,9 +196,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                |
 |--------------------|--------------------------------------|
 | Load on Entry      | *(none)*                             |
-| Required Resident  | snbUtil, snbMemMgmt, SNB             |
+| Required Resident  | SNB, snbUtil, snbSetup               |
 | Release on Exit    | *(none)*                             |
-| Notes              | scrSetup and scrConfirm are within SNB. No additional loads needed until PH-04. |
+| Notes              | scrSetup and scrConfirm are within snbSetup. No additional loads needed until PH-04. |
 
 ---
 
@@ -206,9 +207,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                     |
 |--------------------|-------------------------------------------|
 | Load on Entry      | snbSaveLoad                               |
-| Required Resident  | snbUtil, snbMemMgmt, SNB, snbSaveLoad     |
+| Required Resident  | SNB, snbUtil, snbSetup, snbSaveLoad       |
 | Release on Exit    | snbSaveLoad                               |
-| Notes              | snbSaveLoad loaded only for the duration of the load call. Released immediately on success or failure. SNB remains through PH-04. |
+| Notes              | snbSaveLoad loaded only for the duration of the load call. Released immediately on success or failure. snbSetup remains through PH-04. |
 
 ---
 
@@ -217,9 +218,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                |
 |--------------------|------------------------------------------------------|
 | Load on Entry      | snbYearLoop, snbMktEng                               |
-| Required Resident  | snbUtil, snbMemMgmt, SNB, snbMktEng, snbYearLoop     |
-| Release on Exit    | SNB                                                  |
-| Notes              | initPlayer and initMkt execute within SNB. shuffleDeck requires snbUtil. SNB is released after initialization is complete and before snbYearLoop begins its first iteration. snbMktEng is retained into PH-05/PH-06 to avoid an immediate load at PH-07. |
+| Required Resident  | SNB, snbUtil, snbSetup, snbMktEng, snbYearLoop       |
+| Release on Exit    | snbSetup                                             |
+| Notes              | initPlayer and initMkt execute within snbSetup. shuffleDeck requires snbUtil. snbSetup is released after initialization is complete and before snbYearLoop begins its first iteration. snbMktEng is retained into PH-05/PH-06 to avoid an immediate load at PH-07. |
 
 ---
 
@@ -228,7 +229,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                  |
 |--------------------|--------------------------------------------------------|
 | Load on Entry      | snbMktScr                                              |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbMktEng, snbMktScr |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbMktEng, snbMktScr        |
 | Release on Exit    | *(none; market group retained through PH-07)*          |
 | Notes              | scrYearHdr is within snbMktScr. snbMktEng must be resident because snbMktScr depends on it. Both retained through PH-07. |
 
@@ -239,7 +240,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                  |
 |--------------------|--------------------------------------------------------|
 | Load on Entry      | *(none; market group already resident)*                |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbMktEng, snbMktScr |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbMktEng, snbMktScr        |
 | Release on Exit    | *(none)*                                               |
 | Notes              | applyDivInt and applyMgnInt are in snbMktEng. scrDivInt and scrMgnInt are in snbMktScr. Skipped in Year 1 and Year 10. Phase is transparent from a load/release perspective. |
 
@@ -250,7 +251,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                  |
 |--------------------|--------------------------------------------------------|
 | Load on Entry      | *(none; market group already resident)*                |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbMktEng, snbMktScr |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbMktEng, snbMktScr        |
 | Release on Exit    | snbMktEng, snbMktScr                                   |
 | Notes              | All market engine and screen procedures are within the already-resident group. Both released at market phase completion; not needed again until next year's PH-05. |
 
@@ -261,7 +262,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                          |
 |--------------------|----------------------------------------------------------------|
 | Load on Entry      | snbTrade, snbBuySell, snbAI                                    |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbBuySell, snbAI  |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbTrade, snbBuySell, snbAI         |
 | Release on Exit    | snbBuySell, snbAI                                              |
 | Notes              | snbBuySell carries scrSell and scrBuy; released immediately when all players complete the buy phase. snbTrade retained because snbMargin and snbMgnScr depend on it. snbAI released after all players complete buy; not needed during margin resolution. |
 
@@ -272,7 +273,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                            |
 |--------------------|------------------------------------------------------------------|
 | Load on Entry      | snbMargin, snbMgnScr                                             |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin, snbMgnScr |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbTrade, snbMargin, snbMgnScr        |
 | Release on Exit    | snbTrade, snbMargin, snbMgnScr                                   |
 | Notes              | Both snbMargin and snbMgnScr depend on snbTrade at runtime; all three must be resident simultaneously. snbBuySell is not required and must not be loaded here — its release at PH-08 exit is what makes this footprint viable. PH-09 may not occur in every year; snbYearLoop handles the conditional load. |
 
@@ -283,7 +284,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                                             |
 |--------------------|-------------------------------------------------------------------|
 | Load on Entry      | snbMargin, snbMgnScr  (if not already resident from PH-09)        |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin, snbMgnScr  |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbTrade, snbMargin, snbMgnScr         |
 | Release on Exit    | snbTrade, snbMargin, snbMgnScr                                    |
 | Notes              | Same module set and dependency constraints as PH-09. scrMgnClr is in snbMgnScr; snbTrade required as a runtime dep of both snbMargin and snbMgnScr. All three released before PH-12. |
 
@@ -294,7 +295,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                              |
 |--------------------|----------------------------------------------------|
 | Load on Entry      | snbSaveLoad                                        |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbSaveLoad      |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbSaveLoad             |
 | Release on Exit    | snbSaveLoad                                        |
 | Notes              | Save is restricted to year boundaries to avoid holding snbSaveLoad resident during game phases. snbYearLoop triggers save at end of each complete year before loading next year's market group. snbSaveLoad released immediately after write. |
 
@@ -305,7 +306,7 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                              |
 |--------------------|----------------------------------------------------|
 | Load on Entry      | snbEndGame                                         |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbEndGame       |
+| Required Resident  | SNB, snbUtil, snbYearLoop, snbEndGame              |
 | Release on Exit    | snbEndGame, snbYearLoop                            |
 | Notes              | All trade, margin, AI, and market modules must be released before loading snbEndGame. snbYearLoop released at S27 exit; game loop is complete. scrFinalMkt, scrWealth, scrWinner, scrPostGame are all within snbEndGame. |
 
@@ -316,9 +317,9 @@ Section 6 for the permanent-resident policy.
 | Field              | Value                                              |
 |--------------------|----------------------------------------------------|
 | Load on Entry      | *(none; depends on S27 selection)*                 |
-| Required Resident  | snbUtil, snbMemMgmt, SNB                           |
+| Required Resident  | SNB, snbUtil, snbSetup                             |
 | Release on Exit    | SNB (on Quit)                                      |
-| Notes              | S27 New Game: load SNB → return to PH-02. S27 Load Game: load SNB + snbSaveLoad → PH-03 → PH-04. S27 Quit: release all, exit. SNB must be loaded fresh at S27 New Game/Load since it was released at PH-04 exit. |
+| Notes              | S27 New Game: load snbSetup → return to PH-02. S27 Load Game: load snbSetup + snbSaveLoad → PH-03 → PH-04. S27 Quit: release all, exit. snbSetup must be loaded fresh at S27 New Game/Load since it was released at PH-04 exit. |
 
 ---
 
@@ -326,8 +327,8 @@ Section 6 for the permanent-resident policy.
 
 | Module        | Resident From | Released At          | Rationale                                                                |
 |---------------|---------------|----------------------|--------------------------------------------------------------------------|
+| `SNB       `  | PH-00         | Process exit         | Required to load and unload other modules. Release cost exceeds benefit. |
 | `snbUtil`     | PH-00         | Process exit         | Required by every other module. Release cost exceeds benefit.            |
-| `snbMemMgmt`  | PH-00         | Process exit         | Required to load and unload other modules. Release cost exceeds benefit. |
 | `snbYearLoop` | PH-04         | PH-12 exit (S27)     | Dispatcher must be resident throughout all year loop phases.             |
 
 All other modules follow the load/release schedule in Section 5.
@@ -341,11 +342,11 @@ represent the primary memory savings opportunities:
 
 | Group A                     | Group B                         | Reason Never Co-Resident               |
 |-----------------------------|---------------------------------|----------------------------------------|
-| SNB                         | snbYearLoop (after PH-04)       | Setup complete before loop begins      |
+| snbSetup                    | snbYearLoop (after PH-04)       | Setup complete before loop begins      |
 | snbMktEng + snbMktScr       | snbTrade + snbBuySell + snbAI + snbMargin + snbMgnScr    | Market phase ends before trade begins |
 | snbMktEng + snbMktScr       | snbEndGame                      | Market is Year 1–9 only                |
 | snbTrade + snbBuySell + snbMargin + snbMgnScr + snbAI | snbEndGame                     | Trade complete before endgame screens |
-| SNB                         | snbEndGame                      | Setup and endgame do not overlap       |
+| snbSetup                    | snbEndGame                      | Setup and endgame do not overlap       |
 | snbBuySell                  | snbMargin + snbMgnScr           | Buy/sell complete and released before margin phase loads       |
 
 ---

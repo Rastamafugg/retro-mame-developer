@@ -200,7 +200,7 @@ GOTO 110
 ok := NOT numErr
 END
 
-900 ERROR(ERR)
+900 PRINT "getNumIn error ("; ERR; ")"
 END
 
 PROCEDURE shuffleDeck
@@ -237,5 +237,5 @@ FOR i := 36 TO 2 STEP -1
 NEXT i
 END
 
-900 ERROR(ERR)
+900 PRINT "shuffleDeck error ("; ERR; ")"
 END

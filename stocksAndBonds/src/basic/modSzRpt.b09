@@ -196,5 +196,4 @@ END
 
 900 \ ! Error handler
 PRINT "getMemSize error ("; ERR; ")"
-ERROR(ERR)
 END

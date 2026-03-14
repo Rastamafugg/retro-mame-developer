@@ -250,7 +250,7 @@ ENDLOOP
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrSell error ("; ERR; ")"
 END
 
 PROCEDURE scrBuy
@@ -594,5 +594,5 @@ ENDLOOP
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrBuy error ("; ERR; ")"
 END

@@ -68,7 +68,7 @@ RUN waitKey
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrYearHdr error ("; ERR; ")"
 END
 
 PROCEDURE scrDivInt
@@ -173,7 +173,7 @@ END
 ! Bond names 1..3 for interest display (spec Section 2.2)
 200 DATA "Small","Medium","Large"
 
-900 ERROR(ERR)
+900 PRINT "scrDivInt error ("; ERR; ")"
 END
 
 PROCEDURE scrCard
@@ -253,7 +253,7 @@ END
 101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
 102 DATA "United Auto","Uranium Ent","Valley Power"
 
-900 ERROR(ERR)
+900 PRINT "scrCard error ("; ERR; ")"
 END
 
 PROCEDURE scrDice
@@ -337,7 +337,7 @@ END
 101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
 102 DATA "United Auto","Uranium Ent","Valley Power"
 
-900 ERROR(ERR)
+900 PRINT "scrDice error ("; ERR; ")"
 END
 
 PROCEDURE scrMktBoard
@@ -425,7 +425,7 @@ END
 101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
 102 DATA "United Auto","Uranium Ent","Valley Power"
 
-900 ERROR(ERR)
+900 PRINT "scrMktBoard error ("; ERR; ")"
 END
 
 PROCEDURE scrDivFlag
@@ -474,7 +474,7 @@ RUN waitKey
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrDivFlag error ("; ERR; ")"
 END
 
 PROCEDURE scrSplit
@@ -529,5 +529,5 @@ RUN waitKey
 action := 1
 END
 
-900 ERROR(ERR)
+900 PRINT "scrSplit error ("; ERR; ")"
 END

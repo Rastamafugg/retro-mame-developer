@@ -2,325 +2,557 @@ PROCEDURE SNB
 (* ================================================== *)
 (* PROCEDURE: SNB                                     *)
 (* PURPOSE:   Application entry point.                *)
-(*            Routes S1 -> S2 -> S7 -> game stub,     *)
-(*            or S1 -> Load -> game stub,             *)
-(*            or S1 -> Quit -> exit.                  *)
-(*            S2/S7 Back path loops until confirmed.  *)
+(*            Bootstraps other application logic      *)
 (* PARAMS:    None                                    *)
-(* NOTES:     setupCnt, setupMode, setupTyp, setupNam *)
-(*            use distinct names to avoid collisions  *)
-(*            with SaveHdr and PlyrRec field names.   *)
-(*            Game loop entry is a stub PRINT.        *)
-(*            Phase 8 replaces stubs.                 *)
 (* ================================================== *)
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM action:INTEGER
-DIM cfmAct:INTEGER
-DIM setupCnt:INTEGER
-DIM setupMode:INTEGER
-DIM setupTyp(6):INTEGER
-DIM setupNam(6):STRING[20]
-DIM hdr:SaveHdr
-DIM deckOrd(36):BYTE
-DIM plyrs(6):PlyrRec
-DIM mkt:MktState
-DIM loadOK:BOOLEAN
-DIM savPath:STRING[20]
-DIM i:INTEGER
+
+END
+
+PROCEDURE memMapGet
+(* ================================================== *)
+(* PROCEDURE: memMapGet                               *)
+(* PURPOSE:   Look up a procedure in the memory map. *)
+(*            depIdx=0: returns name of the packed   *)
+(*            module this procedure resides in.      *)
+(*            depIdx=1..8: returns the Nth module    *)
+(*            dependency of that module. Returns ""  *)
+(*            if procedure not found or no Nth dep.  *)
+(* PARAMS:    procNam - procedure name to look up    *)
+(*            depIdx  - 0=own module, 1..8=Nth dep   *)
+(*            result  - returned module name or ""   *)
+(* DATA:      10 fields/record:                      *)
+(*              procName, modName, dep1..dep8        *)
+(*            Unused dep slots padded with "".       *)
+(*            End sentinel: record starting with "." *)
+(* ================================================== *)
+PARAM procNam : STRING[20]
+PARAM depIdx  : INTEGER
+PARAM result  : STRING[20]
+DIM nm    : STRING[20]
+DIM tmp   : STRING[20]
+DIM i     : INTEGER
+DIM found : BOOLEAN
 
 ON ERROR GOTO 900
 
-action   := 0
-cfmAct   := 0
-setupCnt := 0
-setupMode := 0
-loadOK   := FALSE
+result := ""
+found  := FALSE
 
-RUN scrStart(action)
-
-IF action = 1 THEN
-  ! New Game: S2->S7 with Back loop.
-  REPEAT
-    RUN scrSetup(setupCnt, setupTyp, setupNam, setupMode)
-    RUN scrConfirm(setupCnt, setupTyp, setupNam, setupMode, cfmAct)
-  UNTIL cfmAct = 1
-  ! Initialize all player records to starting values.
-  FOR i := 1 TO 6
-    RUN initPlayer(plyrs(i))
-  NEXT i
-  ! Copy confirmed setup into active player records.
-  FOR i := 1 TO setupCnt
-    plyrs(i).plyrName := setupNam(i)
-    plyrs(i).plyrType := setupTyp(i) \ ! INTEGER -> BYTE; values 1-2 safe
-  NEXT i
-  ! STUB: Phase 8 game loop entry replaces this PRINT.
-  PRINT
-  PRINT "STARTING GAME"
-ELSE IF action = 2 THEN
-  ! Load Game: attempt SNBGAME save file.
-  savPath := "SNBGAME"
-  RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
-  IF loadOK THEN
-    ! STUB: Phase 8 game loop resume replaces this PRINT.
-    PRINT
-    PRINT "STARTING GAME"
+RESTORE 100
+LOOP
+  EXITIF found THEN
+  ENDEXIT
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  IF nm = procNam THEN
+    IF depIdx = 0 THEN
+      READ result
+      FOR i := 1 TO 8
+        READ tmp
+      NEXT i
+    ELSE
+      READ tmp \ ! skip modName field
+      FOR i := 1 TO depIdx - 1
+        READ tmp \ ! skip deps before target index
+      NEXT i
+      READ result
+      FOR i := depIdx + 1 TO 8
+        READ tmp \ ! skip deps after target index
+      NEXT i
+    ENDIF
+    found := TRUE
   ELSE
-    PRINT "Load failed. No valid save file found."
+    FOR i := 1 TO 9
+      READ tmp \ ! skip remaining 9 fields of non-matching record
+    NEXT i
   ENDIF
-ENDIF \ENDIF
-! action = 3 (Quit): fall through to END.
+ENDLOOP
+
 END
 
-900 PRINT "SNBMAIN error ("; ERR; ")"
+! ---- Proc-to-module map (10 fields per record) ------
+! Format: procName, moduleName, modDep1..modDep8
+! modDep fields list the packed modules that the
+! procedure's own module depends on at runtime.
+! Unused dep slots are padded with "".
+! End sentinel record begins with ".".
+
+! --- snbUtil (no deps) ---
+100 DATA "clrScr","snbUtil","","","","","","","",""
+DATA "printAt","snbUtil","","","","","","","",""
+DATA "fmtMoney","snbUtil","","","","","","","",""
+DATA "getMenuKey","snbUtil","","","","","","","",""
+DATA "waitKey","snbUtil","","","","","","","",""
+DATA "getNumIn","snbUtil","","","","","","","",""
+! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
+DATA "SNB","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "scrSetup","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "scrConfirm","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+! --- snbSaveLoad (deps: snbUtil) ---
+DATA "saveGame","snbSaveLoad","snbUtil","","","","","","",""
+DATA "loadGame","snbSaveLoad","snbUtil","","","","","","",""
+! --- snbEndGame (deps: snbUtil) ---
+DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","",""
+DATA "scrWealth","snbEndGame","snbUtil","","","","","","",""
+DATA "scrWinner","snbEndGame","snbUtil","","","","","","",""
+DATA "scrPostGame","snbEndGame","snbUtil","","","","","","",""
+! --- snbLoop (deps: all operational modules) ---
+! Record spans two DATA lines; 5 fields each = 10 total.
+DATA "runYearLoop","snbLoop","snbUtil","snbMktEng","snbMktScr"
+DATA "snbTrade","snbMargin","snbAI","snbEndGame","snbSaveLoad"
+! --- snbMktEng (deps: snbUtil) ---
+DATA "getMktDelta","snbMktEng","snbUtil","","","","","","",""
+DATA "getCard","snbMktEng","snbUtil","","","","","","",""
+DATA "resolvePrice","snbMktEng","snbUtil","","","","","","",""
+DATA "applyMktYear","snbMktEng","snbUtil","","","","","","",""
+DATA "applyDivInt","snbMktEng","snbUtil","","","","","","",""
+DATA "applyMgnInt","snbMktEng","snbUtil","","","","","","",""
+DATA "drawCard","snbMktEng","snbUtil","","","","","","",""
+DATA "shuffleDeck","snbMktEng","snbUtil","","","","","","",""
+DATA "doRolls","snbMktEng","snbUtil","","","","","","",""
+! --- snbMktScr (deps: snbUtil, snbMktEng) ---
+DATA "scrYearHdr","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrDivInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrMgnInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrCard","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrDice","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrMktBoard","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","",""
+! --- snbTrade (deps: snbUtil) ---
+DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","",""
+DATA "scrAITurn","snbTrade","snbUtil","","","","","","",""
+DATA "applySells","snbTrade","snbUtil","","","","","","",""
+DATA "applyBuys","snbTrade","snbUtil","","","","","","",""
+! --- snbBuySell (deps: snbUtil) ---
+DATA "scrSell","snbBuySell","snbUtil","","","","","","",""
+DATA "scrBuy","snbBuySell","snbUtil","","","","","","",""
+! --- snbMargin (deps: snbUtil, snbTrade) ---
+DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","",""
+DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","",""
+DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","",""
+DATA "scrMgnInt","snbMargin","snbUtil","snbTrade","","","","","",""
+! --- snbMgnScr (deps: snbUtil, snbTrade) ---
+DATA "scrForceLiq","snbMgnScr","snbUtil","snbTrade","","","","","",""
+DATA "scrMgnClr","snbMgnScr","snbUtil","snbTrade","","","","","",""
+! --- snbAI (deps: snbUtil) ---
+DATA "initAIProf","snbAI","snbUtil","","","","","","",""
+DATA "aiSell","snbAI","snbUtil","","","","","","",""
+DATA "aiBuy","snbAI","snbUtil","","","","","","",""
+! --- end sentinel ---
+DATA ".",".",  "","","","","","","",""
+
+900 PRINT "memMapGet error ("; ERR; ")"
 END
 
-PROCEDURE initPlayer
-(* ================================================= *)
-(* PROCEDURE: initPlayer                             *)
-(* PURPOSE  : Initialize a single PlyrRec to game-  *)
-(*            start values per spec Section 3.       *)
-(*            cashBal=5000, all shares/bonds zero,   *)
-(*            marginTot=0, isBankrupt=FALSE,         *)
-(*            hadCashPur=FALSE. All other fields     *)
-(*            set to safe defaults.                  *)
-(* PARAMS   : plyr - PlyrRec to initialize (by ref) *)
-(* SIDE FX  : Modifies plyr in place.                *)
-(* ================================================= *)
-
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-
-PARAM plyr: PlyrRec
-
-DIM i: INTEGER
+PROCEDURE memModGet
+(* ================================================== *)
+(* PROCEDURE: memModGet                               *)
+(* PURPOSE:   Return the Nth procedure name in a     *)
+(*            packed module. prcIdx=1..12. Returns   *)
+(*            "" when prcIdx exceeds the module's    *)
+(*            procedure count, or if modNam is not   *)
+(*            found.                                 *)
+(*            Used by memReport to enumerate procs   *)
+(*            for presence checks, and by memRelease *)
+(*            to enumerate procs for F$UnLoad.       *)
+(* PARAMS:    modNam  - packed module name           *)
+(*            prcIdx  - procedure index (1..12)      *)
+(*            result  - returned procedure name      *)
+(* DATA:      13 fields per record:                  *)
+(*              modName, proc1..proc12               *)
+(*            Unused proc slots padded with "".      *)
+(*            End sentinel: record starting with "." *)
+(* ================================================== *)
+PARAM modNam : STRING[20]
+PARAM prcIdx : INTEGER
+PARAM result : STRING[20]
+DIM nm    : STRING[20]
+DIM tmp   : STRING[20]
+DIM i     : INTEGER
+DIM found : BOOLEAN
 
 ON ERROR GOTO 900
 
-plyr.plyrName   := ""
-plyr.plyrType   := 0
-plyr.aiTier     := 0
-plyr.cashBal    := 5000
-plyr.marginTot  := 0
-plyr.isBankrupt := FALSE
-plyr.hadCashPur := FALSE
+result := ""
+found  := FALSE
 
-FOR i := 1 TO 9
-    plyr.stckShrs(i) := 0
-    plyr.mgnHeld(i)  := FALSE
-NEXT i
-
-FOR i := 1 TO 3
-    plyr.bondUnts(i) := 0
-NEXT i
-
-END
-
-900 \ ! Error handler
-    ERROR(ERR)
-END
-
-PROCEDURE initMkt
-(* ================================================= *)
-(* PROCEDURE: initMkt                                *)
-(* PURPOSE  : Initialize MktState to game-start     *)
-(*            values per spec Section 2.1.           *)
-(*            All stckPrice set to StockStartPrice   *)
-(*            (100). All divSuspnd set to FALSE.     *)
-(* PARAMS   : mkt - MktState to initialize (by ref) *)
-(* SIDE FX  : Modifies mkt in place.                 *)
-(* ================================================= *)
-
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-
-PARAM mkt: MktState
-
-DIM i: INTEGER
-
-ON ERROR GOTO 900
-
-FOR i := 1 TO 9
-    mkt.stckPrice(i) := 100
-    mkt.divSuspnd(i) := FALSE
-NEXT i
-
-END
-
-900 \ ! Error handler
-    ERROR(ERR)
-END
-
-PROCEDURE scrStart
-(* ================================================== *)
-(* PROCEDURE: scrStart                                *)
-(* PURPOSE:   Display S1 start screen. Return player *)
-(*            menu selection.                        *)
-(* PARAMS:    action - receives selection on return: *)
-(*              1 = New Game                         *)
-(*              2 = Load Game                        *)
-(*              3 = Quit                             *)
-(* EFFECTS:   Clears screen. Blocks until valid key. *)
-(* NOTE:      action is INTEGER; must match          *)
-(*            getMenuKey choice:INTEGER.             *)
-(* ================================================== *)
-PARAM action:INTEGER
-
-ON ERROR GOTO 900
-
-RUN clrScr
-
-PRINT
-PRINT "  STOCKS AND BONDS"
-PRINT "  ================"
-PRINT
-PRINT "  1. New Game"
-PRINT "  2. Load Game"
-PRINT "  3. Quit"
-PRINT
-PRINT "  Select (1-3): ";
-
-RUN getMenuKey(1, 3, action)
-PRINT
-END
-
-900 \ ! Error handler
-PRINT "scrStart error ("; ERR; ")"
-END
-
-PROCEDURE scrSetup
-(* ================================================== *)
-(* PROCEDURE: scrSetup                                *)
-(* PURPOSE:   Display S2 new game setup screen.      *)
-(*            Collect player count, names, types,    *)
-(*            and market roll mode.                  *)
-(* PARAMS:    plyrCount  - receives player count 1-6 *)
-(*            plyrType   - receives type per player  *)
-(*                         1=Human  2=Computer       *)
-(*            plyrName   - receives name per player  *)
-(*            rollMode   - receives roll mode        *)
-(*                         1=A  2=B  3=C             *)
-(* NOTES:     plyrType is INTEGER array; callers     *)
-(*            copy to PlyrRec.plyrType (BYTE).       *)
-(*            getMenuKey result type requires        *)
-(*            INTEGER array elements.               *)
-(* ================================================== *)
-PARAM plyrCount:INTEGER
-PARAM plyrType(6):INTEGER
-PARAM plyrName(6):STRING[20]
-PARAM rollMode:INTEGER
-
-DIM i:INTEGER
-
-ON ERROR GOTO 900
-
-RUN clrScr
-
-PRINT
-PRINT "  NEW GAME SETUP"
-PRINT "  =============="
-PRINT
-PRINT "  Number of players (1-6): ";
-RUN getMenuKey(1, 6, plyrCount)
-PRINT plyrCount
-
-FOR i := 1 TO plyrCount
-  PRINT
-  PRINT "  Player "; i; ":"
-  INPUT "    Name: ", plyrName(i)
-  PRINT "    Type  1=Human  2=Computer: ";
-  RUN getMenuKey(1, 2, plyrType(i))
-  IF plyrType(i) = 1 THEN
-    PRINT "Human"
+RESTORE 100
+LOOP
+  EXITIF found THEN
+  ENDEXIT
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  IF nm = modNam THEN
+    FOR i := 1 TO prcIdx - 1
+      READ tmp \ ! skip procs before target index
+    NEXT i
+    READ result
+    FOR i := prcIdx + 1 TO 12
+      READ tmp \ ! skip procs after target index
+    NEXT i
+    found := TRUE
   ELSE
-    PRINT "Computer"
+    FOR i := 1 TO 12
+      READ tmp \ ! skip all 12 proc slots
+    NEXT i
   ENDIF
-NEXT i
+ENDLOOP
 
-PRINT
-PRINT "  Roll mode  1=A  2=B  3=C: ";
-RUN getMenuKey(1, 3, rollMode)
-IF rollMode = 1 THEN
-  PRINT "A"
-ELSE IF rollMode = 2 THEN
-  PRINT "B"
-ELSE
-  PRINT "C"
-ENDIF \ENDIF
 END
 
-900 \ ! Error handler
-PRINT "scrSetup error ("; ERR; ")"
+! ---- Module-to-procs map (13 fields per record) -----
+! Format: modName, proc1..proc12
+! Unused proc slots padded with "".
+! End sentinel record begins with ".".
+
+! --- snbUtil (6 procs) ---
+100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
+DATA "waitKey","getNumIn","","","","","",""
+! --- snbSetup (7 procs) ---
+DATA "snbSetup","SNB","initPlayer","initMkt","scrStart"
+DATA "scrSetup","scrConfirm","","","","","",""
+! --- snbSaveLoad (2 procs) ---
+DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","","",""
+! --- snbEndGame (4 procs) ---
+DATA "snbEndGame","scrFinalMkt","scrWealth","scrWinner","scrPostGame"
+DATA "","","","","","","",""
+! --- snbLoop (1 proc) ---
+DATA "snbLoop","runYearLoop","","","","","","","","","","",""
+! --- snbMktEng (9 procs) ---
+DATA "snbMktEng","getMktDelta","getCard","resolvePrice","applyMktYear"
+DATA "applyDivInt","applyMgnInt","drawCard","shuffleDeck","doRolls"
+DATA "","",""
+! --- snbMktScr (8 procs) ---
+DATA "snbMktScr","scrYearHdr","scrDivInt","scrMgnInt","scrCard"
+DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","","",""
+! --- snbTrade (5 procs) ---
+DATA "snbTrade","scrMgnRepay","scrAITurn","applySells","applyBuys"
+DATA "","","","","","","",""
+! --- snbBuySell (3 procs) ---
+DATA "snbBuySell","scrSell","scrBuy","","","","","","","","","",""
+! --- snbMargin (5 procs) ---
+DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrBankrupt","scrMgnInt"
+DATA "","","","","","","",""
+! --- snbMgnScr (3 procs) ---
+DATA "snbMgnScr","scrForceLiq","scrMgnClr","","","","","","","","","",""
+! --- snbAI (3 procs) ---
+DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","","",""
+! --- end sentinel ---
+DATA ".","","","","","","","","","","","",""
+
+900 PRINT "memModGet error ("; ERR; ")"
 END
 
-PROCEDURE scrConfirm
+PROCEDURE memReport
 (* ================================================== *)
-(* PROCEDURE: scrConfirm                              *)
-(* PURPOSE:   Display S7 setup confirmation screen.  *)
-(*            Show setup summary. Return player      *)
-(*            choice to proceed or go back.          *)
-(* PARAMS:    plyrCount  - number of players (1-6)   *)
-(*            plyrType   - type per player            *)
-(*                         1=Human  2=Computer       *)
-(*            plyrName   - name per player            *)
-(*            rollMode   - market roll mode           *)
-(*                         1=A  2=B  3=C             *)
-(*            action     - receives selection:        *)
-(*                         1=Confirm  2=Back         *)
-(* NOTES:     plyrType is INTEGER array matching     *)
-(*            scrSetup output. Callers copy to       *)
-(*            PlyrRec.plyrType (BYTE) on confirm.    *)
+(* PROCEDURE: memReport                               *)
+(* PURPOSE:   Display current process memory and     *)
+(*            loaded status for each game module.    *)
+(*            Uses F$Mem to get total process memory.*)
+(*            For each module, attempts F$Link on    *)
+(*            the module's first procedure; reports  *)
+(*            LOADED or not loaded. Undoes test link *)
+(*            immediately if link succeeds.          *)
+(* PARAMS:    None                                   *)
+(* SIDE EFX  : Prints to stdout. Does not modify     *)
+(*            module load state.                     *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
 (* ================================================== *)
-PARAM plyrCount:INTEGER
-PARAM plyrType(6):INTEGER
-PARAM plyrName(6):STRING[20]
-PARAM rollMode:INTEGER
-PARAM action:INTEGER
-
-DIM i:INTEGER
-DIM modeLabel:STRING[1]
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nm       : STRING[20]
+DIM iCC      : INTEGER
+DIM hiB      : INTEGER
+DIM loB      : INTEGER
+DIM i        : INTEGER
+DIM firstPrc : STRING[20]
+DIM nameAddr : INTEGER
 
 ON ERROR GOTO 900
 
-RUN clrScr
-
-PRINT
-PRINT "  CONFIRM SETUP"
-PRINT "  ============="
-PRINT
-
-FOR i := 1 TO plyrCount
-  PRINT "  Player "; i; ":  "; plyrName(i); "  ";
-  IF plyrType(i) = 1 THEN
-    PRINT "(Human)"
-  ELSE
-    PRINT "(Computer)"
-  ENDIF
-NEXT i
-
+! --- Display total process memory via F$Mem ----------
+callCode := $07 \ ! F$Mem: query process memory size
+regs.a   := 0
+regs.b   := 0
+RUN SysCall(callCode, regs)
+hiB := regs.a \ ! Stage BYTE fields to INTEGER for PRINT
+loB := regs.b
+PRINT "=== MEMORY REPORT ==="
+PRINT "Process memory (hi:lo): "; hiB; " : "; loB
 PRINT
 
-IF rollMode = 1 THEN
-  modeLabel := "A"
-ELSE IF rollMode = 2 THEN
-  modeLabel := "B"
-ELSE
-  modeLabel := "C"
-ENDIF \ENDIF
+! --- Check each module for resident status -----------
+PRINT "Module          Status"
+PRINT "--------------------"
+RESTORE 100
+LOOP
+  READ nm
+  EXITIF nm = "." THEN
+  ENDEXIT
+  GOSUB 800
+ENDLOOP
 
-PRINT "  Roll Mode:  "; modeLabel
-PRINT
-PRINT "  1. Confirm"
-PRINT "  2. Back"
-PRINT
-PRINT "  Select (1-2): ";
-
-RUN getMenuKey(1, 2, action)
 PRINT
 END
 
-900 \ ! Error handler
-PRINT "scrConfirm error ("; ERR; ")"
+800 \ ! GOSUB: check if module nm is loaded; print result.
+    ! Gets first proc of nm via memModGet; tries F$Link on it.
+    ! If F$Link succeeds (carry clear): module is resident;
+    ! undo test link with F$UnLink and report LOADED.
+    RUN memModGet(nm, 1, firstPrc)
+    IF firstPrc = "" THEN
+      PRINT nm; ": unknown module"
+      RETURN
+    ENDIF
+    nameAddr := ADDR(firstPrc)
+    callCode := $00 \ ! F$Link: test for residency by name
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+      PRINT nm; ": LOADED"
+    ELSE
+      PRINT nm; ": not loaded"
+    ENDIF
+    RETURN
+
+! Module names to check (one per line; "." sentinel)
+100 DATA "snbUtil"
+DATA "snbSetup"
+DATA "snbSaveLoad"
+DATA "snbEndGame"
+DATA "snbLoop"
+DATA "snbMktEng"
+DATA "snbMktScr"
+DATA "snbTrade"
+DATA "snbMargin"
+DATA "snbAI"
+DATA "."
+
+900 PRINT "memReport error ("; ERR; ")"
+END
+
+PROCEDURE memEnsure
+(* ================================================== *)
+(* PROCEDURE: memEnsure                               *)
+(* PURPOSE:   Ensure a procedure and all modules its *)
+(*            module depends on are resident before  *)
+(*            the procedure is called. Resolves one  *)
+(*            level of module dependencies via the   *)
+(*            memMapGet data table.                  *)
+(*            For each module (own + deps): tries    *)
+(*            F$Link to check residency. If not      *)
+(*            resident, loads via F$Load. F$Link     *)
+(*            success is immediately undone to avoid *)
+(*            inflating the link count.              *)
+(*            ok=FALSE if procNam not found in map.  *)
+(* PARAMS:    procNam - procedure name to prepare    *)
+(*            ok      - TRUE if all loads succeeded  *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(*            snbUtil is assumed permanently loaded; *)
+(*            memEnsure still loads it if absent.   *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM procNam : STRING[20]
+PARAM ok      : BOOLEAN
+DIM modNam   : STRING[20]
+DIM depNam   : STRING[20]
+DIM pNam     : STRING[20]
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nameAddr : INTEGER
+DIM iCC      : INTEGER
+DIM i        : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! Resolve own module name from the map
+RUN memMapGet(procNam, 0, modNam)
+IF modNam = "" THEN
+  PRINT "memEnsure: proc not in map: "; procNam
+  GOTO 900
+ENDIF
+
+! Load own module
+pNam := modNam
+GOSUB 800
+
+! Load each module dependency (depIdx 1..8)
+i := 1
+LOOP
+  EXITIF i > 8 THEN
+  ENDEXIT
+  RUN memMapGet(procNam, i, depNam)
+  EXITIF depNam = "" THEN
+  ENDEXIT
+  pNam := depNam
+  GOSUB 800
+  i := i + 1
+ENDLOOP
+
+ok := TRUE
+END
+
+800 \ ! GOSUB: load module pNam if not already resident.
+    ! Step 1: F$Link to test if module is resident.
+    !         Carry clear = success (already loaded).
+    !         Immediately F$UnLink to undo test link.
+    ! Step 2: If F$Link failed, F$Load from disk.
+    !         Carry set after F$Load = load failed;
+    !         print warning but do not abort (ok stays
+    !         TRUE; caller decides if proc is critical).
+    nameAddr := ADDR(pNam)
+    callCode := $00 \ ! F$Link: check residency by name
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+    ELSE
+      callCode := $01 \ ! F$Load: load module from disk
+      regs.a   := 0
+      regs.x   := nameAddr
+      RUN SysCall(callCode, regs)
+      iCC := regs.cc
+      IF LAND(iCC, 1) <> 0 THEN
+        PRINT "memEnsure: load failed: "; pNam
+      ENDIF
+    ENDIF
+    RETURN
+
+900 PRINT "memEnsure error ("; ERR; ")"
+END
+
+PROCEDURE memRelease
+(* ================================================== *)
+(* PROCEDURE: memRelease                              *)
+(* PURPOSE:   Unload the module containing procNam   *)
+(*            and any of its module dependencies     *)
+(*            that are not in the keepMods list.     *)
+(*            snbUtil is never unloaded regardless   *)
+(*            of keepMods contents.                  *)
+(*            For each module to unload: iterates    *)
+(*            all its procedures via memModGet and   *)
+(*            issues F$UnLoad on each by name.       *)
+(*            ok=FALSE if procNam not found in map.  *)
+(* PARAMS:    procNam      - procedure being retired *)
+(*            keepMods(8)  - module names to retain  *)
+(*            keepCnt      - entries in keepMods     *)
+(*            ok           - TRUE on completion      *)
+(* NOTES:     STRING array PARAMs require hardware   *)
+(*            verification on NitrOS-9/6809.         *)
+(*            Caller must pass keepCnt=0 and an      *)
+(*            empty keepMods(8) if no modules are    *)
+(*            to be retained beyond snbUtil.         *)
+(*            F$UnLoad errors are silently ignored;  *)
+(*            module may have been already unloaded. *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM procNam     : STRING[20]
+PARAM keepMods(8) : STRING[20]
+PARAM keepCnt     : INTEGER
+PARAM ok          : BOOLEAN
+DIM ownMod   : STRING[20]
+DIM modNam   : STRING[20]
+DIM depNam   : STRING[20]
+DIM prcNam   : STRING[20]
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nameAddr : INTEGER
+DIM iCC      : INTEGER
+DIM i        : INTEGER
+DIM j        : INTEGER
+DIM keep     : BOOLEAN
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! Resolve own module name
+RUN memMapGet(procNam, 0, ownMod)
+IF ownMod = "" THEN
+  PRINT "memRelease: proc not in map: "; procNam
+  GOTO 900
+ENDIF
+
+! snbUtil is never unloaded
+IF ownMod = "snbUtil" THEN
+  ok := TRUE
+  END
+ENDIF
+
+! Check if own module is in the keep list
+keep := FALSE
+FOR i := 1 TO keepCnt
+  IF keepMods(i) = ownMod THEN
+    keep := TRUE
+  ENDIF
+NEXT i
+IF NOT keep THEN
+  modNam := ownMod
+  GOSUB 810
+ENDIF
+
+! Process each module dependency
+i := 1
+LOOP
+  EXITIF i > 8 THEN
+  ENDEXIT
+  RUN memMapGet(procNam, i, depNam)
+  EXITIF depNam = "" THEN
+  ENDEXIT
+  IF depNam <> "snbUtil" THEN
+    keep := FALSE
+    FOR j := 1 TO keepCnt
+      IF keepMods(j) = depNam THEN
+        keep := TRUE
+      ENDIF
+    NEXT j
+    IF NOT keep THEN
+      modNam := depNam
+      GOSUB 810
+    ENDIF
+  ENDIF
+  i := i + 1
+ENDLOOP
+
+ok := TRUE
+END
+
+810 \ ! GOSUB: F$UnLoad all procs in module modNam.
+    ! Uses memModGet to enumerate proc names (indices 1..12).
+    ! Stops at first empty result (no more procs in module).
+    ! F$UnLoad errors ignored; proc may already be absent.
+    j := 1
+    LOOP
+      EXITIF j > 12 THEN
+      ENDEXIT
+      RUN memModGet(modNam, j, prcNam)
+      EXITIF prcNam = "" THEN
+      ENDEXIT
+      nameAddr := ADDR(prcNam)
+      callCode := $1D \ ! F$UnLoad: unlink module by name
+      regs.a   := 0
+      regs.x   := nameAddr
+      RUN SysCall(callCode, regs)
+      j := j + 1
+    ENDLOOP
+    RETURN
+
+900 PRINT "memRelease error ("; ERR; ")"
 END
