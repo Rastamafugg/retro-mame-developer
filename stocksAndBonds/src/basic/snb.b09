@@ -100,9 +100,9 @@ DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","",""
 DATA "scrWealth","snbEndGame","snbUtil","","","","","","",""
 DATA "scrWinner","snbEndGame","snbUtil","","","","","","",""
 DATA "scrPostGame","snbEndGame","snbUtil","","","","","","",""
-! --- snbLoop (deps: all operational modules) ---
+! --- snbYearLoop (deps: all operational modules) ---
 ! Record spans two DATA lines; 5 fields each = 10 total.
-DATA "runYearLoop","snbLoop","snbUtil","snbMktEng","snbMktScr"
+DATA "runYearLoop","snbYearLoop","snbUtil","snbMktEng","snbMktScr"
 DATA "snbTrade","snbMargin","snbAI","snbEndGame","snbSaveLoad"
 ! --- snbMktEng (deps: snbUtil) ---
 DATA "getMktDelta","snbMktEng","snbUtil","","","","","","",""
@@ -222,8 +222,8 @@ DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","","",""
 ! --- snbEndGame (4 procs) ---
 DATA "snbEndGame","scrFinalMkt","scrWealth","scrWinner","scrPostGame"
 DATA "","","","","","","",""
-! --- snbLoop (1 proc) ---
-DATA "snbLoop","runYearLoop","","","","","","","","","","",""
+! --- snbYearLoop (1 proc) ---
+DATA "snbYearLoop","runYearLoop","","","","","","","","","","",""
 ! --- snbMktEng (9 procs) ---
 DATA "snbMktEng","getMktDelta","getCard","resolvePrice","applyMktYear"
 DATA "applyDivInt","applyMgnInt","drawCard","shuffleDeck","doRolls"
@@ -331,11 +331,13 @@ END
 DATA "snbSetup"
 DATA "snbSaveLoad"
 DATA "snbEndGame"
-DATA "snbLoop"
+DATA "snbYearLoop"
 DATA "snbMktEng"
 DATA "snbMktScr"
 DATA "snbTrade"
+DATA "snbBuySell"
 DATA "snbMargin"
+DATA "snbMgnScr"
 DATA "snbAI"
 DATA "."
 
@@ -490,8 +492,8 @@ IF ownMod = "" THEN
   GOTO 900
 ENDIF
 
-! snbUtil is never unloaded
-IF ownMod = "snbUtil" THEN
+! SNB and snbUtil are never unloaded
+IF ownMod = "SNB" OR ownMod = "snbUtil" THEN
   ok := TRUE
   END
 ENDIF

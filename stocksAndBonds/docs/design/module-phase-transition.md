@@ -137,8 +137,8 @@ the retention policy in Section 5.
 
 | Phase ID | Phase Name            | Entry Event                              | Exit Event                                |
 |----------|-----------------------|------------------------------------------|-------------------------------------------|
-| PH-00    | Launch                | Application start (`SNB` executed)       | S1 displayed                              |
-| PH-01    | Main Menu             | S1 displayed                             | Player selects New Game, Load, or Quit    |
+| PH-00    | Launch                | Application start (`SNB` executed)       | snbUtil module is loaded                  |
+| PH-01    | Main Menu             | snbSetup is loaded and S1 displayed      | Player selects New Game, Load, or Quit    |
 | PH-02    | New Game Setup        | Player selects New Game                  | S7 Confirm pressed                        |
 | PH-03    | Load Game             | Player selects Load Game                 | Load succeeds or fails                    |
 | PH-04    | Game Initialization   | Setup confirmed or load succeeded        | `snbYearLoop` entry called                |
