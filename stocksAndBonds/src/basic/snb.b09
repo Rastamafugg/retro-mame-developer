@@ -3,19 +3,32 @@ PROCEDURE SNB
 (* PROCEDURE: SNB                                     *)
 (* PURPOSE:   Application entry point.                *)
 (*            PH-00: loads snbUtil.                   *)
-(*            PH-01: loads snbSetup and transfers     *)
-(*            control to the pre-game screens.        *)
-(*            Post-game loop deferred; see            *)
-(*            module-phase-transition.md Decision 2.  *)
+(*            PH-01 to PH-03: loads snbSetup; runs   *)
+(*            pre-game; receives confirmed game state.*)
+(*            PH-04: releases snbSetup; loads year   *)
+(*            loop modules; seeds RND; starts loop.  *)
+(*            On quit, exits cleanly.                *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
-DIM pNam : STRING[20]
-DIM ok   : BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM menuAct     : INTEGER
+DIM hdr         : SaveHdr
+DIM deckOrd(36) : BYTE
+DIM plyrs(6)    : PlyrRec
+DIM mkt         : MktState
+DIM savPath     : STRING[20]
+DIM pNam        : STRING[20]
+DIM keepMods(8) : STRING[20]
+DIM rSeed       : REAL
+DIM ok          : BOOLEAN
 
 ON ERROR GOTO 900
 
-! PH-00: Load snbUtil. clrScr used as map key;
-! snbUtil entry proc is not in memMapGet by design.
+! PH-00: load snbUtil; clrScr used as map key.
 pNam := "clrScr"
 RUN memEnsure(pNam, ok)
 IF NOT ok THEN
@@ -23,7 +36,7 @@ IF NOT ok THEN
   END
 ENDIF
 
-! PH-01: Load snbSetup and its deps (snbUtil, snbSaveLoad).
+! PH-01: load snbSetup and its deps (snbUtil, snbSaveLoad).
 pNam := "snbSetup"
 RUN memEnsure(pNam, ok)
 IF NOT ok THEN
@@ -31,7 +44,30 @@ IF NOT ok THEN
   END
 ENDIF
 
-RUN snbSetup
+! PH-01 to PH-03: pre-game screens; returns game state.
+RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
+
+IF menuAct = 3 THEN
+  END
+ENDIF
+
+! PH-04: release snbSetup (also releases snbSaveLoad).
+pNam := "snbSetup"
+RUN memRelease(pNam, keepMods, 0, ok)
+
+! PH-04: load snbYearLoop and all its operational deps.
+pNam := "runYearLoop"
+RUN memEnsure(pNam, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to load snbYearLoop"
+  END
+ENDIF
+
+! Seed RND before year loop per runYearLoop contract.
+rSeed := RND(-1)
+
+savPath := "SNBGAME"
+RUN runYearLoop(savPath, hdr, deckOrd, plyrs, mkt)
 END
 
 900 PRINT "SNB error ("; ERR; ")"
@@ -407,7 +443,7 @@ DIM i        : INTEGER
 
 ON ERROR GOTO 900
 
-ok := FALSE
+ok := TRUE
 
 ! Resolve own module name from the map
 RUN memMapGet(procNam, 0, modNam)
@@ -419,6 +455,8 @@ ENDIF
 ! Load own module
 pNam := modNam
 GOSUB 800
+IF NOT ok THEN END
+ENDIF
 
 ! Load each module dependency (depIdx 1..8)
 i := 1
@@ -430,37 +468,33 @@ LOOP
   ENDEXIT
   pNam := depNam
   GOSUB 800
+  EXITIF NOT ok THEN
+  ENDEXIT
   i := i + 1
 ENDLOOP
 
 ok := TRUE
 END
 
-800 \ ! GOSUB: load module pNam if not already resident.
-    ! Step 1: F$Link to test if module is resident.
-    !         Carry clear = success (already loaded).
-    !         Immediately F$UnLink to undo test link.
-    ! Step 2: If F$Link failed, F$Load from disk.
-    !         Carry set after F$Load = load failed;
-    !         print warning but do not abort (ok stays
-    !         TRUE; caller decides if proc is critical).
+800 \ ! GOSUB: ensure pNam is resident.
+    ! F$Link: if already in memory, keep that link. Done.
+    ! F$Load: if not in memory, load from disk.
+    ! On F$Load failure: set ok=FALSE; caller aborts.
     nameAddr := ADDR(pNam)
-    callCode := $00 \ ! F$Link: check residency by name
+    callCode := $00 \ ! F$Link: attempt to link by name
     regs.a   := 0
     regs.x   := nameAddr
     RUN SysCall(callCode, regs)
     iCC := regs.cc
-    IF LAND(iCC, 1) = 0 THEN
-      callCode := $02 \ ! F$UnLink: undo test link
-      RUN SysCall(callCode, regs)
-    ELSE
-      callCode := $01 \ ! F$Load: load module from disk
+    IF LAND(iCC, 1) <> 0 THEN
+      callCode := $01 \ ! F$Load: not resident; load from disk
       regs.a   := 0
       regs.x   := nameAddr
       RUN SysCall(callCode, regs)
       iCC := regs.cc
       IF LAND(iCC, 1) <> 0 THEN
         PRINT "memEnsure: load failed: "; pNam
+        ok := FALSE
       ENDIF
     ENDIF
     RETURN
@@ -568,7 +602,6 @@ END
 810 \ ! GOSUB: F$UnLoad all procs in module modNam.
     ! Uses memModGet to enumerate proc names (indices 1..12).
     ! Stops at first empty result (no more procs in module).
-    ! F$UnLoad errors ignored; proc may already be absent.
     j := 1
     LOOP
       EXITIF j > 12 THEN
@@ -581,6 +614,10 @@ END
       regs.a   := 0
       regs.x   := nameAddr
       RUN SysCall(callCode, regs)
+      iCC := regs.cc
+      IF LAND(iCC, 1) <> 0 THEN
+        PRINT "memRelease: unload failed: "; prcNam; " ("; regs.b; ")"
+      ENDIF
       j := j + 1
     ENDLOOP
     RETURN
