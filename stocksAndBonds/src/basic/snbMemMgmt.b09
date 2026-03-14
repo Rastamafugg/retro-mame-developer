@@ -130,24 +130,27 @@ END
 136 DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","",""
 137 DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","",""
 ! --- snbTrade (deps: snbUtil) ---
-138 DATA "scrSell","snbTrade","snbUtil","","","","","","",""
-139 DATA "scrBuy","snbTrade","snbUtil","","","","","","",""
-140 DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","",""
-141 DATA "scrAITurn","snbTrade","snbUtil","","","","","","",""
-142 DATA "applySells","snbTrade","snbUtil","","","","","","",""
-143 DATA "applyBuys","snbTrade","snbUtil","","","","","","",""
+138 DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","",""
+139 DATA "scrAITurn","snbTrade","snbUtil","","","","","","",""
+140 DATA "applySells","snbTrade","snbUtil","","","","","","",""
+141 DATA "applyBuys","snbTrade","snbUtil","","","","","","",""
+! --- snbBuySell (deps: snbUtil) ---
+142 DATA "scrSell","snbBuySell","snbUtil","","","","","","",""
+143 DATA "scrBuy","snbBuySell","snbUtil","","","","","","",""
 ! --- snbMargin (deps: snbUtil, snbTrade) ---
 144 DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","",""
 145 DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","",""
-146 DATA "scrForceLiq","snbMargin","snbUtil","snbTrade","","","","","",""
-147 DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","",""
-148 DATA "scrMgnClr","snbMargin","snbUtil","snbTrade","","","","","",""
+146 DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","",""
+147 DATA "scrMgnInt","snbMargin","snbUtil","snbTrade","","","","","",""
+! --- snbMgnScr (deps: snbUtil, snbTrade) ---
+148 DATA "scrForceLiq","snbMgnScr","snbUtil","snbTrade","","","","","",""
+149 DATA "scrMgnClr","snbMgnScr","snbUtil","snbTrade","","","","","",""
 ! --- snbAI (deps: snbUtil) ---
-149 DATA "initAIProf","snbAI","snbUtil","","","","","","",""
-150 DATA "aiSell","snbAI","snbUtil","","","","","","",""
-151 DATA "aiBuy","snbAI","snbUtil","","","","","","",""
+150 DATA "initAIProf","snbAI","snbUtil","","","","","","",""
+151 DATA "aiSell","snbAI","snbUtil","","","","","","",""
+152 DATA "aiBuy","snbAI","snbUtil","","","","","","",""
 ! --- end sentinel ---
-152 DATA ".",".",  "","","","","","","",""
+153 DATA ".",".",  "","","","","","","",""
 
 900 ERROR(ERR)
 END
@@ -234,16 +237,20 @@ END
 ! --- snbMktScr (8 procs) ---
 111 DATA "snbMktScr","scrYearHdr","scrDivInt","scrMgnInt","scrCard"
 112 DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","","",""
-! --- snbTrade (6 procs) ---
-113 DATA "snbTrade","scrSell","scrBuy","scrMgnRepay","scrAITurn"
-114 DATA "applySells","applyBuys","","","","","",""
+! --- snbTrade (5 procs) ---
+113 DATA "snbTrade","scrMgnRepay","scrAITurn","applySells","applyBuys"
+114 DATA "","","","","","","",""
+! --- snbBuySell (3 procs) ---
+115 DATA "snbBuySell","scrSell","scrBuy","","","","","","","","","",""
 ! --- snbMargin (5 procs) ---
-115 DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrForceLiq","scrBankrupt"
-116 DATA "scrMgnClr","","","","","","",""
+116 DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrBankrupt","scrMgnInt"
+117 DATA "","","","","","","",""
+! --- snbMgnScr (3 procs) ---
+118 DATA "snbMgnScr","scrForceLiq","scrMgnClr","","","","","","","","","",""
 ! --- snbAI (3 procs) ---
-117 DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","","",""
+119 DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","","",""
 ! --- end sentinel ---
-118 DATA ".","","","","","","","","","","","",""
+120 DATA ".","","","","","","","","","","","",""
 
 900 ERROR(ERR)
 END

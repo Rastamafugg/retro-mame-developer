@@ -21,7 +21,9 @@ grouping. The table below records every entry procedure for each module.
 | `snbMktEng`     | `snbMktEng`   | `snbMktEng.b09`     |
 | `snbMktScr`     | `snbMktScr`   | `snbMktScr.b09`     |
 | `snbTrade`      | `snbTrade`    | `snbTrade.b09`      |
+| `snbBuySell`    | `snbBuySell`  | `snbBuySell.b09`    |
 | `snbMargin`     | `snbMargin`   | `snbMargin.b09`     |
+| `snbMgnScr`     | `snbMgnScr`   | `snbMgnScr.b09`     |
 | `snbAI`         | `snbAI`       | `snbAI.b09`         |
 | `snbEndGame`    | `snbEndGame`  | `snbEndGame.b09`    |
 
@@ -49,9 +51,8 @@ grouping. The table below records every entry procedure for each module.
 
 ## 3. Memory Cost File (Stub)
 
-To be populated by hardware measurement during Step 1 pilot and subsequent
-phases. `getMemSize` delta is measured as: F$Mem total after load minus
-F$Mem total before load, for each module loaded in isolation over `snbUtil`.
+Populated by hardware measurement during Step 1 pilot and subsequent
+phases. `modSzRpt` is reporting tool for generating these values.
 
 | Module File    | Procedure      | Mem Size (Bytes) |
 |----------------|----------------|------------------|
@@ -257,34 +258,34 @@ Section 6 for the permanent-resident policy.
 
 ### PH-08 — Trade Phase (S16–S19)
 
-| Field              | Value                                              |
-|--------------------|----------------------------------------------------|
-| Load on Entry      | snbTrade, snbAI                                    |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbAI  |
-| Release on Exit    | snbAI                                              |
-| Notes              | snbTrade retained into PH-09 because snbMargin depends on it. snbAI released after all players complete buy phase; not needed during margin resolution. |
+| Field              | Value                                                          |
+|--------------------|----------------------------------------------------------------|
+| Load on Entry      | snbTrade, snbBuySell, snbAI                                    |
+| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbBuySell, snbAI  |
+| Release on Exit    | snbBuySell, snbAI                                              |
+| Notes              | snbBuySell carries scrSell and scrBuy; released immediately when all players complete the buy phase. snbTrade retained because snbMargin and snbMgnScr depend on it. snbAI released after all players complete buy; not needed during margin resolution. |
 
 ---
 
 ### PH-09 — Margin Phase (S20–S22)
 
-| Field              | Value                                                 |
-|--------------------|-------------------------------------------------------|
-| Load on Entry      | snbMargin                                             |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin |
-| Release on Exit    | snbTrade, snbMargin                                   |
-| Notes              | snbMargin depends on snbTrade at runtime; both must be resident simultaneously. Both released after all margin calls for the year are resolved. PH-09 may not occur in every year (no margin call trigger = skip). snbYearLoop handles the conditional load. |
+| Field              | Value                                                            |
+|--------------------|------------------------------------------------------------------|
+| Load on Entry      | snbMargin, snbMgnScr                                             |
+| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin, snbMgnScr |
+| Release on Exit    | snbTrade, snbMargin, snbMgnScr                                   |
+| Notes              | Both snbMargin and snbMgnScr depend on snbTrade at runtime; all three must be resident simultaneously. snbBuySell is not required and must not be loaded here — its release at PH-08 exit is what makes this footprint viable. PH-09 may not occur in every year; snbYearLoop handles the conditional load. |
 
 ---
 
 ### PH-10 — Year 10 Margin Clearance (S23)
 
-| Field              | Value                                                 |
-|--------------------|-------------------------------------------------------|
-| Load on Entry      | snbMargin (if not already resident from PH-09)        |
-| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin |
-| Release on Exit    | snbTrade, snbMargin                                   |
-| Notes              | Occurs only in Year 10 when any player has marginTot > 0 at buy phase entry. scrMgnClr is within snbMargin. snbTrade required as snbMargin dependency. Both released before PH-12. |
+| Field              | Value                                                             |
+|--------------------|-------------------------------------------------------------------|
+| Load on Entry      | snbMargin, snbMgnScr  (if not already resident from PH-09)        |
+| Required Resident  | snbUtil, snbMemMgmt, snbYearLoop, snbTrade, snbMargin, snbMgnScr  |
+| Release on Exit    | snbTrade, snbMargin, snbMgnScr                                    |
+| Notes              | Same module set and dependency constraints as PH-09. scrMgnClr is in snbMgnScr; snbTrade required as a runtime dep of both snbMargin and snbMgnScr. All three released before PH-12. |
 
 ---
 
@@ -341,10 +342,11 @@ represent the primary memory savings opportunities:
 | Group A                     | Group B                         | Reason Never Co-Resident               |
 |-----------------------------|---------------------------------|----------------------------------------|
 | SNB                         | snbYearLoop (after PH-04)       | Setup complete before loop begins      |
-| snbMktEng + snbMktScr       | snbTrade + snbAI + snbMargin    | Market phase ends before trade begins  |
+| snbMktEng + snbMktScr       | snbTrade + snbBuySell + snbAI + snbMargin + snbMgnScr    | Market phase ends before trade begins |
 | snbMktEng + snbMktScr       | snbEndGame                      | Market is Year 1–9 only                |
-| snbTrade + snbMargin + snbAI| snbEndGame                      | Trade complete before endgame screens  |
+| snbTrade + snbBuySell + snbMargin + snbMgnScr + snbAI | snbEndGame                     | Trade complete before endgame screens |
 | SNB                         | snbEndGame                      | Setup and endgame do not overlap       |
+| snbBuySell                  | snbMargin + snbMgnScr           | Buy/sell complete and released before margin phase loads       |
 
 ---
 
@@ -365,20 +367,6 @@ available headroom, but it is the conservative default.
 
 ## 9. Open Items
 
-1. **Dependency slot limit:** `memMapGet` DATA records currently support 8
-   dependency slots per procedure. After full decomposition, verify no load
-   target requires more than 8 module deps. Resize the DATA schema if needed
-   before any DATA record is finalized.
+1. **Dependency slot limit:** `memMapGet` DATA records currently support 8 dependency slots per procedure. After full decomposition, verify no load target requires more than 8 module deps. Resize the DATA schema if needed before any DATA record is finalized.
 
-2. **Memory cost columns:** All TBD entries in Section 3 require hardware
-   measurement via `getMemSize` (to be built in Step 1 pilot).
-
-3. **snbSaveLoad mid-game load risk:** If a year boundary save requires
-   snbSaveLoad but snbTrade or snbMargin is still resident (incomplete year
-   cleanup), the combined footprint may be tight. Measure before finalizing
-   PH-11 placement.
-
-4. **Post-game SNB reload:** PH-13 requires SNB to be reloaded from
-   disk. Verify that the disk file is present and attr'd correctly after the
-   game loop has been running. This is a cold load, not a link, if SNB
-   was fully unloaded at PH-04 exit.
+2. **Post-game SNB reload:** PH-13 requires SNB to be reloaded from disk. Verify that the disk file is present and attr'd correctly after the game loop has been running. This is a cold load, not a link, if SNB was fully unloaded at PH-04 exit.
