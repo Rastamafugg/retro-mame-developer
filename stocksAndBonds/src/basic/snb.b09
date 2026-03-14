@@ -86,7 +86,7 @@ DATA "getMenuKey","snbUtil","","","","","","","",""
 DATA "waitKey","snbUtil","","","","","","","",""
 DATA "getNumIn","snbUtil","","","","","","","",""
 ! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
-DATA "SNB","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "snbSetup","snbSetup","snbUtil","snbSaveLoad","","","","","",""
 DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","",""
 DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","",""
 DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","",""
@@ -215,8 +215,8 @@ END
 100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
 DATA "waitKey","getNumIn","","","","","",""
 ! --- snbSetup (7 procs) ---
-DATA "snbSetup","SNB","initPlayer","initMkt","scrStart"
-DATA "scrSetup","scrConfirm","","","","","",""
+DATA "snbSetup","initPlayer","initMkt","scrStart","scrSetup"
+DATA "scrConfirm","","","","","","",""
 ! --- snbSaveLoad (2 procs) ---
 DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","","",""
 ! --- snbEndGame (4 procs) ---
