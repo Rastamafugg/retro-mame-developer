@@ -6,10 +6,7 @@ PROCEDURE snbMgnScr
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbMgnScr"
-PRINT "  scrMgnCall"
-PRINT "  applyLiqOrdr"
 PRINT "  scrForceLiq"
-PRINT "  scrBankrupt"
 PRINT "  scrMgnClr"
 END
 

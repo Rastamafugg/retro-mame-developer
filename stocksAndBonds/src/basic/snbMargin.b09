@@ -8,9 +8,7 @@ PROCEDURE snbMargin
 PRINT "snbMargin"
 PRINT "  scrMgnCall"
 PRINT "  applyLiqOrdr"
-PRINT "  scrForceLiq"
 PRINT "  scrBankrupt"
-PRINT "  scrMgnClr"
 END
 
 PROCEDURE scrMgnCall
