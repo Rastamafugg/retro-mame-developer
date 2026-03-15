@@ -21,34 +21,37 @@ DIM deckOrd(36) : BYTE
 DIM plyrs(6)    : PlyrRec
 DIM mkt         : MktState
 DIM savPath     : STRING[20]
-DIM pNam        : STRING[20]
-DIM keepMods(8) : STRING[20]
+DIM modNam      : STRING[20]
 DIM rSeed       : REAL
 DIM ok          : BOOLEAN
 
 ON ERROR GOTO 900
 
-RUN memStatus
-
-! PH-00: load snbUtil; clrScr used as map key.
-pNam := "clrScr"
-RUN memEnsure(pNam, ok)
+! PH-00: load snbUtil
+modNam := "snbUtil"
+RUN ensureModule(modNam, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to load snbUtil"
   END
 ENDIF
 
-RUN memStatus
-
-! PH-01: load snbSetup and its deps (snbUtil, snbSaveLoad).
-pNam := "snbSetup"
-RUN memEnsure(pNam, ok)
+! PH-01: load snbSetup
+modNam := "snbSetup"
+RUN ensureModule(modNam, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to load snbSetup"
   END
 ENDIF
 
-RUN memStatus
+! PH-01: load snbSaveLoad
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to load snbSaveLoad"
+  END
+ENDIF
+
+RUN waitKey
 
 ! PH-01 to PH-03: pre-game screens; returns game state.
 RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
@@ -57,21 +60,25 @@ IF menuAct = 3 THEN
   END
 ENDIF
 
-! PH-04: release snbSetup (also releases snbSaveLoad).
-pNam := "snbSetup"
-RUN memRelease(pNam, keepMods, 0, ok)
+! PH-04: release snbSetup
+modNam := "snbSetup"
+RUN releaseModule(modNam, ok)
 
-RUN memStatus
+! PH-04: release snbSaveLoad
+modNam := "snbSaveLoad"
+RUN releaseModule(modNam, ok)
 
-! PH-04: load snbYearLoop and all its operational deps.
-pNam := "runYearLoop"
-RUN memEnsure(pNam, ok)
+RUN waitKey
+
+! PH-04: load snbYearLoop
+modNam := "snbYearLoop"
+RUN ensureModule(modNam, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to load snbYearLoop"
   END
 ENDIF
 
-RUN memStatus
+RUN waitKey
 
 ! Seed RND before year loop per runYearLoop contract.
 rSeed := RND(-1)
@@ -83,724 +90,223 @@ END
 900 PRINT "SNB error ("; ERR; ")"
 END
 
-PROCEDURE checkVerbose
+PROCEDURE ensureModule
 (* ================================================== *)
-(* PROCEDURE: checkVerbose                            *)
-(* PURPOSE:   Return TRUE if sentinel file snbvbose  *)
-(*            exists in the current directory.        *)
-(*            Mem* procedures use this to gate trace *)
-(*            output. Create/delete snbvbose on the  *)
-(*            device to toggle verbose mode.          *)
-(* PARAMS:    isVbose - TRUE if verbose mode active  *)
-(* ================================================== *)
-PARAM isVbose : BOOLEAN
-DIM vPath : BYTE
-DIM vName : STRING[20]
-
-!isVbose := FALSE
-!vName   := "snbvbose"
-
-ON ERROR GOTO 50
-!OPEN #vPath, vName: READ
-!CLOSE #vPath
-isVbose := TRUE
-50 END
-
-PROCEDURE memStatus
-(* ================================================== *)
-(* PROCEDURE: memStatus                               *)
-(* PURPOSE:   Query and print current process data   *)
-(*            memory size via memRequest(0).         *)
-(* PARAMS:    None                                    *)
+(* PROCEDURE: ensureModule                            *)
+(* PURPOSE:   Ensure a module is resident in memory. *)
+(*            Checks entry procedure (= module name) *)
+(*            via F$Link. If already resident, done. *)
+(*            Otherwise loads hardcoded dependencies *)
+(*            first, then F$Loads the module.        *)
+(* PARAMS:    modNam - module name (= entry proc)    *)
+(*            ok     - TRUE if module now resident   *)
 (* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-DIM ok      : BOOLEAN
-DIM errCode : INTEGER
-
-ON ERROR GOTO 900
-
-RUN memRequest(0, ok, errCode)
-IF NOT ok THEN
-  PRINT "memStatus: query failed (err: "; errCode; ")"
-ENDIF
-END
-
-900 \ ! Error handler
-PRINT "memStatus error ("; ERR; ")"
-END
-
-PROCEDURE memRequest
-(* ================================================== *)
-(* PROCEDURE: memRequest                              *)
-(* PURPOSE:   Request a data memory size from        *)
-(*            NitrOS-9 via F$Mem syscall. Pass 0 to  *)
-(*            query current size without changing it.*)
-(* PARAMS:    memBytes - bytes to request (INTEGER)  *)
-(*                       max 32767; OS rounds up to  *)
-(*                       next 256-byte page boundary *)
-(*            ok       - TRUE if syscall carry clear *)
-(*            errCode  - NitrOS-9 error code or 0   *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
+(*            snbUtil assumed permanently resident.  *)
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM memBytes : INTEGER
-PARAM ok       : BOOLEAN
-PARAM errCode  : INTEGER
-DIM regs       : Register
-DIM callCode   : BYTE
-DIM iCC        : INTEGER
-DIM hiVal      : INTEGER
-DIM loVal      : INTEGER
-
-ON ERROR GOTO 900
-
-ok       := FALSE
-errCode  := 0
-callCode := $07
-hiVal    := memBytes / 256
-loVal    := LAND(memBytes, 255)
-regs.a   := hiVal
-regs.b   := loVal
-
-PRINT "memRequest: F$Mem call (hi: "; hiVal; " lo: "; loVal; ")"
-RUN SysCall(callCode, regs)
-iCC     := regs.cc          \ ! Stage BYTE cc to INTEGER for LAND
-IF LAND(iCC, 1) = 0 THEN
-  ok := TRUE
-  hiVal := regs.a           \ ! Stage BYTE fields for PRINT
-  loVal := regs.b
-  PRINT "memRequest: F$Mem ok (granted hi: "; hiVal; " lo: "; loVal; ")"
-ELSE
-  errCode := regs.b         \ ! Stage BYTE error code to INTEGER
-  IF errCode = 207 THEN
-    PRINT "memRequest: out of memory (err: 207)"
-  ELSE
-    PRINT "memRequest: F$Mem failed (err: "; errCode; ")"
-  ENDIF
-ENDIF
-END
-
-900 \ ! Error handler
-PRINT "memRequest error ("; ERR; ")"
-END
-
-PROCEDURE memMapGet
-(* ================================================= *)
-(* PROCEDURE: memMapGet                              *)
-(* PURPOSE:   Look up a procedure in the memory map. *)
-(*            depIdx=0: returns name of the packed   *)
-(*            module this procedure resides in.      *)
-(*            depIdx=1..8: returns the Nth module    *)
-(*            dependency of that module. Returns ""  *)
-(*            if procedure not found or no Nth dep.  *)
-(* PARAMS:    procNam - procedure name to look up    *)
-(*            depIdx=1..10: returns the Nth module   *)
-(* DATA:      12 fields/record:                      *)
-(*              procName, modName, dep1..dep10       *)
-(*            Unused dep slots padded with "".       *)
-(*            End sentinel: record starting with "." *)
-(* ================================================= *)
-PARAM procNam : STRING[20]
-PARAM depIdx  : INTEGER
-PARAM result  : STRING[20]
-DIM nm    : STRING[20]
-DIM tmp   : STRING[20]
-DIM i     : INTEGER
-DIM found : BOOLEAN
-
-ON ERROR GOTO 900
-
-result := ""
-found  := FALSE
-
-RESTORE 100
-LOOP
-  EXITIF found THEN
-  ENDEXIT
-  READ nm
-  EXITIF nm = "." THEN
-  ENDEXIT
-  IF nm = procNam THEN
-    IF depIdx = 0 THEN
-      READ result
-      FOR i := 1 TO 10
-        READ tmp
-      NEXT i
-    ELSE
-      READ tmp \ ! skip modName field
-      FOR i := 1 TO depIdx - 1
-        READ tmp \ ! skip deps before target index
-      NEXT i
-      READ result
-      FOR i := depIdx + 1 TO 10
-        READ tmp \ ! skip deps after target index
-      NEXT i
-    ENDIF
-    found := TRUE
-  ELSE
-    FOR i := 1 TO 11
-      READ tmp \ ! skip remaining 9 fields of non-matching record
-    NEXT i
-  ENDIF
-ENDLOOP
-
-END
-
-! ---- Proc-to-module map (12 fields per record) ------
-! Format: procName, moduleName, modDep1..modDep10
-! modDep fields list the packed modules that the
-! procedure's own module depends on at runtime.
-! Unused dep slots are padded with "".
-! End sentinel record begins with ".".
-
-! --- snbUtil (no deps) ---
-100 DATA "clrScr","snbUtil","","","","","","","","","",""
-DATA "printAt","snbUtil","","","","","","","","","",""
-DATA "fmtMoney","snbUtil","","","","","","","","","",""
-DATA "getMenuKey","snbUtil","","","","","","","","","",""
-DATA "waitKey","snbUtil","","","","","","","","","",""
-DATA "getNumIn","snbUtil","","","","","","","","","",""
-! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
-DATA "snbSetup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-DATA "scrSetup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-DATA "scrConfirm","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
-! --- snbSaveLoad (deps: snbUtil) ---
-DATA "saveGame","snbSaveLoad","snbUtil","","","","","","","","",""
-DATA "loadGame","snbSaveLoad","snbUtil","","","","","","","","",""
-! --- snbEndGame (deps: snbUtil) ---
-DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","","","",""
-DATA "scrWealth","snbEndGame","snbUtil","","","","","","","","",""
-DATA "scrWinner","snbEndGame","snbUtil","","","","","","","","",""
-DATA "scrPostGame","snbEndGame","snbUtil","","","","","","","","",""
-! --- snbYearLoop (deps: all 10 operational modules) ---
-! Record spans three DATA lines; 5+5+2 fields = 12 total.
-DATA "runYearLoop","snbYearLoop","snbUtil","snbMktEng","snbMktScr"
-DATA "snbTrade","snbMargin","snbAI","snbEndGame","snbSaveLoad"
-DATA "snbBuySell","snbMgnScr"
-! --- snbMktEng (deps: snbUtil) ---
-DATA "getMktDelta","snbMktEng","snbUtil","","","","","","","","",""
-DATA "getCard","snbMktEng","snbUtil","","","","","","","","",""
-DATA "resolvePrice","snbMktEng","snbUtil","","","","","","","","",""
-DATA "applyMktYear","snbMktEng","snbUtil","","","","","","","","",""
-DATA "applyDivInt","snbMktEng","snbUtil","","","","","","","","",""
-DATA "applyMgnInt","snbMktEng","snbUtil","","","","","","","","",""
-DATA "drawCard","snbMktEng","snbUtil","","","","","","","","",""
-DATA "shuffleDeck","snbMktEng","snbUtil","","","","","","","","",""
-DATA "doRolls","snbMktEng","snbUtil","","","","","","","","",""
-! --- snbMktScr (deps: snbUtil, snbMktEng) ---
-DATA "scrYearHdr","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrDivInt","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrMgnInt","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrCard","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrDice","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrMktBoard","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
-! --- snbTrade (deps: snbUtil) ---
-DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","","","",""
-DATA "scrAITurn","snbTrade","snbUtil","","","","","","","","",""
-DATA "applySells","snbTrade","snbUtil","","","","","","","","",""
-DATA "applyBuys","snbTrade","snbUtil","","","","","","","","",""
-! --- snbBuySell (deps: snbUtil) ---
-DATA "scrSell","snbBuySell","snbUtil","","","","","","","","",""
-DATA "scrBuy","snbBuySell","snbUtil","","","","","","","","",""
-! --- snbMargin (deps: snbUtil, snbTrade) ---
-DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","","","",""
-DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","","","",""
-DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","","","",""
-DATA "scrMgnInt","snbMargin","snbUtil","snbTrade","","","","","","","",""
-! --- snbMgnScr (deps: snbUtil, snbTrade) ---
-DATA "scrForceLiq","snbMgnScr","snbUtil","snbTrade","","","","","","","",""
-DATA "scrMgnClr","snbMgnScr","snbUtil","snbTrade","","","","","","","",""
-! --- snbAI (deps: snbUtil) ---
-DATA "initAIProf","snbAI","snbUtil","","","","","","","","",""
-DATA "aiSell","snbAI","snbUtil","","","","","","","","",""
-DATA "aiBuy","snbAI","snbUtil","","","","","","","","",""
-! --- end sentinel ---
-DATA ".",".",  "","","","","","","","","",""
-
-900 PRINT "memMapGet error ("; ERR; ")"
-END
-
-PROCEDURE memModGet
-(* ================================================== *)
-(* PROCEDURE: memModGet                               *)
-(* PURPOSE:   Return the Nth procedure name in a     *)
-(*            packed module. prcIdx=1..12. Returns   *)
-(*            "" when prcIdx exceeds the module's    *)
-(*            procedure count, or if modNam is not   *)
-(*            found.                                 *)
-(*            Used by memReport to enumerate procs   *)
-(*            for presence checks, and by memRelease *)
-(*            to enumerate procs for F$UnLoad.       *)
-(* PARAMS:    modNam  - packed module name           *)
-(*            prcIdx  - procedure index (1..12)      *)
-(*            result  - returned procedure name      *)
-(* DATA:      12 fields per record:                  *)
-(*              modName, proc1..proc12               *)
-(*            Unused proc slots padded with "".      *)
-(*            End sentinel: record starting with "." *)
-(* ================================================== *)
 PARAM modNam : STRING[20]
-PARAM prcIdx : INTEGER
-PARAM result : STRING[20]
-DIM nm    : STRING[20]
-DIM tmp   : STRING[20]
-DIM i     : INTEGER
-DIM found : BOOLEAN
-
-ON ERROR GOTO 900
-
-result := ""
-found  := FALSE
-
-RESTORE 100
-LOOP
-  EXITIF found THEN
-  ENDEXIT
-  READ nm
-  EXITIF nm = "." THEN
-  ENDEXIT
-  IF nm = modNam THEN
-    IF prcIdx = 1 THEN
-      result := nm \ ! entry proc name = module name
-      FOR i := 1 TO 11
-        READ tmp \ ! skip remaining 11 proc slots
-      NEXT i
-    ELSE
-      FOR i := 2 TO prcIdx - 1
-        READ tmp \ ! skip procs before target index
-      NEXT i
-      READ result
-      FOR i := prcIdx + 1 TO 12
-        READ tmp \ ! skip procs after target index
-      NEXT i
-    ENDIF
-    found := TRUE
-  ELSE
-    FOR i := 1 TO 11
-      READ tmp \ ! skip 11 proc slots for non-match
-    NEXT i
-  ENDIF
-ENDLOOP
-
-END
-
-! ---- Module-to-procs map (12 fields per record) -----
-! Format: modName, proc2..proc12
-! proc1 is always modName itself; not stored.
-! Unused proc slots padded with "".
-! End sentinel record begins with ".".
-
-! --- snbUtil (8 procs: entry + 7) ---
-100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
-DATA "waitKey","getNumIn","shuffleDeck","","","",""
-! --- snbSetup (6 procs: entry + 5) ---
-DATA "snbSetup","initPlayer","initMkt","scrStart","scrSetup"
-DATA "scrConfirm","","","","","",""
-! --- snbSaveLoad (3 procs: entry + 2) ---
-DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","",""
-! --- snbEndGame (5 procs: entry + 4) ---
-DATA "snbEndGame","scrFinalMkt","scrWealth","scrWinner","scrPostGame"
-DATA "","","","","","",""
-! --- snbYearLoop (2 procs: entry + 1) ---
-DATA "snbYearLoop","runYearLoop","","","","","","","","","",""
-! --- snbMktEng (9 procs: entry + 8) ---
-DATA "snbMktEng","getMktDelta","getCard","resolvePrice","applyMktYear"
-DATA "applyDivInt","applyMgnInt","drawCard","doRolls","","",""
-! --- snbMktScr (9 procs: entry + 8) ---
-DATA "snbMktScr","scrYearHdr","scrDivInt","scrMgnInt","scrCard"
-DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","",""
-! --- snbTrade (5 procs: entry + 4) ---
-DATA "snbTrade","scrMgnRepay","scrAITurn","applySells","applyBuys"
-DATA "","","","","","",""
-! --- snbBuySell (3 procs: entry + 2) ---
-DATA "snbBuySell","scrSell","scrBuy","","","","","","","","",""
-! --- snbMargin (5 procs: entry + 4) ---
-DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrBankrupt","scrMgnInt"
-DATA "","","","","","",""
-! --- snbMgnScr (3 procs: entry + 2) ---
-DATA "snbMgnScr","scrForceLiq","scrMgnClr","","","","","","","","",""
-! --- snbAI (4 procs: entry + 3) ---
-DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","",""
-! --- end sentinel ---
-DATA ".","","","","","","","","","","",""
-
-900 PRINT "memModGet error ("; ERR; ")"
-END
-
-PROCEDURE memReport
-(* ================================================== *)
-(* PROCEDURE: memReport                               *)
-(* PURPOSE:   Display current process memory and     *)
-(*            loaded status for each game module.    *)
-(*            Uses F$Mem to get total process memory.*)
-(*            For each module, attempts F$Link on    *)
-(*            the module's first procedure; reports  *)
-(*            LOADED or not loaded. Undoes test link *)
-(*            immediately if link succeeds.          *)
-(* PARAMS:    None                                   *)
-(* SIDE EFX  : Prints to stdout. Does not modify     *)
-(*            module load state.                     *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM ok     : BOOLEAN
 DIM regs     : Register
 DIM callCode : BYTE
-DIM nm       : STRING[20]
-DIM iCC      : INTEGER
-DIM hiB      : INTEGER
-DIM loB      : INTEGER
-DIM i        : INTEGER
-DIM firstPrc : STRING[20]
 DIM nameAddr : INTEGER
-
-ON ERROR GOTO 900
-
-! --- Display total process memory via F$Mem ----------
-callCode := $07 \ ! F$Mem: query process memory size
-regs.a   := 0
-regs.b   := 0
-RUN SysCall(callCode, regs)
-hiB := regs.a \ ! Stage BYTE fields to INTEGER for PRINT
-loB := regs.b
-PRINT "=== MEMORY REPORT ==="
-PRINT "Process memory (hi:lo): "; hiB; " : "; loB
-PRINT
-
-! --- Check each module for resident status -----------
-PRINT "Module          Status"
-PRINT "--------------------"
-RESTORE 100
-LOOP
-  READ nm
-  EXITIF nm = "." THEN
-  ENDEXIT
-  GOSUB 800
-ENDLOOP
-
-PRINT
-END
-
-800 \ ! GOSUB: check if module nm is loaded; print result.
-    RUN memModGet(nm, 1, firstPrc)
-    IF firstPrc = "" THEN
-      PRINT nm; ": unknown module"
-      RETURN
-    ENDIF
-    nameAddr := ADDR(firstPrc)
-    callCode := $00 \ ! F$Link: test for residency by name
-    regs.a   := 0
-    regs.x   := nameAddr
-    RUN SysCall(callCode, regs)
-    iCC := regs.cc
-    IF LAND(iCC, 1) = 0 THEN
-      callCode := $1D \ ! F$UnLoad: undo test link
-      regs.a   := 0
-      regs.x   := nameAddr
-      RUN SysCall(callCode, regs)
-      PRINT nm; ": LOADED"
-    ELSE
-      PRINT nm; ": not loaded"
-    ENDIF
-    RETURN
-
-! Module names to check (one per line; "." sentinel)
-100 DATA "snbUtil"
-DATA "snbSetup"
-DATA "snbSaveLoad"
-DATA "snbEndGame"
-DATA "snbYearLoop"
-DATA "snbMktEng"
-DATA "snbMktScr"
-DATA "snbTrade"
-DATA "snbBuySell"
-DATA "snbMargin"
-DATA "snbMgnScr"
-DATA "snbAI"
-DATA "."
-
-900 PRINT "memReport error ("; ERR; ")"
-END
-
-PROCEDURE memEnsure
-(* ================================================== *)
-(* PROCEDURE: memEnsure                               *)
-(* PURPOSE:   Ensure a procedure and all modules its *)
-(*            module depends on are resident before  *)
-(*            the procedure is called. Resolves one  *)
-(*            level of module dependencies via the   *)
-(*            memMapGet data table.                  *)
-(*            For each module (own + deps): tries    *)
-(*            F$Link to check residency. If not      *)
-(*            resident, loads via F$Load. F$Link     *)
-(*            success is immediately undone to avoid *)
-(*            inflating the link count.              *)
-(*            ok=FALSE if procNam not found in map.  *)
-(* PARAMS:    procNam - procedure name to prepare    *)
-(*            ok      - TRUE if all loads succeeded  *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(*            snbUtil is assumed permanently loaded; *)
-(*            memEnsure still loads it if absent.   *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM procNam : STRING[20]
-PARAM ok      : BOOLEAN
-DIM modNam   : STRING[20]
+DIM iCC      : INTEGER
 DIM depNam   : STRING[20]
-DIM pNam     : STRING[20]
-DIM regs     : Register
-DIM callCode : BYTE
-DIM nameAddr : INTEGER
-DIM iCC      : INTEGER
-DIM i        : INTEGER
-DIM verbose  : BOOLEAN
-DIM k:STRING[1]
+DIM depOk    : BOOLEAN
+DIM errB     : INTEGER
 
 ON ERROR GOTO 900
-
-RUN checkVerbose(verbose)
-IF verbose THEN
-  PRINT "memEnsure: begin "; procNam
-ENDIF
-
-ok := TRUE
-
-! Resolve own module name from the map
-RUN memMapGet(procNam, 0, modNam)
-IF modNam = "" THEN
-  PRINT "memEnsure: proc not in map: "; procNam
-  GOTO 900
-ENDIF
-
-! Load own module
-pNam := modNam
-GOSUB 800
-IF NOT ok THEN END
-ENDIF
-
-! Load each module dependency (depIdx 1..10)
-i := 1
-LOOP
-  EXITIF i > 10 THEN
-  ENDEXIT
-  RUN memMapGet(procNam, i, depNam)
-  EXITIF depNam = "" THEN
-  ENDEXIT
-  pNam := depNam
-  GOSUB 800
-        
-  PRINT "Press any key to continue...";
-  GET #0, k
-
-  EXITIF NOT ok THEN
-  ENDEXIT
-  i := i + 1
-ENDLOOP
-
-ok := TRUE
-END
-
-800 \ ! GOSUB: load module pNam if not already resident.
-    ! F$Link tests residency. Carry clear = resident;
-    ! immediately F$UnLink to undo test link.
-    ! Carry set = not resident; issue F$Load.
-    IF verbose THEN
-      PRINT "memEns: F$Link "; pNam
-    ENDIF
-    nameAddr := ADDR(pNam)
-    callCode := $00 \ ! F$Link: check residency by name
-    regs.a   := 0
-    regs.x   := nameAddr
-    RUN SysCall(callCode, regs)
-    iCC := regs.cc
-    IF verbose THEN
-      PRINT "  cc="; iCC; " carry="; LAND(iCC, 1)
-    ENDIF
-    IF LAND(iCC, 1) = 0 THEN
-      IF verbose THEN
-        PRINT "  "; pNam; ": resident, skipping load"
-      ENDIF
-    ELSE
-      IF verbose THEN
-        PRINT "  "; pNam; ": not resident, F$Load"
-      ENDIF
-      callCode := $01 \ ! F$Load: load from disk
-      regs.a   := 0
-      regs.x   := nameAddr
-      RUN SysCall(callCode, regs)
-      iCC := regs.cc
-      IF verbose THEN
-        PRINT "  F$Load cc="; iCC; " carry="; LAND(iCC, 1)
-      ENDIF
-      IF LAND(iCC, 1) <> 0 THEN
-        IF errCode = 207 THEN
-          PRINT "memEnsure: out of memory (err: 207)"
-        ELSE
-          PRINT "memEnsure: load failed: "; pNam; " error code: "; regs.b
-        ENDIF
-      ELSE
-        IF verbose THEN
-          PRINT "  "; pNam; ": F$Load OK"
-        ENDIF
-      ENDIF
-    ENDIF
-    RETURN
-
-900 PRINT "memEnsure error ("; ERR; ")"
-END
-
-PROCEDURE memRelease
-(* ================================================== *)
-(* PROCEDURE: memRelease                              *)
-(* PURPOSE:   Unload the module containing procNam   *)
-(*            and any of its module dependencies     *)
-(*            that are not in the keepMods list.     *)
-(*            snbUtil is never unloaded regardless   *)
-(*            of keepMods contents.                  *)
-(*            For each module to unload: iterates    *)
-(*            all its procedures via memModGet and   *)
-(*            issues F$UnLoad on each by name.       *)
-(*            ok=FALSE if procNam not found in map.  *)
-(* PARAMS:    procNam      - procedure being retired *)
-(*            keepMods(8)  - module names to retain  *)
-(*            keepCnt      - entries in keepMods     *)
-(*            ok           - TRUE on completion      *)
-(* NOTES:     STRING array PARAMs require hardware   *)
-(*            verification on NitrOS-9/6809.         *)
-(*            Caller must pass keepCnt=0 and an      *)
-(*            empty keepMods(8) if no modules are    *)
-(*            to be retained beyond snbUtil.         *)
-(*            F$UnLoad errors are silently ignored;  *)
-(*            module may have been already unloaded. *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM procNam     : STRING[20]
-PARAM keepMods(8) : STRING[20]
-PARAM keepCnt     : INTEGER
-PARAM ok          : BOOLEAN
-DIM ownMod   : STRING[20]
-DIM modNam   : STRING[20]
-DIM depNam   : STRING[20]
-DIM prcNam   : STRING[20]
-DIM regs     : Register
-DIM callCode : BYTE
-DIM nameAddr : INTEGER
-DIM iCC      : INTEGER
-DIM i        : INTEGER
-DIM j        : INTEGER
-DIM keep     : BOOLEAN
-DIM verbose  : BOOLEAN
-DIM k:STRING[1]
-
-ON ERROR GOTO 900
-
-RUN checkVerbose(verbose)
-IF verbose THEN
-  PRINT "memRelease: begin "; procNam
-ENDIF
 
 ok := FALSE
 
-! Resolve own module name
-RUN memMapGet(procNam, 0, ownMod)
-IF ownMod = "" THEN
-  PRINT "memRelease: proc not in map: "; procNam
-  GOTO 900
-ENDIF
-
-! SNB and snbUtil are never unloaded
-IF ownMod = "SNB" OR ownMod = "snbUtil" THEN
+! Check residency: carry clear = already resident
+nameAddr := ADDR(modNam)
+callCode := $00 \ ! F$Link
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  callCode := $02 \ ! F$UnLink: undo test link
+  RUN SysCall(callCode, regs)
   ok := TRUE
   END
 ENDIF
 
-! Check if own module is in the keep list
-keep := FALSE
-FOR i := 1 TO keepCnt
-  IF keepMods(i) = ownMod THEN
-    keep := TRUE
-  ENDIF
-NEXT i
-IF NOT keep THEN
-  IF verbose THEN
-    PRINT "memRel: releasing "; ownMod
-  ENDIF
-  modNam := ownMod
-  GOSUB 810
-ELSE
-  IF verbose THEN
-    PRINT "memRel: keeping "; ownMod
-  ENDIF
+! F$Load the module from disk
+callCode := $01 \ ! F$Load
+regs.a   := 0
+nameAddr := ADDR(modNam)
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) <> 0 THEN
+  errB := regs.b \ ! Stage BYTE error code to INTEGER
+  PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+  END
 ENDIF
 
-! Process each module dependency
-i := 1
-LOOP
-  EXITIF i > 10 THEN
-  ENDEXIT
-  RUN memMapGet(procNam, i, depNam)
-  EXITIF depNam = "" THEN
-  ENDEXIT
-  IF depNam <> "snbUtil" THEN
-    keep := FALSE
-    FOR j := 1 TO keepCnt
-      IF keepMods(j) = depNam THEN
-        keep := TRUE
-      ENDIF
-    NEXT j
-    IF NOT keep THEN
-      IF verbose THEN
-        PRINT "memRel: releasing dep "; depNam
-      ENDIF
-      modNam := depNam
-      GOSUB 810
+ok := TRUE
+  PRINT "ensureModule: load successful: "; modNam
+END
 
-      PRINT "Press any key to continue...";
-      GET #0, k
+900 PRINT "ensureModule error ("; ERR; ")"
+END
 
+PROCEDURE releaseModule
+(* ================================================== *)
+(* PROCEDURE: releaseModule                           *)
+(* PURPOSE:   Unload all procedures in a module from *)
+(*            memory. F$Links the entry procedure to *)
+(*            get the module header address, then    *)
+(*            traverses contiguous module headers by *)
+(*            NitrOS-9 sync byte pattern ($87,$CD)   *)
+(*            to discover all constituent procedure  *)
+(*            names. Calls F$UnLoad for each name.   *)
+(*            Verifies release via F$Link on exit.   *)
+(*            SNB and snbUtil are never released.    *)
+(* PARAMS:    modNam - module name (= entry proc)    *)
+(*            ok     - TRUE on successful release    *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(*            procList(9): sized for largest module  *)
+(*            by proc count (snbMktEng/snbMktScr=9) *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam  : STRING[20]
+PARAM ok      : BOOLEAN
+DIM regs      : Register
+DIM callCode  : BYTE
+DIM nameAddr  : INTEGER
+DIM iCC       : INTEGER
+DIM hdrAddr   : INTEGER
+DIM modAddr   : INTEGER
+DIM procList(9) : STRING[20]
+DIM procCnt   : INTEGER
+DIM i         : INTEGER
+DIM j         : INTEGER
+DIM syncOk    : BOOLEAN
+DIM eofReach  : BOOLEAN
+DIM curSize   : INTEGER
+DIM namOff    : INTEGER
+DIM nAddr     : INTEGER
+DIM hiPeek    : INTEGER
+DIM loPeek    : INTEGER
+DIM curName   : STRING[20]
+DIM chInt     : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! SNB and snbUtil are never released
+IF modNam = "SNB" OR modNam = "snbUtil" THEN
+  ok := TRUE
+  END
+ENDIF
+
+PRINT "releaseModule: unloading: "; modNam
+
+! F$Link to obtain module header address; verify resident
+nameAddr := ADDR(modNam)
+callCode := $00 \ ! F$Link
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) <> 0 THEN
+  ok := TRUE \ ! Not resident; nothing to release
+  END
+ENDIF
+hdrAddr  := regs.u
+callCode := $02 \ ! F$UnLink: undo test link
+RUN SysCall(callCode, regs)
+
+! Traverse contiguous module headers to collect proc names.
+! Each NitrOS-9 module begins with sync bytes $87 $CD.
+! Module size at header offset +2 (big-endian INTEGER).
+! Name offset at header offset +4 (big-endian INTEGER).
+! Name is OS-9 MSB-terminated ASCII string.
+procCnt  := 0
+modAddr  := hdrAddr
+eofReach := FALSE
+
+PRINT "releaseModule: traversing module: "; modNam
+REPEAT
+  syncOk := (PEEK(modAddr) = $87) AND (PEEK(modAddr+1) = $CD)
+  IF NOT syncOk THEN
+    eofReach := TRUE
+  ENDIF
+  IF syncOk THEN
+    IF procCnt >= 9 THEN
+      eofReach := TRUE
     ELSE
-      IF verbose THEN
-        PRINT "memRel: keeping dep "; depNam
+      ! Extract module size (big-endian at offset +2)
+      hiPeek  := PEEK(modAddr + 2)
+      loPeek  := PEEK(modAddr + 3)
+      curSize := hiPeek * 256 + loPeek
+      ! Extract name offset (big-endian at offset +4)
+      hiPeek := PEEK(modAddr + 4)
+      loPeek := PEEK(modAddr + 5)
+      namOff := hiPeek * 256 + loPeek
+      ! Read OS-9 MSB-terminated name into curName
+      nAddr   := modAddr + namOff
+      curName := ""
+      j := 0
+      LOOP
+        chInt := PEEK(nAddr + j)
+        IF LAND(chInt, $80) = 0 THEN
+          curName := curName + CHR$(chInt)
+        ELSE
+          curName := curName + CHR$(LAND(chInt, $7F))
+        ENDIF
+        EXITIF LAND(chInt, $80) <> 0 THEN
+        ENDEXIT
+        j := j + 1
+      ENDLOOP
+      PRINT "releaseModule: adding procedure: "; curName
+
+      procCnt := procCnt + 1
+      procList(procCnt) := curName
+      ! Advance to next module header by this module's size
+      modAddr := modAddr + curSize
+      ! Detect INTEGER wrap-around past 64KB boundary
+      IF modAddr < hdrAddr THEN
+        eofReach := TRUE
       ENDIF
     ENDIF
   ENDIF
-  i := i + 1
-ENDLOOP
+UNTIL eofReach
 
-ok := TRUE
+! F$UnLoad each discovered procedure by name
+FOR i := 1 TO procCnt
+  nameAddr := ADDR(procList(i))
+  callCode := $1D \ ! F$UnLoad: unlink by name
+  regs.a   := 0
+  regs.x   := nameAddr
+  RUN SysCall(callCode, regs)
+  IF LAND(regs.cc, 1) = 1 THEN
+    PRINT "releaseModule: unload member proc failed: "; procList(i); " error code: "; regs.b
+  ELSE
+    ok := TRUE
+    PRINT "releaseModule: successfully unloaded member proc : "; procList(i)
+  ENDIF
+NEXT i
+
+! Verify unloaded: F$Link should now fail (carry set = gone)
+nameAddr := ADDR(modNam)
+callCode := $00 \ ! F$Link: confirm no longer resident
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  callCode := $02 \ ! F$UnLink: undo test link
+  RUN SysCall(callCode, regs)
+  PRINT "releaseModule: still resident after unload: "; modNam
+ELSE
+  ok := TRUE
+  PRINT "releaseModule: successfully unloaded: "; modNam
+ENDIF
 END
 
-810 \ ! GOSUB: F$UnLoad all procs in module modNam.
-    IF verbose THEN
-      PRINT "memRel: unload mod "; modNam
-    ENDIF
-    j := 1
-    LOOP
-      EXITIF j > 12 THEN
-      ENDEXIT
-      RUN memModGet(modNam, j, prcNam)
-      EXITIF prcNam = "" THEN
-      ENDEXIT
-      IF verbose THEN
-        PRINT "  F$UnLoad "; prcNam
-      ENDIF
-      nameAddr := ADDR(prcNam)
-      callCode := $1D \ ! F$UnLoad: unlink module by name
-      regs.a   := 0
-      regs.x   := nameAddr
-      RUN SysCall(callCode, regs)
-      IF verbose THEN
-        iCC := regs.cc
-        PRINT "    cc="; iCC; " carry="; LAND(iCC, 1)
-      ENDIF
-      j := j + 1
-    ENDLOOP
-    RETURN
-
-900 PRINT "memRelease error ("; ERR; ")"
+900 PRINT "releaseModule error ("; ERR; ")"
 END
