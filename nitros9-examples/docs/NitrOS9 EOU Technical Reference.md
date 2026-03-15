@@ -2755,117 +2755,97 @@ Following is a summary of the System Mode Calls referenced in this chapter:
 - The support module for this system call is **Krn**.
 - This call searches starting at the lowest RAM address.
 
-**Chain Loads and executes a new primary
-module without creating a new process
-OS9 F$Chain 103F 05**
+#### **Chain**
+
+**Loads and executes a new primary module without creating a new process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Chain | 103F | 05 |
 
 **Entry Conditions**
-A _language/type code ($00 = any language/type)_
-B _size of the area (in 256 byte pages); must be at least one page_
-X _address of the module name or filename (can be CR or hi-bit terminated)_
-Y _parameter area size_ (in bytes); defaults to zero if not specified
-U _starting address of the parameter area_ ; must be at least one page
+| | |
+|-|-|
+| A | _language/type code ($00 = any language/type)_ |
+| B | _size of the area (in 256 byte pages); must be at least one page_ |
+| X | _address of the module name or filename (can be CR or hi-bit terminated)_ |
+| Y | _parameter area size_ (in bytes); defaults to zero if not specified |
+| U | _starting address of the parameter area_ ; must be at least one page |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information**
 
-- Chain loads and executes a new primary module, but does not create a new
-    process. A Chain system call is similar to a Fork followed by an Exit, but it has less
-    processing overhead. Chain resets the calling process program and data memory
-    areas and begins executing a new primary module. It does not affect open paths.
-    This is a user mode system call.
-- **Warning** : Make sure that the hardware stack pointer (Register SP) is located in
-    the direct page before Chain executes. Otherwise the system might crash or
-    return a suicide attempt error. This precaution also prevents a suicide in the event
-    that the new module requires a smaller data area than that in use. Allow
-    approximately 200 bytes of stack space for execution of the Chain system call.
+- Chain loads and executes a new primary module, but does not create a new process. A Chain system call is similar to a Fork followed by an Exit, but it has less processing overhead. Chain resets the calling process program and data memory areas and begins executing a new primary module. It does not affect open paths. This is a user mode system call.
+- **Warning** : Make sure that the hardware stack pointer (Register SP) is located in the direct page before Chain executes. Otherwise the system might crash or return a suicide attempt error. This precaution also prevents a suicide in the event that the new module requires a smaller data area than that in use. Allow approximately 200 bytes of stack space for execution of the Chain system call.
 - Chain performs the following steps:
     1. It causes NitrOS-9 to unlink the process’s old primary module.
-    2. NitrOS-9 parses the name string of the new process’s primary module (the
-       program that is to be executed first). Then, it causes NitrOS-9 to search the
-       system module directory to see if a module with the same name, type, and
-       language is already in memory.
-    3. If the module is in memory, it links to it. If the module is not in memory, it
-       uses the name string as the pathlist of a file to load into memory. Then, it
-       links to the first module in this file. (Several modules can be loaded from a
-       single file.)
+    2. NitrOS-9 parses the name string of the new process’s primary module (the program that is to be executed first). Then, it causes NitrOS-9 to search the system module directory to see if a module with the same name, type, and language is already in memory.
+    3. If the module is in memory, it links to it. If the module is not in memory, it uses the name string as the pathlist of a file to load into memory. Then, it links to the first module in this file. (Several modules can be loaded from a single file.)
+    4. It reconfigures the data memory area to the size specified in the new primary module’s header.
+    5. It intercepts and erases any pending signals.
 
+The following diagram shows how Chain sets up the data memory area and registers for the new module.
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+------------------
+|                | - Y (highest address)
+| Parameter Area |
+------------------
+|                | - X,SP
+|                |
+|                |
+| Data Area      |
+|                |
+|                |
+|                |
+------------------
+|                |
+| Direct Page    |
+|                | - U,DP (lowest address)
+------------------
 ```
-4. It reconfigures the data memory area to the size specified in the new
-    primary module’s header.
-5. It intercepts and erases any pending signals.
 
-```
-The following diagram shows how Chain sets up the data memory area and
-registers for the new module.
-```
-```
-Parameter Area
-```
-```
- Y (highest address)
-```
-```
-Data Area
-```
-```
- X,SP
-```
-```
-Direct Page
-```
-```
- U,DP (lowest address)
-```
-```
-D parameter area size
-PC module entry point absolute address
-CC F=0, I=0; others are undefined
-```
-Registers Y and U (the top-of-memory and bottom-of-memory pointers, respectively)
-always have values at page boundaries. If the parent process does not specify a size for
-the parameter area, the size (Register D) defaults to zero. The data area must be at least
-one page.
+| | |
+|-|-|
+| D | _parameter area size_ |
+| PC | _module entry point absolute address_ |
+| CC | F=0, I=0; others are undefined |
+
+Registers Y and U (the top-of-memory and bottom-of-memory pointers, respectively) always have values at page boundaries. If the parent process does not specify a size for the parameter area, the size (Register D) defaults to zero. The data area must be at least one page.
 
 (For more information, see the Fork system call.)
 
+#### **Clear**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Clear Specified Block Marks blocks in the process DAT image
-as unallocated
-OS9 F$ClrBlk 103F 50**
+**Specified Block Marks blocks in the process DAT image as unallocated
+| | | | |
+|-|-|-|-|
+| OS9 | F$ClrBlk | 103F | 50 |
 
 **Entry Conditions**
-B _number of blocks_
-U _address of first block_
+| | |
+|-|-|
+| B | _number of blocks_ |
+| U | _address of first block_ |
 
 **Exit Conditions**
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ , if any |
 
 **Additional Information**
 
-- After Clear Specified Block deallocates blocks, the blocks are free for the process
-    to use for other data or program areas. If the block address passed to Clear
-    Specified Block is invalid or if the call attempts to clear the stack area, returns
-    E$IBA (Illegal Block Address).
+- After Clear Specified Block deallocates blocks, the blocks are free for the process to use for other data or program areas. If the block address passed to Clear Specified Block is invalid or if the call attempts to clear the stack area, returns E$IBA (Illegal Block Address).
 - The support module for the call is KrnP2.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 **Compare Names Compares two strings for a match**
 
 **OS9 F$CmpNam 103F 11**
