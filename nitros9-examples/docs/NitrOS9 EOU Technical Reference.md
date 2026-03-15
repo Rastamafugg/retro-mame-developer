@@ -2656,102 +2656,105 @@ Following is a summary of the System Mode Calls referenced in this chapter:
 
 ### User System Calls
 
-| | |
-|-|-|
-| **Set an Alarm** | **Sets an alarm, or a signal to send to a specified process ID, at a specified time** |
-| OS9 F$Alarm 103F 1E | |
+#### **Set an Alarm**
+
+**Sets an alarm, or a signal to send to a specified process ID, at a specified time**
+
+| | | | |
+|-|-|-|-|
+| OS9 | F$Alarm | 103F | 1E |
 
 **Entry Conditions**
-| | |
-|-|-|
-| X | relative address of 6-byte time packet (YYMMDDHHMMSS) (not needed if D=0000) |
-| | = operation to perform (A:B = D) |
-A = 00
-B = Function
-00 = clear the setting
-01 = cause the alarm to "beep" for 15 seconds after system time
-matches the time packet sent
-02 = inquire alarm settings
-or
-A = process ID to signal on time match
-B = signal to send on time match_
+| | | | |
+|-|-|-|-|
+| X | relative address of 6-byte time packet | | |
+| | (YYMMDDHHMMSS) | | |
+| | (not needed if D=0000) | | |
+| | = operation to perform (A:B = D) | | |
+| | | A= | 00 |
+| | | B= | Function |
+| | | | 00 = clear the setting |
+| | | | 01 = cause the alarm to "beep" for 15 seconds after system time matches the time packet sent |
+| | | | 02 = inquire alarm settings |
+| | or | | |
+| | | A= | process ID to signal on time match |
+| | | B= | signal to send on time match |
 
 **Exit Conditions** _(if D=0002 on entry)
-X address of current alarm setting packet returned (same address that was
-passed)
-A process to receive sign on match
-B signal to be sent on time match_
+| | |
+|-|-|
+| X | address of current alarm setting packet returned (same address that was passed) |
+| A | process to receive sign on match |
+| B | signal to be sent on time match |
 
 **Error Output**
-CC carry set on error
-B appropriate _error code_
+| | |
+|-|-|
+| CC | carry set on error |
+| B | appropriate _error code_ |
 
 **Additional Information**
 
-- When the system reaches the specified alarm time, it rings the bell for 15 seconds
-    or sends the specified signal.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- The time packet is identical to the packet used in the F$STime call. See F$STime
-    for additional information on the format of the packet.
-- All alarms begin at the start of a minute and any seconds in the packet are
-    ignored.
+- When the system reaches the specified alarm time, it rings the bell for 15 seconds or sends the specified signal.
+- The time packet is identical to the packet used in the F$STime call. See F$STime for additional information on the format of the packet.
+- All alarms begin at the start of a minute and any seconds in the packet are ignored.
 - The system is currently limited to one alarm at a time.
 
+#### **Allocate Bits**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate Bits Sets bits in an allocation bit map**
+**Sets bits in an allocation bit map**
 
-**OS9 F$AllBit 103F 13**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AllBit | 103F | 13 |
 
 **Entry Conditions**
-D _number of the first bit to set_
-X _starting address of the allocation bit map_
-Y _number of bits to set_
+| | |
+|-|-|
+| D | _number of the first bit to set_ |
+| X | _starting address of the allocation bit map_ |
+| Y | _number of bits to set_ |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ (if any) |
 
 **Additional Information**
 
-- Bit numbers range from 0 to _n_ -1, where _n_ is the number of bits in the allocation
-    bit map.
-- **Warning** : Do not issue the Allocate Bits call with Register Y set to 0 (a bit count of
-    0).
+- Bit numbers range from 0 to _n_ -1, where _n_ is the number of bits in the allocation bit map.
+- **Warning** : Do not issue the Allocate Bits call with Register Y set to 0 (a bit count of 0).
 
+#### **Allocate RAM**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate RAM Searches the memory block map for the
-desired number of contiguous free RAM
-OS9 F$AllRAM 103F 39 blocks**
+**Searches the memory block map for the desired number of contiguous free RAM blocks**
+
+| | | | |
+|-|-|-|-|
+| OS9 | F$AllRAM | 103F | 39 |
 
 **Entry Conditions**
-B _number of blocks_
+| | |
+|-|-|
+| B | _number of blocks_ |
 
 **Exit Conditions**
-_D start block number of RAM found ($0000-$00FF on the CoCo)_
+| | |
+|-|-|
+| D | _start block number of RAM found ($0000-$00FF on the CoCo)_ |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | _error code_ , if any |
 
 **Additional Information**
 
 - The support module for this system call is **Krn**.
 - This call searches starting at the lowest RAM address.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 **Chain Loads and executes a new primary
 module without creating a new process
 OS9 F$Chain 103F 05**
@@ -9617,322 +9620,167 @@ Trailer pattern
 N $4E (fill to index mark)
 ```
 
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-## C. System Error Codes................................................................................................
+## C. System Error Codes
 
-The error codes are show in both hexadecimal and decimal. The error codes listed
-include NitrOS-9 system error codes, BASIC09 error codes, and standard windowing
-system error codes.
+The error codes are show in both hexadecimal and decimal. The error codes listed include NitrOS-9 system error codes, BASIC09 error codes, and standard windowing system error codes.
 
-**Code Code Meaning
-HEX DEC**
-$01 001 UNCONDITIONAL ABORT—An error occurred from which NitrOS-9 cannot
-recover. All processes are terminated.
-$02 002 KEYBOARD ABORT—You pressed BREAK to terminate the current
-operation.
-$03 003 KEYBOARD INTERRUPT—You pressed SHIFT-BREAK either to cause the
-current operation to function as a background task with no video display
-or to cause the current task to terminate.
-$B7 183 ILLEGAL WINDOW TYPE—You tried to define a text type window for
-graphics or used illegal parameters.
-$B8 184 WINDOW ALREADY DEFINED—You tried to create a window that is
-already established.
-$B9 185 FONT NOT FOUND—You tried to use a window font that does not exist.
-$BA 186 STACK OVERFLOW—Your process (or processes) requires more stack
-space than is available on the system.
-$BB 187 ILLEGAL ARGUMENT—You have used an argument with a command that is
-inappropriate.
-$BD 189 ILLEGAL COORDINATES—You have given coordinates to a graphics
-command that are outside the screen boundaries.
-$BE 190 INTERNAL INTEGRITY CHECK—System modules or data are changed and
-are no longer reliable.
-$BF 191 BUFFER SIZE TOO SMALL—The data you assigned to a buffer is larger than
-the buffer.
-$C0 192 ILLEGAL COMMAND—You have issued a command in a form unacceptable
-to NitrOS-9.
-$C1 193 SCREEN OR WINDOW TABLE IS FULL—You do not have enough room in
-the system window table to keep track of any more windows or screens.
-$C2 194 BAD/UNDEFINED BUFFER NUMBER—You have specified an illegal or
-undefined buffer number.
-$C3 195 ILLEGAL WINDOW DEFINITION—You have tried to give a window illegal
+| HEX Code | DEC Code | Meaning |
+|-|-|-|
+| $01 | 001 | UNCONDITIONAL ABORT—An error occurred from which NitrOS-9 cannot recover. All processes are terminated. |
+| $02 | 002 | KEYBOARD ABORT—You pressed BREAK to terminate the current operation. |
+| $03 | 003 | KEYBOARD INTERRUPT—You pressed SHIFT-BREAK either to cause the current operation to function as a background task with no video display or to cause the current task to terminate. |
+| $B7 | 183 | ILLEGAL WINDOW TYPE—You tried to define a text type window for graphics or used illegal parameters. |
+| $B8 | 184 | WINDOW ALREADY DEFINED—You tried to create a window that is already established. |
+| $B9 | 185 | FONT NOT FOUND—You tried to use a window font that does not exist. |
+| $BA | 186 | STACK OVERFLOW—Your process (or processes) requires more stack space than is available on the system. |
+| $BB | 187 | ILLEGAL ARGUMENT—You have used an argument with a command that is inappropriate. |
+| $BD | 189 | ILLEGAL COORDINATES—You have given coordinates to a graphics command that are outside the screen boundaries. |
+| $BE | 190 | INTERNAL INTEGRITY CHECK—System modules or data are changed and are no longer reliable. |
+| $BF | 191 | BUFFER SIZE TOO SMALL—The data you assigned to a buffer is larger than the buffer. |
+| $C0 | 192 | ILLEGAL COMMAND—You have issued a command in a form unacceptable to NitrOS-9. |
+| $C1 | 193 | SCREEN OR WINDOW TABLE IS FULL—You do not have enough room in the system window table to keep track of any more windows or screens. |
+| $C2 | 194 | BAD/UNDEFINED BUFFER NUMBER—You have specified an illegal or undefined buffer number. |
+| $C3 | 195 | ILLEGAL WINDOW DEFINITION—You have tried to give a window illegal parameters. |
+| $C4 | 196 | WINDOW UNDEFINED—You have tried to access a window that you have not yet defined. |
+| $C8 | 200 | PATH TABLE FULL—NitrOS-9 cannot open the file because the system path table is full. |
+| $C9 | 201 | ILLEGAL PATH NUMBER—The path number is too large or you specified a non-existent path. |
+| $CA | 202 | INTERRUPT POLLING TABLE FULL—Your system cannot handle an interrupt request because the polling table does not have room for more entries. |
+| $CB | 203 | ILLEGAL MODE—The specified device cannot perform the indicated input or output function. |
+| $CC | 204 | DEVICE TABLE FULL—The device table does not have enough room for another device. |
+| $CD | 205 | ILLEGAL MODULE HEADER—NitrOS-9 cannot load the specified module because its sync code, header parity, or Cyclic Redundancy Code is _incorrect_. |
+| $CE | 206 | MODULE DIRECTORY FULL—The module directory does not have enough room for another module entry. |
+| $CF | 207 | MEMORY FULL—Process address space is full or your computer does not have sufficient memory to perform the specified task. |
+| $D0 | 208 | ILLEGAL SERVICE REQUEST—The current program has issued a system call containing an illegal code number. |
+| $D1 | 209 | MODULE BUSY—Another process is already using a non-shareable module. |
+| $D2 | 210 | BOUNDARY ERROR—NitrOS-9 has received a memory allocation or deallocation request that is not on a page boundary. |
+| $D3 | 211 | END OF FILE—A read operation has encountered an end-of-file character and has terminated. |
+| $D4 | 212 | RETURNING NON-ALLOCATED MEMORY—The current operation has attempted to deallocate memory not previously assigned. |
+| $D5 | 213 | NON-EXISTING SEGMENT—The file structure of the specified device is damaged. |
+| $D6 | 214 | NO PERMISSION—The attributes of the specified file or device do not permit the requested access. |
+| $D7 | 215 | BAD PATHNAME—The specified pathlist contains a syntax error; for instance, an illegal character. |
+| $D8 | 216 | PATH NAME NOT FOUND—The system cannot find the specified pathlist. |
+| $D9 | 217 | SEGMENT LIST FULL—The specified file is too fragmented for further expansion. |
+| $DA | 218 | FILE ALREADY EXISTS—The specified filename already exists in the specified directory. |
+| $DB | 219 | ILLEGAL BLOCK ADDRESS—The file structure of the specified device is damaged. |
+| $DC | 220 | PHONE HANGUP-DATA CARRIER LOST—The data carrier detect is lost on the RS-232 port. |
+| $DD | 221 | MODULE NOT FOUND—The system received a request to link a module that is not in the specified directory. |
+| $DE | 222 | SECTOR OUT OF RANGE—A disk sector number was specified that does not exist. |
+| $DF | 223 | SUICIDE ATTEMPT—The current operation has attempted to return to the memory location of the stack. |
+| $E0 | 224 | ILLEGAL PROCESS NUMBER—The specified process does not exist. |
+| $E2 | 226 | NO CHILDREN—The system has issued a _wait service_ request but the current process has no dependent process to execute. |
+| $E3 | 227 | ILLEGAL SWI CODE—The system received a software interrupt code that is less than 1 or greater than 3. |
+| $E4 | 228 | PROCESS ABORTED—The system received a signal Code 2 to terminate the current process. |
+| $E5 | 229 | PROCESS TABLE FULL—A fork request cannot execute because the process table has no room for more entries. |
+| $E6 | 230 | ILLEGAL PARAMETER AREA—A fork call has passed incorrect high and low bounds. |
+| $E7 | 231 | KNOWN MODULE—The specified module is for internal use only. |
+| $E8 | 232 | INCORRECT MODULE CRC—The CRC for the module being accessed is bad. |
+| $E9 | 233 | SIGNAL ERROR—The receiving process has a previous, unprocessed signal pending. |
+| $EA | 234 | NON-EXISTENT MODULE—The system cannot locate the specified module. |
+| $EB | 235 | BAD NAME—The specified device, file, or module name is illegal. |
+| $EC | 236 | BAD HEADER—The specified module header parity is incorrect. |
+| $ED | 237 | RAM FULL—No free system random access memory is available: the system address space is full, or there is no physical memory available when requested by the operating system in the system state. |
+| $EE | 238 | UNKNOWN PROCESS ID—The specified process ID number is incorrect. |
+| $EF | 239 | NO TASK NUMBER AVAILABLE—All available task numbers are in use. |
 
+## D. Basic09 Error Codes
 
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-parameters.
-$C4 196 WINDOW UNDEFINED—You have tried to access a window that you have
-not yet defined.
-$C8 200 PATH TABLE FULL—NitrOS-9 cannot open the file because the system path
-table is full.
-$C9 201 ILLEGAL PATH NUMBER—The path number is too large or you specified a
-non-existent path.
-$CA 202 INTERRUPT POLLING TABLE FULL—Your system cannot handle an
-interrupt request because the polling table does not have room for more
-entries.
-$CB 203 ILLEGAL MODE—The specified device cannot perform the indicated input
-or output function.
-$CC 204 DEVICE TABLE FULL—The device table does not have enough room for
-another device.
-$CD 205 ILLEGAL MODULE HEADER—NitrOS-9 cannot load the specified module
-because its sync code, header parity, or Cyclic Redundancy Code is
-_incorrect_.
-$CE 206 MODULE DIRECTORY FULL—The module directory does not have enough
-room for another module entry.
-$CF 207 MEMORY FULL—Process address space is full or your computer does not
-have sufficient memory to perform the specified task.
-$D0 208 ILLEGAL SERVICE REQUEST—The current program has issued a system call
-containing an illegal code number.
-$D1 209 MODULE BUSY—Another process is already using a non-shareable
-module.
-$D2 210 BOUNDARY ERROR—NitrOS-9 has received a memory allocation or
-deallocation request that is not on a page boundary.
-$D3 211 END OF FILE—A read operation has encountered an end-of-file character
-and has terminated.
-$D4 212 RETURNING NON-ALLOCATED MEMORY—The current operation has
-attempted to deallocate memory not previously assigned.
-$D5 213 NON-EXISTING SEGMENT—The file structure of the specified device is
-damaged.
-$D6 214 NO PERMISSION—The attributes of the specified file or device do not
-permit the requested access.
+| HEX Code | DEC Code | Meaning |
+|-|-|-|
+| $0A | 010 | UNRECOGNIZED SYMBOL – a symbol that is not part of a identifier, line number, operator, keyword or constant has been found |
+| $0B | 011 | EXCESSIVE VERBIAGE - too many keywords or symbols |
+| $0C | 012 | ILLEGAL STATEMENT CONSTRUCTION – An expression or statement is invalid (example: a:=b+*/c) |
+| $0D | 013 | I-CODE OVERFLOW - You have ran out of workspace memory for the actual code, and need to allocate more |
+| $0E | 014 | ILLEGAL PATH NUMBER - Bad Path number given |
+| $0F | 015 | ILLEGAL MODE - read/write/update/dir only allowed, and you are also not allowed to CREATE a directory in BASIC09 (you will have to use the system call). |
+| $10 | 016 | ILLEGAL NUMBER – A number is out of range for the intended purpose (example: trying to use an array element number not between 1 and 32767) |
+| $11 | 017 | ILLEGAL PREFIX |
+| $12 | 018 | ILLEGAL OPERAND – you have used an operand that can’t be used in the context you tried (example: attempting to add a variable name to a procedure name) |
+| $13 | 019 | ILLEGAL OPERATOR |
+| $14 | 020 | ILLEGAL RECORD FIELD NAME – You have specified a record field name that is not part of the TYPE statement. |
+| $15 | 021 | ILLEGAL DIMENSION |
+| $16 | 022 | ILLEGAL LITERAL – You have specified a non-literal value where one is required (example: you can’t do PARAM n,a(n):INTEGER; the ‘n’ in a(n) has to be an actual number). |
+| $17 | 023 | ILLEGAL RELATIONAL |
+| $18 | 024 | ILLEGAL TYPE SUFFIX - You have tried to DIM a variable with a non- existent variable type, or non-existent TYPE statement |
+| $19 | 025 | TOO-LARGE DIMENSION |
+| $1A | 026 | TOO-LARGE LINE NUMBER – Line numbers can only be from 1 to 32767. |
+| $1B | 027 | MISSING ASSIGNMENT STATEMENT |
+| $1C | 028 | MISSING PATH NUMBER |
+| $1D | 029 | MISSING COMMA |
+| $1E | 030 | MISSING DIMENSION |
+| $1F | 031 | MISSING 'DO' STATEMENT - you have issued a WHILE statement without the corresponding DO |
+| $20 | 032 | MEMORY FULL - You have run out of workspace memory (for your variables), and need to allocate more |
+| $21 | 033 | MISSING GOTO |
+| $22 | 034 | MISSING LEFT PARENTHESIS |
+| $23 | 035 | MISSING LINE REFERENCE |
+| $24 | 036 | MISSING OPERAND |
+| $25 | 037 | MISSING RIGHT PARENTHESIS |
+| $26 | 038 | MISSING THEN STATEMENT - You have issued an IF statement without a corresponding THEN |
+| $27 | 039 | MISSING TO - You have issued a FOR statement without the corresponding TO |
+| $28 | 040 | MISSING VARIABLE REFERENCE |
+| $29 | 041 | NO ENDING QUOTE - You have issued a statement (like PRINT) that has a starting quote, with no ending quote |
+| $2A | 042 | TOO MANY SUBSCRIPTS |
+| $2B | 043 | UNKNOWN PROCEDURE - You have to tried to RUN a procedure that doesn't exist |
+| $2C | 044 | MULTIPLY-DEFINED PROCEDURE |
+| $2D | 045 | DIVIDE BY ZERO - You have attempted to divide a number by 0, which is not allowed |
+| $2E | 046 | OPERAND TYPE MISMATCH |
+| $2F | 047 | STRING STACK OVERFLOW |
+| $30 | 048 | UNIMPLEMENTED ROUTINE - You should never see this |
+| $31 | 049 | UNDEFINED VARIABLE |
+| $32 | 050 | FLOATING OVERFLOW |
+| $33 | 051 | LINE WITH COMPILER ERROR |
+| $34 | 052 | VALUE OUT OF RANGE FOR DESTINATION - You have done something like attempting to use a large REAL number with PRINT USING in INTEGER format |
+| $35 | 053 | SUBROUTINE STACK OVERFLOW |
+| $36 | 054 | SUBROUTINE STACK UNDERFLOW |
+| $37 | 055 | SUBSCRIPT OUT OF RANGE - You have attempted to use an array element number beyond what it was DIMmed for |
+| $38 | 056 | PARAMETER ERROR - You have either passed the wrong number of parameters, or the wrong variable type(s), to a procedure |
+| $39 | 057 | SYSTEM STACK OVERFLOW |
+| $3A | 058 | I/O TYPE MISMATCH |
+| $3B | 059 | I/O NUMERIC INPUT FORMAT BAD |
+| $3C | 060 | I/O CONVERSION: NUMBER OUT OF RANGE |
+| $3D | 061 | ILLEGAL INPUT FORMAT |
+| $3E | 062 | I/O FORMAT REPEAT ERROR |
+| $3F | 063 | I/O FORMAT SYNTAX ERROR - You have specified a PRINT USING format code that doesn't exist |
+| $40 | 064 | ILLEGAL PATH NUMBER |
+| $41 | 065 | WRONG NUMBER OF SUBSCRIPTS – The subscripts you are trying to use do not match the original DIM statement |
+| $42 | 066 | NON RECORD TYPE OPERAND |
+| $43 | 067 | ILLEGAL ARGUMENT – Can be returned from a subroutine module, or by doing things like trying to compare to array names (as whole arrays) |
+| $44 | 068 | ILLEGAL CONTROL STRUCTURE |
+| $45 | 069 | UNMATCHED CONTROL STRUCTURE - You have have only specified the beginning, or the end, of a control structure (WHILE/DO, REPEAT/UNTIL, etc.), instead of both beginning and end |
+| $46 | 070 | ILLEGAL FOR VARIABLE - You have attempted a FOR/NEXT loop with a variable that is not INTEGER or REAL |
+| $47 | 071 | ILLEGAL EXPRESSION TYPE |
+| $48 | 072 | ILLEGAL DECLARATIVE STATEMENT |
+| $49 | 073 | ARRAY SIZE OVERFLOW - You have tried to DIM too many elements for a variable |
+| $4A | 074 | UNDEFINED LINE NUMBER - You have attempted a GOTO or GOSUB to a line number that does not exist |
+| $4B | 075 | MULTIPLY-DEFINED LINE NUMBER – a duplicate line number was found. This can ONLY happen when the source was edited outside of BASIC09 itself. |
+| $4C | 076 | MULTIPLY-DEFINED VARIABLE - You have attempted to DIM the same variable name more than once. |
+| $4D | 077 | ILLEGAL INPUT VARIABLE - You have attempted to use INPUT with a TYPE name versus a variable name |
+| $4E | 078 | SEEK OUT OF RANGE |
+| $4F | 079 | MISSING DATA STATEMENT |
+| $50 | 080 | I/O BUFFER OVERFLOW (PRINT BUFFER OVERFLOW) - You shouldn't normally see this, as it should be handled internally in BASIC09 / RUNB |
 
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-$D7 215 BAD PATHNAME—The specified pathlist contains a syntax error; for
-instance, an illegal character.
-$D8 216 PATH NAME NOT FOUND—The system cannot find the specified pathlist.
-$D9 217 SEGMENT LIST FULL—The specified file is too fragmented for further
-expansion.
-$DA 218 FILE ALREADY EXISTS—The specified filename already exists in the
-specified directory.
-$DB 219 ILLEGAL BLOCK ADDRESS—The file structure of the specified device is
-damaged.
-$DC 220 PHONE HANGUP-DATA CARRIER LOST—The data carrier detect is lost on
-the RS-232 port.
-$DD 221 MODULE NOT FOUND—The system received a request to link a module
-that is not in the specified directory.
-$DE 222 SECTOR OUT OF RANGE—A disk sector number was specified that does
-not exist.
-$DF 223 SUICIDE ATTEMPT—The current operation has attempted to return to the
-memory location of the stack.
-$E0 224 ILLEGAL PROCESS NUMBER—The specified process does not exist.
-$E2 226 NO CHILDREN—The system has issued a _wait service_ request but the
-current process has no dependent process to execute.
-$E3 227 ILLEGAL SWI CODE—The system received a software interrupt code that is
-less than 1 or greater than 3.
-$E4 228 PROCESS ABORTED—The system received a signal Code 2 to terminate the
-current process.
-$E5 229 PROCESS TABLE FULL—A fork request cannot execute because the process
-table has no room for more entries.
-$E6 230 ILLEGAL PARAMETER AREA—A fork call has passed incorrect high and low
-bounds.
-$E7 231 KNOWN MODULE—The specified module is for internal use only.
-$E8 232 INCORRECT MODULE CRC—The CRC for the module being accessed is bad.
-$E9 233 SIGNAL ERROR—The receiving process has a previous, unprocessed signal
-pending.
-$EA 234 NON-EXISTENT MODULE—The system cannot locate the specified module.
-$EB 235 BAD NAME—The specified device, file, or module name is illegal.
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-$EC 236 BAD HEADER—The specified module header parity is incorrect.
-$ED 237 RAM FULL—No free system random access memory is available: the
-system address space is full, or there is no physical memory available
-when requested by the operating system in the system state.
-$EE 238 UNKNOWN PROCESS ID—The specified process ID number is incorrect.
-$EF 239 NO TASK NUMBER AVAILABLE—All available task numbers are in use.
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-## D. Basic09 Error Codes...............................................................................................
-
-**Code Code Meaning
-HEX DEC**
-$0A 010 UNRECOGNIZED SYMBOL – a symbol that is not part of a identifier, line
-number, operator, keyword or constant has been found
-$0B 011 EXCESSIVE VERBIAGE - too many keywords or symbols
-$0C 012 ILLEGAL STATEMENT CONSTRUCTION – An expression or statement is
-invalid (example: a:=b+*/c)
-$0D 013 I-CODE OVERFLOW - You have ran out of workspace memory for the
-actual code, and need to allocate more
-$0E 014 ILLEGAL PATH NUMBER - Bad Path number given
-$0F 015 ILLEGAL MODE - read/write/update/dir only allowed, and you are also not
-allowed to CREATE a directory in BASIC09 (you will have to use the system
-call).
-$10 016 ILLEGAL NUMBER – A number is out of range for the intended purpose
-(example: trying to use an array element number not between 1 and
-32767)
-$11 017 ILLEGAL PREFIX
-$12 018 ILLEGAL OPERAND – you have used an operand that can’t be used in the
-context you tried (example: attempting to add a variable name to a
-procedure name)
-$13 019 ILLEGAL OPERATOR
-$14 020 ILLEGAL RECORD FIELD NAME – You have specified a record field name
-that is not part of the TYPE statement.
-$15 021 ILLEGAL DIMENSION
-$16 022 ILLEGAL LITERAL – You have specified a non-literal value where one is
-required (example: you can’t do PARAM n,a(n):INTEGER; the ‘n’ in a(n) has
-to be an actual number).
-$17 023 ILLEGAL RELATIONAL
-$18 024 ILLEGAL TYPE SUFFIX - You have tried to DIM a variable with a non-
-existent variable type, or non-existent TYPE statement
-$19 025 TOO-LARGE DIMENSION
-$1A 026 TOO-LARGE LINE NUMBER – Line numbers can only be from 1 to 32767.
-$1B 027 MISSING ASSIGNMENT STATEMENT
-$1C 028 MISSING PATH NUMBER
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-$1D 029 MISSING COMMA
-$1E 030 MISSING DIMENSION
-$1F 031 MISSING 'DO' STATEMENT - you have issued a WHILE statement without
-the corresponding DO
-$20 032 MEMORY FULL - You have run out of workspace memory (for your
-variables), and need to allocate more
-$21 033 MISSING GOTO
-$22 034 MISSING LEFT PARENTHESIS
-$23 035 MISSING LINE REFERENCE
-$24 036 MISSING OPERAND
-$25 037 MISSING RIGHT PARENTHESIS
-$26 038 MISSING THEN STATEMENT - You have issued an IF statement without a
-corresponding THEN
-$27 039 MISSING TO - You have issued a FOR statement without the corresponding
-TO
-$28 040 MISSING VARIABLE REFERENCE
-$29 041 NO ENDING QUOTE - You have issued a statement (like PRINT) that has a
-starting quote, with no ending quote
-$2A 042 TOO MANY SUBSCRIPTS
-$2B 043 UNKNOWN PROCEDURE - You have to tried to RUN a procedure that
-doesn't exist
-$2C 044 MULTIPLY-DEFINED PROCEDURE
-$2D 045 DIVIDE BY ZERO - You have attempted to divide a number by 0, which is
-not allowed
-$2E 046 OPERAND TYPE MISMATCH
-$2F 047 STRING STACK OVERFLOW
-$30 048 UNIMPLEMENTED ROUTINE - You should never see this
-$31 049 UNDEFINED VARIABLE
-$32 050 FLOATING OVERFLOW
-$33 051 LINE WITH COMPILER ERROR
-$34 052 VALUE OUT OF RANGE FOR DESTINATION - You have done something like
-attempting to use a large REAL number with PRINT USING in INTEGER
-format
-$35 053 SUBROUTINE STACK OVERFLOW
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-$36 054 SUBROUTINE STACK UNDERFLOW
-$37 055 SUBSCRIPT OUT OF RANGE - You have attempted to use an array element
-number beyond what it was DIMmed for
-$38 056 PARAMETER ERROR - You have either passed the wrong number of
-parameters, or the wrong variable type(s), to a procedure
-$39 057 SYSTEM STACK OVERFLOW
-$3A 058 I/O TYPE MISMATCH
-$3B 059 I/O NUMERIC INPUT FORMAT BAD
-$3C 060 I/O CONVERSION: NUMBER OUT OF RANGE
-$3D 061 ILLEGAL INPUT FORMAT
-$3E 062 I/O FORMAT REPEAT ERROR
-$3F 063 I/O FORMAT SYNTAX ERROR - You have specified a PRINT USING format
-code that doesn't exist
-$40 064 ILLEGAL PATH NUMBER
-$41 065 WRONG NUMBER OF SUBSCRIPTS – The subscripts you are trying to use
-do not match the original DIM statement
-$42 066 NON RECORD TYPE OPERAND
-$43 067 ILLEGAL ARGUMENT – Can be returned from a subroutine module, or by
-doing things like trying to compare to array names (as whole arrays)
-$44 068 ILLEGAL CONTROL STRUCTURE
-$45 069 UNMATCHED CONTROL STRUCTURE - You have have only specified the
-beginning, or the end, of a control structure (WHILE/DO, REPEAT/UNTIL,
-etc.), instead of both beginning and end
-$46 070 ILLEGAL FOR VARIABLE - You have attempted a FOR/NEXT loop with a
-variable that is not INTEGER or REAL
-$47 071 ILLEGAL EXPRESSION TYPE
-$48 072 ILLEGAL DECLARATIVE STATEMENT
-$49 073 ARRAY SIZE OVERFLOW - You have tried to DIM too many elements for a
-variable
-$4A 074 UNDEFINED LINE NUMBER - You have attempted a GOTO or GOSUB to a
-line number that does not exist
-$4B 075 MULTIPLY-DEFINED LINE NUMBER – a duplicate line number was found.
-This can ONLY happen when the source was edited outside of BASIC09
-itself.
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-**Code Code Meaning
-HEX DEC**
-$4C 076 MULTIPLY-DEFINED VARIABLE - You have attempted to DIM the same
-variable name more than once.
-$4D 077 ILLEGAL INPUT VARIABLE - You have attempted to use INPUT with a TYPE
-name versus a variable name
-$4E 078 SEEK OUT OF RANGE
-$4F 079 MISSING DATA STATEMENT
-$50 080 I/O BUFFER OVERFLOW (PRINT BUFFER OVERFLOW) - You shouldn't
-normally see this, as it should be handled internally in BASIC09 / RUNB
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 ## E. Device Driver Error Codes.......................................................................................
 
-I/O device drivers generate the following error codes. In most cases, the codes are
-hardware-dependent. Consult your device manual for more details.
+I/O device drivers generate the following error codes. In most cases, the codes are hardware-dependent. Consult your device manual for more details.
 
-**Code Code Meaning
-HEX DEC**
-$F0 240 UNIT ERROR—The specified device unit does not exist.
-$F1 241 SECTOR ERROR—The specified sector number is out of range.
-$F2 242 WRITE PROTECT—The specified device is write-protected.
-$F3 243 CRC ERROR—A Cyclic Redundancy Code error occurred on a read or write
-verify.
-$F4 244 READ ERROR—A data transfer error occurred during a disk read operation,
-or there is a SCN (terminal) input buffer overrun.
-$F5 245 WRITE ERROR—An error occurred during a write operation.
-$F6 246 NOT READY—The device specified has a _not ready_ status.
-$F7 247 SEEK ERROR—The system attempted a seek operation on a non-existent
-sector.
-$F8 248 MEDIA FULL—The specified media has insufficient free space for the
-operation.
-$F9 249 WRONG TYPE—An attempt is made to read incompatible media (for
-instance an attempt to read double-side disk on single-side drive).
-$FA 250 DEVICE BUSY—A non-shareable device is in use.
-$FB 251 DISK ID CHANGE—You changed diskettes when one or more files are
-open.
-$FC 252 RECORD IS LOCKED-OUT—Another process is accessing the requested
-record.
-$FD 253 NON-SHAREABLE FILE BUSY—Another process is accessing the requested
-file.
-$FE 254 I/O DEADLOCK—Two processes have attempted to gain control of the
-same disk area at the same time.
+| HEX Code | DEC Code | Meaning |
+|-|-|-|
+| $F0 | 240 | UNIT ERROR—The specified device unit does not exist. |
+| $F1 | 241 | SECTOR ERROR—The specified sector number is out of range. |
+| $F2 | 242 | WRITE PROTECT—The specified device is write-protected. |
+| $F3 | 243 | CRC ERROR—A Cyclic Redundancy Code error occurred on a read or write verify. |
+| $F4 | 244 | READ ERROR—A data transfer error occurred during a disk read operation, or there is a SCN (terminal) input buffer overrun. |
+| $F5 | 245 | WRITE ERROR—An error occurred during a write operation. |
+| $F6 | 246 | NOT READY—The device specified has a _not ready_ status. |
+| $F7 | 247 | SEEK ERROR—The system attempted a seek operation on a non-existent sector. |
+| $F8 | 248 | MEDIA FULL—The specified media has insufficient free space for the operation. |
+| $F9 | 249 | WRONG TYPE—An attempt is made to read incompatible media (for instance an attempt to read double-side disk on single-side drive). |
+| $FA | 250 | DEVICE BUSY—A non-shareable device is in use. |
+| $FB | 251 | DISK ID CHANGE—You changed diskettes when one or more files are open. |
+| $FC | 252 | RECORD IS LOCKED-OUT—Another process is accessing the requested record. |
+| $FD | 253 | NON-SHAREABLE FILE BUSY—Another process is accessing the requested file. |
+| $FE | 254 | I/O DEADLOCK—Two processes have attempted to gain control of the same disk area at the same time. |
 
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-## F. VIRQ Example Code................................................................................................
+## F. VIRQ Example Code
 
 ```
 NOTE: The following code examples are incomplete and only used to illustrate
