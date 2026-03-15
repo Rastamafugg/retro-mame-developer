@@ -7401,3 +7401,420 @@ END
 
 900 ERROR(ERR)
 END
+
+PROCEDURE TSTMEMOPS
+(* ================================================== *)
+(* PROCEDURE: TSTMEMOPS                               *)
+(* PURPOSE:   Tests memEnsure and memRelease using   *)
+(*            real game modules.                     *)
+(*            Block 1: Baseline — modules not loaded *)
+(*            Block 2: Load snbSaveLoad via memEnsure*)
+(*            Block 3: Release snbSaveLoad           *)
+(*            Block 4: Second load/release cycle     *)
+(*            Block 5: snbMktScr with snbMktEng dep  *)
+(*            Block 6: Direct F$UnLoad/F$UnLink diag *)
+(* PRE:       SNB module resident (memEnsure and     *)
+(*            memRelease available). snbSaveLoad,    *)
+(*            snbMktScr, snbMktEng packed and        *)
+(*            attr e. snbSaveLoad NOT loaded at      *)
+(*            test start.                            *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs     : Register
+DIM callCode : BYTE
+DIM nameAddr : INTEGER
+DIM iCC      : INTEGER
+DIM chkMod   : STRING[20]
+DIM isRes    : BOOLEAN
+DIM expRes   : BOOLEAN
+DIM pNam     : STRING[20]
+DIM ok       : BOOLEAN
+DIM keepMods(8) : STRING[20]
+DIM passed   : INTEGER
+DIM failed   : INTEGER
+DIM testNum  : INTEGER
+
+ON ERROR GOTO 900
+
+passed  := 0
+failed  := 0
+testNum := 0
+
+PRINT "=== TSTMEMOPS ==="
+PRINT
+
+! =====================================================
+! Block 1: Baseline — modules not loaded
+! =====================================================
+PRINT "-- Block 1: Baseline --"
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbSaveLoad not resident at start"
+chkMod := "snbSaveLoad"
+expRes := FALSE
+GOSUB 100
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktScr not resident at start"
+chkMod := "snbMktScr"
+expRes := FALSE
+GOSUB 100
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktEng not resident at start"
+chkMod := "snbMktEng"
+expRes := FALSE
+GOSUB 100
+
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 2: Load snbSaveLoad via memEnsure
+! =====================================================
+PRINT "-- Block 2: Load snbSaveLoad --"
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": memEnsure(saveGame) ok=TRUE"
+pNam := "saveGame"
+RUN memEnsure(pNam, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbSaveLoad resident after memEnsure"
+chkMod := "snbSaveLoad"
+expRes := TRUE
+GOSUB 100
+
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 3: Release snbSaveLoad via memRelease
+! =====================================================
+PRINT "-- Block 3: Release snbSaveLoad --"
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": memRelease(saveGame) ok=TRUE"
+pNam := "saveGame"
+RUN memRelease(pNam, keepMods, 0, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbSaveLoad not resident after release"
+chkMod := "snbSaveLoad"
+expRes := FALSE
+GOSUB 100
+
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 4: Second load/release cycle
+! =====================================================
+PRINT "-- Block 4: Second load/release cycle --"
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": second memEnsure(saveGame) ok=TRUE"
+pNam := "saveGame"
+RUN memEnsure(pNam, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbSaveLoad resident (second load)"
+chkMod := "snbSaveLoad"
+expRes := TRUE
+GOSUB 100
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": second memRelease(saveGame) ok=TRUE"
+pNam := "saveGame"
+RUN memRelease(pNam, keepMods, 0, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbSaveLoad gone after second release"
+chkMod := "snbSaveLoad"
+expRes := FALSE
+GOSUB 100
+
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 5: snbMktScr with snbMktEng dep
+! =====================================================
+PRINT "-- Block 5: snbMktScr + snbMktEng dep --"
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": memEnsure(scrYearHdr) ok=TRUE"
+pNam := "scrYearHdr"
+RUN memEnsure(pNam, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktScr resident"
+chkMod := "snbMktScr"
+expRes := TRUE
+GOSUB 100
+RUN testWaitKey
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktEng resident as dep"
+chkMod := "snbMktEng"
+expRes := TRUE
+GOSUB 100
+RUN testWaitKey
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": memRelease(scrYearHdr) ok=TRUE"
+pNam := "scrYearHdr"
+RUN memRelease(pNam, keepMods, 0, ok)
+IF ok THEN
+  PRINT "PASS: ok=TRUE"
+  passed := passed + 1
+ELSE
+  PRINT "FAIL: ok=FALSE"
+  failed := failed + 1
+ENDIF
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktScr not resident after release"
+chkMod := "snbMktScr"
+expRes := FALSE
+GOSUB 100
+RUN testWaitKey
+
+testNum := testNum + 1
+PRINT "Test "; testNum; ": snbMktEng not resident after release"
+chkMod := "snbMktEng"
+expRes := FALSE
+GOSUB 100
+
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 6A: F$Load + 1x F$UnLoad + F$UnLink(hdrAddr)
+! =====================================================
+PRINT "-- Block 6A: Load / UnLoad / UnLink --"
+DIM hdrAddr : INTEGER
+pNam     := "snbSaveLoad"
+nameAddr := ADDR(pNam)
+callCode := $01 \ ! F$Load
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC      := regs.cc
+hdrAddr  := regs.u \ ! capture header address from F$Load
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$Load: succeeded  hdrAddr="; hdrAddr
+ELSE
+  PRINT "F$Load: failed (err "; regs.b; ")"
+ENDIF
+
+callCode := $1D \ ! F$UnLoad by name
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$UnLoad: succeeded"
+ELSE
+  PRINT "F$UnLoad: failed (err "; regs.b; ")"
+ENDIF
+
+callCode := $02 \ ! F$UnLink by header address
+regs.u   := hdrAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$UnLink: succeeded"
+ELSE
+  PRINT "F$UnLink: failed (err "; regs.b; ")"
+ENDIF
+
+chkMod := "snbSaveLoad"
+GOSUB 200
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 6B: F$Load + F$UnLink(hdrAddr) only
+! =====================================================
+PRINT "-- Block 6B: Load / UnLink only --"
+pNam     := "snbSaveLoad"
+nameAddr := ADDR(pNam)
+callCode := $01 \ ! F$Load
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC      := regs.cc
+hdrAddr  := regs.u
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$Load: succeeded  hdrAddr="; hdrAddr
+ELSE
+  PRINT "F$Load: failed (err "; regs.b; ")"
+ENDIF
+
+callCode := $02 \ ! F$UnLink by header address, no UnLoad first
+regs.u   := hdrAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$UnLink: succeeded"
+ELSE
+  PRINT "F$UnLink: failed (err "; regs.b; ")"
+ENDIF
+
+chkMod := "snbSaveLoad"
+GOSUB 200
+! cleanup if still resident
+callCode := $1D
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+callCode := $02
+regs.u   := hdrAddr
+RUN SysCall(callCode, regs)
+PRINT
+RUN testWaitKey
+
+! =====================================================
+! Block 6C: F$Load + 2x F$UnLoad, no F$UnLink
+! =====================================================
+PRINT "-- Block 6C: Load / UnLoad / UnLoad --"
+pNam     := "snbSaveLoad"
+nameAddr := ADDR(pNam)
+callCode := $01 \ ! F$Load
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC      := regs.cc
+hdrAddr  := regs.u
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$Load: succeeded  hdrAddr="; hdrAddr
+ELSE
+  PRINT "F$Load: failed (err "; regs.b; ")"
+ENDIF
+
+callCode := $1D \ ! F$UnLoad first
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$UnLoad 1: succeeded"
+ELSE
+  PRINT "F$UnLoad 1: failed (err "; regs.b; ")"
+ENDIF
+
+callCode := $1D \ ! F$UnLoad second
+regs.a   := 0
+regs.x   := nameAddr
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$UnLoad 2: succeeded"
+ELSE
+  PRINT "F$UnLoad 2: failed (err "; regs.b; ")"
+ENDIF
+
+chkMod := "snbSaveLoad"
+GOSUB 200
+! cleanup
+callCode := $02
+regs.u   := hdrAddr
+RUN SysCall(callCode, regs)
+PRINT
+RUN testWaitKey
+
+PRINT
+PRINT "=== SUMMARY ==="
+PRINT "Total:  "; testNum
+PRINT "Passed: "; passed
+PRINT "Failed: "; failed
+END
+
+100 \ ! GOSUB: F$Link residency check with PASS/FAIL.
+    ! Uses chkMod as target proc/module name.
+    ! Sets isRes; compares to expRes; reports result.
+    nameAddr := ADDR(chkMod)
+    callCode := $00 \ ! F$Link: test residency
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      isRes := TRUE
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+    ELSE
+      isRes := FALSE
+    ENDIF
+    IF isRes = expRes THEN
+      IF isRes THEN
+        PRINT "PASS: "; chkMod; " resident (expected)"
+      ELSE
+        PRINT "PASS: "; chkMod; " not resident (expected)"
+      ENDIF
+      passed := passed + 1
+    ELSE
+      IF isRes THEN
+        PRINT "FAIL: "; chkMod; " resident (unexpected)"
+      ELSE
+        PRINT "FAIL: "; chkMod; " not resident (unexpected)"
+      ENDIF
+      failed := failed + 1
+    ENDIF
+    RETURN
+
+200 \ ! GOSUB: F$Link residency report only; no pass/fail.
+    nameAddr := ADDR(chkMod)
+    callCode := $00 \ ! F$Link: test residency
+    regs.a   := 0
+    regs.x   := nameAddr
+    RUN SysCall(callCode, regs)
+    iCC := regs.cc
+    IF LAND(iCC, 1) = 0 THEN
+      PRINT "  "; chkMod; ": still resident"
+      callCode := $02 \ ! F$UnLink: undo test link
+      RUN SysCall(callCode, regs)
+    ELSE
+      PRINT "  "; chkMod; ": not resident"
+    ENDIF
+    RETURN
+
+900 PRINT "TSTMEMOPS error ("; ERR; ")"
+PRINT "Passed: "; passed; "  Failed: "; failed
+END

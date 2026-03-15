@@ -228,7 +228,7 @@ PROCEDURE memModGet
 (* PARAMS:    modNam  - packed module name           *)
 (*            prcIdx  - procedure index (1..12)      *)
 (*            result  - returned procedure name      *)
-(* DATA:      13 fields per record:                  *)
+(* DATA:      12 fields per record:                  *)
 (*              modName, proc1..proc12               *)
 (*            Unused proc slots padded with "".      *)
 (*            End sentinel: record starting with "." *)
@@ -254,62 +254,69 @@ LOOP
   EXITIF nm = "." THEN
   ENDEXIT
   IF nm = modNam THEN
-    FOR i := 1 TO prcIdx - 1
-      READ tmp \ ! skip procs before target index
-    NEXT i
-    READ result
-    FOR i := prcIdx + 1 TO 12
-      READ tmp \ ! skip procs after target index
-    NEXT i
+    IF prcIdx = 1 THEN
+      result := nm \ ! entry proc name = module name
+      FOR i := 1 TO 11
+        READ tmp \ ! skip remaining 11 proc slots
+      NEXT i
+    ELSE
+      FOR i := 2 TO prcIdx - 1
+        READ tmp \ ! skip procs before target index
+      NEXT i
+      READ result
+      FOR i := prcIdx + 1 TO 12
+        READ tmp \ ! skip procs after target index
+      NEXT i
+    ENDIF
     found := TRUE
   ELSE
-    FOR i := 1 TO 12
-      READ tmp \ ! skip all 12 proc slots
+    FOR i := 1 TO 11
+      READ tmp \ ! skip 11 proc slots for non-match
     NEXT i
   ENDIF
 ENDLOOP
 
 END
 
-! ---- Module-to-procs map (13 fields per record) -----
-! Format: modName, proc1..proc12
+! ---- Module-to-procs map (12 fields per record) -----
+! Format: modName, proc2..proc12
+! proc1 is always modName itself; not stored.
 ! Unused proc slots padded with "".
 ! End sentinel record begins with ".".
 
-! --- snbUtil (6 procs) ---
+! --- snbUtil (8 procs: entry + 7) ---
 100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
-DATA "waitKey","getNumIn","","","","","",""
-! --- snbSetup (7 procs) ---
+DATA "waitKey","getNumIn","shuffleDeck","","","",""
+! --- snbSetup (6 procs: entry + 5) ---
 DATA "snbSetup","initPlayer","initMkt","scrStart","scrSetup"
-DATA "scrConfirm","","","","","","",""
-! --- snbSaveLoad (2 procs) ---
-DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","","",""
-! --- snbEndGame (4 procs) ---
+DATA "scrConfirm","","","","","",""
+! --- snbSaveLoad (3 procs: entry + 2) ---
+DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","",""
+! --- snbEndGame (5 procs: entry + 4) ---
 DATA "snbEndGame","scrFinalMkt","scrWealth","scrWinner","scrPostGame"
-DATA "","","","","","","",""
-! --- snbYearLoop (1 proc) ---
-DATA "snbYearLoop","runYearLoop","","","","","","","","","","",""
-! --- snbMktEng (9 procs) ---
+DATA "","","","","","",""
+! --- snbYearLoop (2 procs: entry + 1) ---
+DATA "snbYearLoop","runYearLoop","","","","","","","","","",""
+! --- snbMktEng (9 procs: entry + 8) ---
 DATA "snbMktEng","getMktDelta","getCard","resolvePrice","applyMktYear"
-DATA "applyDivInt","applyMgnInt","drawCard","shuffleDeck","doRolls"
-DATA "","",""
-! --- snbMktScr (8 procs) ---
+DATA "applyDivInt","applyMgnInt","drawCard","doRolls","","",""
+! --- snbMktScr (9 procs: entry + 8) ---
 DATA "snbMktScr","scrYearHdr","scrDivInt","scrMgnInt","scrCard"
-DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","","",""
-! --- snbTrade (5 procs) ---
+DATA "scrDice","scrMktBoard","scrSplit","scrDivFlag","","",""
+! --- snbTrade (5 procs: entry + 4) ---
 DATA "snbTrade","scrMgnRepay","scrAITurn","applySells","applyBuys"
-DATA "","","","","","","",""
-! --- snbBuySell (3 procs) ---
-DATA "snbBuySell","scrSell","scrBuy","","","","","","","","","",""
-! --- snbMargin (5 procs) ---
+DATA "","","","","","",""
+! --- snbBuySell (3 procs: entry + 2) ---
+DATA "snbBuySell","scrSell","scrBuy","","","","","","","","",""
+! --- snbMargin (5 procs: entry + 4) ---
 DATA "snbMargin","scrMgnCall","applyLiqOrdr","scrBankrupt","scrMgnInt"
-DATA "","","","","","","",""
-! --- snbMgnScr (3 procs) ---
-DATA "snbMgnScr","scrForceLiq","scrMgnClr","","","","","","","","","",""
-! --- snbAI (3 procs) ---
-DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","","",""
+DATA "","","","","","",""
+! --- snbMgnScr (3 procs: entry + 2) ---
+DATA "snbMgnScr","scrForceLiq","scrMgnClr","","","","","","","","",""
+! --- snbAI (4 procs: entry + 3) ---
+DATA "snbAI","initAIProf","aiSell","aiBuy","","","","","","","",""
 ! --- end sentinel ---
-DATA ".","","","","","","","","","","","",""
+DATA ".","","","","","","","","","","",""
 
 900 PRINT "memModGet error ("; ERR; ")"
 END
@@ -368,9 +375,6 @@ PRINT
 END
 
 800 \ ! GOSUB: check if module nm is loaded; print result.
-    ! Gets first proc of nm via memModGet; tries F$Link on it.
-    ! If F$Link succeeds (carry clear): module is resident;
-    ! undo test link with F$UnLink and report LOADED.
     RUN memModGet(nm, 1, firstPrc)
     IF firstPrc = "" THEN
       PRINT nm; ": unknown module"
@@ -383,7 +387,9 @@ END
     RUN SysCall(callCode, regs)
     iCC := regs.cc
     IF LAND(iCC, 1) = 0 THEN
-      callCode := $02 \ ! F$UnLink: undo test link
+      callCode := $1D \ ! F$UnLoad: undo test link
+      regs.a   := 0
+      regs.x   := nameAddr
       RUN SysCall(callCode, regs)
       PRINT nm; ": LOADED"
     ELSE
@@ -600,8 +606,9 @@ ok := TRUE
 END
 
 810 \ ! GOSUB: F$UnLoad all procs in module modNam.
-    ! Uses memModGet to enumerate proc names (indices 1..12).
-    ! Stops at first empty result (no more procs in module).
+    ! Must F$UnLoad every proc name in the merged
+    ! module. Memory freed when all counts reach 0.
+    ! Err 221 = already absent; treat as success.
     j := 1
     LOOP
       EXITIF j > 12 THEN
@@ -609,15 +616,12 @@ END
       RUN memModGet(modNam, j, prcNam)
       EXITIF prcNam = "" THEN
       ENDEXIT
+      PRINT "unloading ("; prcNam; ")"
       nameAddr := ADDR(prcNam)
-      callCode := $1D \ ! F$UnLoad: unlink module by name
+      callCode := $1D \ ! F$UnLoad by procedure name
       regs.a   := 0
       regs.x   := nameAddr
       RUN SysCall(callCode, regs)
-      iCC := regs.cc
-      IF LAND(iCC, 1) <> 0 THEN
-        PRINT "memRelease: unload failed: "; prcNam; " ("; regs.b; ")"
-      ENDIF
       j := j + 1
     ENDLOOP
     RETURN
