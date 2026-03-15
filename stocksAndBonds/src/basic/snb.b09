@@ -73,9 +73,32 @@ END
 900 PRINT "SNB error ("; ERR; ")"
 END
 
-PROCEDURE memMapGet
+PROCEDURE checkVerbose
 (* ================================================== *)
-(* PROCEDURE: memMapGet                               *)
+(* PROCEDURE: checkVerbose                            *)
+(* PURPOSE:   Return TRUE if sentinel file snbvbose  *)
+(*            exists in the current directory.        *)
+(*            Mem* procedures use this to gate trace *)
+(*            output. Create/delete snbvbose on the  *)
+(*            device to toggle verbose mode.          *)
+(* PARAMS:    isVbose - TRUE if verbose mode active  *)
+(* ================================================== *)
+PARAM isVbose : BOOLEAN
+DIM vPath : BYTE
+DIM vName : STRING[20]
+
+!isVbose := FALSE
+!vName   := "snbvbose"
+
+ON ERROR GOTO 50
+!OPEN #vPath, vName: READ
+!CLOSE #vPath
+isVbose := TRUE
+50 END
+
+PROCEDURE memMapGet
+(* ================================================= *)
+(* PROCEDURE: memMapGet                              *)
 (* PURPOSE:   Look up a procedure in the memory map. *)
 (*            depIdx=0: returns name of the packed   *)
 (*            module this procedure resides in.      *)
@@ -83,13 +106,12 @@ PROCEDURE memMapGet
 (*            dependency of that module. Returns ""  *)
 (*            if procedure not found or no Nth dep.  *)
 (* PARAMS:    procNam - procedure name to look up    *)
-(*            depIdx  - 0=own module, 1..8=Nth dep   *)
-(*            result  - returned module name or ""   *)
-(* DATA:      10 fields/record:                      *)
-(*              procName, modName, dep1..dep8        *)
+(*            depIdx=1..10: returns the Nth module   *)
+(* DATA:      12 fields/record:                      *)
+(*              procName, modName, dep1..dep10       *)
 (*            Unused dep slots padded with "".       *)
 (*            End sentinel: record starting with "." *)
-(* ================================================== *)
+(* ================================================= *)
 PARAM procNam : STRING[20]
 PARAM depIdx  : INTEGER
 PARAM result  : STRING[20]
@@ -113,7 +135,7 @@ LOOP
   IF nm = procNam THEN
     IF depIdx = 0 THEN
       READ result
-      FOR i := 1 TO 8
+      FOR i := 1 TO 10
         READ tmp
       NEXT i
     ELSE
@@ -122,13 +144,13 @@ LOOP
         READ tmp \ ! skip deps before target index
       NEXT i
       READ result
-      FOR i := depIdx + 1 TO 8
+      FOR i := depIdx + 1 TO 10
         READ tmp \ ! skip deps after target index
       NEXT i
     ENDIF
     found := TRUE
   ELSE
-    FOR i := 1 TO 9
+    FOR i := 1 TO 11
       READ tmp \ ! skip remaining 9 fields of non-matching record
     NEXT i
   ENDIF
@@ -136,80 +158,81 @@ ENDLOOP
 
 END
 
-! ---- Proc-to-module map (10 fields per record) ------
-! Format: procName, moduleName, modDep1..modDep8
+! ---- Proc-to-module map (12 fields per record) ------
+! Format: procName, moduleName, modDep1..modDep10
 ! modDep fields list the packed modules that the
 ! procedure's own module depends on at runtime.
 ! Unused dep slots are padded with "".
 ! End sentinel record begins with ".".
 
 ! --- snbUtil (no deps) ---
-100 DATA "clrScr","snbUtil","","","","","","","",""
-DATA "printAt","snbUtil","","","","","","","",""
-DATA "fmtMoney","snbUtil","","","","","","","",""
-DATA "getMenuKey","snbUtil","","","","","","","",""
-DATA "waitKey","snbUtil","","","","","","","",""
-DATA "getNumIn","snbUtil","","","","","","","",""
+100 DATA "clrScr","snbUtil","","","","","","","","","",""
+DATA "printAt","snbUtil","","","","","","","","","",""
+DATA "fmtMoney","snbUtil","","","","","","","","","",""
+DATA "getMenuKey","snbUtil","","","","","","","","","",""
+DATA "waitKey","snbUtil","","","","","","","","","",""
+DATA "getNumIn","snbUtil","","","","","","","","","",""
 ! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
-DATA "snbSetup","snbSetup","snbUtil","snbSaveLoad","","","","","",""
-DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","",""
-DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","",""
-DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","",""
-DATA "scrSetup","snbSetup","snbUtil","snbSaveLoad","","","","","",""
-DATA "scrConfirm","snbSetup","snbUtil","snbSaveLoad","","","","","",""
+DATA "snbSetup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "scrSetup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "scrConfirm","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
 ! --- snbSaveLoad (deps: snbUtil) ---
-DATA "saveGame","snbSaveLoad","snbUtil","","","","","","",""
-DATA "loadGame","snbSaveLoad","snbUtil","","","","","","",""
+DATA "saveGame","snbSaveLoad","snbUtil","","","","","","","","",""
+DATA "loadGame","snbSaveLoad","snbUtil","","","","","","","","",""
 ! --- snbEndGame (deps: snbUtil) ---
-DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","",""
-DATA "scrWealth","snbEndGame","snbUtil","","","","","","",""
-DATA "scrWinner","snbEndGame","snbUtil","","","","","","",""
-DATA "scrPostGame","snbEndGame","snbUtil","","","","","","",""
-! --- snbYearLoop (deps: all operational modules) ---
-! Record spans two DATA lines; 5 fields each = 10 total.
+DATA "scrFinalMkt","snbEndGame","snbUtil","","","","","","","","",""
+DATA "scrWealth","snbEndGame","snbUtil","","","","","","","","",""
+DATA "scrWinner","snbEndGame","snbUtil","","","","","","","","",""
+DATA "scrPostGame","snbEndGame","snbUtil","","","","","","","","",""
+! --- snbYearLoop (deps: all 10 operational modules) ---
+! Record spans three DATA lines; 5+5+2 fields = 12 total.
 DATA "runYearLoop","snbYearLoop","snbUtil","snbMktEng","snbMktScr"
 DATA "snbTrade","snbMargin","snbAI","snbEndGame","snbSaveLoad"
+DATA "snbBuySell","snbMgnScr"
 ! --- snbMktEng (deps: snbUtil) ---
-DATA "getMktDelta","snbMktEng","snbUtil","","","","","","",""
-DATA "getCard","snbMktEng","snbUtil","","","","","","",""
-DATA "resolvePrice","snbMktEng","snbUtil","","","","","","",""
-DATA "applyMktYear","snbMktEng","snbUtil","","","","","","",""
-DATA "applyDivInt","snbMktEng","snbUtil","","","","","","",""
-DATA "applyMgnInt","snbMktEng","snbUtil","","","","","","",""
-DATA "drawCard","snbMktEng","snbUtil","","","","","","",""
-DATA "shuffleDeck","snbMktEng","snbUtil","","","","","","",""
-DATA "doRolls","snbMktEng","snbUtil","","","","","","",""
+DATA "getMktDelta","snbMktEng","snbUtil","","","","","","","","",""
+DATA "getCard","snbMktEng","snbUtil","","","","","","","","",""
+DATA "resolvePrice","snbMktEng","snbUtil","","","","","","","","",""
+DATA "applyMktYear","snbMktEng","snbUtil","","","","","","","","",""
+DATA "applyDivInt","snbMktEng","snbUtil","","","","","","","","",""
+DATA "applyMgnInt","snbMktEng","snbUtil","","","","","","","","",""
+DATA "drawCard","snbMktEng","snbUtil","","","","","","","","",""
+DATA "shuffleDeck","snbMktEng","snbUtil","","","","","","","","",""
+DATA "doRolls","snbMktEng","snbUtil","","","","","","","","",""
 ! --- snbMktScr (deps: snbUtil, snbMktEng) ---
-DATA "scrYearHdr","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrDivInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrMgnInt","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrCard","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrDice","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrMktBoard","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","",""
-DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","",""
+DATA "scrYearHdr","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrDivInt","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrMgnInt","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrCard","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrDice","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrMktBoard","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrSplit","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
+DATA "scrDivFlag","snbMktScr","snbUtil","snbMktEng","","","","","","","",""
 ! --- snbTrade (deps: snbUtil) ---
-DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","",""
-DATA "scrAITurn","snbTrade","snbUtil","","","","","","",""
-DATA "applySells","snbTrade","snbUtil","","","","","","",""
-DATA "applyBuys","snbTrade","snbUtil","","","","","","",""
+DATA "scrMgnRepay","snbTrade","snbUtil","","","","","","","","",""
+DATA "scrAITurn","snbTrade","snbUtil","","","","","","","","",""
+DATA "applySells","snbTrade","snbUtil","","","","","","","","",""
+DATA "applyBuys","snbTrade","snbUtil","","","","","","","","",""
 ! --- snbBuySell (deps: snbUtil) ---
-DATA "scrSell","snbBuySell","snbUtil","","","","","","",""
-DATA "scrBuy","snbBuySell","snbUtil","","","","","","",""
+DATA "scrSell","snbBuySell","snbUtil","","","","","","","","",""
+DATA "scrBuy","snbBuySell","snbUtil","","","","","","","","",""
 ! --- snbMargin (deps: snbUtil, snbTrade) ---
-DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","",""
-DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","",""
-DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","",""
-DATA "scrMgnInt","snbMargin","snbUtil","snbTrade","","","","","",""
+DATA "scrMgnCall","snbMargin","snbUtil","snbTrade","","","","","","","",""
+DATA "applyLiqOrdr","snbMargin","snbUtil","snbTrade","","","","","","","",""
+DATA "scrBankrupt","snbMargin","snbUtil","snbTrade","","","","","","","",""
+DATA "scrMgnInt","snbMargin","snbUtil","snbTrade","","","","","","","",""
 ! --- snbMgnScr (deps: snbUtil, snbTrade) ---
-DATA "scrForceLiq","snbMgnScr","snbUtil","snbTrade","","","","","",""
-DATA "scrMgnClr","snbMgnScr","snbUtil","snbTrade","","","","","",""
+DATA "scrForceLiq","snbMgnScr","snbUtil","snbTrade","","","","","","","",""
+DATA "scrMgnClr","snbMgnScr","snbUtil","snbTrade","","","","","","","",""
 ! --- snbAI (deps: snbUtil) ---
-DATA "initAIProf","snbAI","snbUtil","","","","","","",""
-DATA "aiSell","snbAI","snbUtil","","","","","","",""
-DATA "aiBuy","snbAI","snbUtil","","","","","","",""
+DATA "initAIProf","snbAI","snbUtil","","","","","","","","",""
+DATA "aiSell","snbAI","snbUtil","","","","","","","","",""
+DATA "aiBuy","snbAI","snbUtil","","","","","","","","",""
 ! --- end sentinel ---
-DATA ".",".",  "","","","","","","",""
+DATA ".",".",  "","","","","","","","","",""
 
 900 PRINT "memMapGet error ("; ERR; ")"
 END
@@ -446,8 +469,15 @@ DIM callCode : BYTE
 DIM nameAddr : INTEGER
 DIM iCC      : INTEGER
 DIM i        : INTEGER
+DIM verbose  : BOOLEAN
+DIM k:STRING[1]
 
 ON ERROR GOTO 900
+
+RUN checkVerbose(verbose)
+IF verbose THEN
+  PRINT "memEnsure: begin "; procNam
+ENDIF
 
 ok := TRUE
 
@@ -464,16 +494,20 @@ GOSUB 800
 IF NOT ok THEN END
 ENDIF
 
-! Load each module dependency (depIdx 1..8)
+! Load each module dependency (depIdx 1..10)
 i := 1
 LOOP
-  EXITIF i > 8 THEN
+  EXITIF i > 10 THEN
   ENDEXIT
   RUN memMapGet(procNam, i, depNam)
   EXITIF depNam = "" THEN
   ENDEXIT
   pNam := depNam
   GOSUB 800
+        
+  PRINT "Press any key to continue...";
+  GET #0, k
+
   EXITIF NOT ok THEN
   ENDEXIT
   i := i + 1
@@ -482,25 +516,44 @@ ENDLOOP
 ok := TRUE
 END
 
-800 \ ! GOSUB: ensure pNam is resident.
-    ! F$Link: if already in memory, keep that link. Done.
-    ! F$Load: if not in memory, load from disk.
-    ! On F$Load failure: set ok=FALSE; caller aborts.
+800 \ ! GOSUB: load module pNam if not already resident.
+    ! F$Link tests residency. Carry clear = resident;
+    ! immediately F$UnLink to undo test link.
+    ! Carry set = not resident; issue F$Load.
+    IF verbose THEN
+      PRINT "memEns: F$Link "; pNam
+    ENDIF
     nameAddr := ADDR(pNam)
-    callCode := $00 \ ! F$Link: attempt to link by name
+    callCode := $00 \ ! F$Link: check residency by name
     regs.a   := 0
     regs.x   := nameAddr
     RUN SysCall(callCode, regs)
     iCC := regs.cc
-    IF LAND(iCC, 1) <> 0 THEN
-      callCode := $01 \ ! F$Load: not resident; load from disk
+    IF verbose THEN
+      PRINT "  cc="; iCC; " carry="; LAND(iCC, 1)
+    ENDIF
+    IF LAND(iCC, 1) = 0 THEN
+      IF verbose THEN
+        PRINT "  "; pNam; ": resident, skipping load"
+      ENDIF
+    ELSE
+      IF verbose THEN
+        PRINT "  "; pNam; ": not resident, F$Load"
+      ENDIF
+      callCode := $01 \ ! F$Load: load from disk
       regs.a   := 0
       regs.x   := nameAddr
       RUN SysCall(callCode, regs)
       iCC := regs.cc
+      IF verbose THEN
+        PRINT "  F$Load cc="; iCC; " carry="; LAND(iCC, 1)
+      ENDIF
       IF LAND(iCC, 1) <> 0 THEN
-        PRINT "memEnsure: load failed: "; pNam
-        ok := FALSE
+        PRINT "memEnsure: load failed: "; pNam; " error code: "; regs.b
+      ELSE
+        IF verbose THEN
+          PRINT "  "; pNam; ": F$Load OK"
+        ENDIF
       ENDIF
     ENDIF
     RETURN
@@ -549,8 +602,15 @@ DIM iCC      : INTEGER
 DIM i        : INTEGER
 DIM j        : INTEGER
 DIM keep     : BOOLEAN
+DIM verbose  : BOOLEAN
+DIM k:STRING[1]
 
 ON ERROR GOTO 900
+
+RUN checkVerbose(verbose)
+IF verbose THEN
+  PRINT "memRelease: begin "; procNam
+ENDIF
 
 ok := FALSE
 
@@ -575,14 +635,21 @@ FOR i := 1 TO keepCnt
   ENDIF
 NEXT i
 IF NOT keep THEN
+  IF verbose THEN
+    PRINT "memRel: releasing "; ownMod
+  ENDIF
   modNam := ownMod
   GOSUB 810
+ELSE
+  IF verbose THEN
+    PRINT "memRel: keeping "; ownMod
+  ENDIF
 ENDIF
 
 ! Process each module dependency
 i := 1
 LOOP
-  EXITIF i > 8 THEN
+  EXITIF i > 10 THEN
   ENDEXIT
   RUN memMapGet(procNam, i, depNam)
   EXITIF depNam = "" THEN
@@ -595,8 +662,19 @@ LOOP
       ENDIF
     NEXT j
     IF NOT keep THEN
+      IF verbose THEN
+        PRINT "memRel: releasing dep "; depNam
+      ENDIF
       modNam := depNam
       GOSUB 810
+
+      PRINT "Press any key to continue...";
+      GET #0, k
+
+    ELSE
+      IF verbose THEN
+        PRINT "memRel: keeping dep "; depNam
+      ENDIF
     ENDIF
   ENDIF
   i := i + 1
@@ -606,9 +684,9 @@ ok := TRUE
 END
 
 810 \ ! GOSUB: F$UnLoad all procs in module modNam.
-    ! Must F$UnLoad every proc name in the merged
-    ! module. Memory freed when all counts reach 0.
-    ! Err 221 = already absent; treat as success.
+    IF verbose THEN
+      PRINT "memRel: unload mod "; modNam
+    ENDIF
     j := 1
     LOOP
       EXITIF j > 12 THEN
@@ -616,12 +694,18 @@ END
       RUN memModGet(modNam, j, prcNam)
       EXITIF prcNam = "" THEN
       ENDEXIT
-      PRINT "unloading ("; prcNam; ")"
+      IF verbose THEN
+        PRINT "  F$UnLoad "; prcNam
+      ENDIF
       nameAddr := ADDR(prcNam)
-      callCode := $1D \ ! F$UnLoad by procedure name
+      callCode := $1D \ ! F$UnLoad: unlink module by name
       regs.a   := 0
       regs.x   := nameAddr
       RUN SysCall(callCode, regs)
+      IF verbose THEN
+        iCC := regs.cc
+        PRINT "    cc="; iCC; " carry="; LAND(iCC, 1)
+      ENDIF
       j := j + 1
     ENDLOOP
     RETURN
