@@ -2700,6 +2700,8 @@ Following is a summary of the System Mode Calls referenced in this chapter:
 - All alarms begin at the start of a minute and any seconds in the packet are ignored.
 - The system is currently limited to one alarm at a time.
 
+---
+
 #### **Allocate Bits**
 
 **Sets bits in an allocation bit map**
@@ -2725,6 +2727,8 @@ Following is a summary of the System Mode Calls referenced in this chapter:
 
 - Bit numbers range from 0 to _n_ -1, where _n_ is the number of bits in the allocation bit map.
 - **Warning** : Do not issue the Allocate Bits call with Register Y set to 0 (a bit count of 0).
+
+---
 
 #### **Allocate RAM**
 
@@ -2754,6 +2758,8 @@ Following is a summary of the System Mode Calls referenced in this chapter:
 
 - The support module for this system call is **Krn**.
 - This call searches starting at the lowest RAM address.
+
+---
 
 #### **Chain**
 
@@ -2819,9 +2825,11 @@ Registers Y and U (the top-of-memory and bottom-of-memory pointers, respectively
 
 (For more information, see the Fork system call.)
 
-#### **Clear**
+---
 
-**Specified Block Marks blocks in the process DAT image as unallocated
+#### **Clear Specified Block**
+
+**Marks blocks in the process DAT image as unallocated
 | | | | |
 |-|-|-|-|
 | OS9 | F$ClrBlk | 103F | 50 |
@@ -2846,1164 +2854,1170 @@ None
 - After Clear Specified Block deallocates blocks, the blocks are free for the process to use for other data or program areas. If the block address passed to Clear Specified Block is invalid or if the call attempts to clear the stack area, returns E$IBA (Illegal Block Address).
 - The support module for the call is KrnP2.
 
-**Compare Names Compares two strings for a match**
+---
 
-**OS9 F$CmpNam 103F 11**
+#### **Compare Names**
+
+**Compares two strings for a match**
+| | | | |
+|-|-|-|-|
+| OS9 | F$CmpNam | 103F | 11 |
 
 **Entry Conditions**
-B _length of string1_
-X _address of string1_
-Y _address of string2_
+| | |
+|-|-|
+| B | *length of string1* |
+| X | *address of string1* |
+| Y | *address of string2* |
 
 **Exit Conditions**
-CC carry clear if the strings match
+| | |
+|-|-|
+| CC | carry clear if the strings match |
 
 **Additional Information**
 
-- The Compare Names call compares two strings and indicates whether they match.
-    Use this call with the Parse Name system call. The second string must have the
-    most significant bit (Bit 7) of the last character set.
+* The Compare Names call compares two strings and indicates whether they match. Use this call with the Parse Name system call. The second string must have the most significant bit (Bit 7) of the last character set.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Copy External Memory Reads external memory into the user’s
-buffer for inspection
-OS9 F$CpyMem 103F 1B**
+#### **Copy External Memory**
+
+**Reads external memory into the user’s buffer for inspection**
+| | | | |
+|-|-|-|-|
+| OS9 | F$CpyMem | 103F | 1B |
 
 **Entry Conditions**
-D _DAT image pointer_
-X _offset in block to begin copy_
-Y _byte count_
-U _caller’s destination buffer_
+| | |
+|-|-|
+| D | *DAT image pointer* |
+| X | *offset in block to begin copy* |
+| Y | *byte count* |
+| U | *caller’s destination buffer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- You can view any system memory through the use of the Copy External Memory
-    call. The call assumes Register X is the address of the 64K address space described
-    by the DAT image given.
-- If you pass the entire DAT image of a process, place a value in Register X that
-    equals the address in the process space. If you pass a partial DAT image (the
-    upper half), place a value in Register X that equals the offset from the beginning
-    of the DAT image ($8000).
-- The support module for this call is KrnP2.
+* You can view any system memory through the use of the Copy External Memory call. The call assumes Register X is the address of the 64K address space described by the DAT image given.
+* If you pass the entire DAT image of a process, place a value in Register X that equals the address in the process space. If you pass a partial DAT image (the upper half), place a value in Register X that equals the offset from the beginning of the DAT image ($8000).
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**CRC Calculates the CRC of a module**
+#### **CRC**
 
-**OS9 F$CRC 103F 17**
+**Calculates the CRC of a module**
+| | | | |
+|-|-|-|-|
+| OS9 | F$CRC | 103F | 17 |
 
 **Entry Conditions**
-X _starting byte address_
-Y _number of bytes_
-U _address of the 3-byte CRC accumulator_
+| | |
+|-|-|
+| X | *starting byte address* |
+| Y | *number of bytes* |
+| U | *address of the 3-byte CRC accumulator* |
 
 **Exit Conditions**
+
 Updates the CRC accumulator.
 
 **Additional Information**
 
-- The CRC call calculates the CRC (cyclic redundancy count) for use by compilers,
-    assemblers, or other module generators.
-- The calculation begins at the _starting byte address_ and continues over the
-    specified _number of bytes_.
-- You need not cover an entire module in one call since the CRC can be
-    accumulated over several calls. The CRC accumulator can be any 3-byte memory
-    area. You must initialize it to $FFFFFF before the first CRC call.
-       - F$CRC can be used to both create a new CRC, or to verify an existing one. If
-          you are verifying an existing one, the calculation should be performed on
-          the entire module (including the header and CRC itself). The CRC
-          accumulator will contain the CRC constant bytes ($800FE3) if the module
-          CRC is correct.
-       - If the CRC of a new module is to be generated, the CRC is accumulated over
-          the module (excluding the CRC itself).
-- The updated accumulator does not include the last three bytes of the module.
-    The three CRC bytes are stored there.
-- Be sure to initialize the CRC accumulator only once for each module check by CRC.
+* The CRC call calculates the CRC (cyclic redundancy count) for use by compilers, assemblers, or other module generators.
+* The calculation begins at the *starting byte address* and continues over the specified *number of bytes*.
+* You need not cover an entire module in one call since the CRC can be accumulated over several calls. The CRC accumulator can be any 3-byte memory area. You must initialize it to $FFFFFF before the first CRC call.
+    * F$CRC can be used to both create a new CRC, or to verify an existing one. If you are verifying an existing one, the calculation should be performed on the entire module (including the header and CRC itself). The CRC accumulator will contain the CRC constant bytes ($800FE3) if the module CRC is correct.
+    * If the CRC of a new module is to be generated, the CRC is accumulated over the module (excluding the CRC itself).
+* The updated accumulator does not include the last three bytes of the module. The three CRC bytes are stored there.
+* Be sure to initialize the CRC accumulator only once for each module check by CRC.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**CRC Module Checking Reports or turns module CRC checking
-ON or OFF
-OS9 F$CRCMod 103F 55**
+#### **CRC Module Checking**
+
+**Reports or turns module CRC checking ON or OFF**
+| | | | |
+|-|-|-|-|
+| OS9 | F$CRCMod | 103F | 55 |
 
 **Entry Conditions**
-A _starting byte address
-A=0 : Report current module CRC checking mode
-A=1 : Turn module CRC checking OFF
-A=2 : Turn module CRC checking ON_
+| | |
+|-|-|
+| A | *starting byte address* |
+| | A=0 : Report current module CRC checking mode |
+| | A=1 : Turn module CRC checking OFF |
+| | A=2 : Turn module CRC checking ON |
+
 **Exit Conditions**
-A 0=Module CRC checking is OFF, 1=Module CRC checking is ON
+| | |
+|-|-|
+| A | 0=Module CRC checking is OFF, 1=Module CRC checking is ON |
 
 **Error Output**
+
 None
 
 **Additional Information**
 
-- Module CRC checking (to check for a corrupted module) currently defaults to OFF
-    on boot (in NitrOS-9; OS-9 level 2 *always* has CRC checking ON). The default can
-    be changed in the the INIT module in the OS9Boot file. Enabling it will slow down
-    the launch of programs, sometimes taking a few seconds extra for large ones.
-- This call is handled by **KrnP2.**
-- **This call was added in NitrOS-9 Level 2.**
+* Module CRC checking (to check for a corrupted module) currently defaults to OFF on boot (in NitrOS-9; OS-9 level 2 *always* has CRC checking ON). The default can be changed in the the INIT module in the OS9Boot file. Enabling it will slow down the launch of programs, sometimes taking a few seconds extra for large ones.
+* This call is handled by **KrnP2.**
+* **This call was added in NitrOS-9 Level 2.**
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Debug (Reboot) Reboots the Coco to Disk BASIC (for
-debugging)
-OS9 F$Debug 103F 23**
+#### **Debug (Reboot)**
+
+**Reboots the Coco to Disk BASIC (for debugging)**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Debug | 103F | 23 |
 
 **Entry Conditions**
-A function ($FF=Reboot to BASIC. $00-$FE reserved for future use).
+| | |
+|-|-|
+| A | function ($FF=Reboot to BASIC. $00-$FE reserved for future use). |
 
 **Exit Conditions**
+
 None. The system exits NitrOS-9, and returns to BASIC.
 
-**Error Output:**
-CC Carry set on error
-B Error code (if any)
+**Error Output**
+| | |
+|-|-|
+| CC | Carry set on error |
+| B | Error code (if any) |
 
 **Additional Information**
 
-- Currently, only the function $FF (Reboot to DECB) is supported. Any memory
-    outside of BASIC’s initialization is left alone, making it useful for debugging
-    purposes. Also useful for rebooting under software control, versus the RESET
-    button.
-- The calling process also must be either the system task, or the Superuser (User 0).
-    All other users will received Error $D0 (208 – Unknown Service Request)
-- This call is handled by **KrnP2.**
-- **This call was added in NitrOS-9 Level 2.**
+* Currently, only the function $FF (Reboot to DECB) is supported. Any memory outside of BASIC’s initialization is left alone, making it useful for debugging purposes. Also useful for rebooting under software control, versus the RESET button.
+* The calling process also must be either the system task, or the Superuser (User 0). All other users will received Error $D0 (208 – Unknown Service Request)
+* This call is handled by **KrnP2.**
+* **This call was added in NitrOS-9 Level 2.**
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Deallocate Bits Clears allocation map bits**
+#### **Deallocate Bits**
 
-**OS9 F$DelBit 103F 14**
+**Clears allocation map bits**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DelBit | 103F | 14 |
 
 **Entry Conditions**
-D _number of the first bit to clear_
-X _starting address of the allocation bit map_
-Y _number of bits to clear_
+| | |
+|-|-|
+| D | *number of the first bit to clear* |
+| X | *starting address of the allocation bit map* |
+| Y | *number of bits to clear* |
 
 **Exit Conditions**
+
 None
 
 **Additional Information**
 
-- The Deallocate Bits call clears bits in the allocation bit map pointed to by Register
-    X. Bit numbers are in the range 0 to _n_ -1, where _n_ is the number of bits in the
-    allocation bit map.
-- **Warning** : Do not call Deallocate Bits with Register Y set to zero (a bit count of
-    zero).
+* The Deallocate Bits call clears bits in the allocation bit map pointed to by Register X. Bit numbers are in the range 0 to *n* -1, where *n* is the number of bits in the allocation bit map.
+* **Warning**: Do not call Deallocate Bits with Register Y set to zero (a bit count of zero).
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Deallocate RAM blocks Clears a block’s RAM In Use flag in the
-system memory block map
-OS9 F$DelRAM 103F 51**
+#### **Deallocate RAM blocks**
+
+**Clears a block’s RAM In Use flag in the system memory block map**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DelRAM | 103F | 51 |
 
 **Entry Conditions**
-B _number of blocks_
-X _starting block number_
+| | |
+|-|-|
+| B | *number of blocks* |
+| X | *starting block number* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
 **Additional Information**
 
-- The Deallocate RAM Blocks call assumes the blocks being deallocated are not
-    associated with any DAT image.
-- The support module for this call is KrnP2.
+* The Deallocate RAM Blocks call assumes the blocks being deallocated are not associated with any DAT image.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Exit Terminates the calling process**
+#### **Exit**
 
-**OS9 F$Exit 103F 06**
+**Terminates the calling process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Exit | 103F | 06 |
 
 **Entry Conditions**
-CC _Carry bit clear if no error_
-B S _tatus code to return to the parent process_
+| | |
+|-|-|
+| CC | *Carry bit clear if no error* |
+| B | *Status code to return to the parent process* |
 
-```
-CC Carry bit set if error
-B Error code to return to the parent process
-```
+|  |  |
+| --- | --- |
+| CC | Carry bit set if error |
+| B | Error code to return to the parent process |
+
 **Exit Conditions**
+
 The process is terminated.
 
 **Additional Information**
 
-- The Exit system call is the only way a process can terminate itself. Exit deallocates
-    the process’s data memory area and unlinks the process’s primary module. It also
-    closes all open paths automatically.
-- The Wait system call always returns to the parent the status code passed by the
-    child in its Exit call. Therefore, if the parent executes a Wait and receives the
-    status code, it knows the child has died.
-- Exit unlinks only the primary module. Unlink any module that is loaded or linked
-    to by the process before calling Exit.
+* The Exit system call is the only way a process can terminate itself. Exit deallocates the process’s data memory area and unlinks the process’s primary module. It also closes all open paths automatically.
+* The Wait system call always returns to the parent the status code passed by the child in its Exit call. Therefore, if the parent executes a Wait and receives the status code, it knows the child has died.
+* Exit unlinks only the primary module. Unlink any module that is loaded or linked to by the process before calling Exit.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Fork Creates a child process**
+#### **Fork**
 
-**OS9 F$Fork 103F 03**
+**Creates a child process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Fork | 103F | 03 |
 
 **Entry Conditions**
-A _language/type code ($00 = any language/type)_
-B _size of the optional data area_ (in pages)
-X _address of the module name or filename (can be CR, NUL or hi-bit
-terminated)_
-Y _size of the parameter area_ (in pages); defaults to zero if not specified
-U _starting address of the parameter area_ ; must be at least one page
+| | |
+|-|-|
+| A | *language/type code ($00 = any language/type)* |
+| B | *size of the optional data area* (in pages) |
+| X | *address of the module name or filename (can be CR, NUL or hi-bit terminated)* |
+| Y | *size of the parameter area* (in pages); defaults to zero if not specified |
+| U | *starting address of the parameter area* ; must be at least one page |
 
 **Exit Conditions**
-X _address of the last byte of the name_ + 1 (See the following example)
-A new process I/O number
+| | |
+|-|-|
+| X | *address of the last byte of the name* + 1 |
+| A | new process I/O number |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Fork creates a new process, a child of the calling process. Fork also sets up the
-    child process’s memory and 6809 registers and standard I/O paths.
-- Before the Fork call:
-    T E S T $0D
-    ↑
-    X
-- After the Fork call:
-    T E S T $0D
-       ↑
-       X
+* Fork creates a new process, a child of the calling process. Fork also sets up the child process’s memory and 6809 registers and standard I/O paths.
+* Before the Fork call:
+```
+-------------
+|T|E|S|T|$0D|
+-------------
+ ^
+ X
+```
+* After the Fork call:
+```
+-------------
+|T|E|S|T|$0D|
+-------------
+          ^
+          X
+```
+* This is the sequence of Fork’s operations:
+    1. NitrOS-9 parses the name string of the new process’s primary module (the program that NitrOS-9 executes first). Then, it searches the system module directory to see if the program already is in memory.
+    2. The next step depends on whether or not the program is already in memory. If the program is in memory, NitrOS-9 links the module to the process and executes it.
 
+        a) If the program is not in memory, NitrOS-9 uses the name as the pathlist of the file that is to be loaded into memory. Then, the first module in the this file is linked to and executed. (Several modules can be loaded from one file.)
+    3. NitrOS-9 uses the primary module’s header to determine the initial size of the process’s data area. It then tries to allocate a contiguous RAM area of that size. (This area includes the parameter passing area, which is copied from the parent process’s data area.)
+    4. The new process’s data memory area and registers are set up as shown in the following diagram. NitrOS-9 uses the execution offset given in the module header to set the program counter to the module’s entry point
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- This is the sequence of Fork’s operations:
-    1. NitrOS-9 parses the name string of the new process’s primary module
-       (the program that NitrOS-9 executes first). Then, it searches the system
-       module directory to see if the program already is in memory.
-    2. The next step depends on whether or not the program is already in
-       memory. If the program is in memory, NitrOS-9 links the module to the
-       process and executes it.
-       a) If the program is not in memory, NitrOS-9 uses the name as the
-          pathlist of the file that is to be loaded into memory. Then, the first
-          module in the this file is linked to and executed. (Several modules
-          can be loaded from one file.)
-    3. NitrOS-9 uses the primary module’s header to determine the initial size
-       of the process’s data area. It then tries to allocate a contiguous RAM
-       area of that size. (This area includes the parameter passing area, which
-       is copied from the parent process’s data area.)
-    4. The new process’s data memory area and registers are set up as shown
-       in the following diagram. NitrOS-9 uses the execution offset given in the
-       module header to set the program counter to the module’s entry point.
-
-```
-Parameter Area
-```
-```
- Y (highest address)
-```
-```
-Data Area
-```
-```
- X,SP
-```
-```
-Direct Page
-```
-```
- U,DP (lowest address)
-```
-```
-D size of the parameter area
-PC module entry point absolute address
-```
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-CC F=0, I=0, other condition code flags are undefined
-```
-```
-Registers Y and U (the top-of-memory and bottom-of-memory pointers,
-respectively) always have values at page boundaries.
-```
-```
-As stated earlier, if the parent does not specify the size of the parameter area, the
-size defaults to zero. The minimum overall data area size is one page.
-```
-```
-When the shell processes a command line, it passes a string in the parameter
-area. The string is a copy of the parameter part of the command line. To simplify
-string-oriented processing, the shell also inserts an end-of-line character at the
-end of the parameter string.
-```
-```
-Register X points to the start byte of the parameter string. If the command line
-includes the optional memory size specification (# n or # n K), the shell passes that
-size as the requested memory size when executing the Fork.
-```
-- If any of the preceding operations is unsuccessful, the Fork is terminated and
-    NitrOS-9 returns an error to the caller.
-- The child and parent processes execute at the same time unless the parent
-    executes a Wait system call immediately after the Fork. In this case, the parent
-    waits until the child dies before it resumes execution.
-- Be careful when recursively calling a program that uses the Fork system call.
-    Another child can be created with each new execution. This continues until the
-    process table becomes full.
-- Do not fork a process with a memory size of zero.
 
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get System Block Map Gets a copy of the system block map**
+------------------
+|                | - Y (highest address)
+| Parameter Area |
+------------------
+|                | - X,SP
+|                |
+|                |
+| Data Area      |
+|                |
+|                |
+|                |
+------------------
+|                |
+| Direct Page    |
+|                | - U,DP (lowest address)
+------------------
 
-**OS9 F$GBlkMp 103F 19**
+```
+
+|  |  |
+| --- | --- |
+| D | size of the parameter area |
+| PC | module entry point absolute address |
+| CC | F=0, I=0, other condition code flags are undefined |
+
+Registers Y and U (the top-of-memory and bottom-of-memory pointers, respectively) always have values at page boundaries.
+
+As stated earlier, if the parent does not specify the size of the parameter area, the size defaults to zero. The minimum overall data area size is one page.
+
+When the shell processes a command line, it passes a string in the parameter area. The string is a copy of the parameter part of the command line. To simplify string-oriented processing, the shell also inserts an end-of-line character at the end of the parameter string.
+
+Register X points to the start byte of the parameter string. If the command line includes the optional memory size specification (#n or #nK), the shell passes that size as the requested memory size when executing the Fork.
+
+* If any of the preceding operations is unsuccessful, the Fork is terminated and NitrOS-9 returns an error to the caller.
+* The child and parent processes execute at the same time unless the parent executes a Wait system call immediately after the Fork. In this case, the parent waits until the child dies before it resumes execution.
+* Be careful when recursively calling a program that uses the Fork system call. Another child can be created with each new execution. This continues until the process table becomes full.
+* Do not fork a process with a memory size of zero.
+
+---
+
+#### **Get System Block Map**
+
+**Gets a copy of the system block map**
+| | | | |
+|-|-|-|-|
+| OS9 | F$GBlkMp | 103F | 19 |
 
 **Entry Conditions**
-X _pointer to the 1024-byte buffer_ (NOTE: The Coco version of NitrOS-9 only
-needs a 256 byte buffer)
+| | |
+|-|-|
+| X | *pointer to the 1024-byte buffer* (Coco version only needs 256 bytes) |
 
 **Exit Conditions**
-D _number of bytes per block_ ($2000 on the Coco version of NitrOS-9) (MMU
-block size dependent)
-Y _system memory block map size_ (number of 8K blocks of RAM available on
-the Coco version of NitrOS-9)
+| | |
+|-|-|
+| D | *number of bytes per block* ($2000 on Coco version) |
+| Y | *system memory block map size* (number of 8K blocks) |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Get System block Map call copies the system’s memory block map into the
-    user’s buffer for inspection. The NitrOS-9 MFREE command uses this call to find
-    out how much free memory exists.
-- The support module for this call is KrnP2.
+* The Get System block Map call copies the system’s memory block map into the user’s buffer for inspection. The NitrOS-9 MFREE command uses this call.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Module Directory Gets a copy of the system module
-directory
-OS9 F$GModDr 103F 1A**
+#### **Get Module Directory**
+
+**Gets a copy of the system module directory**
+| | | | |
+|-|-|-|-|
+| OS9 | F$GModDr | 103F | 1A |
 
 **Entry Conditions**
-X _pointer to the 2048-byte buffer to hold module directory copy_
+| | |
+|-|-|
+| X | *pointer to the 2048-byte buffer to hold module directory copy* |
 
 **Error Output**
-Y _end of copied module directory_
-U _start address of the system module directory_
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| Y | *end of copied module directory* |
+| U | *start address of the system module directory* |
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Get Module Directory call copies the system’s module directory into the
-    user’s buffer for inspection. The NitrOS-9 MDIR command uses this call to read
-    the module directory.
-- The support module for this call is KrnP2.
+* The Get Module Directory call copies the system’s module directory into the user’s buffer for inspection. The NitrOS-9 MDIR command uses this call.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Process Descriptor Gets a copy of the process’s process
-descriptor
-OS9 F$GPrDsc 103F 18**
+#### **Get Process Descriptor**
+
+**Gets a copy of the process’s process descriptor**
+| | | | |
+|-|-|-|-|
+| OS9 | F$GPrDsc | 103F | 18 |
 
 **Entry Conditions**
-A _requested process ID_
-X _pointer to a 512-byte buffer_
+| | |
+|-|-|
+| A | *requested process ID* |
+| X | *pointer to a 512-byte buffer* |
 
 **Error Output**
-CC carry set on error
-X _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| X | *error code* (if any) |
 
 **Additional Information**
 
-- The Get Process Descriptor call copies a process descriptor into the calling
-    process’s buffer for inspection. The data in the process descriptor cannot be
-    changed. The NitrOS-9 PROCS and PROC commands uses this call to get
-    information about each existing process.
-- The support module for this call is KrnP2.
+* The Get Process Descriptor call copies a process descriptor into the calling process’s buffer for inspection. The data cannot be changed. The NitrOS-9 PROCS and PROC commands use this call.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Intercept Sets a signal intercept trap**
+#### **Intercept**
 
-**OS9 F$Icpt 103F 09**
+**Sets a signal intercept trap**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Icpt | 103F | 09 |
 
 **Entry Conditions**
-X _address of the intercept routine_
-U _starting address of the routine’s memory area_
+| | |
+|-|-|
+| X | *address of the intercept routine* |
+| U | *starting address of the routine’s memory area* |
 
 **Exit Conditions**
-Signals sent to the process cause the intercept routine to be called instead of the
-process being killed.
+
+Signals sent to the process cause the intercept routine to be called instead of the process being killed.
 
 **Additional Information**
 
-- Intercept tells NitrOS-9 to set a signal intercept trap. Then, whenever the process
-    receives a signal, NitrOS-9 executes the process’s intercept routine.
-- Store the address of the signal handler routine in Register X and the base address
-    of the routine’s storage area in Register U.
-- Once the signal trap is set, NitrOS-9 can execute the intercept routine at any time
-    because a signal can occur at any time.
-- Terminate the intercept routine with an RTI instruction.
-- If a process has not used the Intercept system call to set a signal trap, the process
-    terminates if it receives a signal.
-- This is the order in which F$Icpt operates:
-    - When the process receives a signal, NitrOS-9 sets Registers U and B as
-       follows:
+* Intercept tells NitrOS-9 to set a signal intercept trap. Whenever the process receives a signal, NitrOS-9 executes the intercept routine.
+* Store the address of the signal handler routine in Register X and the base address of the routine’s storage area in Register U.
+* Once the signal trap is set, NitrOS-9 can execute the intercept routine at any time because a signal can occur at any time.
+* Terminate the intercept routine with an RTI instruction.
+* If a process has not used the Intercept system call to set a signal trap, the process terminates if it receives a signal.
+* This is the order in which F$Icpt operates
+    * When the process receives a signal, NitrOS-9 sets Registers U and B as follows:
+        * **U**: starting address of the intercept routine’s memory area
+        * **B**: signal code (process’s termination status)
 
-```
-U starting address of the intercept routine’s memory area
-B signal code (process’s termination status)
-```
-```
-Note : The value of Register DP cannot be the same as it was when the
-Intercept call was made.
-```
-- After setting the registers, NitrOS-9 transfers execution to the intercept
-    routine.
+        **Note:** The value of Register DP cannot be the same as it was when the Intercept call was made.
+    * After setting the registers, NitrOS-9 transfers execution to the intercept routine.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get ID Returns a caller’s process ID and user ID**
+#### **Get ID**
 
-**OS9 F$ID 103F 0C**
+**Returns a caller’s process ID and user ID**
+| | | | |
+|-|-|-|-|
+| OS9 | F$ID | 103F | 0C |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
-A _process ID_
-Y _user ID_
+| | |
+|-|-|
+| A | *process ID* |
+| Y | *user ID* |
 
 **Additional Information**
 
-- The _process ID_ is a byte value in the range 1 to 255. NitrOS-9 assigns each process
-    a unique process ID.
-- The _user ID_ is an integer from 0 to 65,535. It is defined in the system password
-    file, and is used by the file security system and a few other functions. Several
-    processes can have the same user ID.
-- On the Color Computer 3, the initial user ID on your startup windows is inherited
-    from SysGo, which forks the initial shell, unless you use LOGIN during startup.
+* The *process ID* is a byte value in the range 1 to 255. NitrOS-9 assigns each process a unique process ID.
+* The *user ID* is an integer from 0 to 65,535. It is defined in the system password file, and is used by the file security system and a few other functions. Several processes can have the same user ID.
+* On the Color Computer 3, the initial user ID on your startup windows is inherited from SysGo, which forks the initial shell, unless you use LOGIN during startup.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Link Links to a memory module that has the
-specified name, language, and type
-OS9 F$Link 103F 00**
+#### **Link**
+
+**Links to a memory module that has the specified name, language, and type**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Link | 103F | 00 |
 
 **Entry Conditions**
-A _language/type code ($00 = any language/type)_
-X _address of the module name_ (See the following example)
+| | |
+|-|-|
+| A | *language/type code ($00 = any language/type)* |
+| X | *address of the module name* (See the following example) |
 
 **Exit Conditions**
-A _type/language code_
-B _attributes / revision level_ (if no error)
-X _address of the last byte of the module name_ + 1 (See the following example)
-Y _module entry point absolute address_
-U _module header absolute address_
+| | |
+|-|-|
+| A | *type/language code* |
+| B | *attributes / revision level* (if no error) |
+| X | *address of last byte of name* + 1 (See the following example) |
+| Y | *module entry point absolute address* |
+| U | *module header absolute address* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The module’s link count increases by one whenever Link references its name.
-    Incrementing in this manner keeps track of how many processes are using the
-    module.
-- If the module requested is not shareable (not re-entrant), only one process can
-    link to it at a time.
-- Before the Link call:
-    T E S T $0D
-    ↑
-    X
-- After the Link call:
-    T E S T $0D
-       ↑
-       X
+* The module’s link count increases by one whenever Link references its name. Incrementing in this manner keeps track of how many processes are using the module.
+* If the module requested is not shareable (not re-entrant), only one process can link to it at a time.
 
-
+* Before the Link call:
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+-------------
+|T|E|S|T|$0D|
+-------------
+ ^
+ X
 ```
-- This is the order in which the Link call operates:
-    1. NitrOS-9 searches the module directory for a module that has the specified
-       name, language, and type.
-    2. If NitrOS-9 finds the module, the address of the module’s header is returned in
-       Register U and the absolute address of the module’s execution entry point is
-       returned in Register Y. (This, and other information, is contained in the module
-       header.)
-- If NitrOS-9 finds the module, the address of the module’s header is returned in
-    Register U and the absolute address of the module’s execution entry point is
-    returned in Register Y. (This, and other information, is contained in the module
-    header.)
-- If NitrOS-9 does not find the module or if the type/language codes in the entry
-    and exit conditions do not match, NitrOS-9 returns one of the following errors:
-       - Module not found
-       - Module busy (not shareable and in use)
-       - Incorrect or defective module header
-
-
+* After the Link call:
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+-------------
+|T|E|S|T|$0D|
+-------------
+          ^
+          X
 ```
-**Load Loads a module or modules from a file**
 
-**OS9 F$Load 103F 01**
+* This is the order in which the Link call operates:
+    1. NitrOS-9 searches the module directory for a module that has the specified name, language, and type.
+    2. If NitrOS-9 finds the module, the address of the module’s header is returned in Register U and the absolute address of the module’s execution entry point is returned in Register Y. (This, and other information, is contained in the module header.)
+* If NitrOS-9 finds the module, the address of the module’s header is returned in Register U and the absolute address of the module’s execution entry point is returned in Register Y. (This, and other information, is contained in the module header.)
+* If NitrOS-9 does not find the module or if the type/language codes in the entry and exit conditions do not match, NitrOS-9 returns one of the following errors:
+    * Module not found
+    * Module busy (not shareable and in use)
+    * Incorrect or defective module header
+
+---
+
+#### **Load**
+
+**Loads a module or modules from a file**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Load | 103F | 01 |
 
 **Entry Conditions**
-A _type / language code_ ; 0 = any language / type
-X _address of the pathlist (filename)_ (See the following example)
+| | |
+|-|-|
+| A | *type / language code* ; 0 = any language / type |
+| X | *address of the pathlist (filename)* (See the following example) |
 
 **Exit Conditions**
-A _language / type code_
-B _attributes / revision level_ (if no error)
-X _address of the last byte of the pathlist (filename)_ + 1 (See the following
-example)
-Y _primary module entry point address_
-U _address of the module header_
+| | |
+|-|-|
+| A | *language / type code* |
+| B | *attributes / revision level* (if no error) |
+| X | *address of the last byte of the pathlist (filename) + 1* (See the following example) |
+| Y | *primary module entry point address* |
+| U | *address of the module header* |
+
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Load call loads one or more modules from the file specified by a complete
-    pathlist or from the working execution directory (if an incomplete pathlist is
-    given).
-- The file must have the execute access bit set. It also must contain one or more
-    modules with proper module headers.
-- NitrOS-9 adds all modules loaded to the system module directory. It links the first
-    module read. The exit conditions apply only to the first module loaded.
-- Before the Load call:
-    / D 0 / A C C T S R C V $0D
-    ↑
-    X
-- After the Load call:
-    / D 0 / A C C T S R C V $0D
-       ↑
-       X
-
-
+* The Load call loads one or more modules from the file specified by a complete pathlist or from the working execution directory (if an incomplete pathlist is given).
+* The file must have the execute access bit set. It also must contain one or more modules with proper module headers.
+* NitrOS-9 adds all modules loaded to the system module directory. It links the first module read. The exit conditions apply only to the first module loaded.
+* Before the Load call:
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+-----------------------------
+|/|D|0|/|A|C|C|T|S|R|C|V|$0D|
+-----------------------------
+ ^
+ X
 ```
-- Possible errors:
-    - Module directory full
-    - Memory full
-    - Errors that occur on the Open, Read, Close, and Link system calls.
+* After the Load call:
+```
+-----------------------------
+|/|D|0|/|A|C|C|T|S|R|C|V|$0D|
+-----------------------------
+                          ^
+                          X
+```
+* Possible errors:
+    * Module directory full
+    * Memory full
+    * Errors that occur on the Open, Read, Close, and Link system calls.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Map Specific Block Maps the specified block(s) into
-unallocated blocks of process space
-OS9 F$MapBlk 103F 4F**
+#### **Map Specific Block**
+
+**Maps the specified block(s) into unallocated blocks of process space**
+| | | | |
+|-|-|-|-|
+| OS9 | F$MapBlk | 103F | 4F |
 
 **Entry Conditions**
-X _starting block number_
-B _number of blocks_
+| | |
+|-|-|
+| X | *starting block number* |
+| B | *number of blocks* |
 
 **Exit Conditions**
-U _address of first block_
+| | |
+|-|-|
+| U | *address of first block* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The system maps blocks from the top down. It maps new blocks into the highest
-    available addresses in the address space. See Clear Specified Block for information
-    on unmapping.
+* The system maps blocks from the top down. It maps new blocks into the highest available addresses in the address space. See Clear Specified Block for information on unmapping.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Memory Changes process’s data area size**
+#### **Memory**
 
-**OS9 F$Mem 103F 07**
+**Changes process’s data area size**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Mem | 103F | 07 |
 
 **Entry Conditions**
-D _size of the new memory area_ (in bytes);
-0 = return current size and upper bound
+| | |
+|-|-|
+| D | *size of the new memory area* (in bytes); |
+| | 0 = return current size/upper bound |
 
 **Exit Conditions**
-Y _address of the new memory area upper bound_
-D _actual size of the new memory_ (in bytes)
+| | |
+|-|-|
+| Y | *address of the new memory area upper bound* |
+| D | *actual size of the new memory* (in bytes) |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Memory call expands or contracts the process’s data memory area to the
-    specified size. Or, if you specify zero as the new size, the call returns the current
-    size and upper boundaries of data memory.
-- NitrOS-9 rounds off the size to the next page boundary. In allocating additional
-    memory, NitrOS-9 continues upward from the previous highest address. In
-    deallocating unneeded memory, it continues downward from that address.
+* The Memory call expands or contracts the process’s data memory area to the specified size. Or, if you specify zero as the new size, the call returns the current size and upper boundaries of data memory.
+* NitrOS-9 rounds off the size to the next page boundary. In allocating additional memory, NitrOS-9 continues upward from the previous highest address. In deallocating unneeded memory, it continues downward from that address.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Link to a module Links to a module; does not map the
-module into the user’s address space
-OS9 F$NMLink 103F 21**
+#### **Link to a module**
+
+**Links to a module; does not map the module into the user’s address space**
+| | | | |
+|-|-|-|-|
+| OS9 | F$NMLink | 103F | 21 |
 
 **Entry Conditions**
-A _language/type code ($00 = any language/type)_
-X _address of the module name_
+| | |
+|-|-|
+| A | *language/type code ($00 = any language/type)* |
+| X | *address of the module name* |
 
 **Exit Conditions**
-A _type / language code_
-B _module revision_
-X _address of the last byte of the module name_ + 1; any trailing blanks are
-skipped
-Y _storage requirement for the module_
+| | |
+|-|-|
+| A | *type / language code* |
+| B | *module revision* |
+| X | *address of the last byte of the module name + 1; any trailing blanks are skipped* |
+| Y | *storage requirement for the module* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Although this call is similar to F$Link, it does not map the specified module into
-    the user’s address space but does return the memory requirement for the
-    module. A calling process can use this memory requirement information to fork a
-    program with a maximum amount of space. F$NMLink can therefore fork larger
-    programs than can be forked by F$Link.
+* Although this call is similar to F$Link, it does not map the specified module into the user’s address space but does return the memory requirement for the module. A calling process can use this memory requirement information to fork a program with a maximum amount of space. F$NMLink can therefore fork larger programs than can be forked by F$Link.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Load a module Loads one or more modules from a file
-but does not map the module into the
-OS9 F$NMLoad 103F 22 user’s address space**
+#### **Load a module**
+
+**Loads one or more modules from a file but does not map the module into the user’s address space**
+| | | | |
+|-|-|-|-|
+| OS9 | F$NMLoad | 103F | 22 |
 
 **Entry Conditions**
-A _language/type code ($00 = any language/type)_
-X _address of the pathlist_
+| | |
+|-|-|
+| A | *language/type code ($00 = any language/type)* |
+| X | *address of the pathlist* |
 
 **Exit Conditions**
-A _type / language code_
-B _module revision_
-X _address of the last byte of the pathlist_ + 1
-Y _storage requirement for the module_
+| | |
+|-|-|
+| A | *type / language code* |
+| B | *module revision* |
+| X | *address of the last byte of the pathlist* + 1 |
+| Y | *storage requirement for the module* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- If you do not provide a full pathlist for this call, it attempts to load from a file in
-    the current execution directory.
-- Although this call is similar to F$Load, it does not map the specified module into
-    the user’s address space but does return the memory requirement for the
-    module. A calling process can use this memory requirement information to fork a
-    program with a maximum amount of space. F$NMLoad can therefore fork larger
-    programs than can be forked by F$Load.
+* If you do not provide a full pathlist for this call, it attempts to load from a file in the current execution directory.
+* Although this call is similar to F$Load, it does not map the specified module into the user’s address space but does return the memory requirement for the module. A calling process can use this memory requirement information to fork a program with a maximum amount of space. F$NMLoad can therefore fork larger programs than can be forked by F$Load.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Print Error Writes an error message to a specified
-path
-OS9 F$PErr 103F 0F**
+#### **Print Error**
+
+**Writes an error message to a specified path**
+| | | | |
+|-|-|-|-|
+| OS9 | F$PErr | 103F | 0F |
 
 **Entry Conditions**
-B _error code_
+| | |
+|-|-|
+| B | *error code* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Print Error writes an error message to the standard error path for the specified
-    process. By default, NitrOS-9 shows:
+* Print Error writes an error message to the standard error path for the specified process. By default, NitrOS-9 shows:
 
-```
-ERROR #decimal number
-```
-- The error reporting routine is vectored. Using the Set SVC system call, you can
-    replace it with a more elaborate reporting module. To replace this routine use the
-    Set SVC system call.
+        ERROR #decimal number
 
-```
-NitrOS-9 EOU:
-In EOU, KrnP3 replaces the standard F$PErr call with an enhanced one that prints
-the full error name from /dd/sys/errmsg".
-```
+* The error reporting routine is vectored. Using the Set SVC system call, you can replace it with a more elaborate reporting module. To replace this routine use the Set SVC system call.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Parse Name Scans an input string for a valid NitrOS-**^9
-**name
-OS9 F$PrsNam 103F 10**
+**NitrOS-9 EOU:**
+
+In EOU, KrnP3 replaces the standard F$PErr call with an enhanced one that prints the full error name from /dd/sys/errmsg"
+
+---
+
+#### **Parse Name**
+
+**Scans an input string for a valid NitrOS-9 name**
+| | | | |
+|-|-|-|-|
+| OS9 | F$PrsNam | 103F | 10 |
 
 **Entry Conditions**
-X _address of the pathlist_ (See the following example)
+| | |
+|-|-|
+| X | *address of the pathlist* (See the following example) |
 
 **Exit Conditions**
-X _address of the optional slash_ + 1
-Y _address of the last character of the name_ + 1
-A _trailing byte_ (delimiter character)
-B _length of the name_
+| | |
+|-|-|
+| X | *address of the optional slash* + 1 |
+| Y | *address of last character of the name* + 1 |
+| A | *trailing byte* (delimiter character) |
+| B | *length of the name* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
-Y _address of the first non-delimiter character in the string_
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
+| Y | *address of the first non-delimiter character in the string* |
 
 **Additional Information**
 
-- Parses, or scans, the input text string for a legal NitrOS-9 name. It terminates the
-    name with any character that is not a legal name character.
-- Parse Name is useful for processing pathlist arguments passed to a new process.
-- Because Parse Name processes only one name, you might need several calls to
-    process a pathlist that has more than one name. As you can see from the
-    following example, Parse Name finishes with Register Y in position for the next
-    parse.
-- If Register Y was at the end of a pathlist, Parse Name returns a bad name error. It
-    then moves the pointer in Register Y past any space characters so that it can
-    parse the next pathlist in a command line.
-- Before the Parse Name call:
-
-/ D 0 / P A Y R O L L
-↑
-X
-
-
+* Parses, or scans, the input text string for a legal NitrOS-9 name. It terminates the name with any character that is not a legal name character.
+* Parse Name is useful for processing pathlist arguments passed to a new process.
+* Because Parse Name processes only one name, you might need several calls to process a pathlist that has more than one name. As you can see from the following example, Parse Name finishes with Register Y in position for the next parse.
+* If Register Y was at the end of a pathlist, Parse Name returns a bad name error. It then moves the pointer in Register Y past any space characters so that it can parse the next pathlist in a command line.
+* Before the Parse Name call:
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+-----------------------------
+|/|D|0|/|P|A|Y|R|O|L|L| | | |
+-----------------------------
+ ^
+ X
 ```
-- After the Parse Name call:
-/ D 0 / P A Y R O L L
-↑
-X
-
+* After the Parse Name call:
 ```
-↑
-Y
-```
-```
-B=2
-A=’/’
+-----------------------------
+|/|D|0|/|P|A|Y|R|O|L|L| | | |
+-----------------------------
+ ^     ^       B=2
+ X     Y       A='/'
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Search Bits Searches a specified memory allocation
-bit map for a free memory block of a
-OS9 F$SchBit 103F 12 specified size**
+---
+
+#### **Search Bits**
+
+**Searches a specified memory allocation bit map for a free memory block of a specified size**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SchBit | 103F | 12 |
 
 **Entry Conditions**
-D _starting bit number_
-X _starting address of the map_
-Y _bit count (free bit block size)_
-U _ending address of the map_
+| | |
+|-|-|
+| D | *starting bit number* |
+| X | *starting address of the map* |
+| Y | *bit count (free bit block size)* |
+| U | *ending address of the map* |
 
 **Exit Conditions**
-D _starting bit number_
-Y _bit count_
+| | |
+|-|-|
+| D | *starting bit number* |
+| Y | *bit count* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Search Bit call searches the specified allocation bit map for a free block
-    (cleared bits) of the required length. The search starts at the _starting bit number_.
-    If no block of the specified size exists, the call returns with the carry set, starting
-    bit number, and size of the largest block.
+* The Search Bit call searches the specified allocation bit map for a free block (cleared bits) of the required length. The search starts at the starting bit number. If no block of the specified size exists, the call returns with the carry set, starting bit number, and size of the largest block.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Send Sends a signal to a specified process**
+#### **Send**
 
-**OS9 F$Send 103F 08**
+**Sends a signal to a specified process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Send | 103F | 08 |
 
 **Entry Conditions**
-A _destination's process ID (0=All non-system processes. If not super-user, only
-processes with caller's user number are allowed.)_
-B _signal code_
+| | |
+|-|-|
+| A | *destination's process ID (0=All non-system processes. If not super-user, only processes with caller's user number are allowed.)* |
+| B | *signal code* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The _signal code_ is a single byte value in the rage 0 through 255.
-- If the destination process is sleeping or waiting, NitrOS-9 activates the process so
-    that the process can process the signal.
-- If a signal trap is set up, F$Send executes the signal processing routing (Intercept).
-    If none was set up, the signal terminates the destination process and the signal
-    code becomes the exit status. (See the Wait system call.) An exception is the
-    wakeup signal; that signal does not cause the signal intercept routine to be
-    executed.
-- Signal codes are defined as follows:
+* The signal code is a single byte value in the rage 0 through 255.
+* If the destination process is sleeping or waiting, NitrOS-9 activates the process so that the process can process the signal.
+* If a signal trap is set up, F$Send executes the signal processing routing (Intercept). If none was set up, the signal terminates the destination process and the signal code becomes the exit status. (See the Wait system call.) An exception is the wakeup signal; that signal does not cause the signal intercept routine to be executed.
+* Signal codes are defined as follows:
 
-```
-0 System terminate (cannot be intercepted)
-1 Wake up the process
-2 Keyboard terminate
-3 Keyboard interrupt
-128-255 User defined
-```
-- If you try to send a signal to a process that has a signal pending, NitrOS-9 cancels
-    the current Send call and returns an error. Issue a Sleep call for a few ticks; then,
-    try again.
-- The Sleep call saves CPU time. See the Intercept, Wait, and Sleep system calls for
-    more information.
+| | |
+|-|-|
+| 0 | System terminate (cannot be intercepted) |
+| 1 | Wake up the process |
+| 2 | Keyboard terminate |
+| 3 | Keyboard interrupt |
+| 128-255 | User defined |
 
+* If you try to send a signal to a process that has a signal pending, NitrOS-9 cancels the current Send call and returns an error. Issue a Sleep call for a few ticks; then, try again.
+* The Sleep call saves CPU time. See the Intercept, Wait, and Sleep system calls for more information.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Sleep Temporarily turns off the calling process**
+---
 
-**OS9 F$Sleep 103F 0A**
+#### **Sleep**
+
+**Temporarily turns off the calling process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Sleep | 103F | 0A |
 
 **Entry Conditions**
-X One of the following:
-_sleep time_ (in ticks)
-0 = sleep indefinitely
-1 = sleep for the remainder of the current time slice
+| | |
+|-|-|
+| X | One of the following: |
+| | sleep time (in ticks) |
+| | 0 = sleep indefinitely |
+| | 1 = sleep for the remainder of the current time slice |
 
 **Exit Conditions**
-X _sleep time minus the number of ticks that the process was asleep_
+| | |
+|-|-|
+| X | *sleep time minus the number of ticks that the process was asleep* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- If Register X contains zero, NitrOS-9 turns the process off until it receives a signal.
-    Putting a process to sleep is a good way to wait for a signal or interrupt without
-    wasting CPU time.
-- If Register X contains one, NitrOS-9 turns the process off for the remainder of the
-    process’s current time slice. It inserts the process into the active process queue
-    immediately. The process resumes execution when it reaches the front of the
-    queue.
-- If Register X contains an integer in the rage 2-255, NitrOS-9 turns off the process
-    for the specified number of ticks, _n_. It inserts the process into the active process
-    queue after _n_ -1 ticks. The process resumes execution when it reaches the front of
-    the queue. If the process receives a signal, it awakens before the time has
-    elapsed.
-- When you select processes among multiple windows, you might need to sleep for
-    two ticks.
+* If Register X contains zero, NitrOS-9 turns the process off until it receives a signal. Putting a process to sleep is a good way to wait for a signal or interrupt without wasting CPU time.
+* If Register X contains one, NitrOS-9 turns the process off for the remainder of the process’s current time slice. It inserts the process into the active process queue immediately. The process resumes execution when it reaches the front of the queue.
+* If Register X contains an integer in the rage 2-255, NitrOS-9 turns off the process for the specified number of ticks, n. It inserts the process into the active process queue after n-1 ticks. The process resumes execution when it reaches the front of the queue. If the process receives a signal, it awakens before the time has elapsed.
+* When you select processes among multiple windows, you might need to sleep for two ticks.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set Priority Changes the priority of a process**
+#### **Set Priority**
 
-**OS9 F$SPrior 103F 0D**
+**Changes the priority of a process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SPrior | 103F | 0D |
 
 **Entry Conditions**
-A _process ID_
-B _priority_
-0 lowest
-255 highest
+| | |
+|-|-|
+| A | *process ID* |
+| B | *priority* (0=lowest, 255=highest) |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Set Priority changes the process’s priority to the priority specified. A process can
-    change another process’s priority only if it has the same user ID.
-- The process ID can **not** be 0.
+* Set Priority changes the process’s priority to the priority specified. A process can change another process’s priority only if it has the same user ID.
+* The process ID can not be 0.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set SWI Sets the SWI, SWI2, and SWI3 vectors**
+#### **Set SWI**
 
-**OS9 F$SSWI 103F 0E**
+**Sets the SWI, SWI2, and SWI3 vectors**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SSWI | 103F | 0E |
 
 **Entry Conditions**
-A _SWI type code_
-X _address of the user software interrupt routine_
+| | |
+|-|-|
+| A | *SWI type code* |
+| X | *address of the user software interrupt routine* |
 
 **Error Output**
-C carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Sets the interrupt vectors for SWI, SWI2, and SWI3 instructions.
-- Each process has its own local vectors. Each Set SWI call sets one type of vector
-    according to the code number passed in Register A:
+* Sets the interrupt vectors for SWI, SWI2, and SWI3 instructions.
+* Each process has its own local vectors. Each Set SWI call sets one type of vector according to the code number passed in Register A:
 
-```
-1 SWI
-2 SWI2
-3 SWI3
-```
-- When NitrOS-9 creates a process, it initializes all three vectors with the address of
-    the NitrOS-9 service call processor.
-- **Warning** : Microware-supplied software uses SWI2 to call NitrOS-9. If you reset
-    this vector, these programs cannot work. If you change all three vectors, you
-    cannot call NitrOS-9 at all.
+        1 SWI
+        2 SWI2
+        3 SWI3
+* When NitrOS-9 creates a process, it initializes all three vectors with the address of the NitrOS-9 service call processor.
+* Warning: Microware-supplied software uses SWI2 to call NitrOS-9. If you reset this vector, these programs cannot work. If you change all three vectors, you cannot call NitrOS-9 at all.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set Time Sets the system time and date**
+#### **Set Time**
 
-**OS9 F$STime 103F 16**
+**Sets the system time and date**
+| | | | |
+|-|-|-|-|
+| OS9 | F$STime | 103F | 16 |
 
 **Entry Conditions**
-X Points to 6 byte Date and Time packet data
+| | |
+|-|-|
+| X | Points to 6 byte Date and Time packet data |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Set Time sets the current system date and time and starts the system real-time
-    clock. The date and time are passed in a time packet as follows:
+* Set Time sets the current system date and time and starts the system real-time clock. The date and time are passed in a time packet as follows:
 
-```
-Relative
-Address Value
-0 Year (1900+value, good until 2155)
-1 month
-2 day
-3 hours
-4 minutes
-5 seconds
-```
-```
-Then, the call makes a link system call to find the clock. If the link is successful,
-NitrOS-9 calls the clock initialization. The clock initialization:
-◦ Sets up hardware dependent functions
-◦ Sets up the F$Time system call via F$SSVc
-```
+| Relative Address | Value |
+|-|-|
+| 0 | Year (1900+value, good until 2155) |
+| 1 | month |
+| 2 | day |
+| 3 | hours |
+| 4 | minutes |
+| 5 | seconds |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set User ID Number Changes the current user ID without
-checking for errors or checking the ID
-OS9 F$SUser 103F 1C number of the caller**
+Then, the call makes a link system call to find the clock. If the link is successful, NitrOS-9 calls the clock initialization. The clock initialization:
+
+* Sets up hardware dependent functions
+* Sets up the F$Time system call via F$SSVc
+
+---
+
+#### **Set User ID Number**
+
+**Changes the current user ID without checking for errors or checking the ID number of the caller**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SUser | 103F | 1C |
 
 **Entry Conditions**
-Y _desired user ID number_
+| | |
+|-|-|
+| Y | *desired user ID number* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The support module for this call is Krn.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Time Gets the system date and time**
+#### **Time**
 
-**OS9 F$Time 103F 15**
+**Gets the system date and time**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Time | 103F | 15 |
 
 **Entry Conditions**
-X _address of the area in which to store the date and time packet_
+| | |
+|-|-|
+| X | *address of the area in which to store the date and time packet* |
 
 **Exit Conditions**
-X _Pointer to the date and time packet_
+| | |
+|-|-|
+| X | *Pointer to the date and time packet* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- The Time call returns the current system date and time in the form of a 6-byte
-    packet (in binary). NitrOS-9 copies the packet to the address passed in Register X.
-- The packet looks like this:
+* The Time call returns the current system date and time in the form of a 6-byte packet (in binary). NitrOS-9 copies the packet to the address passed in Register X.
+* The packet looks like this:
 
-```
-Relative
-Address Value
-0 Year (1900+value, good until 2155)
-1 month
-2 day
-3 hours
-4 minutes
-5 seconds
-```
-- Time is a part of the clock module and it does not exist if no previous call to
-    F$STime has been made.
+| Relative Address | Value |
+|-|-|
+| 0 | Year (1900+value, good until 2155) |
+| 1 | month |
+| 2 | day |
+| 3 | hours |
+| 4 | minutes |
+| 5 | seconds |
 
+* Time is a part of the clock module and it does not exist if no previous call to F$STime has been made.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Unlink Unlinks (removes from memory) a
-module that is not in use and that has a
-OS9 F$UnLink 103F 02 link count of zero**
+---
+
+#### **Unlink**
+
+**Unlinks (removes from memory) a module that is not in use and that has a link count of zero**
+| | | | |
+|-|-|-|-|
+| OS9 | F$UnLink | 103F | 02 |
 
 **Entry Conditions**
-U _address of the module header_
+| | |
+|-|-|
+| U | *address of the module header* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- Unlink unlinks a module from the current process’s address space, decreases its
-    link count by one, and, if the link count becomes zero, returns the memory where
-    the module was located to the system for use by other processes.
-- You cannot unlink system modules or device drivers that are in use.
-- Unlink operates in the following order:
-    - Unlink tells NitrOS-9 that the calling process no longer needs the module.
-    - NitrOS-9 decreases the module’s link count by one.
-    - When the resulting link count is zero, NitrOS-9 destroys the module.
+* Unlink unlinks a module from the current process’s address space, decreases its link count by one, and, if the link count becomes zero, returns the memory where the module was located to the system for use by other processes.
+* You cannot unlink system modules or device drivers that are in use.
+* Unlink operates in the following order:
+    * Unlink tells NitrOS-9 that the calling process no longer needs the module.
+    * NitrOS-9 decreases the module’s link count by one.
+    * When the resulting link count is zero, NitrOS-9 destroys the module. If any other process is using the module, the module’s link count cannot fall to zero. Therefore, NitrOS-9 does not destroy the module.
+* If you pass a bad address, Unlink cannot find a module in the module directory and does not return an error.
+* If modules were loaded merged together, the link count of ALL modules within that merge have to be 0 before they are removed from memory
 
-```
-If any other process is using the module, the module’s link count cannot fall to
-zero. Therefore, NitrOS-9 does not destroy the module.
-```
-- If you pass a bad address, Unlink cannot find a module in the module directory
-    and does not return an error.
-- If modules were loaded merged together, the link count of **ALL** modules within
-    that merge have to be 0 before they are removed from memory.
+---
 
+#### **Unlink a Module By Name**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Unlink a Module By Name Decrements a specified module’s link
-count, and removes the module from
-OS9 F$UnLoad 103F 1D memory if the resulting link count is zero**
+**Decrements a specified module’s link count, and removes the module from memory if the resulting link count is zero**
+| | | | |
+|-|-|-|-|
+| OS9 | F$UnLoad | 103F | 1D |
 
 **Entry Conditions**
-A _module type_
-X _pointer to module name_
+| | |
+|-|-|
+| A | *module type* |
+| X | *pointer to module name* |
 
 **Error Output**
-CC carry set on error
-B _error code_ (if any)
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* (if any) |
 
 **Additional Information**
 
-- This system call differs from Unlink in that it uses a pointer to the module name
-    instead of the address of the module header.
-- If modules were loaded merged together, the link count of **ALL** modules within
-    that merge have to be 0 before they are removed from memory.
-- The support module for this call is KrnP2.
+* This system call differs from Unlink in that it uses a pointer to the module name instead of the address of the module header.
+* If modules were loaded merged together, the link count of ALL modules within that merge have to be 0 before they are removed from memory.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Wait Temporarily turns off a calling process**
+#### **Wait**
 
-**OS9 F$Wait 103F 04**
+**Temporarily turns off a calling process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Wait | 103F | 04 |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
-A _deceased child process’s ID (0 means the F$Wait exited by a signal received
-in the calling program (not child)_
-B _deceased child process’s exit status_ (if no error)
+| | |
+|-|-|
+| A | *deceased child process’s ID (0 means the F$Wait exited by a signal received in the calling program (not child)* |
+| B | *child exit status* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Wait call turns off the calling process until a child process _dies_ , either by
-    exiting an Exit system call, or by receiving a signal. The Wait call helps you save
-    system time.
-- NitrOS-9 returns the child’s process ID and exit status to the parent. If the child
-    died because of a signal, the exit status byte (Register B) contains the signal code.
-- If the caller has several children, NitrOS-9 activates the caller when the first one
-    dies. Therefore, you need to use one Wait system call to detect the termination of
-    each child.
-- NitrOS-9 immediately reactivates the caller if a child dies before the Wait call. If
-    the caller has no children, Wait returns an error. (See the Exit system call for more
-    information.)
-- If the Wait call returns with the carry bit set, the Wait function was not successful.
-    If the carry bit is cleared, Wait functioned normally and any error that occurred in
-    the child process is returned in Register B.
-- If A=0, then the process calling F$Wait received a signal itself (and should have
-    ran the Intercept trap, if it was set up). If B=0 as well, then it was a Wake signal.
+* The Wait call turns off the calling process until a child process dies, either by exiting an Exit system call, or by receiving a signal. The Wait call helps you save system time.
+* NitrOS-9 returns the child’s process ID and exit status to the parent. If the child died because of a signal, the exit status byte (Register B) contains the signal code.
+* If the caller has several children, NitrOS-9 activates the caller when the first one dies. Therefore, you need to use one Wait system call to detect the termination of each child.
+* NitrOS-9 immediately reactivates the caller if a child dies before the Wait call. If the caller has no children, Wait returns an error. (See the Exit system call for more information.)
+* If the Wait call returns with the carry bit set, the Wait function was not successful. If the carry bit is cleared, Wait functioned normally and any error that occurred in the child process is returned in Register B.
+* If A=0, then the process calling F$Wait received a signal itself (and should have ran the Intercept trap, if it was set up). If B=0 as well, then it was a Wake signal.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-## I/O User System Calls.............................................................................................
+## I/O User System Calls
 
 **Attach Attaches a device to the system or
 verifies device attachment.
