@@ -28,6 +28,8 @@ DIM ok          : BOOLEAN
 
 ON ERROR GOTO 900
 
+RUN memStatus
+
 ! PH-00: load snbUtil; clrScr used as map key.
 pNam := "clrScr"
 RUN memEnsure(pNam, ok)
@@ -36,6 +38,8 @@ IF NOT ok THEN
   END
 ENDIF
 
+RUN memStatus
+
 ! PH-01: load snbSetup and its deps (snbUtil, snbSaveLoad).
 pNam := "snbSetup"
 RUN memEnsure(pNam, ok)
@@ -43,6 +47,8 @@ IF NOT ok THEN
   PRINT "SNB: failed to load snbSetup"
   END
 ENDIF
+
+RUN memStatus
 
 ! PH-01 to PH-03: pre-game screens; returns game state.
 RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
@@ -55,6 +61,8 @@ ENDIF
 pNam := "snbSetup"
 RUN memRelease(pNam, keepMods, 0, ok)
 
+RUN memStatus
+
 ! PH-04: load snbYearLoop and all its operational deps.
 pNam := "runYearLoop"
 RUN memEnsure(pNam, ok)
@@ -62,6 +70,8 @@ IF NOT ok THEN
   PRINT "SNB: failed to load snbYearLoop"
   END
 ENDIF
+
+RUN memStatus
 
 ! Seed RND before year loop per runYearLoop contract.
 rSeed := RND(-1)
@@ -95,6 +105,84 @@ ON ERROR GOTO 50
 !CLOSE #vPath
 isVbose := TRUE
 50 END
+
+PROCEDURE memStatus
+(* ================================================== *)
+(* PROCEDURE: memStatus                               *)
+(* PURPOSE:   Query and print current process data   *)
+(*            memory size via memRequest(0).         *)
+(* PARAMS:    None                                    *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+DIM ok      : BOOLEAN
+DIM errCode : INTEGER
+
+ON ERROR GOTO 900
+
+RUN memRequest(0, ok, errCode)
+IF NOT ok THEN
+  PRINT "memStatus: query failed (err: "; errCode; ")"
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "memStatus error ("; ERR; ")"
+END
+
+PROCEDURE memRequest
+(* ================================================== *)
+(* PROCEDURE: memRequest                              *)
+(* PURPOSE:   Request a data memory size from        *)
+(*            NitrOS-9 via F$Mem syscall. Pass 0 to  *)
+(*            query current size without changing it.*)
+(* PARAMS:    memBytes - bytes to request (INTEGER)  *)
+(*                       max 32767; OS rounds up to  *)
+(*                       next 256-byte page boundary *)
+(*            ok       - TRUE if syscall carry clear *)
+(*            errCode  - NitrOS-9 error code or 0   *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM memBytes : INTEGER
+PARAM ok       : BOOLEAN
+PARAM errCode  : INTEGER
+DIM regs       : Register
+DIM callCode   : BYTE
+DIM iCC        : INTEGER
+DIM hiVal      : INTEGER
+DIM loVal      : INTEGER
+
+ON ERROR GOTO 900
+
+ok       := FALSE
+errCode  := 0
+callCode := $07
+hiVal    := memBytes / 256
+loVal    := LAND(memBytes, 255)
+regs.a   := hiVal
+regs.b   := loVal
+
+PRINT "memRequest: F$Mem call (hi: "; hiVal; " lo: "; loVal; ")"
+RUN SysCall(callCode, regs)
+iCC     := regs.cc          \ ! Stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 0 THEN
+  ok := TRUE
+  hiVal := regs.a           \ ! Stage BYTE fields for PRINT
+  loVal := regs.b
+  PRINT "memRequest: F$Mem ok (granted hi: "; hiVal; " lo: "; loVal; ")"
+ELSE
+  errCode := regs.b         \ ! Stage BYTE error code to INTEGER
+  IF errCode = 207 THEN
+    PRINT "memRequest: out of memory (err: 207)"
+  ELSE
+    PRINT "memRequest: F$Mem failed (err: "; errCode; ")"
+  ENDIF
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "memRequest error ("; ERR; ")"
+END
 
 PROCEDURE memMapGet
 (* ================================================= *)
