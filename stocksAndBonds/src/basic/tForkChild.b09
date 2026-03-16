@@ -1,0 +1,23 @@
+PROCEDURE tForkChild
+(* ================================================== *)
+(* PROCEDURE: tForkChild                              *)
+(* PURPOSE:   Child process for F$Fork / F$Wait test.*)
+(*            Reads one line from stdin, prints it   *)
+(*            as confirmation, then exits normally.  *)
+(*            Parameters from the parent are in the  *)
+(*            OS-level parameter area; they are not  *)
+(*            accessible from Basic09 directly.      *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM rcvLine : STRING[80]
+
+ON ERROR GOTO 900
+
+PRINT "tForkChild: running. Type a line and press Enter:"
+INPUT rcvLine
+PRINT "tForkChild received: "; rcvLine
+END
+
+900 \ ! Error handler
+PRINT "tForkChild error ("; ERR; ")"
+END

@@ -1,0 +1,143 @@
+PROCEDURE tForkParent
+(* ================================================== *)
+(* PROCEDURE: tForkParent                             *)
+(* PURPOSE:   Fork tForkChild via F$Fork, pass a     *)
+(*            test parameter string via the OS       *)
+(*            parameter area, block via F$Wait, and  *)
+(*            report child PID and exit status.      *)
+(* PARAMS:    None                                    *)
+(* NOTE:      Requires SysCall machine-lang module.  *)
+(*            tForkChild must be packed and its      *)
+(*            module file must be loadable by name.  *)
+(* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs          : Register
+DIM nameBuf(16)   : BYTE
+DIM paramBuf(256) : BYTE
+DIM callCode      : BYTE
+DIM iCC           : INTEGER
+DIM iChildIO      : INTEGER
+DIM iChildPID     : INTEGER
+DIM iStatus       : INTEGER
+DIM errVal        : INTEGER
+DIM i             : INTEGER
+
+ON ERROR GOTO 900
+
+! --- Step 1: Build hi-bit-terminated name string ------
+! Name: "tForkChild" (10 chars); bit 7 set on last char.
+nameBuf(1)  := ASC("t")
+nameBuf(2)  := ASC("F")
+nameBuf(3)  := ASC("o")
+nameBuf(4)  := ASC("r")
+nameBuf(5)  := ASC("k")
+nameBuf(6)  := ASC("C")
+nameBuf(7)  := ASC("h")
+nameBuf(8)  := ASC("i")
+nameBuf(9)  := ASC("l")
+nameBuf(10) := LOR(ASC("d"), $80) \ ! hi-bit terminates name
+
+! --- Step 2: Zero-fill param buffer then write message -
+FOR i := 1 TO 256
+  paramBuf(i) := 0
+NEXT i
+paramBuf(1)  := ASC("H")
+paramBuf(2)  := ASC("e")
+paramBuf(3)  := ASC("l")
+paramBuf(4)  := ASC("l")
+paramBuf(5)  := ASC("o")
+paramBuf(6)  := 32            \ ! space
+paramBuf(7)  := ASC("f")
+paramBuf(8)  := ASC("r")
+paramBuf(9)  := ASC("o")
+paramBuf(10) := ASC("m")
+paramBuf(11) := 32            \ ! space
+paramBuf(12) := ASC("p")
+paramBuf(13) := ASC("a")
+paramBuf(14) := ASC("r")
+paramBuf(15) := ASC("e")
+paramBuf(16) := ASC("n")
+paramBuf(17) := ASC("t")
+paramBuf(18) := $0D           \ ! CR terminates parameter string
+
+! --- Step 3: F$Fork ---------------------------------------
+callCode := $03               \ ! F$Fork system call code
+regs.a   := 0                 \ ! any language/type
+regs.b   := 1                 \ ! 1 additional data page for child
+regs.x   := ADDR(nameBuf)     \ ! INTEGER address of name buffer
+regs.y   := 1                 \ ! 1 page (256 bytes) parameter area
+regs.u   := ADDR(paramBuf)    \ ! INTEGER address of param buffer
+PRINT "nameBuf(1)="; nameBuf(1); " nameBuf(10)="; nameBuf(10)
+PRINT "nameBuf addr="; ADDR(nameBuf)
+PRINT "tForkParent: calling F$Fork..."
+RUN SysCall(callCode, regs)
+iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  errVal := regs.b            \ ! stage BYTE error code to INTEGER
+  PRINT "F$Fork failed, err: "; errVal
+  ERROR(errVal)
+ENDIF
+iChildIO := regs.a            \ ! stage child I/O number (BYTE->INT)
+PRINT "tForkParent: fork OK, child I/O="; iChildIO
+
+! --- Step 4: F$Wait ---------------------------------------
+callCode := $04               \ ! F$Wait system call code
+regs.cc  := 0
+regs.a   := 0
+regs.b   := 0
+regs.dp  := 0
+regs.x   := 0
+regs.y   := 0
+regs.u   := 0
+PRINT "tForkParent: waiting for child to exit..."
+RUN SysCall(callCode, regs)
+iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  errVal := regs.b            \ ! stage BYTE error code to INTEGER
+  PRINT "F$Wait failed, err: "; errVal
+  ERROR(errVal)
+ENDIF
+iChildPID := regs.a           \ ! stage child PID (BYTE->INTEGER)
+IF iChildPID = 0 THEN
+  PRINT "tForkParent: parent received signal, not child death"
+  ERROR(1)
+ENDIF
+iStatus := regs.b             \ ! stage child exit status (BYTE->INT)
+PRINT "Child exited, PID="; iChildPID; " status="; iStatus
+
+! --- Step 5: Summary --------------------------------------
+PRINT "tForkParent: PASS"
+END
+
+900 \ ! Error handler
+PRINT "tForkParent error ("; ERR; ")"
+END
+
+
+PROCEDURE TSTForkParent
+(* ================================================== *)
+(* PROCEDURE: TSTForkParent                           *)
+(* PURPOSE:   Invoke tForkParent; report PASS if it  *)
+(*            exits normally. Report FAIL with error  *)
+(*            code if F$Fork or F$Wait returns carry *)
+(*            set (error propagated via ERROR()).     *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM failed : INTEGER
+
+ON ERROR GOTO 900
+
+failed := 0
+PRINT "=== TSTForkParent ==="
+PRINT "Invoking tForkParent..."
+PRINT "(Child will prompt for input on screen)"
+RUN tForkParent
+PRINT "PASS"
+PRINT "Failed: "; failed
+END
+
+900 \ ! Error handler
+failed := failed + 1
+PRINT "FAIL (err: "; ERR; ")"
+PRINT "Failed: "; failed
+END
