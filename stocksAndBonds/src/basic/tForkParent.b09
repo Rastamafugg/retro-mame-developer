@@ -77,6 +77,31 @@ IF LAND(iCC, 1) = 1 THEN
 ENDIF
 PRINT "tForkParent: NMLoad OK"
 
+! --- Step 2b: F$NMLink (diagnostic) ----------------------
+! Verify tForkChild is findable in the module directory by
+! the same name-search F$Fork uses internally. Does not
+! load from disk. Halts before Fork to isolate dir state.
+callCode := $21               \ ! F$NMLink system call code
+regs.a   := 0                 \ ! any type/language
+regs.x   := ADDR(nameBuf)     \ ! hi-bit-terminated name
+PRINT "tForkParent: calling F$NMLink..."
+RUN SysCall(callCode, regs)
+iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "F$NMLink: carry clear - module IS in directory."
+  PRINT "Fork has a different problem than directory search."
+ELSE
+  errVal := regs.b            \ ! stage BYTE error code to INTEGER
+  IF errVal = 234 THEN
+    PRINT "F$NMLink: err 234 - module NOT findable by name."
+    PRINT "NMLoad may have loaded under a different name."
+  ELSE
+    PRINT "F$NMLink: err "; errVal; " - linkable but blocked."
+  ENDIF
+ENDIF
+PRINT "tForkParent: diagnostic END (Fork not called)"
+END
+
 ! --- Step 3: F$Fork ---------------------------------------
 callCode := $03               \ ! F$Fork system call code
 regs.a   := 0                 \ ! any language/type
