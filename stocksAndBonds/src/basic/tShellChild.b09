@@ -1,0 +1,23 @@
+PROCEDURE tShellChild
+(* ================================================== *)
+(* PROCEDURE: tShellChild                             *)
+(* PURPOSE:   Diagnostic. Fork tForkChild via Basic09 *)
+(*            SHELL statement rather than F$Fork via  *)
+(*            SysCall shim. SHELL is synchronous;     *)
+(*            no F$Wait required. Validates whether   *)
+(*            the SysCall shim is the constraint      *)
+(*            preventing F$Fork from working.         *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+
+ON ERROR GOTO 900
+
+PRINT "tShellChild: forking tForkChild via SHELL..."
+SHELL "tForkChild"
+PRINT "tShellChild: child exited, control returned."
+PRINT "tShellChild: PASS"
+END
+
+900 \ ! Error handler
+PRINT "tShellChild error ("; ERR; ")"
+END

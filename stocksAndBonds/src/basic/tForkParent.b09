@@ -1,18 +1,20 @@
 PROCEDURE tForkParent
 (* ================================================== *)
 (* PROCEDURE: tForkParent                             *)
-(* PURPOSE:   Fork tForkChild via F$Fork, pass a     *)
-(*            test parameter string via the OS       *)
-(*            parameter area, block via F$Wait, and  *)
-(*            report child PID and exit status.      *)
+(* PURPOSE:   Fork RunB via F$Fork, passing           *)
+(*            "tForkChild" as its command-line arg.  *)
+(*            RunB executes the named I-Code module. *)
+(*            Blocks via F$Wait; reports child PID   *)
+(*            and exit status.                       *)
 (* PARAMS:    None                                    *)
 (* NOTE:      Requires SysCall machine-lang module.  *)
-(*            tForkChild must be packed and its      *)
-(*            module file must be loadable by name.  *)
+(*            tForkChild must be packed. RunB must   *)
+(*            be in the execution directory.         *)
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 DIM regs          : Register
 DIM nameBuf(16)   : BYTE
+DIM runbBuf(8)    : BYTE
 DIM paramBuf(256) : BYTE
 DIM callCode      : BYTE
 DIM iCC           : INTEGER
@@ -24,8 +26,8 @@ DIM i             : INTEGER
 
 ON ERROR GOTO 900
 
-! --- Step 1: Build hi-bit-terminated name string ------
-! Name: "tForkChild" (10 chars); bit 7 set on last char.
+! --- Step 1: Build hi-bit-terminated name strings ----
+! nameBuf: "tForkChild" — pathlist for F$NMLoad only.
 nameBuf(1)  := ASC("t")
 nameBuf(2)  := ASC("F")
 nameBuf(3)  := ASC("o")
@@ -36,34 +38,33 @@ nameBuf(7)  := ASC("h")
 nameBuf(8)  := ASC("i")
 nameBuf(9)  := ASC("l")
 nameBuf(10) := LOR(ASC("d"), $80) \ ! hi-bit terminates name
+! runbBuf: "RunB" — RunB interpreter name for F$Fork.
+runbBuf(1)  := ASC("R")
+runbBuf(2)  := ASC("u")
+runbBuf(3)  := ASC("n")
+runbBuf(4)  := LOR(ASC("B"), $80) \ ! hi-bit terminates name
 
-! --- Step 2: Zero-fill param buffer then write message -
+! --- Step 2: Zero-fill param buffer then write argument
+! paramBuf: "tForkChild" + CR — RunB command-line argument.
 FOR i := 1 TO 256
   paramBuf(i) := 0
 NEXT i
-paramBuf(1)  := ASC("H")
-paramBuf(2)  := ASC("e")
-paramBuf(3)  := ASC("l")
-paramBuf(4)  := ASC("l")
-paramBuf(5)  := ASC("o")
-paramBuf(6)  := 32            \ ! space
-paramBuf(7)  := ASC("f")
-paramBuf(8)  := ASC("r")
-paramBuf(9)  := ASC("o")
-paramBuf(10) := ASC("m")
-paramBuf(11) := 32            \ ! space
-paramBuf(12) := ASC("p")
-paramBuf(13) := ASC("a")
-paramBuf(14) := ASC("r")
-paramBuf(15) := ASC("e")
-paramBuf(16) := ASC("n")
-paramBuf(17) := ASC("t")
-paramBuf(18) := $0D           \ ! CR terminates parameter string
+paramBuf(1)  := ASC("t")
+paramBuf(2)  := ASC("F")
+paramBuf(3)  := ASC("o")
+paramBuf(4)  := ASC("r")
+paramBuf(5)  := ASC("k")
+paramBuf(6)  := ASC("C")
+paramBuf(7)  := ASC("h")
+paramBuf(8)  := ASC("i")
+paramBuf(9)  := ASC("l")
+paramBuf(10) := ASC("d")
+paramBuf(11) := $0D           \ ! CR terminates RunB argument
 
 ! --- Step 2a: F$NMLoad (diagnostic) ----------------------
-! Load tForkChild into the system module directory so that
-! F$Fork can find it by name. regs.x is overwritten by
-! NMLoad on return; Step 3 re-stages all Fork regs fresh.
+! Pre-load tForkChild into the system module directory so
+! RunB can find it by name after Fork. regs.x is
+! overwritten by NMLoad on return; Step 3 re-stages fresh.
 callCode := $22               \ ! F$NMLoad system call code
 regs.a   := 0                 \ ! any type/language
 regs.x   := ADDR(nameBuf)     \ ! pathlist address (hi-bit terminated)
@@ -99,17 +100,15 @@ ELSE
     PRINT "F$NMLink: err "; errVal; " - linkable but blocked."
   ENDIF
 ENDIF
-PRINT "tForkParent: diagnostic END (Fork not called)"
-END
 
 ! --- Step 3: F$Fork ---------------------------------------
 callCode := $03               \ ! F$Fork system call code
 regs.a   := 0                 \ ! any language/type
-regs.b   := 1                 \ ! 1 additional data page for child
-regs.x   := ADDR(nameBuf)     \ ! INTEGER address of name buffer
+regs.b   := 4                 \ ! 4 pages; tune if child fails to start
+regs.x   := ADDR(runbBuf)     \ ! RunB interpreter name
 regs.y   := 1                 \ ! 1 page (256 bytes) parameter area
 regs.u   := ADDR(paramBuf)    \ ! INTEGER address of param buffer
-PRINT "tForkParent: calling F$Fork..."
+PRINT "tForkParent: forking RunB for tForkChild..."
 RUN SysCall(callCode, regs)
 iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
 IF LAND(iCC, 1) = 1 THEN
@@ -151,33 +150,4 @@ END
 
 900 \ ! Error handler
 PRINT "tForkParent error ("; ERR; ")"
-END
-
-
-PROCEDURE TSTForkParent
-(* ================================================== *)
-(* PROCEDURE: TSTForkParent                           *)
-(* PURPOSE:   Invoke tForkParent; report PASS if it  *)
-(*            exits normally. Report FAIL with error  *)
-(*            code if F$Fork or F$Wait returns carry *)
-(*            set (error propagated via ERROR()).     *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-DIM failed : INTEGER
-
-ON ERROR GOTO 900
-
-failed := 0
-PRINT "=== TSTForkParent ==="
-PRINT "Invoking tForkParent..."
-PRINT "(Child will prompt for input on screen)"
-RUN tForkParent
-PRINT "PASS"
-PRINT "Failed: "; failed
-END
-
-900 \ ! Error handler
-failed := failed + 1
-PRINT "FAIL (err: "; ERR; ")"
-PRINT "Failed: "; failed
 END
