@@ -1760,9 +1760,8 @@ B _error code_ (if any)
 **Loads the boot file into RAM.**
 
 **Entry Conditions:**
-| | |
-|-|-|
-| None | |
+
+None
 
 **Exit Conditions:**
 | | |
@@ -2841,6 +2840,7 @@ Registers Y and U (the top-of-memory and bottom-of-memory pointers, respectively
 | U | _address of first block_ |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
@@ -4017,1919 +4017,2008 @@ None
 * If the Wait call returns with the carry bit set, the Wait function was not successful. If the carry bit is cleared, Wait functioned normally and any error that occurred in the child process is returned in Register B.
 * If A=0, then the process calling F$Wait received a signal itself (and should have ran the Intercept trap, if it was set up). If B=0 as well, then it was a Wake signal.
 
-## I/O User System Calls
+### I/O User System Calls
 
-**Attach Attaches a device to the system or
-verifies device attachment.
-OS9 I$Attach 103F 80**
+#### **Attach**
+
+**Attaches a device to the system or verifies device attachment.**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Attach | 103F | 80 |
 
 **Entry Conditions**
-A _access mode (0=any access mode)_
-X _address of the device name string_
+| | |
+|-|-|
+| A | *access mode (0=any access mode)* |
+| X | *address of the device name string* |
 
 **Exit Conditions**
-X _updated past device name_
-U _address of the device table entry_
+| | |
+|-|-|
+| X | *updated past device name* |
+| U | *address of the device table entry* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Attach does not reserve the device. It only prepares the device for later use by
-    any process.
-- NitrOS-9 installs most devices automatically on startup. Therefore, you need to
-    use Attach only when installing a device dynamically or when verifying the
-    existence of a device. You need not use the Attach system call to perform routing
-    I/O.
-- The access mode parameter specifies the read and/or write operations to be
-    allowed. These are:
+* Attach does not reserve the device. It only prepares the device for later use by any process.
+* NitrOS-9 installs most devices automatically on startup. Therefore, you need to use Attach only when installing a device dynamically or when verifying the existence of a device. You need not use the Attach system call to perform routing I/O.
+* The access mode parameter specifies the read and/or write operations to be allowed. These are:
 
-```
-0 = Use any special device capabilities
-1 = Read only
-2 = Write only
-3 = Update (read and write)
-```
-```
-Attach will make sure that both the device descriptor and it's driver
-support the access mode requested.
-```
+| Code | Definition |
+| --- | --- |
+| 0 | Use any special device capabilities |
+| 1 | Read only |
+| 2 | Write only |
+| 3 | Update (read and write) |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- Attach operates in this sequence:
-    - NitrOS-9 searches the system module to see if any memory contains a
-       device descriptor that has the same name as the device.
-    - NitrOS-9’s next operation depends on whether or not the device is already
-       attached. If NitrOS-9 finds the descriptor and if the device is not already
-       attached, NitrOS-9 link the device’s file manager and device driver. It then
-       places the address of the manager and the driver in a new device table
-       entry. NitrOS-9 then allocates any memory needed by the device driver,
-       and calls the driver’s initialization routine, which initializes the hardware.
-    - If NitrOS-9 finds the descriptor, and if the device is already attached,
-       NitrOS-9 verifies the attachment.
+* **Attach** will make sure that both the device descriptor and it's driver support the access mode requested.
+* Attach operates in this sequence:
+    * NitrOS-9 searches the system module to see if any memory contains a device descriptor that has the same name as the device.
+    * NitrOS-9’s next operation depends on whether or not the device is already attached. If NitrOS-9 finds the descriptor and if the device is not already attached, NitrOS-9 link the device’s file manager and device driver. It then places the address of the manager and the driver in a new device table entry. NitrOS-9 then allocates any memory needed by the device driver, and calls the driver’s initialization routine, which initializes the hardware.
+    * If NitrOS-9 finds the descriptor, and if the device is already attached, NitrOS-9 verifies the attachment.
 
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Change Directory Changes the working directory of a
-process to a directory specified by a
-OS9 I$ChgDir 103F 86 pathlist.**
+
+---
+
+#### **Change Directory**
+
+**Changes the working directory of a process to a directory specified by a pathlist.**
+| | | | |
+|-|-|-|-|
+| OS9 | I$ChgDir | 103F | 86 |
 
 **Entry Conditions**
-A _access mode_
-X _address of the pathlist_
+| | |
+|-|-|
+| A | *access mode* |
+| X | *address of the pathlist* |
 
 **Exit Conditions**
-X _updated past pathlist_
+| | |
+|-|-|
+| X | *updated past pathlist* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- If the access mode is read, write, or update, NitrOS-9 changes the current data
-    directory. If the access mode is execute, NitrOS-9 changes the current execution
-    directory.
-- The calling process must have read access to the directory specified (public read if
-    the directory is not owned by the calling process).
-- The access modes are:
+* If the access mode is read, write, or update, NitrOS-9 changes the current data directory. If the access mode is execute, NitrOS-9 changes the current execution directory.
+* The calling process must have read access to the directory specified (public read if the directory is not owned by the calling process).
+* The access modes are:
 
-```
-1 = Read only
-2 = Write only
-3 = Update (read and write)
-4= Execute
-```
+| Code | Definition |
+| --- | --- |
+| 1 | Read only |
+| 2 | Write only |
+| 3 | Update (read and write) |
+| 4 | Execute |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Close Path Terminates an I/O path**
+---
 
-**OS9 I$Close 103F 8F**
+#### **Close Path**
+
+**Terminates an I/O path**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Close | 103F | 8F |
 
 **Entry Conditions**
-A _path number_
+| | |
+|-|-|
+| A | *path number* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Close Path terminates the I/O path to the file or device specified by _path number_.
-    Until you use another Open, Dup, or Create system call for that path, you can no
-    longer perform I/O to the file or device.
-- If you close a path to a single-user device, the device becomes available to other
-    requesting processes. NitrOS-9 deallocates internally managed buffers and
-    descriptors.
-- The Exit system call automatically closes all open paths. Therefore, you might not
-    need to use the Close Path system call to close some paths.
-- Do not close a standard I/O path unless you want to change the file or device to
-    which it corresponds.
-- Close Path performs an implied I$Detach call. If it causes the device link count to
-    become 0, the device termination routine is executed. See I$Detach for additional
-    information.
+* Close Path terminates the I/O path to the file or device specified by *path number*. Until you use another Open, Dup, or Create system call for that path, you can no longer perform I/O to the file or device.
+* If you close a path to a single-user device, the device becomes available to other requesting processes. NitrOS-9 deallocates internally managed buffers and descriptors.
+* The Exit system call automatically closes all open paths. Therefore, you might not need to use the Close Path system call to close some paths.
+* Do not close a standard I/O path unless you want to change the file or device to which it corresponds.
+* Close Path performs an implied I$Detach call. If it causes the device link count to become 0, the device termination routine is executed. See I$Detach for additional information.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Create File Creates and opens a disk file**
+#### **Create File**
 
-**OS9 I$Create 103F 83**
+**Creates and opens a disk file**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Create | 103F | 83 |
 
 **Entry Conditions**
-A _access mode_ (write or update)
-B _file attributes_
-X _address of the pathlist (can be NUL,SPACE or CR terminated) (See the
-example below)_
+| | |
+|-|-|
+| A | *access mode* (write or update) |
+| B | *file attributes* |
+| X | *address of the pathlist (can be NUL,SPACE or CR terminated)* (See the example below) |
 
 **Exit Conditions**
-A _path number_
-X _address of the last byte of the pathlist + 1; skips any trailing blanks_
+| | |
+|-|-|
+| A | *path number* |
+| X | *address of the last byte of the pathlist + 1; skips any trailing blanks* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- NitrOS-9 parses the pathlist and enters the new filename in the specified
-    directory. If you do not specify a directory, NitrOS-9 enters the new filename in
-    the working directory.
-- NitrOS-9 gives the file the attributes passed in Register B, which has bits defined
-    as follows:
+* NitrOS-9 parses the pathlist and enters the new filename in the specified directory. If you do not specify a directory, NitrOS-9 enters the new filename in the working directory.
+* NitrOS-9 gives the file the attributes passed in Register B, which has bits defined as follows:
+
+| Bit | Definition |
+| --- | --- |
+| 0 | Read |
+| 1 | Write |
+| 2 | Execute |
+| 3 | Public read |
+| 4 | Public write |
+| 5 | Public execute |
+| 6 | Shareable file |
+
+* These access mode parameters passed in Register A must have the write bit set if any data is to be written. These access codes are defined as follows: 2 = write, 3 = update. The mode affects the file only until the file is closed.
+* You can reopen the file in any access mode allowed by the file attributes. (See the Open system call.)
+* Files opened for write can allow faster data transfer than those opened for update because update sometimes needs to pre-read sectors.
+* If the execute bit (Bit 2) is set, the file is created in the working execution directory instead of the working data directory.
+* Create File causes an implicit I$Attach call. If the device has not previously been attached, the device’s initialization routine is called.
+* Later I/O calls use the path number to identify the file, until the file is closed.
+* NitrOS-9 does not allocate data storage for a file at creation. Instead, it allocates the storage either automatically when you first issue a write or explicitly by the SetStat subroutine.
+* If the filename already exists in the directory, an error occurs. If the call specifies a non-multiple file device (such as a printer or terminal), Create behaves the same as Open.
+* You cannot use Create to make directories. (See the Make Directory system call for instructions on how to make directories.)
+* Before the Create File call:
 
 ```
-Bit Definition
-0 Read
-1 Write
-2 Execute
-3 Public read
-4 Public write
-5 Public execute
-6 Shareable file
+---------------------
+|/|D|0|/|W|O|R|K|$0D|
+---------------------
+ ^
+ X
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- These access mode parameters passed in Register A must have the write bit set if
-    any data is to be written. These access codes are defined as follows: 2 = write, 3 =
-    update. The mode affects the file only until the file is closed.
-- You can reopen the file in any access mode allowed by the file attributes. (See the
-    Open system call.)
-- Files opened for write can allow faster data transfer than those opened for
-    update because update sometimes needs to pre-read sectors.
-- If the execute bit (Bit 2) is set, the file is created in the working execution
-    directory instead of the working data directory.
-- Create File causes an implicit I$Attach call. If the device has not previously been
-    attached, the device’s initialization routine is called.
-- Later I/O calls use the path number to identify the file, until the file is closed.
-- NitrOS-9 does not allocate data storage for a file at creation. Instead, it allocates
-    the storage either automatically when you first issue a write or explicitly by the
-    SetStat subroutine.
-- If the filename already exists in the directory, an error occurs. If the call specifies a
-    non-multiple file device (such as a printer or terminal), Create behaves the same
-    as Open.
-- You cannot use Create to make directories. (See the Make Directory system call
-    for instructions on how to make directories.)
-- Before the Create File call:
-
-/ D 0 / W O R K $0D
-↑
-X
-
-- After the Create File call:
-/ D 0 / W O R K $0D
-↑
-X
-
+* After the Create File call:
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+---------------------
+|/|D|0|/|W|O|R|K|$0D|
+---------------------
+                  ^
+                  X
 ```
-**Delete File Deletes a specified disk file**
 
-**OS9 I$Delete 103F 87**
+---
+
+#### **Delete File**
+
+**Deletes a specified disk file**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Delete | 103F | 87 |
 
 **Entry Conditions**
-X _address of the pathlist (can be NUL, SPACE or CR terminated)_
+| | |
+|-|-|
+| X | *address of the pathlist (can be NUL, SPACE or CR terminated)* |
 
 **Exit Conditions**
-X _address of the last byte of the pathlist + 1; skips any trailing blanks_
+| | |
+|-|-|
+| X | *address of the last byte of the pathlist + 1; skips any trailing blanks* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Delete File call deletes the disk file specified by the pathlist. The file must
-    have write permission attributes (public write, if the calling process is not the
-    owner). An attempt to delete a device results in an error. The caller must have
-    non-shareable write access to the file or an error results.
+* The Delete File call deletes the disk file specified by the pathlist. The file must have write permission attributes (public write, if the calling process is not the owner). An attempt to delete a device results in an error. The caller must have non-shareable write access to the file or an error results.
 
 **Example**
+
 Before the Delete File call:
 
-/ D 0 / W O R K M E M O $0d
-↑
-X
+```
+-----------------------------------
+|/|D|0|/|W|O|R|K| | | |M|E|M|O|$0D|
+-----------------------------------
+ ^
+ X
+```
+
+After the Delete File call:
 
 ```
-After the Delete File Call:
+-----------------------------------
+|/|D|0|/|W|O|R|K| | | |M|E|M|O|$0D|
+-----------------------------------
+                       ^
+                       X
 ```
-/ D 0 / W O R K M E M O $0d
-↑
-X
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Delete A File Deletes a file from the current data or
-current execution directory
-OS9 I$DeletX 103F 90**
+#### **Delete A File**
+
+**Deletes a file from the current data or current execution directory**
+| | | | |
+|-|-|-|-|
+| OS9 | I$DeletX | 103F | 90 |
 
 **Entry Conditions**
-A _access mode_
-X _address of the pathlist (can be NUL, SPACE or CR terminated)_
+| | |
+|-|-|
+| A | *access mode* |
+| X | *address of the pathlist (can be NUL, SPACE or CR terminated)* |
 
 **Exit Conditions**
-X _address of the last byte of the pathlist + 1; skips any trailing blanks_
+| | |
+|-|-|
+| X | *address of the last byte of the pathlist + 1; skips any trailing blanks* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Delete A File call removes the disk file specified by the selected pathlist. This
-    function is similar to I$Delete except that it accepts an access mode byte. If the
-    access mode is execute, the call selects the current execution directory.
-    Otherwise, it selects the current data directory.
-- If a complete pathlist is provided (the pathlist begins with a slash (/)), the access
-    mode of the call ignored.
-- Only use this call to delete a file. If you attempt to use I$DeletX to delete a device,
-    the system returns an error.
+* The Delete A File call removes the disk file specified by the selected pathlist. This function is similar to I$Delete except that it accepts an access mode byte. If the access mode is execute, the call selects the current execution directory. Otherwise, it selects the current data directory.
+* If a complete pathlist is provided (the pathlist begins with a slash (/)), the access mode of the call ignored.
+* Only use this call to delete a file. If you attempt to use I$DeletX to delete a device, the system returns an error.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Detach Device Removes a device from the system
-device table
-OS9 I$Detach 103F 81**
+#### **Detach Device**
+
+**Removes a device from the system device table**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Detach | 103F | 81 |
 
 **Entry Conditions**
-U _address of the device table entry_
+| | |
+|-|-|
+| U | *address of the device table entry* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Detach Device call removes a device from both the system and the system
-    device table, assuming the device is not being used by another process. You must
-    use this call to detach devices attached using the Attach system call. Attach and
-    Detach are both used mainly by the I/O manager. SCF also uses Attach and Detach
-    to set up its second device (echo device).
-- This is the sequence of the operation of Detach Device:
-    - Detach Device calls the device driver’s termination routine. Then, NitrOS- 9
-       deallocates any memory assigned to the driver.
-    - NitrOS-9 unlinks the associated device driver and file manager modules.
-    - NitrOS-9 then removes the driver, as long as no other module is using that
-       driver.
+* The Detach Device call removes a device from both the system and the system device table, assuming the device is not being used by another process. You must use this call to detach devices attached using the Attach system call. Attach and Detach are both used mainly by the I/O manager. SCF also uses Attach and Detach to set up its second device (echo device).
+* This is the sequence of the operation of Detach Device:
+    * Detach Device calls the device driver’s termination routine. Then, NitrOS-9 deallocates any memory assigned to the driver.
+    * NitrOS-9 unlinks the associated device driver and file manager modules.
+    * NitrOS-9 then removes the driver, as long as no other module is using that driver.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Duplicate Path Returns a synonymous path number**
+#### **Duplicate Path**
 
-**OS9 I$Dup 103F 82**
+**Returns a synonymous path number**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Dup | 103F | 82 |
 
 **Entry Conditions**
-A _old path number_ (number of path to duplicate)
+| | |
+|-|-|
+| A | *old path number* (number of path to duplicate) |
 
 **Exit Conditions**
-A _new path number_ (if no error)
+| | |
+|-|-|
+| A | *new path number* (if no error) |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Duplicate Path returns another, synonymous path number for the file or
-    device specified by the _old path number_.
-- The shell uses the Duplicate Path call when it redirects I/O.
-- System calls can use either path number (old or new) to operate on the same file
-    or device.
-- Makes sure that no more than one process is performing I/O on any one path at
-    the same time. Concurrent I/O on the same path can cause unpredictable results
-    with RBF files.
-- The I$Dup call always uses the lowest available path number. This lets you
-    manipulate standard I/O paths to contain any desired paths.
+* The Duplicate Path returns another, synonymous path number for the file or device specified by the *old path number*.
+* The shell uses the Duplicate Path call when it redirects I/O.
+* System calls can use either path number (old or new) to operate on the same file or device.
+* Makes sure that no more than one process is performing I/O on any one path at the same time. Concurrent I/O on the same path can cause unpredictable results with RBF files.
+* The I$Dup call always uses the lowest available path number. This lets you manipulate standard I/O paths to contain any desired paths.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Status Returns the status of a file or device**
+#### **Get Status**
 
-**OS9 I$GetStt 103F 8D**
+**Returns the status of a file or device**
+| | | | |
+|-|-|-|-|
+| OS9 | I$GetStt | 103F | 8D |
 
 **Entry Conditions**
-A _path number_
-B _function code_
+| | |
+|-|-|
+| A | *path number* |
+| B | *function code* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Status is a _wildcard_ call. Use it to handle device parameters that:
-    - Are not the same for all devices
-    - Are highly hardware-dependent
-    - Must be user-changeable
-- The exact operation of the Get Status system call depends on the device driver
-    and file manager associated with the path. A typical use is to determine a
-    terminal’s parameters for such functions as backspace character and echo on/off.
-    The Get Status call is commonly used with the Set Status call.
-- The Get Status function codes that are currently defined are listed in the “Get
-    Status System Calls” section.
+* The Status is a *wildcard* call. Use it to handle device parameters that:
+    * Are not the same for all devices
+    * Are highly hardware-dependent
+    * Must be user-changeable.
+* The exact operation of the Get Status system call depends on the device driver and file manager associated with the path. A typical use is to determine a terminal’s parameters for such functions as backspace character and echo on/off. The Get Status call is commonly used with the Set Status call.
+* The Get Status function codes that are currently defined are listed in the “Get Status System Calls” section.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Make Directory Creates and initializes a directory**
+#### **Make Directory**
 
-**OS9 I$MakDir 103F 85**
+**Creates and initializes a directory**
+| | | | |
+|-|-|-|-|
+| OS9 | I$MakDir | 103F | 85 |
 
 **Entry Conditions**
-B _directory attributes_
-X _address of the pathlist (can be NUL or CR terminated)_
+| | |
+|-|-|
+| B | *directory attributes* |
+| X | *address of the pathlist (can be NUL or CR terminated)* |
 
 **Exit Conditions**
-X _address of the last byte of the pathlist + 1; skips any trailing blanks_
+| | |
+|-|-|
+| X | *address of the last byte of the pathlist + 1; skips any trailing blanks* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Make Directory call creates and initializes a directory as specified by the
-    pathlist. The directory contains only two entries, one for itself (.) and one for its
-    parent directory (..).
-- NitrOS-9 makes the calling process the owner of the directory.
-- Because the Make Directory call does not open the directory, it does not return a
-    path number.
-- The new directory automatically has its directory bit set in the access permission
-    attributes. The remaining attributes are specified by the byte passed in Register B.
-    The bits are defined as follows:
+* The Make Directory call creates and initializes a directory as specified by the pathlist. The directory contains only two entries, one for itself (.) and one for its parent directory (..).
+* NitrOS-9 makes the calling process the owner of the directory.
+* Because the Make Directory call does not open the directory, it does not return a path number.
+* The new directory automatically has its directory bit set in the access permission attributes. The remaining attributes are specified by the byte passed in Register B:
 
-**Bit Definition**
-0 Read
-1 Write
-2 Execute
-3 Public read
-4 Public write
-5 Public execute
-6 Single-user
-7 Don’t care
+| Bit | Definition |
+| --- | --- |
+| 0 | Read |
+| 1 | Write |
+| 2 | Execute |
+| 3 | Public read |
+| 4 | Public write |
+| 5 | Public execute |
+| 6 | Single-user |
+| 7 | Don’t care |
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 **Example**
+
 Before the Make Directory call:
 
-/ D 0 / N E W D I R $0D
-↑
-X
-
 ```
+---------------------------
+|/|D|0|/|N|E|W|D|I|R| |$0D|
+---------------------------
+ ^
+ X
+```
+
 After the Make Directory call:
-```
-/ D 0 / N E W D I R $0D
-↑
-X
-
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+---------------------------
+|/|D|0|/|N|E|W|D|I|R| |$0D|
+---------------------------
+                        ^
+                        X
 ```
-**Modify Descriptor in Memory Modify byte(s) in a device descriptor**
 
-**OS9 I$ModDsc 103F 91**
+---
+
+#### **Modify Descriptor in Memory**
+
+**Modify byte(s) in a device descriptor**
+| | | | |
+|-|-|-|-|
+| OS9 | I$ModDsc | 103F | 91 |
 
 **Entry Conditions**
-X _Pointer to the module name to modify (high bit OR Carriage Return
-terminated)_
-B _Number of bytes to change_
-U _Pointer to start of 2 byte change pairs (2 * B):
-Byte 0 is the offset into the descriptor to change (>M$DType offsets ONLY)
-Byte 1 is the new byte value to write at that offset_
+| | |
+|-|-|
+| X | *Pointer to the module name to modify (high bit OR Carriage Return terminated)* |
+| B | *Number of bytes to change* |
+| U | *Pointer to start of 2 byte change pairs (2 * B)* |
+| | Byte 0 is the offset into the descriptor to change (>M$DType offsets ONLY) |
+| | Byte 1 is the new byte value to write at that offset |
 
 **Exit Conditions**
-CC _Carry clear if no error; also, the descriptor is updated, with the header
-parity and CRC updated as well,
-OR
-Carry set if error_
+| | |
+|-|-|
+| CC | *Carry clear if no error; also, the descriptor is updated, with the header parity and CRC updated as well,* |
+| | OR |
+| | *Carry set if error* |
 
 **Error Output**
-B _Error code (if any). Some possible ones:
-$BB (187) Illegal Argument error: Caused by attempting to modify the
-module header, or modifying byte offsets beyond the size of the descriptor.
-$D8 (216) File Not Found error: If the specified module name is not currently
-loaded in the module directory.
-A If an Illegal Argument error was returned, then A contains the first byte
-offset that contained the error._
+| | |
+|-|-|
+| B | *Error code (if any) Some possible ones:* |
+| | *$BB (187) Illegal Argument error: Caused by attempting to modify the module header, or modifying byte offsets beyond the size of the descriptor.* |
+| | *$D8 (216) File Not Found error: If the specified module name is not currently loaded in the module directory.* |
+| A | *If an Illegal Argument error was returned, then A contains the first byte offset that contained the error.* |
 
 **Additional Information**
 
-- This call allows larger programs to directly modify device descriptors (including
-    outside of the OPT section), without having to map the device descriptor into
-    the calling program’s memory space. This especially helps if the device descriptor
-    is merged with other modules (a prime example being the OS9Boot file itself), as
-    otherwise an **F$Link** call will try to load in the entire merged file into the process’
-    memory space.
-- You can only modify bytes after **M$DTyp** until the end of the module, up to 127
-    bytes maximum (ie, you can not modify the module header). If you specify an
+* This call allows larger programs to directly modify device descriptors (including outside of the OPT section), without having to map the device descriptor into the calling program’s memory space. This especially helps if the device descriptor is merged with other modules (a prime example being the OS9Boot file itself), as otherwise an F$Link call will try to load in the entire merged file into the process’ memory space.
+* You can only modify bytes after **M$DTyp** until the end of the module, up to 127 bytes maximum (ie, you can not modify the module header). If you specify an offset out of range, the first such offset encountered will be return in A along with your error. You can specify the CRC byte offsets; however, the value you ask to write will be ignored and the CRC recalculated anyways.
+* **This call was added in NitrOS-9 EOU Beta 5.**
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-offset out of range, the first such offset encountered will be return in A along with
-your error. You can specify the CRC byte offsets; however, the value you ask to
-write will be ignored and the CRC recalculated anyways.
-```
-- **This call was added in NitrOS-9 EOU Beta 5.**
+#### **Open Path**
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Open Path Opens a path to an existing file or device
-as specified by the pathlist
-OS9 I$Open 103F 84**
+**Opens a path to an existing file or device as specified by the pathlist**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Open | 103F | 84 |
 
 **Entry Conditions**
-A _access mode_ (D S PE PW PR E W R)
-X _address of the pathlist (can be NUL, SPACE or CR terminated) (See example
-below)_
+| | |
+|-|-|
+| A | *access mode (D S PE PW PR E W R)* |
+| X | *address of the pathlist (can be NUL, SPACE or CR terminated) (See example below)* |
 
 **Exit Conditions**
-A _path number_
-X _address of the last byte of the pathlist + 1_
+| | |
+|-|-|
+| A | *path number* |
+| X | *address of the last byte of the pathlist + 1* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- NitrOS-9 searches for the file in one of the following:
-    - The directory specified by the pathlist if the pathlist begins with a slash.
-    - The working data directory, if the pathlist does not begin with a slash.
-    - The working execution directory, if the pathlist does not begin with a slash
-       and if the execution bit is set in the access mode.
-- NitrOS-9 returns a path number for later system calls to use to identify the file.
-- The access mode parameter lets you specify which read and/or write operations
-    are to be permitted. When set, each access mode bit enables one of the
-    following: Write, Read, Read and Write, Update, Directory I/O.
-- The access mode must conform to the access permission attributes associated
-    with the file or device. (See the Create system call.) Only the owner can access a
-    file unless the appropriate public permission bits are set.
-- The update mode might be slightly slower than the others because it might
-    require pre-reading of sectors for random access of bytes within sectors.
-- Several processes (users) can open files at the same time. Each device has an
-    attribute that specifies whether or not it is shareable.
-- If the single-user bit is set, the file is opened for single-user access regardless of
-    the settings of the file’s permission bits.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- You must set the directory flag if you are opening for read or write a file with the
-    directory bit set.
-- Open Path always uses the lowest path number available for the process.
+* NitrOS-9 searches for the file in one of the following:
+    * The directory specified by the pathlist if the pathlist begins with a slash.
+    * The working data directory, if the pathlist does not begin with a slash.
+    * The working execution directory, if the pathlist does not begin with a slash and if the execution bit is set in the access mode.
+* NitrOS-9 returns a path number for later system calls to use to identify the file.
+* The access mode parameter lets you specify which read and/or write operations are to be permitted. When set, each access mode bit enables one of the following: Write, Read, Read and Write, Update, Directory I/O.
+* The access mode must conform to the access permission attributes associated with the file or device. (See the Create system call.) Only the owner can access a file unless the appropriate public permission bits are set.
+* The update mode might be slightly slower than the others because it might require pre-reading of sectors for random access of bytes within sectors.
+* Several processes (users) can open files at the same time. Each device has an attribute that specifies whether or not it is shareable.
+* If the single-user bit is set, the file is opened for single-user access regardless of the settings of the file’s permission bits.
+* You must set the directory flag if you are opening for read or write a file with the directory bit set.
+* Open Path always uses the lowest path number available for the process.
 
 **Example**
+
 Before the Open Path call:
 
-/ D 0 / A C C T S P A Y $0D
-↑
-X
-
 ```
+-----------------------------
+|/|D|0|/|A|C|C|T|S|P|A|Y|$0D|
+-----------------------------
+ ^
+ X
+```
+
 After the Open Path call:
-```
-/ D 0 / A C C T S P A Y $0D
-↑
-X
-
-- Open Path always uses the lowest path number available for the process.
-
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+-----------------------------
+|/|D|0|/|A|C|C|T|S|P|A|Y|$0D|
+-----------------------------
+                          ^
+                          X
 ```
-**Read Read** **_n_** **bytes from a specified path**
 
-**OS9 I$Read 103F 89**
+* Open Path always uses the lowest path number available for the process.
+
+---
+
+#### **Read**
+
+**Read *n* bytes from a specified path**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Read | 103F | 89 |
 
 **Entry Conditions**
-A _path number_
-X _address in which to store the data_
-Y _number of bytes to read_
+| | |
+|-|-|
+| A | *path number* |
+| X | *address in which to store the data* |
+| Y | *number of bytes to read* |
 
 **Exit Conditions**
-Y _number of bytes read (including carriage return on SCF devices)_
+| | |
+|-|-|
+| Y | *number of bytes read (including carriage return on SCF devices)* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Read call reads the specified number of bytes from the specified path. It
-    returns the data exactly as read from the file/device without additional processing
-    or editing. The path must be opened in the read or update mode.
-- If there is **not** enough data in the specified file to satisfy the read request, the
-    read call reads fewer bytes than requested but an end-of-file error is **not**
-    returned. After all data in file is read, the next I$Read call returns an end-of-file
-    error.
-- If the specified file is open for update, the record read is locked out on RBF-type
-    devices.
-- The keyboard terminate, keyboard interrupt, and end-of-file characters are
-    filtered out of the Entry Conditions data on SCF-type devices unless the
-    corresponding entries in the descriptor have been set to zero. You might want to
-    modify the device descriptor so that these values are initialized to zero when the
-    path is opened.
-- The call reads the number of bytes requested unless Read encounters any of the
-    following:
-       - An end-of-file character
-       - An end-of-record character (SCF only)
-       - An error
+* The Read call reads the specified number of bytes from the specified path. It returns the data exactly as read from the file/device without additional processing or editing. The path must be opened in the read or update mode.
+* If there is not enough data in the specified file to satisfy the read request, the read call reads fewer bytes than requested but an end-of-file error is not returned. After all data in file is read, the next I$Read call returns an end-of-file error.
+* If the specified file is open for update, the record read is locked out on RBF-type devices.
+* The keyboard terminate, keyboard interrupt, and end-of-file characters are filtered out of the Entry Conditions data on SCF-type devices unless the corresponding entries in the descriptor have been set to zero. You might want to modify the device descriptor so that these values are initialized to zero when the path is opened.
+* The call reads the number of bytes requested unless Read encounters any of the following:
+    * An end-of-file character
+    * An end-of-record character (SCF only)
+    * An error
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Read Line With Editing Reads a text line with editing**
+#### **Read Line With Editing**
 
-**OS9 I$ReadLn 103F 8B**
+**Reads a text line with editing**
+| | | | |
+|-|-|-|-|
+| OS9 | I$ReadLn | 103F | 8B |
 
 **Entry Conditions**
-A _path number_
-X _address at which to store data_
-Y _maximum number of bytes to read_
+| | |
+|-|-|
+| A | *path number* |
+| X | *address at which to store data* |
+| Y | *maximum number of bytes to read* |
 
 **Exit Conditions**
-Y _number of bytes read (includes carriage return on SCF devices)_
+| | |
+|-|-|
+| Y | *number of bytes read (includes carriage return on SCF devices)* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Read Line is similar to Read. The difference is that Read Line reads the input file or
-    device until it encounters a carriage return character or until it reaches the
-    maximum byte count specified, whichever comes first. The Read Line also
-    automatically activates line editing on character oriented devices, such as
-    terminals and printers. The line editing refers to auto line feed, null padding at
-    the end of the line, backspacing, line deleting, and so on.
-- SCF requires that the last byte entered be an end-of-record character (usually a
-    carriage return). If more data is entered than the maximum specified, Read Line
-    does not accept it and a PD.OVF character (usually a bell) is echoed.
-- After one Read Line call reads all the data in a file, the next Read Line call
-    generates an end-of-file error.
-- For more information about line editing, see “SCF Line Editing Functions” in
-    Chapter 6.
+* Read Line is similar to Read. The difference is that Read Line reads the input file or device until it encounters a carriage return character or until it reaches the maximum byte count specified, whichever comes first. The Read Line also automatically activates line editing on character oriented devices, such as terminals and printers. The line editing refers to auto line feed, null padding at the end of the line, backspacing, line deleting, and so on.
+* SCF requires that the last byte entered be an end-of-record character (usually a carriage return). If more data is entered than the maximum specified, Read Line does not accept it and a PD.OVF character (usually a bell) is echoed.
+* After one Read Line call reads all the data in a file, the next Read Line call generates an end-of-file error.
+* For more information about line editing, see “SCF Line Editing Functions” in Chapter 6.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Seek Repositions a file pointer**
+#### **Seek**
 
-**OS9 I$Seek 103F 88**
+**Repositions a file pointer**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Seek | 103F | 88 |
 
 **Entry Conditions**
-A _path number_
-X _MS 16 bits of the desired file position_
-U _LS 16 bits of the desired file position_
+| | |
+|-|-|
+| A | *path number* |
+| X | *MS 16 bits of the desired file position* |
+| U | *LS 16 bits of the desired file position* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Seek call repositions the path’s logical file pointer, the 32-bit address of the
-    next byte in the file to be read from or written to.
-- You can perform a seek to any value, regardless of the file’s size. Later writes
-    automatically expand the file to the required size (if possible). Later reads,
-    however, return an end-of-file condition. Note that a seek to Address 0 is the
-    same as a rewind operation.
-- NitrOS-9 usually ignores seeks to non-random access devices, and returns without
-    error.
-- On RBF devices, seeking to a new disk sector causes the internal disk buffer to be
-    rewritten to disk if it has been modified. Seek does not change the state of record
-    locking.
+* The Seek call repositions the path’s logical file pointer, the 32-bit address of the next byte in the file to be read from or written to.
+* You can perform a seek to any value, regardless of the file’s size. Later writes automatically expand the file to the required size (if possible). Later reads, however, return an end-of-file condition. Note that a seek to Address 0 is the same as a rewind operation.
+* NitrOS-9 usually ignores seeks to non-random access devices, and returns without error.
+* On RBF devices, seeking to a new disk sector causes the internal disk buffer to be rewritten to disk if it has been modified. Seek does not change the state of record locking.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set Status Sets the status of a file or device**
+#### **Set Status**
 
-**OS9 I$SetStt 103F 8E**
+**Sets the status of a file or device**
+| | | | |
+|-|-|-|-|
+| OS9 | I$SetStt | 103F | 8E |
 
 **Entry Conditions**
-A _path number_
-B _function code_
-Other registers depend on the function code
+| | |
+|-|-|
+| A | *path number* |
+| B | *function code* |
+| | Other registers depend on the function code |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
-Other registers depend on the function code
-
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
+| | Other registers depend on the function code |
 **Additional Information**
 
-- Set Status is a wildcard call. Use it to handle device parameters that:
-    - Are not the same for all devices
-    - Are highly hardware-dependent
-    - Must be user-changeable
-- The exact operation of the Set Status system call depends on the device driver
-    and file manager associated with the path. A typical use is to set a terminal’s
-    parameters for such functions as backspace character and echo on/off. The Set
-    Status call is commonly used with the Get Status call.
-- The Set Status function codes that are currently defined are listed in the “Set
-    Status System Calls” section.
+* Set Status is a wildcard call. Use it to handle device parameters that:
+    * Are not the same for all devices
+    * Are highly hardware-dependent
+    * Must be user-changeable
+* The exact operation of the Set Status system call depends on the device driver and file manager associated with the path. A typical use is to set a terminal’s parameters for such functions as backspace character and echo on/off. The Set Status call is commonly used with the Get Status call.
+* The Set Status function codes that are currently defined are listed in the “Set Status System Calls” section.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Write Writes to a file or device**
+#### **Write**
 
-**OS9 I$Write 103F 8A**
+**Writes to a file or device**
+| | | | |
+|-|-|-|-|
+| OS9 | I$Write | 103F | 8A |
 
 **Entry Conditions**
-A _path number_
-X _starting address of data to write_
-Y _number of bytes to write_
+| | |
+|-|-|
+| A | *path number* |
+| X | *starting address of data to write* |
+| Y | *number of bytes to write* |
 
 **Exit Conditions**
-Y _number of bytes written_
+| | |
+|-|-|
+| Y | *number of bytes written* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Write system call writes to the file or device associated with the path number
-    specified.
-- Before using Write, be sure the path is opened or created in the write or update
-    access mode. NitrOS-9 writes data to the file or device without processing or
-    editing the data. NitrOS-9 automatically expands the file if you write data path the
-    present end-of-file.
+* The Write system call writes to the file or device associated with the path number specified.
+* Before using Write, be sure the path is opened or created in the write or update access mode. NitrOS-9 writes data to the file or device without processing or editing the data. NitrOS-9 automatically expands the file if you write data path the present end-of-file.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Write Line Writes to a file or device until it
-encounters a carriage return
-OS9 I$WritLn 103F 8C**
+#### **Write Line**
+
+**Writes to a file or device until it encounters a carriage return**
+| | | | |
+|-|-|-|-|
+| OS9 | I$WritLn | 103F | 8C |
 
 **Entry Conditions**
-A _path number_
-X _address of the data to write_
-Y _maximum number of bytes to write_
+| | |
+|-|-|
+| A | *path number* |
+| X | *address of the data to write* |
+| Y | *maximum number of bytes to write* |
 
 **Exit Conditions**
-Y _number of bytes written_
+| | |
+|-|-|
+| Y | *number of bytes written* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Writes to the file or device that is associated with the path number specified.
-- Write Line is similar to Write. The difference is that Write Line writes data until it
-    encounters a carriage return character. It also activates line editing for character-
-    oriented devices, such as terminals and printers. The line editing refers to auto
-    line feed, null padding at the end of the line, backspacing, line deleting, and so on.
-- Before using Write Line, be sure the path opened or created in the write or
-    update access mode.
-- For more information about line editing, see “SCF Line Editing Functions” in
-    Chapter 6.
+* Writes to the file or device that is associated with the path number specified.
+* Write Line is similar to Write. The difference is that Write Line writes data until it encounters a carriage return character. It also activates line editing for character-oriented devices, such as terminals and printers. The line editing refers to auto line feed, null padding at the end of the line, backspacing, line deleting, and so on.
+* Before using Write Line, be sure the path opened or created in the write or update access mode.
+* For more information about line editing, see “SCF Line Editing Functions” in Chapter 6.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-## Privileged System Mode Calls.................................................................................
+### Privileged System Mode Calls
 
-**Allocate 64 Dynamically allocates 64-byte blocks of
-memory
-OS9 F$All64 103F 30**
+#### **Allocate 64**
+
+**Dynamically allocates 64-byte blocks of memory**
+| | | | |
+|-|-|-|-|
+| OS9 | F$All64 | 103F | 30 |
 
 **Entry Conditions**
-X _base address of the page table_ ; 0 = the page table has not been allocated
+| | |
+|-|-|
+| X | *base address of the page table* ; 0 = the page table has not been allocated |
 
 **Exit Conditions**
-A _block number_
-X _base address of the page table_
-Y _address of the block_
+| | |
+|-|-|
+| A | *block number* |
+| X | *base address of the page table* |
+| Y | *address of the block* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Allocate 64 system call allocates the 64-byte blocks of memory by splitting
-    pages (256-byte sections) into four sections.
-- NitrOS-9 uses the first 64 bytes of the base page as a page table. This table
-    contains the page number (most significant byte of the address) of all pages in the
-    memory structure. If Register X passes a value of zero, the call allocates a new
-    base page and the first 64-byte memory block.
-- Whenever a new page is needed, a Request System Memory system call
-    (F$SRqMem) executes automatically.
-- The first byte of each block contains the block number. Routines that use the
-    Allocate 64 call should not alter this byte.
-- The following diagram shows how seven blocks might be allocated:
-
+* The Allocate 64 system call allocates the 64-byte blocks of memory by splitting pages (256-byte sections) into four sections.
+* NitrOS-9 uses the first 64 bytes of the base page as a page table. This table contains the page number (most significant byte of the address) of all pages in the memory structure. If Register X passes a value of zero, the call allocates a new base page and the first 64-byte memory block.
+* Whenever a new page is needed, a Request System Memory system call (F$SRqMem) executes automatically.
+* The first byte of each block contains the block number.
+* Routines that use the Allocate 64 call should not alter this byte.
+* The following diagram shows how seven blocks might be allocated:
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Any Memory Page Any Memory Page
-Base Page **
-
-```
-Page Table
-(64 bytes)
-```
-```
-X
-Block 4
-(64 bytes)
-X
-Block 1
-(64 bytes)
-```
-```
-X
-Block 5
-(64 bytes)
-X
-Block 2
-(64 bytes)
-```
-```
-X
-Block 6
-(64 bytes)
-X
-Block 3
-(64 bytes)
-```
-```
-X
-Block 7
-(64 bytes)
+-------------------------
+|       Base Page       |
+|-----------------------|
+| Page Table (64 bytes) |
+|-----------------------|
+|   Block 1 (64 bytes)  |
+|-----------------------|
+|   Block 2 (64 bytes)  |
+|-----------------------|
+|   Block 3 (64 bytes)  |
+-------------------------
+-------------------------
+|    Any Memory Page    |
+|-----------------------|
+|   Block 4 (64 bytes)  |
+|-----------------------|
+|   Block 5 (64 bytes)  |
+|-----------------------|
+|   Block 6 (64 bytes)  |
+|-----------------------|
+|   Block 7 (64 bytes)  |
+-------------------------
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate High RAM Allocate system memory from high
-physical memory
-OS9 F$AlHRAM 103F 53**
+---
+
+#### **Allocate High RAM**
+
+**Allocate system memory from high physical memory**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AlHRAM | 103F | 53 |
 
 **Entry Conditions**
-B _number of blocks_
+| | |
+|-|-|
+| B | *number of blocks* |
 
 **Exit Conditions**
-_D start block number of RAM found_
+| | |
+|-|-|
+| D | *start block number of RAM found* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This call searches for the desired number of contiguous free RAM blocks, starting
-    its search at the top of memory. F$AllHRam is similar to F$AllRAM except
-    F$AllRAM begins its search at the bottom of memory.
-- Screen allocation routines use this call to provide a better chance of finding the
-    necessary memory for a screen.
+* This call searches for the desired number of contiguous free RAM blocks, starting its search at the top of memory. F$AllHRam is similar to F$AllRAM except F$AllRAM begins its search at the bottom of memory.
+* Screen allocation routines use this call to provide a better chance of finding the necessary memory for a screen.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate Image Allocates RAM blocks for process DAT
-image
-OS9 F$AllImg 103F 3A**
+#### **Allocate Image**
+
+**Allocates RAM blocks for process DAT image**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AllImg | 103F | 3A |
 
 **Entry Conditions**
-A _starting block number_
-B _number of blocks_
-X _process descriptor pointer_
+| | |
+|-|-|
+| A | *starting block number* |
+| B | *number of blocks* |
+| X | *process descriptor pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Use the Allocate Image system call to allocate a data area for a process. The
-    blocks that Allocate Image define might not be contiguous.
-- The support module for this system call is Krn.
+* Use the Allocate Image system call to allocate a data area for a process. The blocks that Allocate Image define might not be contiguous.
+* The support module for this system call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate Process Descriptor Allocates and initializes a 512-byte
-process descriptor
-OS9 F$AllPrc 103F 4B**
+#### **Allocate Process Descriptor**
+
+**Allocates and initializes a 512-byte process descriptor**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AllPrc | 103F | 4B |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
-U _process descriptor pointer_
+| | |
+|-|-|
+| U | *process descriptor pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The process descriptor table houses the address of the descriptor. Initialization of
-    the process descriptor consists of clearing the first 256 bytes of the descriptor,
-    setting up the state as a system state, and marking as unallocated as much of the
-    DAT image as the system allows—typically, 60-64 kilobytes.
-- The support module for this system call is KrnP2. The call also branches to the
-    F$SRqMem call.
+* The process descriptor table houses the address of the descriptor. Initialization of the process descriptor consists of clearing the first 256 bytes of the descriptor, setting up the state as a system state, and marking as unallocated as much of the DAT image as the system allows—typically, 60-64 kilobytes.
+* The support module for this system call is KrnP2. The call also branches to the F$SRqMem call.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Allocate Process Task Number Determines whether NitrOS-9 has
-assigned a task number to the specified
-OS9 F$AllTsk 103F 3F process**
+#### **Allocate Process Task Number**
+
+**Determines whether NitrOS-9 has assigned a task number to the specified process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AllTsk | 103F | 3F |
 
 **Entry Conditions**
-X _process descriptor pointer_
+| | |
+|-|-|
+| X | *process descriptor pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- If the process does not have a task number, NitrOS-9 allocates a task number and
-    copies the DAT image into the DAT hardware.
-- The support module for this call is Krn. Allocate Process Task Number also
-    branches to F$ResTsk and F$SetTsk.
+* If the process does not have a task number, NitrOS-9 allocates a task number and copies the DAT image into the DAT hardware.
+* The support module for this call is Krn. Allocate Process Task Number also branches to F$ResTsk and F$SetTsk.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Insert Process Inserts a process into the queue for
-execution
-OS9 F$AProc 103F 2C**
+#### **Insert Process**
+
+**Inserts a process into the queue for execution**
+| | | | |
+|-|-|-|-|
+| OS9 | F$AProc | 103F | 2C |
 
 **Entry Conditions**
-X _address of the process descriptor_
+| | |
+|-|-|
+| X | *address of the process descriptor* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Insert Process system call inserts a process into the active process queue so
-    that NitrOS-9 can schedule the process for execution.
-- NitrOS-9 sorts all processes in the queue by process age (the count of how many
-    process switches have occurred since the process’s last time slice). When a
-    process is moved to the active process queue, NitrOS-9 sets its age according to
-    its priority—the higher the priority, the higher the age.
-- An exception is a newly active process that was deactivated while in the system
-    state. NitrOS-9 gives such a process higher priority because the process usually is
-    executing critical routines that affect shared system resources.
+* The Insert Process system call inserts a process into the active process queue so that NitrOS-9 can schedule the process for execution.
+* NitrOS-9 sorts all processes in the queue by process age (the count of how many process switches have occurred since the process’s last time slice). When a process is moved to the active process queue, NitrOS-9 sets its age according to its priority—the higher the priority, the higher the age.
+* An exception is a newly active process that was deactivated while in the system state. NitrOS-9 gives such a process higher priority because the process usually is executing critical routines that affect shared system resources.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Bootstrap System Links either the module named Boot or
-the module specified in the INIT module
-OS9 F$Boot 103F 35**
+#### **Bootstrap System**
+
+**Links either the module named Boot or the module specified in the INIT module**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Boot | 103F | 35 |
 
 **Entry Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- When it calls the linked module, Boot expects to receive a pointer giving it the
-    location and size of an area in which to search for the new module.
-- The support module for this call is Krn. Bootstrap System also branches to the
-    F$Link and F$VModul system calls.
+* When it calls the linked module, Boot expects to receive a pointer giving it the location and size of an area in which to search for the new module.
+* The support module for this call is Krn. Bootstrap System also branches to the F$Link and F$VModul system calls.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Bootstrap Memory Request Allocates the requested memory
-(rounded to the nearest block) as
-contiguous memory in the system’s
-address space**
+#### **Bootstrap Memory Request**
 
-**OS9 F$BtMem 103F 36**
+**Allocates the requested memory (rounded to the nearest block) as contiguous memory in the system’s address space**
+| | | | |
+|-|-|-|-|
+| OS9 | F$BtMem | 103F | 36 |
 
 **Entry Conditions**
-D _byte count requested_
+| | |
+|-|-|
+| D | *byte count requested* |
 
 **Exit Conditions**
-D _byte count granted_
-U _pointer to allocated memory_
+| | |
+|-|-|
+| D | *byte count granted* |
+| U | *pointer to allocated memory* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This call is identical to F$SRqMem.
-- The Bootstrap Memory Request support module is Krn.
+* This call is identical to F$SRqMem.
+* The Bootstrap Memory Request support module is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**DAT to Logical Address Converts a DAT image block number and
-block offset to its equivalent logical
-OS9 F$DATLog 103F 44 address**
+#### **DAT to Logical Address**
+
+**Converts a DAT image block number and block offset to its equivalent logical address**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DATLog | 103F | 44 |
 
 **Entry Conditions**
-B _DAT image offset_
-X _block offset_
+| | |
+|-|-|
+| B | *DAT image offset* |
+| X | *block offset* |
 
 **Exit Conditions**
-X _logical address_
+| | |
+|-|-|
+| X | *logical address* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Following is a sample conversion:
+* Following is a sample conversion:
 
 ```
-$4000-$5FFF
-```
-```
-Input: B = 2
-X = $0329
-```
-```
-$2000-$3FFF
-```
-```
-Output: X=$4329
-```
-```
-$0000-$1FFF
-```
-- The support module for this call is Krn.
+-----------------
+| Address Range |
+|---------------|
+| $4000-$5FFF   |
+| $2000-$3FFF   |
+| $0000-$1FFF   |
+-----------------
 
+Input:  B = 2, X = $0329
+Output: X = $4329
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Deallocate Image RAM Blocks Deallocates image RAM blocks**
 
-**OS9 F$DelImg 103F 3B**
+* The support module for this call is Krn.
+
+---
+
+#### **Deallocate Image RAM Blocks**
+
+**Deallocates image RAM blocks**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DelImg | 103F | 3B |
 
 **Entry Conditions**
-A _number of starting block_
-B _block count_
-X _process descriptor pointer_
+| | |
+|-|-|
+| A | *number of starting block* |
+| B | *block count* |
+| X | *process descriptor pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This system call deallocates memory from a process’s address space. It frees the
-    RAM for system use and frees the DAT image for the process. Its main use is to let
-    the system clean up after a process death.
-- The support module for this call is KrnP2.
+* This system call deallocates memory from a process’s address space. It frees the RAM for system use and frees the DAT image for the process. Its main use is to let the system clean up after a process death.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Deallocate Process Descriptor Returns a process descriptor’s memory
-to a free memory pool
-OS9 F$DelPrc 103F 4C**
+#### **Deallocate Process Descriptor**
+
+**Returns a process descriptor’s memory to a free memory pool**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DelPrc | 103F | 4C |
 
 **Entry Conditions**
-A _process ID_
+| | |
+|-|-|
+| A | *process ID* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Use this call to clear the system scratch memory and stack area associated with
-    the process.
-- The support module for this call is KrnP2.
+* Use this call to clear the system scratch memory and stack area associated with the process.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Deallocate Task Number Releases the task number that the
-process specified by the passed
-OS9 F$DelTsk 103F 40 descriptor pointer**
+#### **Deallocate Task Number**
+
+**Releases the task number that the process specified by the passed descriptor pointer**
+| | | | |
+|-|-|-|-|
+| OS9 | F$DelTsk | 103F | 40 |
 
 **Entry Conditions**
-X _process descriptor pointer_
+| | |
+|-|-|
+| X | *process descriptor pointer* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The support module for this call is Krn.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Link Using Module Directory Entry Performs a link using a pointer to a
-module directory entry
-OS9 F$ELink 103F 4D**
+#### **Link Using Module Directory Entry**
+
+**Performs a link using a pointer to a module directory entry**
+| | | | |
+|-|-|-|-|
+| OS9 | F$ELink | 103F | 4D |
 
 **Entry Conditions**
-B _module type_
-X _pointer to module directory entry_
+| | |
+|-|-|
+| B | *module type* |
+| X | *pointer to module directory entry* |
 
 **Exit Conditions**
-U _module header address_
-Y _module entry point_
+| | |
+|-|-|
+| U | *module header address* |
+| Y | *module entry point* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This call differs from Link in that you supply a pointer to the module directory
-    entry rather than a pointer to a module name.
-- The support module for this call is Krn.
+* This call differs from Link in that you supply a pointer to the module directory entry rather than a pointer to a module name.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Find Module Directory Entry Returns a pointer to the module
-directory entry
-OS9 F$FModul 103F 4E**
+#### **Find Module Directory Entry**
+
+**Returns a pointer to the module directory entry**
+| | | | |
+|-|-|-|-|
+| OS9 | F$FModul | 103F | 4E |
 
 **Entry Conditions**
-A _module type ($00 = any module type)_
-X _pointer to the name string_
-Y _DAT image pointer_ (for name)
+| | |
+|-|-|
+| A | *module type ($00 = any module type)* |
+| X | *pointer to the name string* |
+| Y | *DAT image pointer* (for name) |
 
 **Exit Conditions**
-A _module type_
-B _module revision number_
-X _updated name string_ (if Register A contains 0 on entry)
-U _module directory entry pointer_
+| | |
+|-|-|
+| A | *module type* |
+| B | *module revision number* |
+| X | *updated name string* (if Register A contains 0 on entry) |
+| U | *module directory entry pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Find Module Directory Entry call returns a pointer to the module directory
-    entry for the first module that has a name and type matching the specified name
-    and type. If you pass a module type of zero, the system call finds any module.
-- The support module for this call is Krn.
+* The Find Module Directory Entry call returns a pointer to the module directory entry for the first module that has a name and type matching the specified name and type. If you pass a module type of zero, the system call finds any module.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Find 64 Returns the address of a 64-byte
-memory block
-OS9 F$Find64 103F 2F**
+#### **Find 64**
+
+**Returns the address of a 64-byte memory block**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Find64 | 103F | 2F |
 
 **Entry Conditions**
-A _block number_
-X _address of the block_
+| | |
+|-|-|
+| A | *block number* |
+| X | *address of the block* |
 
 **Exit Conditions**
-Y _address of the block_
-CC _carry set if block not allowed or not in use_
+| | |
+|-|-|
+| Y | *address of the block* |
+| CC | *carry set if block not allowed or not in use* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- NitrOS-9 uses Find 64 to find path descriptors when given their block number. The
-    block number can be any positive integer.
+* NitrOS-9 uses Find 64 to find path descriptors when given their block number. The block number can be any positive integer.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Free High Block Searches the DAT image for the highest
-set of contiguous free blocks of the
-OS9 F$FreeHB 103F 3E specified size**
+#### **Get Free High Block**
+
+**Searches the DAT image for the highest set of contiguous free blocks of the specified size**
+| | | | |
+|-|-|-|-|
+| OS9 | F$FreeHB | 103F | 3E |
 
 **Entry Conditions**
-B _block count_
-Y _DAT image pointer_
+| | |
+|-|-|
+| B | *block count* |
+| Y | *DAT image pointer* |
 
 **Exit Conditions**
-A _starting block number_
+| | |
+|-|-|
+| A | *starting block number* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Get Free High Block call returns the block number of the beginning memory
-    address of the free blocks.
-- The support module for this system call is Krn.
+* The Get Free High Block call returns the block number of the beginning memory address of the free blocks.
+* The support module for this system call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Free Low Block Searches the DAT image for the lowest
-set of contiguous free blocks of the
-OS9 F$FreeLB 103F 3D specified size**
+#### **Get Free Low Block**
+
+**Searches the DAT image for the lowest set of contiguous free blocks of the specified size**
+| | | | |
+|-|-|-|-|
+| OS9 | F$FreeLB | 103F | 3D |
 
 **Entry Conditions**
-B _block count_
-Y _DAT image pointer_
+| | |
+|-|-|
+| B | *block count* |
+| Y | *DAT image pointer* |
 
 **Exit Conditions**
-A _starting block number_
+| | |
+|-|-|
+| A | *starting block number* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Get Free Low Block call returns the block number of the beginning memory
-    address of the free blocks.
-- The support module for this system call is Krn.
+* The Get Free Low Block call returns the block number of the beginning memory address of the free blocks.
+* The support module for this system call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Compact Module Directory Compacts the entries in the module
-directory
-OS9 F$GCMDir 103F 52**
+#### **Compact Module Directory**
+
+**Compacts the entries in the module directory**
+| | | | |
+|-|-|-|-|
+| OS9 | F$GCMDir | 103F | 52 |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This function is only for internal NitrOS-9 system use. You should never call it from
-    a program.
+* This function is only for internal NitrOS-9 system use. You should never call it from a program.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Process Pointer Gets a pointer to a process**
+#### **Get Process Pointer**
 
-**OS9 F$GProcP 103F 37**
+**Gets a pointer to a process**
+| | | | |
+|-|-|-|-|
+| OS9 | F$GProcP | 103F | 37 |
 
 **Entry Conditions**
-A _process ID_
+| | |
+|-|-|
+| A | *process ID* |
 
 **Exit Conditions**
-Y _pointer to process descriptor_ (if no error)
+| | |
+|-|-|
+| Y | *pointer to process descriptor* (if no error) |
 
 **Error Output**
-CC carry set on error
-B _error code (If an error occurs (E$(BPrcID) - Bad Process ID)_
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code (If an error occurs (E$(BPrcID) - Bad Process ID)* |
 
 **Additional Information**
 
-- The Get Process Pointer call translates a process ID number to the address of its
-    process descriptor in the system address space. Process descriptors exist only in
-    the system task address space. Because of this, the address space returned only
-    refers to system address space.
-- The support module for this call is KrnP2.
+* The Get Process Pointer call translates a process ID number to the address of its process descriptor in the system address space. Process descriptors exist only in the system task address space. Because of this, the address space returned only refers to system address space.
+* The support module for this call is KrnP2.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**I/O Delete Deletes an I/O module that is not being
-used
-OS9 F$IODel 103F 33**
+#### **I/O Delete**
+
+**Deletes an I/O module that is not being used**
+| | | | |
+|-|-|-|-|
+| OS9 | F$IODel | 103F | 33 |
 
 **Entry Conditions**
-X _address of an I/O module_
+| | |
+|-|-|
+| X | *address of an I/O module* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The I/O Delete call deletes the specified I/O module from the system, if the
-    module is not in use. This system call is used mainly by the I/O Manager, and can
-    be of limited or no use for other applications.
-- This is the order in which I/O Delete operates:
-    - Register X passes the address of a device descriptor module, device driver
-       module, or file manager module.
-    - NitrOS-9 searches the device table for the address.
-    - If NitrOS-9 finds the address, it checks the module’s use count. If the count
-       is zero, the module is not being used; NitrOS-9 deletes it. If the count is not
-       zero, the module is being used; NitrOS-9 returns an error.
-- I/O Delete returns information to the Unlink system call after determining
-    whether a device is busy.
+* The I/O Delete call deletes the specified I/O module from the system, if the module is not in use. This system call is used mainly by the I/O Manager, and can be of limited or no use for other applications.
+* This is the order in which I/O Delete operates:
+    * Register X passes the address of a device descriptor module, device driver module, or file manager module.
+    * NitrOS-9 searches the device table for the address.
+    * If NitrOS-9 finds the address, it checks the module’s use count. If the count is zero, the module is not being used; NitrOS-9 deletes it. If the count is not zero, the module is being used; NitrOS-9 returns an error.
+* I/O Delete returns information to the Unlink system call after determining whether a device is busy.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**I/O Queue Inserts the calling process into another
-process’s I/O queue, and puts the calling
-OS9 F$IOQu 103F 2B process to sleep**
+#### **I/O Queue**
+
+**Inserts the calling process into another process’s I/O queue, and puts the calling process to sleep**
+| | | | |
+|-|-|-|-|
+| OS9 | F$IOQu | 103F | 2B |
 
 **Entry Conditions**
-A _process ID_
+| | |
+|-|-|
+| A | *process ID* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The I/O Queue call links the calling process into the I/O queue of the specified
-    process and performs an untimed sleep. The I/O Manager and the file managers
-    are primary and extensive users of I/O Queue.
-- Routines associated with the specified process send a wake-up signal to the
-    calling process.
+* The I/O Queue call links the calling process into the I/O queue of the specified process and performs an untimed sleep. The I/O Manager and the file managers are primary and extensive users of I/O Queue.
+* Routines associated with the specified process send a wake-up signal to the calling process.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set IRQ Adds a device to or removes it from the
-polling table
-OS9 F$IRQ 103F 2A**
+#### **Set IRQ**
+
+**Adds a device to or removes it from the polling table**
+| | | | |
+|-|-|-|-|
+| OS9 | F$IRQ | 103F | 2A |
 
 **Entry Conditions**
-D _address of the device status register_
-X 0 (to remove a device) or _the address of a packet_ (to add a device)
- the address at X is the flip byte
- the address at X + 1 is the mask byte
- the address at X + 2 is the priority byte
-Y _address of the device IRQ service routine_
-U _address of the service routine’s memory area_
+| | |
+|-|-|
+| D | *address of the device status register* |
+| X | 0 (to remove a device) or *the address of a packet* (to add a device) |
+| Y | *address of the device IRQ service routine* |
+| U | *address of the service routine’s memory area* |
+
+**Packet Definitions (Address at X)**
+| Offset | Definition | Description |
+|-|-|-|
+| X | Flip Byte | Determines bit indicator active state (set/clear). |
+| X + 1 | Mask Byte | Selects interrupt request flag bit(s). |
+| X + 2 | Priority Byte | Device priority number (0-255). |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Set IRQ is used mainly by device driver routines. (See “Interrupt Processing” in
-    Chapter 2 for a complete discussion of the interrupt polling system.)
-- Packet Definitions:
-    **The Flip Byte**. Determines whether the bits in the device status register indicate
-    active when set or active when cleared. If a bit in the flip byte is set, it indicates
-    that the task is active whenever the corresponding bit in the status register is
-    clear (and vice versa).
-    **The Mask Byte**. Selects one or more bits within the device status register that are
-    interrupt request flag(s). One or more set bits identify which task or device is
-    active.
-    **The Priority Byte**. Contains the device priority number (0 = lowest priority, 255 =
-    highest priority).
+* Set IRQ is used mainly by device driver routines. (See “Interrupt Processing” in Chapter 2 for a complete discussion of the interrupt polling system.)
+* Packet Definitions:
+    
+    **The Flip Byte**: If a bit in the flip byte is set, it indicates that the task is active whenever the corresponding bit in the status register is clear (and vice versa).
+    
+    **The Mask Byte**: One or more set bits identify which task or device is active.
+    
+    **The Priority Byte**: 0 = lowest priority, 255 = highest priority.
 
+#### **Load A From Task B**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-##### Load A From Task B............................................................................................
-
-**OS9 F$LDABX 103F 49**
+**Loads A from 0,X in task B**
+| | | | |
+|-|-|-|-|
+| OS9 | F$LDABX | 103F | 49 |
 
 **Entry Conditions**
-B _task number_
-X _pointer to data_
+| | |
+|-|-|
+| B | *task number* |
+| X | *pointer to data* |
 
 **Exit Conditions**
-A _byte at 0,X in task address space_
+| | |
+|-|-|
+| A | *byte at 0,X in task address space* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The value in Register X is an offset value from the beginning address of the Task
-    module. The Load A from Task B call returns one byte from this logical address.
-    Use this system call to get one byte from the current process’s memory in a
-    system state routine.
+* The value in Register X is an offset value from the beginning address of the Task module. The Load A from Task B call returns one byte from this logical address. Use this system call to get one byte from the current process’s memory in a system state routine.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get One Byte Loads A from [X,[Y]]**
+#### **Get One Byte**
 
-**OS9 F$LDAXY 103F 46**
+**Loads A from [X,[Y]]**
+| | | | |
+|-|-|-|-|
+| OS9 | F$LDAXY | 103F | 46 |
 
 **Entry Conditions**
-X _block offset_
-Y _DAT image pointer_
+| | |
+|-|-|
+| X | *block offset* |
+| Y | *DAT image pointer* |
 
 **Exit Conditions**
-A _contents of byte at DAT image (Y) offset X_
+| | |
+|-|-|
+| A | *contents of byte at DAT image (Y) offset X* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Get One Byte system call gets the contents of one byte in the specified
-    memory block. The block is specified by the DAT image in (Y), offset by (X). The
-    call assumes that the DAT image pointer is to the actual block desired, and that X
-    is only an offset within the DAT block. The value in Register X must be less than
-    the size of the DAT block (8K on the CoCo). NitrOS-9 does not check to see if X is
-    out of range.
+* The Get One Byte system call gets the contents of one byte in the specified memory block. The block is specified by the DAT image in (Y), offset by (X). The call assumes that the DAT image pointer is to the actual block desired, and that X is only an offset within the DAT block. The value in Register X must be less than the size of the DAT block (8K on the CoCo). NitrOS-9 does not check to see if X is out of range.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Get Two Bytes Load D from [D+X],[Y]**
+#### **Get Two Bytes**
 
-**OS9 F$LDDDXY 103F 48**
+**Load D from [D+X],[Y]**
+| | | | |
+|-|-|-|-|
+| OS9 | F$LDDDXY | 103F | 48 |
 
 **Entry Conditions**
-D _offset to the offset within the DAT image_
-X _offset within the DAT image_
-Y _DAT image pointer_
+| | |
+|-|-|
+| D | *offset to the offset within the DAT image* |
+| X | *offset within the DAT image* |
+| Y | *DAT image pointer* |
 
 **Exit Conditions**
-D _contents of two bytes at [D+X],[Y]_
+| | |
+|-|-|
+| D | *contents of two bytes at [D+X],[Y]* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Get Two Bytes loads two bytes from the address space described by the DAT
-    image pointer. If the DAT image pointer is to the entire DAT, make D+X equal to
-    the process address for data. If the DAT image is not the entire image (64K), you
-    must adjust D+X relative to the beginning of the DAT image. Using D+X lets you
-    keep a local pointer within a block, and also lets you point to an offset within the
-    DAT image that points to a specified block number.
+* Get Two Bytes loads two bytes from the address space described by the DAT image pointer. If the DAT image pointer is to the entire DAT, make D+X equal to the process address for data. If the DAT image is not the entire image (64K), you must adjust D+X relative to the beginning of the DAT image. Using D+X lets you keep a local pointer within a block, and also lets you point to an offset within the DAT image that points to a specified block number.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Move Data Moves data bytes from one address
-space to another
-OS9 F$Move 103F 38**
+#### **Move Data**
+
+**Moves data bytes from one address space to another**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Move | 103F | 38 |
 
 **Entry Conditions**
-A _source task number_
-B _destination task number_
-X _source pointer_
-Y _byte count_
-U _destination pointer_
+| | |
+|-|-|
+| A | *source task number* |
+| B | *destination task number* |
+| X | *source pointer* |
+| Y | *byte count* |
+| U | *destination pointer* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- You can use the Move Data system call to move data bytes from one address
-    space to another, usually from system to user, or vice versa.
-- The support module for this call is Krn.
+* You can use the Move Data system call to move data bytes from one address space to another, usually from system to user, or vice versa.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Next Process Executes the next process in the active
-process queue
-OS9 F$NProc 103F 2D**
+#### **Next Process**
+
+**Executes the next process in the active process queue**
+| | | | |
+|-|-|-|-|
+| OS9 | F$NProc | 103F | 2D |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
+
 Control does not return to caller.
 
 **Additional Information**
 
-- The Next Process system call takes the next process out of the active process
-    queue and initiates its execution. If the queue contains no process, NitrOS-9 waits
-    for an interrupt and then checks the queue again.
-- The process calling Next Process must already be in one of the three process
-    queues. If it is not, it becomes unknown to the system even though the process
-    descriptor still exists and can be displayed by the PROCS or PROC command.
+* The Next Process system call takes the next process out of the active process queue and initiates its execution. If the queue contains no process, NitrOS-9 waits for an interrupt and then checks the queue again.
+* The process calling Next Process must already be in one of the three process queues. If it is not, it becomes unknown to the system even though the process descriptor still exists and can be displayed by the PROCS or PROC command.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Release a Task Releases a specified DAT task number
-from use by a process, making the task’s
-DAT hardware available for use by
-another task**
+#### **Release a Task**
 
-**OS9 F$RelTsk 103F 43**
+**Releases a specified DAT task number from use by a process, making the task’s DAT hardware available for use by another task**
+| | | | |
+|-|-|-|-|
+| OS9 | F$RelTsk | 103F | 43 |
 
 **Entry Conditions**
-B _task number_
+| | |
+|-|-|
+| B | *task number* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The support module for this call is Krn.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Reserve Task Number Reserves a DAT task number**
+#### **Reserve Task Number**
 
-**OS9 F$ResTsk 103F 42**
+**Reserves a DAT task number**
+| | | | |
+|-|-|-|-|
+| OS9 | F$ResTsk | 103F | 42 |
 
 **Entry Conditions**
+
 None
 
 **Exit Conditions**
-B _task number_ (if no error)
+| | |
+|-|-|
+| B | *task number* (if no error) |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Reserve Task Number call finds a free DAT task number, reserves it, and
-    returns the task number to the caller. The caller often then assigns the task
-    number to a process.
-- The support module for this call is Krn.
+* The Reserve Task Number call finds a free DAT task number, reserves it, and returns the task number to the caller. The caller often then assigns the task number to a process.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Return 64 Deallocates a 64-byte block of memory**
+#### **Return 64**
 
-**OS9 F$Ret64 103F 31**
+**Deallocates a 64-byte block of memory**
+| | | | |
+|-|-|-|-|
+| OS9 | F$Ret64 | 103F | 31 |
 
 **Entry Conditions**
-A _block number_
-X _address of the base page_
+| | |
+|-|-|
+| A | *block number* |
+| X | *address of the base page* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- See the Allocate 64 system call for more information.
+* See the Allocate 64 system call for more information.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set Process DAT Image Copies all or part of the DAT image into a
-process descriptor
-OS9 F$SetImg 103F 3C**
+#### **Set Process DAT Image**
+
+**Copies all or part of the DAT image into a process descriptor**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SetImg | 103F | 3C |
 
 **Entry Conditions**
-A _starting image block number_
-B _block count_
-X _process descriptor pointer_
-U _new image pointer_
+| | |
+|-|-|
+| A | *starting image block number* |
+| B | *block count* |
+| X | *process descriptor pointer* |
+| U | *new image pointer* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- While copying part or all of the DAT image, this system call also sets an image
-    change flag in the process descriptor. This flag guarantees that as a process
-    returns from the system, The call updates the hardware to match the new process
-    DAT image.
-- The support module for this call is Krn.
+* While copying part or all of the DAT image, this system call also sets an image change flag in the process descriptor. This flag guarantees that as a process returns from the system, The call updates the hardware to match the new process DAT image.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set Process Task DAT Registers Writes to the hardware DAT registers**
+#### **Set Process Task DAT Registers**
 
-**OS9 F$SetTsk 103F 41**
+**Writes to the hardware DAT registers**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SetTsk | 103F | 41 |
 
 **Entry Conditions**
-X _pointer to process descriptor_
+| | |
+|-|-|
+| X | *pointer to process descriptor* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This system call sets the process task hardware DAT registers, and clears the
-    image change flag in the process descriptor. It also writes to DAT RAM the
-    process’s segment address information.
-- The support module for this call is Krn.
+* This system call sets the process task hardware DAT registers, and clears the image change flag in the process descriptor. It also writes to DAT RAM the process’s segment address information.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**System Link Adds a module from outside the current
-address space into the current address
-OS9 F$SLink 103F 34 space**
+#### **System Link**
+
+**Adds a module from outside the current address space into the current address space**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SLink | 103F | 34 |
 
 **Entry Conditions**
-A _module type_
-X _module name string pointer_
-Y _name string DAT image pointer_
+| | |
+|-|-|
+| A | *module type* |
+| X | *module name string pointer* |
+| Y | *name string DAT image pointer* |
 
 **Exit Conditions**
-A _module type_
-B _module revision_ (if no error)
-X _updated name string pointer_
-Y _module entry point_
-U _module pointer_
+| | |
+|-|-|
+| A | *module type* |
+| B | *module revision* (if no error) |
+| X | *updated name string pointer* |
+| Y | *module entry point* |
+| U | *module pointer* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The I/O system uses the System Link call to link into the current process’s address
-    space those modules specified by a device name in a user call. User calls such as
-    Create File and Open Path use this system call.
-- The support module for this call is Krn.
+* The I/O system uses the System Link call to link into the current process’s address space those modules specified by a device name in a user call. User calls such as Create File and Open Path use this system call.
+* The support module for this call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Request System Memory Allocates a block of memory of the
-specified size from the top of available
-OS9 F$SRqMem 103F 28 RAM**
+#### **Request System Memory**
+
+**Allocates a block of memory from the top of available RAM**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SRqMem | 103F | 28 |
 
 **Entry Conditions**
-D _byte count_
+| | |
+|-|-|
+| D | *byte count* |
 
 **Exit Conditions**
-D _new memory size_
-U _starting address of the memory area_
+| | |
+|-|-|
+| D | *new memory size* |
+| U | *starting address of the memory area* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- The Request System Memory call rounds the size request to the next page
-    boundary.
-- This call allocates memory only for system address space.
+* The Request System Memory call rounds the size request to the next page boundary.
+* This call allocates memory only for system address space.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Return System Memory Deallocates a block of contiguous pages**
+#### **Return System Memory**
 
-**OS9 F$SRtMem 103F 29**
+**Deallocates a block of contiguous pages**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SRtMem | 103F | 29 |
 
 **Entry Conditions**
-D _number of bytes to return_
-U _starting address of memory to return_ ; must point to an even page boundary
+| | |
+|-|-|
+| D | *number of bytes to return* |
+| U | *starting address of memory to return* ; must point to an even page boundary |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Register U must point to an event page boundary.
-- This call deallocates memory for system address space only.
+* Register U must point to an event page boundary.
+* This call deallocates memory for system address space only.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Set SVC Adds or replaces a system call**
+#### **Set SVC**
 
-**OS9 F$SSvc 103F 32**
+**Adds or replaces a system call**
+| | | | |
+|-|-|-|-|
+| OS9 | F$SSvc | 103F | 32 |
 
 **Entry Conditions**
-Y _address of the system call initialization table_
+| | |
+|-|-|
+| Y | *address of the system call initialization table* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Set SVC adds or replaces a system call, which you have written, to NitrOS-9’s user
-    and system mode system call tables.
-- Register Y passes the address of a table, which contains the function codes and
-    offsets, to the corresponding system call handler routines. This table has the
-    following format:
+* Set SVC adds or replaces a system call, which you have written, to NitrOS-9’s user and system mode system call tables.
+* Register Y passes the address of a table, which contains the function codes and offsets, to the corresponding system call handler routines. This table has the following format:
 
 ```
-Relative
-Address
-```
-```
-Use
-```
-```
-$00 Function Code  First entry
-$01
-$02
-```
-```
-Offset From Byte 3
-To Function Handler
-$03 Function Code  Second entry
-$04
-$05
-```
-```
-Offset From Byte 6
-To Function Handler
-```
-```
-More Entries  More entries
-```
-```
-$80 End-of-table mark
+                 -------------------------
+Relative Address |          Use          |
+                 -------------------------
+$00              |     Function Code     | < First entry
+                 -------------------------
+$01              |  Offset From Byte 3   |
+$02              |  To Function Handler  |
+                 -------------------------
+$03              |     Function Code     | < Second entry
+                 -------------------------
+$04              |  Offset From Byte 6   |
+$05              |  To Function Handler  |
+                 -------------------------
+                 |                       |
+                 |                       |
+                 |     More entries      | < More Entries
+                 |                       |
+                 |                       |
+                 -------------------------
+                 |         $80           | End-of-table mark
+                 -------------------------
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- If the most significant bit of the function code is set, NitrOS-9 updates the system
-    table.
-    If the most significant bit of the function code is not set, NitrOS-9 updates the
-    system and user tables.
-- The function request codes are in the range $29-$34. I/O calls are in the range
-    $80-$91.
-- To use a privileged system call, you must be executing a program that resides in
-    the system map and that executes in the system state.
-- The system call handler routine must process the system call and return from the
-    subroutine with an RTS instruction.
-- The handler routing might alter all CPU registers (except Register SP).
+* If the most significant bit of the function code is set, NitrOS-9 updates the system table.
+* If the most significant bit of the function code is not set, NitrOS-9 updates the system and user tables.
+* The function request codes are in the range $29-$34. I/O calls are in the range $80-$91.
+* To use a privileged system call, you must be executing a program that resides in the system map and that executes in the system state.
+* The system call handler routine must process the system call and return from the subroutine with an RTS instruction.
+* The handler routing might alter all CPU registers (except Register SP).
 
-```
-Note: On a 6309, the W register is not used to pass parameters to a system call, to
-maintain 6809 compatibility.
-```
-- Register U passes the address of the register stack to the system call handler as
-    shown in the following diagram:
+    **Note**: On a 6309, the W register is not used to pass parameters to a system call, to maintain 6809 compatibility.
 
-```
-6809
-Relative
-Address
-```
-```
-6309
-Relative
-Address Name
-U  CC $00 $00 R$CC
-A $01 $01 R$A
-(R$D)
-B $02 $02 R$B
-DP $03 $05 R$DP
-X $04 $06 R$X
-Y $06 $08 R$Y
-U $08 $0A R$U
-PC $0A $0C R$PC
-```
-Codes $70-$7F are reserved for user definition.
+* Register U passes the address of the register stack to the system call handler as shown in the following table:
 
+| | Register | 6809 Rel. Addr | 6309 Rel. Addr | Name |
+|-| --- | --- | --- | --- |
+| U> | CC | $00 | $00 | R$CC |
+| | A | $01 | $01 | R$A |
+| | B | $02 | $02 | R$B |
+| | DP | $03 | $05 | R$DP |
+| | X | $04 | $06 | R$X |
+| | Y | $06 | $08 | R$Y |
+| | U | $08 | $0A | R$U |
+| | PC | $0A | $0C | R$PC |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Store A Byte In A Task Stores A at 0,X in Task B**
+* Codes $70-$7F are reserved for user definition.
 
-**OS9 F$STABX 103F 4A**
+---
+
+#### **Store A Byte In A Task**
+
+**Stores A at 0,X in Task B**
+| | | | |
+|-|-|-|-|
+| OS9 | F$STABX | 103F | 4A |
 
 **Entry Conditions**
-A _byte to store_
-B _destination task number_
-X _logical destination address_
+| | |
+|-|-|
+| A | *byte to store* |
+| B | *destination task number* |
+| X | *logical destination address* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- This system call is similar to the assembly language instruction “STA 0,X”. The
-    difference is that in the system call, X refers to an address in the given task’s
-    address space instead of the current address space.
-- The support module for this system call is Krn.
+* This system call is similar to the assembly language instruction “STA 0,X”. The difference is that in the system call, X refers to an address in the given task’s address space instead of the current address space.
+* The support module for this system call is Krn.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Install Virtual Interrupt Installs a virtual interrupt handler
-routine
-OS9 F$VIRQ 103F 27**
+#### **Install Virtual Interrupt**
+
+**Installs a virtual interrupt handler routine**
+| | | | |
+|-|-|-|-|
+| OS9 | F$VIRQ | 103F | 27 |
 
 **Entry Conditions**
-D _initial count value_
-X 0 to delete entry
-1 to install entry
-Y _address of 5-byte packet_
+| | |
+|-|-|
+| D | *initial count value* |
+| X | 0 to delete entry |
+| | 1 to install entry |
+| Y | *address of 5-byte packet* |
 
 **Exit Conditions**
+
 None
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- Install VIRQ for use with devices in the Multi-Pak Expansion Interface. This call is
-    explained in detail in Chapter 2.
-- For setting up VIRQ’s from user programs, see the VRN chapter.
+* Install VIRQ for use with devices in the Multi-Pak Expansion Interface. This call is explained in detail in Chapter 2.
+* For setting up VIRQ’s from user programs, see the VRN chapter.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Validate Module Checks the module header parity and
-CRC bytes of a module
-OS9 F$VModul 103F 2E**
+#### **Validate Module**
+
+**Checks the module header parity and CRC bytes of a module**
+| | | | |
+|-|-|-|-|
+| OS9 | F$VModul | 103F | 2E |
 
 **Entry Conditions**
-D _DAT image pointer_
-X _new module block offset_
+| | |
+|-|-|
+| D | *DAT image pointer* |
+| X | *new module block offset* |
 
 **Exit Conditions**
-U _address of the module directory entry_
+| | |
+|-|-|
+| U | *address of the module directory entry* |
 
 **Error Output**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
 **Additional Information**
 
-- If the values of the specified module are valid, NitrOS-9 searches the module
-    directory for a module with the same name. If one exists, NitrOS-9 keeps in
-    memory the module that has the higher revision level. If both modules have the
-    same revision level, NitrOS-9 retains the module in memory.
-- Header parity is calculated by EOR'ing together the first 8 bytes of the module
-    header, and then complimenting (NOT) the result.
+* If the values of the specified module are valid, NitrOS-9 searches the module directory for a module with the same name. If one exists, NitrOS-9 keeps in memory the module that has the higher revision level. If both modules have the same revision level, NitrOS-9 retains the module in memory.
+* Header parity is calculated by EOR'ing together the first 8 bytes of the module header, and then complimenting (NOT) the result.
 
+### Get Status System Calls
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-#### Get Status System Calls..........................................................................................
+You use Get Status System calls with the file manager subroutine GetStt (RBF and SCF, and possibly some 3rd party file managers as well). PIPEMAN does not contain any GetStt calls, so it simply returns without an error (the exception being SS.DevNm, which is actually returned from IOMAN). The NitrOS-9 Level Two system reserves function codes 7-127 for use by Microware. You can define codes 128-255 and their parameter-passing conventions for your own use. (See the sections on device drivers in Chapters 4,5, and 6).
 
-You use Get Status System calls with the file manager subroutine GetStt (RBF and SCF,
-and possibly some 3rd party file managers as well). PIPEMAN does not contain any
-GetStt calls, so it simply returns without an error (the exception being SS.DevNm, which
-is actually returned from IOMAN). The NitrOS-9 Level Two system reserves function
-codes 7-127 for use by Microware. You can define codes 128-255 and their parameter-
-passing conventions for your own use. (See the sections on device drivers in Chapters
-4,5, and 6).
-
-The Get Status routine passes the register stack and the specified function code to the
-device driver if the call is not generic to the file manager itself.
+The Get Status routine passes the register stack and the specified function code to the device driver if the call is not generic to the file manager itself.
 
 Following are the Get Status functions and their codes.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 **SS.Opt Reads the option section of the path
 descriptor, and passes it
 Function Code $00 into the 32 byte area pointed to by
