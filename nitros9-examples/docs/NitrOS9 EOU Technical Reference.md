@@ -6019,1321 +6019,1197 @@ The Get Status routine passes the register stack and the specified function code
 
 Following are the Get Status functions and their codes.
 
-**SS.Opt Reads the option section of the path
-descriptor, and passes it
-Function Code $00 into the 32 byte area pointed to by
-Register X**
+#### **SS.Opt**
 
-**Entry Conditions:**
-A _path number_
-B _$00_
-X _address to receive status packet_
+**Reads the option section of the path descriptor, and passes it into the 32 byte area pointed to by Register X**
 
-**Exit Conditions:**
+**Function Code $00**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$00* |
+| X | *address to receive status packet* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is supported by both SCF and RBF devices, returning the 32 byte PD.OPT
-    section from either type of path descriptor. For SCF devices, this is used to
-    determine the current settings for editing functions, such as echo and auto line
-    feed (see Chapter 6). For RBF devices, this includes number of cylinders, sectors
-    per track, etc (see Chapter 5).
-- This call is handled in SCF & RBF.
+* This call is supported by both SCF and RBF devices, returning the 32 byte PD.OPT section from either type of path descriptor. For SCF devices, this is used to determine the current settings for editing functions, such as echo and auto line feed (see Chapter 6). For RBF devices, this includes number of cylinders, sectors per track, etc (see Chapter 5).
+* This call is handled in SCF & RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Ready Tests for data available on a device**
+#### **SS.Ready**
+
+**Tests for data available on a device**
 
 **Function Code $01**
 
-**Entry Conditions:**
-A _path number_
-B _$01_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$01* |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 If the device is ready:
-CC Carry clear
-B $00
+| | |
+|-|-|
+| CC | Carry clear |
+| B | $00 |
 
-- On devices that support it (both VTIO and SC6551 support this), Register B returns
-    the number of characters that are ready to be read (to a maximum of 255 in
-    SC6551's case; it is possible to have more than that many bytes ready). An RBF
-    device will **always** return carry clear and B=0. A VRN device will **always** return a
-    Device Not Ready error.
-- If the device is not ready (or for VTIO devices, has 0 characters in it's read buffer):
-CC = carry set
-B = $F6 (E$NotRdy - Device Not Ready)
+* On devices that support it (both VTIO and SC6551 support this), Register B returns the number of characters that are ready to be read (to a maximum of 255 in SC6551's case; it is possible to have more than that many bytes ready). An RBF device will **always** return carry clear and B=0. A VRN device will **always** return a Device Not Ready error.
+* If the device is not ready (or for VTIO devices, has 0 characters in it's read buffer):
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+    CC = carry set;
 
-**Additional Information:**
+    B = $F6 (E$NotRdy - Device Not Ready).
 
-- This call is handled in RBF, VTIO & SC6551.
+* This call is handled in RBF, VTIO & SC6551.
 
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Size Gets the current file size**
+**Additional Information**
+
+* This call is handled in RBF, VTIO & SC6551.
+
+---
+
+#### **SS.Size**
+
+**Gets the current file size**
 
 **Function Code $02**
 
-**Entry Conditions:**
-A _path number_
-B _$02_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$02* |
 
-**Exit Conditions:**
-X _most significant 16 bits of the current file size_
-U _least significant 16 bits of the current file size_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *most significant 16 bits of the current file size* |
+| U | *least significant 16 bits of the current file size* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is normally for RBF supported devices only. Some level 1 SCF text based
-    drivers (like CoHR and Co42) do return the screen start address in the X register.
-- This call is handled in RBF.
+* This call is normally for RBF supported devices only. Some level 1 SCF text based drivers (like CoHR and Co42) do return the screen start address in the X register.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Pos Gets the current file position**
+#### **SS.Pos**
+
+**Gets the current file position**
 
 **Function Code $05**
 
-**Entry Conditions:**
-A _path number_
-B _$05_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$05* |
 
-**Exit Conditions:**
-X _most significant 16 bits of the current file size_
-U _least significant 16 bits of the current file size_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *most significant 16 bits of the current file size* |
+| U | *least significant 16 bits of the current file size* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is normally for RBF supported devices only. Some level 1 SCF text based
-    drivers (like CoHR and Co42) do return the screen size in the X register.
-- This call is handled in RBF.
+* This call is normally for RBF supported devices only. Some level 1 SCF text based drivers (like CoHR and Co42) do return the screen size in the X register.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.EOF Tests for the end of the file (EOF)**
+#### **SS.EOF**
+
+**Tests for the end of the file (EOF)**
 
 **Function Code $06**
 
-**Entry Conditions:**
-A _path number_
-B _$06_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$06* |
 
-**Exit Conditions:**
-X _most significant 16 bits of the current file size_
-U _least significant 16 bits of the current file size_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *most significant 16 bits of the current file size* |
+| U | *least significant 16 bits of the current file size* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is handled in RBF.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DevNm Returns a device name**
+#### **SS.DevNm**
+
+**Returns a device name**
 
 **Function Code $0E**
 
-**Entry Conditions:**
-A _path number_
-B _$0E_
-X _address of 32 byte buffer for name_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0E* |
+| X | *address of 32 byte buffer for name* |
 
-**Exit Conditions:**
-X _address of buffer, name moved to buffer_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *address of buffer, name moved to buffer* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is for **all** devices, regardless of file manager. It is also hardcoded to copy
-    32 bytes from the position of the descriptor name offset; in most cases, this
-    means you will also get the file manager and device driver names as well, all high
-    bit terminated (most descriptors are built with those all following each other).
-    However, it is not guaranteed, and if the combined length goes beyond 32 bytes,
-    you may not get everything.
-- This call is handled in IOMAN.
+* This call is for **all** devices, regardless of file manager. It is also hardcoded to copy 32 bytes from the position of the descriptor name offset; in most cases, this means you will also get the file manager and device driver names as well, all high bit terminated (most descriptors are built with those all following each other). However, it is not guaranteed, and if the combined length goes beyond 32 bytes, you may not get everything.
+* This call is handled in IOMAN.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FD Return file descriptor**
+#### **SS.FD**
+
+**Return file descriptor**
 
 **Function Code $0F**
 
-**Entry Conditions:**
-A _path number_
-B _$0F_
-X _address of 256 byte buffer for File Descriptor sector data_
-Y _number of bytes to copy from file descriptor to caller (always starts at 0)_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0F* |
+| X | *address of 256 byte buffer for File Descriptor sector data* |
+| Y | *number of bytes to copy from file descriptor to caller (always starts at 0)* |
 
-**Exit Conditions:**
-X _address of buffer, Y bytes of file descriptor copied_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *address of buffer, Y bytes of file descriptor copied* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call gets a copy of the File Descriptor (FD) sector for the file currently open on
-    path A, to copy to the caller. The caller can specify how many bytes (always
-    starting at offset 0) they actually want, in Y. This is useful for inspecting
-    attributes, date created or modified, etc.
-- This call is handled in RBF.
+* This call gets a copy of the File Descriptor (FD) sector for the file currently open on path A, to copy to the caller. The caller can specify how many bytes (always starting at offset 0) they actually want, in Y. This is useful for inspecting attributes, date created or modified, etc.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-SS.DStat Returns the display status (medium
-resolution VDG screens)
-Function Code $12
-```
-```
-Entry Conditions:
-A path number
-B $12
-```
-⁃
-**Exit Conditions:**
-A _color code of the pixel at the cursor address_
-X _address of the graphics display memory_
-Y _graphics cursor address;_ X=MSB, Y=LSB
+#### **SS.DStat**
 
-```
-Error Output:
-CC carry set on error
-B error code , if any
-```
-```
-Additional Information:
-```
-- This function is supported only with the CoVDG module and deals with VDG-
-    compatible graphics screens (from Level 1). See SS.AAGBf for information
-    regarding Level Two operation.
-- This call is handled in CoVDG.
+**Returns the display status (medium resolution VDG screens)**
 
+**Function Code $12**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.VarSe(ct) Updates current sector size into least
-significant 2 bits of PD.TYP in path
-descriptor
-Function Code $12**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$12* |
 
-**Entry Conditions:**
-A _path number_
-B _$12_
+**Exit Conditions**
+| | |
+|-|-|
+| A | *color code of the pixel at the cursor address* |
+| X | *address of the graphics display memory* |
+| Y | *graphics cursor address; X=MSB, Y=LSB* |
 
-**Exit Conditions:**
-_PD.TYP in path descriptor has least 2 significant bits set to current sector size:_
-xxxxxx00 = 256 byte sector
-xxxxxx01 = 512 byte sector
-_xxxxxx10 = 1024 byte sector
-xxxxxx11 = 2048 byte sector_
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Additional Information**
 
-**Additional Information:**
+* This function is supported only with the CoVDG module and deals with VDG-compatible graphics screens (from Level 1). See SS.AAGBf for information regarding Level Two operation.
+* This call is handled in CoVDG.
 
-- Note that this GetStat shares the same function code as SS.DStat (which is for SCF
-    devices).
-- This internally calls the SS.DSize GetStat as well.
-- This does not return the current sector size in any registers returned to the caller;
-    it updates the PD.Typ byte in the path descriptor instead.
-- This call is handled in RBSuper.
+---
 
+#### **SS.VarSe(ct)**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Joy Returns the joystick values**
+**Updates current sector size into least significant 2 bits of PD.TYP in path descriptor**
+
+**Function Code $12**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$12* |
+
+**Exit Conditions**
+
+*PD.TYP in path descriptor has least 2 significant bits set to current sector size:*
+| Bits | Sector Size |
+|-|-|
+| xxxxxx00 | 256 byte sector |
+| xxxxxx01 | 512 byte sector |
+| xxxxxx10 | 1024 byte sector |
+| xxxxxx11 | 2048 byte sector |
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
+
+**Additional Information**
+
+* Note that this GetStat shares the same function code as SS.DStat (which is for SCF devices).
+* This internally calls the SS.DSize GetStat as well.
+* This does not return the current sector size in any registers returned to the caller; it updates the PD.Typ byte in the path descriptor instead.
+* This call is handled in RBSuper.
+
+---
+
+#### **SS.Joy**
+
+**Returns the joystick values**
 
 **Function Code $13**
 
-**Entry Conditions:**
-A _path number_
-B _$13_
-X _joystick number_
-0 = right joystick
-1 = left joystick
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$13* |
+| X | *joystick number* |
+| | 0 = right joystick |
+| | 1 = left joystick |
 
-**Exit Conditions:**
-A _fire button down_
-0 = none
-1 = Button 1
-2 = Button 2
-3 = Button 1 and Button 2
-X _selected joystick X value (0-63)_
-Y _selected joystick Y value (0-63)_
+**Exit Conditions**
+| | |
+|-|-|
+| A | *fire button down* |
+| | 0 = none |
+| | 1 = Button 1 |
+| | 2 = Button 2 |
+| | 3 = Button 1 and Button 2 |
+| X | *selected joystick X value (0-63)* |
+| Y | *selected joystick Y value (0-63)* |
 
 **NOTE:** Under Level 1, the following values are return by this call:
-A _fire button status_
-$FF = fire button is on
-$00 = fire button is off
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+| | |
+|-|-|
+| A | *fire button status* |
+| | $FF = fire button is on |
+| | $00 = fire button is off |
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-- This function returns the joystick X & Y positions, as well as button(s) down status,
-    for the specified joystick port. If the process calling **SS.Joy** is not the interactive
-    screen & keyboard device at the time the call is made, it will always return A=0
-    (no buttons down), X=0 (X position 0), and Y=0 (Y position 0).
-- This call is handled in VTIO.
+**Additional Information**
 
+* This function returns the joystick X & Y positions, as well as button(s) down status, for the specified joystick port. If the process calling **SS.Joy** is not the interactive screen & keyboard device at the time the call is made, it will always return A=0 (no buttons down), X=0 (X position 0), and Y=0 (Y position 0).
+* This call is handled in VTIO.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.AlfaS Returns VDG alpha screen
-memory information
-Function Code $1C**
+---
 
-**Entry Conditions:**
-A _path number_
-B _$1C_
+#### **SS.AlfaS**
 
-**Exit Conditions:**
-A _caps lock status_
+**Returns VDG alpha screen memory information**
 
-$00 = lower case
-$FF = upper case
-X _memory address of the buffer_
-Y _memory address of the cursor_
+**Function Code $1C**
 
-**Error Output:**
-CC carry set on error
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1C* |
 
-B _error code_ , if any
+**Exit Conditions**
+| | |
+|-|-|
+| A | *caps lock status* |
+| | $00 = lower case |
+| | $FF = upper case |
+| X | *memory address of the buffer* |
+| Y | *memory address of the cursor* |
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-- VDG alpha screens are mapped into the user address space. The call
-    requires a full block of memory for screen mapping. This call is only for use
-    with VDG text screens (32x16).
-- This call is handled in CoVDG.
-- **Warning:** Use extreme care when poking the screen, since other system
-    variables in screen memory. Do not change any addresses outside of the
-    screen.
+**Additional Information**
 
+* VDG alpha screens are mapped into the user address space. The call requires a full block of memory for screen mapping. This call is only for use with VDG text screens (32x16).
+* This call is handled in CoVDG.
+* **Warning:** Use extreme care when poking the screen, since other system variables in screen memory. Do not change any addresses outside of the screen.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FDInf Return file descriptor based on LSN**
+---
+
+#### **SS.FDInf**
+
+**Return file descriptor based on LSN**
 
 **Function Code $20**
 
-**Entry Conditions:**
-A _path number_
-B _$20_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$20* |
+| X | *address of up to 256 byte buffer for File Descriptor sector data* |
+| Y | MSB: *Upper 8 bits of 24 bit Logical Sector Number* |
+| | LSB: *number of bytes to copy from file descriptor to caller (always starts at 0)* |
+| U | *Lower 16 bits of 24 bit Logical Sector Number* |
 
-X _address of up to 256 byte buffer for File Descriptor sector data_
-Y MSB: Upper 8 bits of 24 bit Logical Sector Number
-LSB: _number of bytes to copy from file descriptor to caller (always starts at 0)_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *address of buffer, Y bytes of file descriptor copied* |
 
-U Lower 16 bits of 24 bit Logical Sector Number
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code* , if any |
 
-**Exit Conditions:**
-X _address of buffer, Y bytes of file descriptor copied_
+**Additional Information**
 
-**Error Output:**
-CC carry set on error
+* This call gets a copy of the File Descriptor (FD) sector from the specified logical sector number, to copy to the caller. The caller can specify how many bytes (always starting at offset 0) they actually want, in Y. This is useful for inspecting attributes, date created or modified, etc, when you are directly dealing with entries in a directory (which have the 24 bit LSN of the File descriptor in each entry).
+* This call is handled in RBF.
 
-B _error code_ , if any
+#### **SS.Cursr**
 
-**Additional Information:**
+**Returns VDG alpha screen cursor information**
 
-- This call gets a copy of the File Descriptor (FD) sector from the specified
-    logical sector number, to copy to the caller. The caller can specify how
-    many bytes (always starting at offset 0) they actually want, in Y. This is
-    useful for inspecting attributes, date created or modified, etc, when you are
-    directly dealing with entries in a directory (which have the 24 bit LSN of the
-    File descriptor in each entry).
-- This call is handled in RBF.
+**Function Code $25**
 
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$25* |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Cursr Returns VDG alpha screen cursor
-information
-Function Code $25**
+**Exit Conditions**
+| | |
+|-|-|
+| A | *character code of the character at the current cursor address* |
+| X | *cursor X position (column)* |
+| Y | *cursor Y position (row)* |
 
-**Entry Conditions:**
-A _path number_
-B _$25_
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Exit Conditions:**
-A _character code of the character at the current cursor address_
+**Additional Information**
 
-X _cursor X position (column)_
-Y c _ursor Y position (row)_
+* SS.Cursr returns the character at the current cursor position. It returns the X-Y address of the cursor relative to the current device's window or screen. SS.Cursr works only with text screens.
+* This call is handled in CoVDG.
 
-**Error Output:**
+---
 
-CC carry set on error
-B _error code_ , if any
+#### **SS.ScSiz**
 
-**Additional Information:**
-
-- SS. Cursr returns the character at the current cursor position. It also returns
-    the X-Y address of the cursor relative to the current device's window or
-    screen. SS.Cursr works only with text screens.
-- This call is handled in CoVDG.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ScSiz Returns the window or screen size**
+**Returns the window or screen size**
 
 **Function Code $26**
 
-**Entry Conditions:**
-A _path number_
-B _$26_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$26* |
 
-**Exit Conditions:**
-X _number of columns on screen/window_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *number of columns on screen/window* |
+| Y | *number of rows on screen/window* |
 
-Y _number of rows on screen/window_
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Error Output:**
-CC carry set on error
+**Additional Information**
 
-B _error code_ , if any
+* Use this call to determine the size of an output screen.
+    * For non-VTIO devices, the call returns the COL and ROW values in the device descriptor.
+    * For VTIO/CoVDG devices, the call returns the size of the window or screen in use by the specified device (32x16).
+    * For window devices, the call returns the size of the current **working area** of the window.
+* This call is handled by CoVDG, CoGrf/CoWin, SC6551, SC6850, S16550 (and any future serial port drivers).
 
-**Additional Information:**
+---
 
-- Use this call to determine the size of an output screen. The values returned
-    depend on the on device in use:
-    ◦ For non-VTIO devices, the call returns the COL and ROW values in the
-       device descriptor.
-    ◦ For VTIO/CoVDG devices, the call returns the size of the window or
-       screen in use by the specified device (32x16).
-    ◦ For window devices, the call returns the size of the of the current
-       **working area** of the window.
-- This call is handled by CoVDG, CoGrf/CoWin, SC6551, SC6850, S16550 (and
-    any future serial port drivers).
+#### **SS.DSize**
 
+**Returns the disk size information about a device**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DSize Returns the disk size information
-about a device
-Function Code $26**
+**Function Code $26**
 
-**Entry Conditions:**
-A _path number_
-B _$26_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$26* |
 
-**Exit Conditions:**
-A _number of logical 256 byte sectors per physical sector:_
+**Exit Conditions**
+| | |
+|-|-|
+| A | *number of logical 256 byte sectors per physical sector:* |
+| | 1 = 256 byte physical sector |
+| | 2 = 512 byte physical sector |
+| | 4 = 1024 byte physical sector |
+| | 8 = 2048 byte physical sector |
+| B | *LBA or CHS type drive flag:* |
+| | B = 0 LBA mode (sector numbers only) |
 
-1 = 256 byte physical sector
-2 = 512 byte physical sector
-4 = 1024 byte physical sector
-8 = 2048 byte physical sector
+**If B=0, then the drive is an LBA mode device, and the 32 bit size (in sectors) is returned in X:Y**
+| | |
+|-|-|
+| X | *MS 16 bits of the number of sectors on the drive* |
+| Y | *LS 16 bits of the number of sectors on the drive* |
 
-B _LBA or CHS type drive flag:_
-B = 0 LBA (sector numbers only)
+**If B<>0, then the drive is a CHS mode device (Cylinder, Head, Sector), and the drive size is returned by the maximum size of each of those three parameters, as follows:**
+| | |
+|-|-|
+| B | *Number of Logical sides* |
+| X | *Number of Logical cylinders* |
+| Y | *Number of Logical sectors/track (this is physical sectors/track number of logical sectors/physical sector from A register above)* |
 
-- If B=0, then the drive is an LBA mode device, and the 32 bit size (in
-    sectors) is returned in X:Y
-X = _MS 16 bits of the number of sectors on the drive_
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-Y = _LS 16 bits of the number of sectors on the drive_
+**Additional Information**
 
-- If B<>0, then the drive is a CHS mode device (Cylinder, Head, Sector),
-    and the drive size is returned by the maximum size of each of those
-    three parameters, as follows:
-B = _Number of Logical sides
-X = Number of Logical cylinders_
+* Note that this GetStat shares the same function code as SS.ScSiz (which is for SCF devices).
+* This GetStat call **ONLY** applies to RBSuper driver and its devices.
+* Use this call to determine the size of disk or disk image, and its physical sector size.
+* This call is handled by the low level driver submodules of RBSuper, including llcocosdc, llide, llscsi (and other/future RBSuper low level drivers), and is called by RSuper itself.
 
-_Y = Number of Logical sectors/track (this is physical sectors/track
-* number of logical sectors/physical sector from A register
-above)_
+---
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+#### **SS.KySns**
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**Additional Information:**
-
-- Note that this GetStat shares the same function code as SS.ScSiz (which is
-    for SCF devices).
-- This GetStat call **ONLY** applies to RBSuper driver and it's devices.
-- Use this call to determine the size of disk or disk image, and it's physical
-    sector size.
-- This call is handled by the low level driver submodules of **RBSuper** , including
-    llcocosdc, llide, llscsi (and other/future RBSuper low level drivers), and is
-    called by **RSuper** itself.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.KySns Returns key down status**
+**Returns key down status**
 
 **Function Code $27**
 
-**Entry Conditions:**
-A _path number_
-B _$27_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$27* |
 
-**Exit Conditions:**
-A _keyboard scan information_
+**Exit Conditions**
+| | |
+|-|-|
+| A | *keyboard scan information* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- Accumulator A returns with a bit pattern representing eight keys. With each
-    keyboard scan, NitrOS-9 updates this bit pattern. A set bit (1) indicates that
-    a key was pressed since the last scan. A clear bit (0) indicates that a key was
-    not pressed. Definitions for the bits are as follows:
+* Accumulator A returns with a bit pattern representing eight keys. With each keyboard scan, NitrOS-9 updates this bit pattern. A set bit (1) indicates that a key was pressed since the last scan. A clear bit (0) indicates that a key was not pressed. Definitions for the bits are as follows:
 
-Bit Key
-0 SHIFT
-1 CTRL
-2 ALT
+| Bit | Key |
+| --- | --- |
+| 0 | SHIFT |
+| 1 | CTRL |
+| 2 | ALT |
+| 3 | Up arrow |
+| 4 | Down arrow |
+| 5 | Left arrow |
+| 6 | Right arrow |
+| 7 | Space Bar |
 
-3 Up arrow
-4 Down arrow
-5 Left arrow
+* The bits can be masked with the following equates: *
 
-6 Right arrow
-7 Space Bar
+| Bit | Equates | Value |
+| --- | --- | --- |
+| SHIFTBIT | equ | %00000001 |
+| CNTRLBIT | equ | %00000010 |
+| ALTERBIT | equ | %00000100 |
+| UPBIT | equ | %00001000 |
+| DOWNBIT | equ | %00010000 |
+| LEFTBIT | equ | %00100000 |
+| RIGHTBIT | equ | %01000000 |
+| SPACEBIT | equ | %10000000 |
 
-- The bits can be masked with the following equates:
-SHIFTBIT equ %00000001
-CNTRLBIT equ %00000010
-ALTERBIT equ %00000100
+* It should be noted that this call can be used at any time. The corresponding SetStat call, however, can change the keyboard driver settings such that this is the only way to read any keys from a program, and only these keys, until the SetStat is reissued to turn normal key function on. When keysense function is enabled, no keypresses go through SCF, thus speeding up keyboard scans for these specific keys.
+* An interesting side effect of this call when using it in normal keyboard mode: You can use this as an INKEY style call, but it will leave all keypresses of the printable keys in the above table also in the keyboard buffer, and can be read by I$Read / I$ReadLn as well.
+* This call is the ONLY way to read the SHIFT, CONTROL and ALT keys on their own, as opposed to in conjunction with another key.
+* This call is handled by VTIO and it's sub-module, KEYDRV, in NitrOS-9 3.3.0 & EOU Beta 5 and under. It is handled solely by VTIO in EOU Betas 6 and above.
+* One other hidden feature – you can differentiate between arrow keys and their corresponding CTRL-<H through K> equivalents by checking the ASCII value (from I$Read) first for a potential arrow key, and the SS.KySns to see if CTRL is down. If it is not, then it was an arrow key.
 
-UPBIT equ %00001000
+---
 
+#### **SS.ComSt**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-DOWNBIT equ %00010000
-LEFTBIT equ %00100000
-RIGHTBIT equ %01000000
-SPACEBIT equ %10000000
+**Returns serial port configuration information**
 
-- It should be noted that this call can be used at any time. The corresponding
-    SetStat call, however, can change the keyboard driver settings such that this
-    is the **only** way to read any keys from a program, and only these keys, until
-    the SetStat is reissued to turn normal key function on. When keysense
-    function is enabled, no keypresses go through SCF, thus speeding up
-    keyboard scans for these specific keys.
-- An interesting side effect of this call when using it in normal keyboard mode:
-    You can use this as an INKEY style call, but it will leave all keypresses of the
-    printable keys in the above table **also** in the keyboard buffer, and can be
-    read by I$Read / I$ReadLn as well.
-- This call is the **ONLY** way to read the SHIFT, CONTROL and ALT keys on their
-    own, as opposed to in conjunction with another key.
-- This call is handled by VTIO and it's sub-module, KEYDRV, in NitrOS-9 3.3.0 &
-    EOU Beta 5 and under. It is handled solely by VTIO in EOU Betas 6 and
-    above.
-- One other hidden feature – you can differentiate between arrow keys and
-    their corresponding CTRL-<H through K> equivalents by checking the ASCII
-    value (from I$Read) first for a potential arrow key, and the SS.KySns to see if
-    CTRL is down. If it is not, then it was an arrow key.
+**Function Code $28**
 
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$28* |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ComSt Returns serial port configuration
-information
-Function Code $28**
+**Exit Conditions**
+| | |
+|-|-|
+| Y | *high byte: parity* |
+| | *low byte: baud* |
+| | (see the SetStat call SS.ComSt for values) |
+| | (see below for special values if a VTIO device) |
 
-**Entry Conditions:**
-A _path number_
-B $28
-
-**Exit Conditions:**
-Y _high byte: parity_
-
-_low byte: baud_
-(see the SetStat call SS.ComSt for values)
-(see below for special values if a VTIO device)
 For hardware serial ports only:
+| | | |
+|-|-|-|
+| B | *Special status:* | | 
+| | Bit 6: | 0=DSR enabled |
+| | | 1=DSR disabled |
+| | Bit 5: | 0=CD enabled |
+| | | 1=CD disabled |
 
-B Special status:
-Bit 6: 0 = DSR enabled
-1 = DSR disabled
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-Bit 5: 0 = Carrier Detect enabled
-1 = Carrier Detect disabled
+**Additional Information**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+* The SCF manager uses this call when performing SS.Opt GetStat on an SCF-type device. User calls to SS.ComSt do not update the path descriptor. Use the SS.Opt GetStat call for most applications because it automatically updates the path descriptor.
+* For VTIO devices, baud is always return as $00, and parity has special meaning:
 
-**Additional Information:**
+    %0XXXXXXX = CoVDG device
 
-- The SCF manager uses this call when performing SS.Opt GetStat on an SCF-
-    type device. User calls to SS.ComSt do **not** update the path descriptor. Use
-    the SS.Opt GetStat call for most applications because it automatically
-    updates the path descriptor.
-- For VTIO devices, baud is always return as $00, and parity has special
-    meaning:
-%0XXXXXXX = CoVDG device
-%1XXXXXXX = CoGrf or CoWin device.
+    %1XXXXXXX = CoGrf or CoWin device.
 
+* This call is handled by VTIO, SC6551, SC6850, S16550 (and any future serial port drivers).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- This call is handled by VTIO, SC6551, SC6850, S16550 (and any future serial
-    port drivers).
+---
 
+#### **SS.VCtr**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.VCtr Return 32 bit FS/FS2+ Total VIRQ
-counter & resets it to 0
-Function Code $80**
+**Return 32 bit FS/FS2+ Total VIRQ counter & resets it to 0**
 
-**Entry Conditions:**
-A _path number_
-B _$80_
+**Function Code $80**
 
-**Exit Conditions:**
-X _MS 16 bits of of total # of VIRQ's since last reset_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$80* |
 
-Y _LS 16 bits of of total # of VIRQ's since last reset_
-The 32 bit count of how many FS/FS2+ VIRQ's have occurred is reset to 0 upon
-completion of this call.
+**Exit Conditions**
+| | |
+|-|-|
+| X | *MS 16 bits of total # of VIRQs since last reset* |
+| Y | *LS 16 bits of total # of VIRQs since last reset* |
+| | The 32 bit count of how many FS/FS2+ VIRQ's have occurred is reset to 0 upon completion of this call. |
 
-**Error Conditions:**
-CC carry set on error
-B error code ($F0 Illegal Unit if no FS2/FS2+ VIRQ has been set up).
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | error code ($F0 Illegal Unit if no FS2/FS2+ VIRQ has been set up). |
 
-**Additional Information:**
+**Additional Information**
 
-- This call returns the number of 1/60th of a second VIRQ's that have occurred
-    since that counter was last reset (32 bit unsigned number). Upon passing
-    this number to the caller, this counter is reset to 0.
-- This call is handled by VRN.
+* This call returns the number of 1/60th of a second VIRQ's that have occurred since that counter was last reset (32 bit unsigned number). Upon passing this number to the caller, this counter is reset to 0.
+* This call is handled by VRN.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.VSig Return 8 bit count of number of FS2/
-FS2+ signals sent & resets it to 0
-Function Code $81**
+#### **SS.VSig**
 
-**Entry Conditions:**
-A _path number_
-B _$81_
+**Return 8 bit count of number of FS2/FS2+ signals sent & resets it to 0**
 
-**Exit Conditions:**
-A _number of FS2/FS2+ signals that have been sent since last reset_
+**Function Code $81**
 
-**Error Conditions:**
-CC carry set on error
-B error code ($F0 Illegal Unit if no FS2/FS2+ VIRQ has been set up).
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$81* |
 
-**Additional Information:**
+**Exit Conditions**
+| | |
+|-|-|
+| A | *number of FS2/FS2+ signals that have been sent since last reset* |
 
-- This call returns the number of actual signals that have been sent by the
-    FS2/FS2+ timers. Upon passing this number to the caller, this counter is
-    reset to 0.
-- NOTE: The count will wrap around at 255 signals, if you have not queried
-    for the count before then.
-- This call is handled by VRN.
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code ($F0 Illegal Unit if no FS2/FS2+ VIRQ has been set up).* |
 
+**Additional Information**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DRead Direct Sector Read
-Function Code $80**
+* This call returns the number of actual signals that have been sent by the FS2/FS2+ timers. Upon passing this number to the caller, this counter is reset to 0.
+* NOTE: The count will wrap around at 255 signals, if you have not queried for the count before then.
+* This call is handled by VRN.
 
-**Entry Conditions:**
+---
 
-A _path number_
-B _$80_
-U _(msb) logical track number_
+#### **SS.DRead**
 
-_(lsb) physical sector number
-X Address of user buffer (in user map) to read data into
-Y sector size/format codes:_
+**Direct Sector Read**
 
-_bits 8-15 = least significant 8 bits of 11 bit sector size in bytes
-bit 7 = retry flag (0=normal retry, 1= no retry)
-bits 4-6 = most significant 3 bits of 11 bit sector size in bytes
-bit 3 = high density flag (0=not high density, 1=high density)_
+**Function Code $80**
 
-_bit 2 = tpi of data on diskette (0=48 tpi, 1=96 tpi)
-bit 1 = density of data on diskette (0=single, 1=double)
-bit 0 = side (0 or 1)_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$80* |
+| U | *(msb) logical track number* |
+| | *(lsb) physical sector number* |
+| X | *Address of user buffer (in user map) to read data into* |
+| Y | *sector size/format codes (see below)* |
+
+**Register Y Format:**
+| Bits | Description |
+|---|---|
+| 8-15 | least significant 8 bits of 11 bit sector size in bytes |
+| 7 | retry flag (0=normal retry, 1= no retry) |
+| 4-6 | most significant 3 bits of 11 bit sector size in bytes |
+| 3 | high density flag (0=not high density, 1=high density) |
+| 2 | tpi of data on diskette (0=48 tpi, 1=96 tpi) |
+| 1 | density of data on diskette (0=single, 1=double) |
+| 0 | side (0 or 1) |
+
+*NOTE:* Bit 3 (high density) being set overrides any value in bit 1)
+
+**Exit Conditions**
+| | |
+|-|-|
+| X | *Address of user buffer that contains data read from disk* |
 
-_NOTE: Bit 3 (high density) being set overrides any value in bit 1)_
-
-**Exit Conditions:**
-
-X _Address of user buffer that contains data read from disk_
-
-**Error Conditions:**
-CC carry set on error
-
-B error code (if any).
-
-**Additional Information:**
-
-- This call reads a specified sector into a user buffer. Sector lengths of
-    128,256, 512 and 1024 bytes are supported for single or double density.
-    Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be read with this
-    function. NOTE: Some versions of SDisk 3 may not support the retry disable
-    feature. High Density support requires a special controller.
-- This call requires and is handled by Sdisk3.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SDRD System Direct Sector Read
-Function Code $84**
-
-**Entry Conditions:**
-
-A _path number_
-B _$84_
-U _(msb) logical track number_
-
-_(lsb) physical sector number
-X Address of buffer (in system map) to read data into
-Y sector size/format codes:_
-
-_bits 8-15 = least significant 8 bits of 11 bit sector size in bytes
-bit 7 = retry flag (0=normal retry, 1= no retry)
-bits 4-6 = most significant 3 bits of 11 bit sector size in bytes
-bit 3 = high density flag (0=not high density, 1=high density)_
-
-_bit 2 = tpi of data on diskette (0=48 tpi, 1=96 tpi)
-bit 1 = density of data on diskette (0=single, 1=double)
-bit 0 = side (0 or 1)_
-
-_NOTE: Bit 3 (high density) being set overrides any value in bit 1)_
-
-**Exit Conditions:**
-
-X _Address of user buffer that contains data read from disk_
-
-**Error Conditions:**
-CC carry set on error
-
-B error code (if any).
-
-**Additional Information:**
-
-- NOTE: This call is identical to **SS.DRead,** except that it reads into a sector
-    buffer in the system memory map, not the user memory map.
-- This call reads a specified sector into a sytem buffer. Sector lengths of
-    128,256, 512 and 1024 bytes are supported for single or double density.
-    Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be read with this
-    function. NOTE: Some versions of SDisk3 may not support the retry disable
-    feature. High Density support requires a controller that supports high
-    density drives. (SDisk3 is an alternate floppy disk diver).
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- This call requires and is handled by Sdisk3.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DrvCh Returns which floppy drive
-(if any) has caching enabled
-Function Code $86**
-
-**Entry Conditions:**
-A _path number_
-B _$86_
-
-**Exit Conditions:**
-A _drive number that has caching enabled. $FF = no drive currently caching_
-
-**Error Conditions:**
-CC carry set on error
-B error code (if any).
-
-**Additional Information:**
-
-- This call is **ONLY** supported on the Performance Peripheral DMC caching
-    floppy controller, which was available in 8K or 32K cache RAM versions.
-- This call requires and is handled by Sdisk3. (DMC version only).
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.MnSel Requests that the high level menu
-handler take control of menu selection
-Function Code $87**
-
-**Entry Conditions:**
-A _path number_
-B $87
-
-**Exit Conditions:**
-A _menu ID_ (if valid selection)
-
-0 (if invalid selection)
-B _item number of menu_ (if valid selection)
-If a selected menu has no pull down items, B returns with 0.
-
-**Error Conditions:**
-CC carry set on error
-B _error code,_ if any
-
-**Additional Information:**
-
-- After detecting a valid mouse click (when the mouse is pointing to a control
-    area on a window), a process needs to call SS.MnSel. This call tells the
-    enhanced window interface to handle any menu selection being made. If
-    accumulator A returns with 0, no selection has been made. The calling
-    process needs to test and handle other returned values.
-- A condition where Register A returns a valid menu ID number and Register B
-    returns 0 signals the selection of a menu with no items. The application can
-    now take over and do special graphics pull down of its own (MVCanvas is a
-    program that does this, for example). The menu title remains highlighted
-    until the application calls the SS.UMBar SetStat to update the menu bar.
-- There are some menu ID's that are reserved within NitrOS-9 itself (assuming
-    that you have picked a window type that supports these menu ID's; see the
-    **SS.WnSet** SetStat call):
-**Menu ID # Description**
-2 Close Box
-
-4 Scroll Up Arrow
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-5 Scroll Down Arrow
-6 Scroll Right Arrow
-7 Scroll Left Arrow
-8 Character Pressed
-
-In addition, Menu ID #20 is _usually_ reserved for the Tandy Menu, but this is not
-enforced.
-
-- The support module for this call is CoWin.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Mouse Gets mouse status**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code, if any* |
+
+**Additional Information**
+
+* This call reads a specified sector into a user buffer. Sector lengths of 128,256, 512 and 1024 bytes are supported for single or double density. Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be read with this function. NOTE: Some versions of SDisk 3 may not support the retry disable feature. High Density support requires a special controller.
+* This call requires and is handled by Sdisk3.
+
+---
+
+#### **SS.SDRD**
+
+**System Direct Sector Read**
+
+**Function Code $84**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$84* |
+| U | *(msb) logical track number* |
+| | *(lsb) physical sector number* |
+| X | *Address of user buffer (in user map) to read data into* |
+| Y | *sector size/format codes (see below)* |
+
+**Register Y Format:**
+| Bits | Description |
+|---|---|
+| 8-15 | least significant 8 bits of 11 bit sector size in bytes |
+| 7 | retry flag (0=normal retry, 1= no retry) |
+| 4-6 | most significant 3 bits of 11 bit sector size in bytes |
+| 3 | high density flag (0=not high density, 1=high density) |
+| 2 | tpi of data on diskette (0=48 tpi, 1=96 tpi) |
+| 1 | density of data on diskette (0=single, 1=double) |
+| 0 | side (0 or 1) |
+
+*NOTE:* Bit 3 (high density) being set overrides any value in bit 1)
+
+**Exit Conditions**
+| | |
+|-|-|
+| X | *Address of user buffer that contains data read from disk* |
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code, if any* |
+
+**Additional Information**
+* NOTE: This call is identical to **SS.DRead**, except that it reads into a sector buffer in the system memory map, not the user memory map.
+* This call reads a specified sector into a sytem buffer. Sector lengths of 128,256, 512 and 1024 bytes are supported for single or double density. Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be read with this function. NOTE: Some versions of SDisk3 may not support the retry disable feature. High Density support requires a controller that supports high density drives. (SDisk3 is an alternate floppy disk diver).
+
+* This call is handled by SDisk3.
+
+---
+
+#### **SS.DrvCh**
+
+**Returns which floppy drive (if any) has caching enabled**
+
+**Function Code $86**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$86* |
+
+**Exit Conditions**
+| | |
+|-|-|
+| A | *drive number that has caching enabled. $FF = no drive currently caching* |
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code, if any* |
+
+**Additional Information**
+
+* This call is ONLY supported on the Performance Peripheral DMC caching floppy controller, which was available in 8K or 32K cache RAM versions.
+* This call requires and is handled by Sdisk3. (DMC version only).
+
+---
+
+#### **SS.MnSel**
+
+**Requests that the high level menu handler take control of menu selection**
+
+**Function Code $87**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$87* |
+
+**Exit Conditions**
+| | |
+|-|-|
+| A | *menu ID (if valid selection)* |
+| | 0 (if invalid selection) |
+| B | *item number of menu (if valid selection)* |
+| | If a selected menu has no pull down items, B returns with 0. |
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code, if any* |
+
+**Additional Information**
+
+* After detecting a valid mouse click (when the mouse is pointing to a control area on a window), a process needs to call SS.MnSel. This call tells the enhanced window interface to handle any menu selection being made. If accumulator A returns with 0, no selection has been made. The calling process needs to test and handle other returned values.
+* A condition where Register A returns a valid menu ID number and Register B returns 0 signals the selection of a menu with no items. The application can now take over and do special graphics pull down of its own (MVCanvas is a program that does this, for example). The menu title remains highlighted until the application calls the SS.UMBar SetStat to update the menu bar.
+* There are some menu ID's that are reserved within NitrOS-9 itself (assuming that you have picked a window type that supports these menu ID's; see the SS.WnSet SetStat call):
+
+| Menu ID # | Description |
+|-|-|
+| 2 | Close Box |
+| 4 | Scroll Up Arrow |
+| 5 | Scroll Down Arrow |
+| 6 | Scroll Right Arrow |
+| 7 | Scroll Left Arrow |
+| 8 | Character Pressed |
+
+In addition, Menu ID #20 is usually reserved for the Tandy Menu, but this is not enforced.
+* The support module for this call is CoWin.
+
+---
+
+#### **SS.Mouse**
+
+**Gets mouse status**
 
 **Function Code $89**
 
-**Entry Conditions:**
-A _path number_
-B $89
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$89* |
+| X | *data storage area address* |
 
-X _data storage area address_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *data storage area address* |
 
-**Exit Conditions:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code, if any* |
 
-X _data storage area address_
+**Additional Information**
 
-**Error Conditions:**
-CC carry set on error
+* SS.Mouse returns information on the current mouse it's fire button(s). The following list defines the 32 byte data packet that SS.Mouse creates:
 
-B _error code,_ if any
+| Packet Offset | Mnemonic Name | Size | Description |
+|---|---|---|---|
+| 00 | Pt.Valid RMB | 1 | Is returned info valid (0=no/1=yes) |
+| 01 | Pt.Actv RMB | 1 | Active Side 0=off/1=Right/2=left |
+| 02 | Pt.ToTm RMB | 1 | Time out Initial Value |
+| 03 | RMB | 2 | reserved |
+| 05 | Pt.TTTo RMB | 1 | Time Till Timeout |
+| 06 | Pt.TSSt RMB | 2 | Time Since Start Counter |
+| 08 | Pt.CBSA RMB | 1 | Current Button State (Button A) |
+| 09 | Pt.CBSB RMB | 1 | Current Button State (Button B) |
+| 0A | Pt.CCtA RMB | 1 | Click Count (Button A) |
+| 0B | Pt.CCtB RMB | 1 | Click Count (Button B) |
+| 0C | Pt.TTSA RMB | 1 | Time This State Counter (Button A) |
+| 0D | Pt.TTSB RMB | 1 | Time This State Counter (Button B) |
+| 0E | Pt.TLSA RMB | 1 | Time Last State Counter (Button A) |
+| 0F | Pt.TLSB RMB | 1 | Time Last State Counter (Button B) |
+| 10 | RMB | 2 | Reserved |
+| 12 | Pt.BDX RMB | 2 | Button down frozen (Actual X) |
+| 14 | Pt.BDY RMB | 2 | Button down frozen (Actual Y) |
+| 16 | Pt.Stat RMB | 1 | Window Pointer type location |
+| 17 | Pt.Res RMB | 1 | Resolution (0..640 by: 0=ten/1=one) |
+| 18 | Pt.AcX RMB | 2 | Actual X Value |
+| 1A | Pt.AcY RMB | 2 | Actual Y Value |
+| 1C | Pt.WRX RMB | 2 | Window Relative X |
+| 1E | Pt.WRY RMB | 2 | Window Relative Y |
+| 20 | Pt.Siz EQU | . | Packet Size 32 bytes |
 
-**Additional Information:**
+* Button information:
+    * Pt.Valid - The valid byte gives the caller an indication of whether the information contained in the returned packet is accurate. The information returned by this call is only valid if the process is running on the current interactive window. If the process is on a non-interactive window, this byte (and, in fact, the whole 32 byte packet) is zero and the process can ignore the information returned.
+    * Pt.Actv - This byte shows which port is selected for use by all mouse functions (which you set by using the SetStat version of SS.GIP). The default value is Right (1), assuming you haven't ran GShell (or another program), which can read the /dd/sys/env.file and set the side from there. It should be noted that when you enable the keyboard mouse, it "takes over" whatever the active side is, so it will return left or right based on the SS.GIP setting regardless.
+    * Pt.ToTm - This is the initial value used by Pt.TTTo.
+    * Pt.TTTo - This is the count down value (as of the instant the the GetStat call is made). This value starts at the value contained in Pt.ToTm and counts down to zero at rate of 60 counts per second. The system maintains all counters until this value reaches 0, at which point it sets all counters and states to 0. The mouse scan routine changes into a quiet mode which requires less overhead than when the mouse is active. The timeout begins when both buttons are in the up (open) state. The timer is reinitialized to the value in Pt.ToTm when either button goes down (closed).
+    * Pt.TSSt - This counter is constantly increasing, beginning when either button is pressed while the mouse is in the quiet state. All counts are a number of ticks (60 per second). The timer counts to $FFFF, then stays at that value if additional ticks occur.
+    * Pt.CBSA / Pt.CBSB - These flag bytes indicated the state of the button at the last system clock tick. A value of 0 indicates that the button is down (closed). Button A is available on all Tandy joysticks and mice. Button B is only available for products that have two buttons (or using the keyboard mouse).
 
-- SS.Mouse returns information on the current mouse it's fire button(s). The
-    following list defines the 32 byte data packet that SS.Mouse creates:
-**Packet Mnemonic**
+* The system scans the mouse buttons each time it scans the keyboard.
 
-**Offset Name Size Description**
-00 Pt.Valid RMB 1 Is returned info valid (0=no/1=yes)
-01 Pt.Actv RMB 1 Active Side 0=off/1=Right/2=left
-02 Pt.ToTm RMB 1 Time out Initial value
+    * Pt.CCtA / Pt.CCtB - This is the number of clicks that have occurred since the mouse went into an active state. A click is defined as pressing (closing) the button, then releasing (opening) the button. The system counts the clicks as the button is released.
+    * Pt.TTSA / Pt.TTSB - This counter is the number of ticks that have occurred during the current state, as defined by Pt.CBSx. This counter starts at one (counts the ticket when the state changes) and increases by one for each tick that occurs while the button remains in the same state (open or closed).
+    * Pt.TLSA / Pt.TLSB - This counter is the number of ticks that have occurred during the time that button is in a state opposite of the current state. Using this count and the TTSA/TTSB count, you can determine how a button was in the previous state, even if the system returns the packet after the state has changed. Use these counters, along with the state and click count values, to define any type of click, drag or hold convention that you want.
 
-03 RMB 2 reserved
-05 Pt.TTTo RMB 1 Time Till Timeout
-06 Pt.TSSt RMB 2 Time Since Start Counter
+Reserved. Two packet bytes are reserved for future expansion of the returned data.
 
-08 Pt.CBSA RMB 1 Current Button State (Button A)
-09 Pt.CBSB RMB 1 Current Button State (Button B)
-0A Pt.CCtA RMB 1 Click Count (Button A)
+* Position information:
 
-0B Pt.CCtB RMB 1 Click Count (Button B)
-0C Pt.TTSA RMB 1 Time This State Counter (Button A)
-0D Pt.TTSB RMB 1 Time This State Counter (Button B)
-0E Pt.TLSA RMB 1 Time Last State Counter (Button A)
+    0 = content region or current working area of the window. In Multi-Vue windows, this defaults to not include border areas (including scroll bars), but you can use CWArea to expand this to include everything except the title bar. See the Multi-Vue manual for more details.
 
-0F Pt.TLSB RMB 1 Time Last State Counter (Button B)
+    1 = control region (for use in Multi-Vue). This is the Menu Bar area (this includes the Close Box and menus). See the Multi-Vue manual for more details.
 
+    2 = off window, or on an area of the screen that is not part of the window (ex. a separate device window on the same screen).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-10 RMB 2 Reserved
-12 Pt.BDX RMB 2 Button down frozen (Actual X)
-14 Pt.BDY RMB 2 Button down frozen (Actual Y)
-16 Pt.Stat RMB 1 Window Pointer type location
+* Pt.Res - This value is the current resolution for the mouse. The mouse must always return coordinates in the range of 0-639 for the X axis and 0-198 for the Y axis. If the system is so configured, you can use the high resolution mouse adapter which provides a 1 to 1 ratio with these values plus 1. If the adapter is not in use, the resolution is a ratio of 1 to 10 on the X axis, and 1 to 3 (roughly) on the Y axis. The keyboard mouse provides a resolution of 1 to 1. The values in Pt.Res are:
 
-17 Pt.Res RMB 1 Resolution (0..640 by: 0=ten/1=one)
-18 Pt.AcX RMB 2 Actual X Value
-1A Pt.AcY RMB 2 Actual Y Value
+    0 = low res (x:10, y:3)
 
-1C Pt.WRX RMB 2 Window Relative X
-1E Pt.WRY RMB 2 Window Relative Y
-20 Pt.Siz EQU. Packet Size 32 bytes
+    1 = high res (x,y:1)
 
-- Button information:
+* **NOTE:** The keyboard mouse being active does NOT change the value of Pt.Res; Pt.Res always reflects the current regular mouse setting.
+    * Pt.AcX / Pt.AcY - The values read from the mouse returned in the resolution as described under Pt.Res.
+    * Pt.WRX / Pt.WRY - The values read from the mouse minus the starting coordinates of the current window's working area. These values return the coordinates in numbers relative to the type of screen. For example, the X axis is in the range 0-639 for high-resolution screens and 0-319 for low resolution screens. You can divide the window relative values by 8 to obtain absolute character positions. These values are most helpful when working in non-scaled modes.
+* The support modules for this call are VTIO, KEYDRV, JOYDRV, and CoWin.
 
-```
-◦ Pt.Valid - The valid byte gives the caller an indication of whether the
-information contained in the returned packet is accurate. The
-information returned by this call is only valid if the process is running on
-the current interactive window. If the process is on a non-interactive
-window, this byte (and, in fact, the whole 32 byte packet) is zero and the
-process can ignore the information returned.
-```
-```
-◦ Pt.Actv - This byte shows which port is selected for use by all mouse
-functions (which you set by using the SetStat version of SS.GIP ). The
-default value is Right (1), assuming you haven't ran GShell (or another
-program), which can read the /dd/sys/env.file and set the side from
-there. It should be noted that when you enable the keyboard mouse, it
-"takes over" whatever the active side is, so it will return left or right
-based on the SS.GIP setting regardless.
-```
-```
-◦ Pt.ToTm - This is the initial value used by Pt.TTTo.
-```
-```
-◦ Pt.TTTo - This is the count down value (as of the instant the the GetStat
-call is made). This value starts at the value contained in Pt.ToTm and
-counts down to zero at rate of 60 counts per second. The system
-maintains all counters until this value reaches 0, at which point it sets all
-counters and states to 0. The mouse scan routine changes into a quiet
-```
+#### **SS.ScInf**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-mode which requires less overhead than when the mouse is active. The
-timeout begins when both buttons are in the up (open) state. The timer
-is reinitialized to the value in Pt.ToTm when either button goes down
-(closed).
-```
-```
-◦ Pt.TSSt - This counter is constantly increasing, beginning when either
-button is pressed while the mouse is in the quiet state. All counts are a
-number of ticks (60 per second). The timer counts to $FFFF, then stays at
-that value if additional ticks occur.
-```
-```
-◦ Pt.CBSA / Pt.CBSB - These flag bytes indicated the state of the button at
-the last system clock tick. A value of 0 indicates that the button is down
-(closed). Button A is available on all Tandy joysticks and mice. Button B is
-only available for products that have two buttons (or using the keyboard
-mouse).
-```
-The system scans the mouse buttons each time it scans the keyboard.
+**Get current screen info for direct writes**
 
-```
-◦ Pt.CCtA / Pt.CCtB - This is the number of clicks that have occurred since
-the mouse went into an active state. A click is defined as pressing
-(closing) the button, then releasing (opening) the button. The system
-counts the clicks as the button is released.
-```
-```
-◦ Pt.TTSA / Pt.TTSB - This counter is the number of ticks that have occurred
-during the current state, as defined by Pt.CBSx. This counter starts at one
-(counts the ticket when the state changes) and increases by one for each
-tick that occurs while the button remains in the same state (open or
-closed).
-```
-```
-◦ Pt.TLSA / Pt.TLSB - This counter is the number of ticks that have occurred
-during the time that button is in a state opposite of the current state.
-Using this count and the TTSA/TTSB count, you can determine how a
-button was in the previous state, even if the system returns the packet
-after the state has changed. Use these counters, along with the state and
-```
+**Function Code $8F**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-click count values, to define any type of click, drag or hold convention
-that you want.
-```
-**Reserved.** Two packet bytes are reserved for future expansion of the returned
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8F* |
 
-data.
+**Exit Conditions**
+| | |
+|-|-|
+| A | *number of 8K MMU blocks required for the screen* |
+| B | *start block number of the screen* |
+| X | *Offset into first block that window starts at* |
+| Y | *High byte = X start of window* |
+| | *Low byte = X size of window* |
+| U | *High byte = Y start of window* |
+| | *Low byte = Y size of window* |
 
-- Position information:
+**Error Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-```
-◦ Pt.BDX / Pt.BDY - These values are copies of the Pt.AcX and Pt.AcY values
-when either of the buttons change from an open state to a closed state.
-```
-◦ **Pt.Stat** - This byte contains information about the area of the screen on
-which the mouse is positioned. Pt.Valid must be a value other than 0 for
-this information to be accurate. If Pt.Valid is 0, this value is also 0 and not
-accurate. Three types of areas are currently defined:
-0 = content region or current working area of the window. In
-Multi-Vue windows, this defaults to not include border areas
-(including scroll bars), but you can use CWArea to expand this to
-include everything except the title bar. See the Multi-Vue
-manual for more details.
+**Additional Information**
 
-1 = control region (for use in Multi-Vue). This is the Menu Bar area
-(this includes the Close Box and menus). See the Multi-Vue
-manual for more details.
-2 = off window, or on an area of the screen that is not part of the
+* This call is used to get information on the window to allow directly mapping it into the process space, to directly write to the screen. It works with both hardware text and graphics windows (but NOT CoVDG windows, which have their own calls), and windows that do not take up the whole screen.
+* The X/Y start and sizes are based on current CWArea of the window, which can allow programs to compensate for just that part of the window, allowing it to work with smaller window applications, and Multi-Vue windows (allowing one to leave the menu and control areas alone).
+* The programmer will still need to get the screen type (using the GetStat SS.ScTyp) so they know how to specifically handle the screen/color resolution.
+* If on a graphics window, the X and Y start/size is based on 8 x 8 pixel character cells, regardless of the graphics mode.
 
-```
-window (ex. a separate device window on the same screen).
-```
-◦ **Pt.Res** - This value is the current resolution for the mouse. The mouse
-must always return coordinates in the range of 0-639 for the X axis and 0-
-198 for the Y axis. If the system is so configured, you can use the high
-resolution mouse adapter which provides a 1 to 1 ratio with these values
-plus 1. If the adapter is not in use, the resolution is a ratio of 1 to 10 on
-the X axis, and 1 to 3 (roughly) on the Y axis. The keyboard mouse
-provides a resolution of 1 to 1. The values in Pt.Res are:
-0 = low res (x:10, y:3)
+**NOTE:** This simply returns the information needed to map in a deal with the window directly. You still have to map in the screen (or a portion of it) using F$MapBlk.
 
-1 = high res (x,y:1)
+* The support module for this is CoWin.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-NOTE: The keyboard mouse being active does NOT change the value of
-Pt.Res; Pt.Res always reflects the current regular mouse setting.
+#### **SS.Palet**
 
-```
-◦ Pt.AcX / Pt.AcY - The values read from the mouse returned in the
-resolution as described under Pt.Res.
-```
-```
-◦ Pt.WRX / Pt.WRY - The values read from the mouse minus the starting
-coordinates of the current window's working area. These values return
-the coordinates in numbers relative to the type of screen. For example,
-the X axis is in the range 0-639 for high-resolution screens and 0-319 for
-low resolution screens. You can divide the window relative values by 8 to
-obtain absolute character positions. These values are most helpful when
-working in non-scaled modes.
-```
-- The support modules for this call are VTIO, KEYDRV, JOYDRV, and CoWin.
+**Gets palette information**
 
+**Function Code $91**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ScInf Get current screen info for direct
-writes
-Function Code $8F**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$91* |
+| X | *pointer to the 16 byte palette information buffer* |
 
-**Entry Conditions:**
-A _path number_
-B $8F
+**Exit Conditions**
+| | |
+|-|-|
+| X | *pointer to the 16 byte palette information buffer* |
 
-**Exit Conditions:**
-A _number of 8K MMU blocks required for the screen_
+**Error Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-B _start block number of the screen_
-X _Offset into first block that window starts at_
-Y _High byte = X start of window
-Low byte = X size of window_
+**Additional Information**
 
-U _High byte = Y start of window
-Low byte = Y size of window_
+* SS.Palet reads the contents of the 16 screen palette registers, and stores them in a 16 byte buffer. When you make the call, be sure the X register points to the desired buffer location. The pointer is retained on exit. The palette values returned are specific to the screen on which the call is made.
+* The support modules for this call are CoVDG and CoWin (or CoGrf).
 
-**Error Conditions:**
-CC carry set on error
-B _error code,_ if any
+---
 
-**Additional Information:**
+#### **SS.Montr**
 
-- This call is used to get information on the window to allow directly mapping
-    it into the process space, to directly write to the screen. It works with both
-    hardware text and graphics windows (but NOT CoVDG windows, which have
-    their own calls), and windows that do not take up the whole screen.
-- The X/Y start and sizes are based on current CWArea of the window, which
-    can allow programs to compensate for just that part of the window, allowing
-    it to work with smaller window applications, and Multi-Vue windows
-    (allowing one to leave the menu and control areas alone).
-- The programmer will still need to get the screen type (using the GetStat
-    SS.ScTyp) so they know how to specifically handle the screen/color
-    resolution.
-- If on a graphics window, the X and Y start/size is based on 8 x 8 pixel
-    character cells, regardless of the graphics mode.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-NOTE: This simply returns the information needed to map in a deal with the
-window directly. You still have to map in the screen (or a portion of it)
-using F$MapBlk.
-
-- The support module for this is CoWin.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Palet Gets palette information
-Function Code $91**
-
-**Entry Conditions:**
-
-A _path number_
-B $91
-X _pointer to the 16 byte palette information buffer_
-
-**Exit Conditions:**
-X _pointer to the 16 byte palette information buffer_
-
-**Error Conditions:**
-CC carry set on error
-B _error code,_ if any
-
-**Additional Information:**
-
-- SS.Palet reads the contents of the 16 screen palette registers, and stores
-    them in a 16 byte buffer. When you make the call, be sure the X register
-    points to the desired buffer location. The pointer is retained on exit. The
-    palette values returned are specific to the screen on which the call is made.
-- The support modules for this call are CoVDG and CoWin (or CoGrf).
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Montr Get current monitor type**
+**Get current monitor type**
 
 **Function Code $92**
 
-**Entry Conditions:**
-A _path number_
-B $92
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$92* |
 
-**Exit Conditions:**
-X _Monitor type:_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *Monitor type:* |
+| | 0 = color composite  |
+| | 1 = analog RGB  |
+| | 2 = monochrome composite |
 
-0 = color composite
-1 = analog RGB
-2 = monochrome composite
+**Additional Information**
 
-**Additional Information:**
+* The support module for this is VTIO.
 
-- The support module for this is VTIO.
+---
 
+#### **SS.ScTyp**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ScTyp Returns the type of a screen to a
-calling program
-Function Code $93**
+**Returns the type of a screen to a calling program**
 
-**Entry Conditions:**
-A _path number_
-B $93
+**Function Code $93**
 
-**Exit Conditions:**
-A _screen type code_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$93* |
 
-1 = 40 x 24 (or 25) text screen
-2 = 80 x 24 (or 25) text screen
-3 = not used
-4 = not used
+**Exit Conditions**
+| | |
+|-|-|
+| A | *screen type code* |
 
-5 = 640 x 192 or 200, 2-color graphics screen
-6 = 320 x 192 or 200, 4-color graphics screen
-7 = 640 x 192 or 200, 4-color graphics screen
+**Screen Type Codes**
+| Code | Definition |
+|---|---|
+| 1 | 40 x 24 (or 25) text screen |
+| 2 | 80 x 24 (or 25) text screen |
+| 3 | not used |
+| 4 | not used |
+| 5 | 640 x 192 or 200, 2-color graphics screen |
+| 6 | 320 x 192 or 200, 4-color graphics screen |
+| 7 | 640 x 192 or 200, 4-color graphics screen |
+| 8 | 320 x 192 or 200, 16-color graphics screen |
 
-8 = 320 x 192 or 200, 16-color graphics screen
+**Error Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-**Error Conditions:**
+**Additional Information**
 
-CC carry set on error
-B _error code,_ if any
+**NOTE:** Due to a bug in the GIME chip, only the first 199 lines are shown when the 200 line graphics screens are selected.
+* Support module for this call is CoWin (or CoGrf).
 
-**Additional Information:**
+---
 
-NOTE: Due to a bug in the GIME chip, only the first 199 lines are shown
-when the 200 line graphics screens are selected.
+#### **SS.FBRgs**
 
-- Support module for this call is CoWin (or CoGrf).
+**Returns the foreground, background, and border palette registers for a window**
 
+**Function Code $96**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FBRgs Returns the foreground,
-background, and border palette
-registers for a window
-Function Code $96**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$96* |
 
-**Entry Conditions:**
-A _path number_
+**Exit Conditions**
+| | |
+|-|-|
+| A | *foreground palette register number* |
+| B | *background palette register number* (if carry clear) |
+| X | *least significant byte of border palette register number* |
 
-B $96
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-**Exit Conditions:**
+**Additional Information**
 
-A _foreground palette register number_
-B _background palette register number_ (if carry clear)
-X _least significant byte of border palette register number_
+* The support module for this is CoWin (or CoGrf).
 
-**Error Output:**
-CC carry set on error
-B _error code,_ if any
+---
 
-**Additional Information:**
+#### **SS.DFPal**
 
-- The support module for this is CoWin (or CoGrf).
+**Returns the default palette register settings**
 
+**Function Code $97**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DFPal Returns the default palette
-register settings
-Function Code $97**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$97* |
+| X | *pointer to 16-byte data space* |
 
-**Entry Conditions:**
-A _path number_
-B $97
+**Exit Conditions**
+| | |
+|-|-|
+| X | *default palette data moved to user space* |
 
-X _pointer to 16-byte data space_
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-**Exit Conditions:**
+**Additional Information**
 
-X _default palette data moved to user space_
+* You can use SS.DFPal to find the values of the default palette registers that are used when a new screen is allocated by CoWin (or CoGrf). The corresponding SetStat can alter the default registers. This GetStat/SetStat pair is for system configuration utilities and should not be used by general applications.
 
-**Error Output:**
-CC carry set on error
+---
 
-B _error code,_ if any
+#### **SS.ECC**
 
-**Additional Information:**
-
-- You can use SS.DFPal to find the values of the default palette registers that
-    are used when a new screen is allocated by CoWin (or CoGrf). The
-    corresponding SetStat can alter the default registers. This GetStat/SetStat
-    pair is for system configuration utilities and should not be used by general
-    applications.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ECC ECC corrected data error status**
+**ECC corrected data error status**
 
 **Function Code $B0**
 
-**Entry Conditions:**
-A _path number_
-B $B0
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$B0* |
 
-**Exit Conditions:**
-X _ECC error correction status:_
+**Exit Conditions**
+| | |
+|-|-|
+| X | *ECC error correction status:* |
+| | 0 = ECC error correction disabled |
+| | 1 = ECC error correction enabled |
 
-0 = ECC error correction disabled
-1 = ECC error correction enabled
+**Additional Information**
 
-**Additional Information:**
+* This gives the current ECC status for the WD1002-05 hard drive/floppy controller from Frank Hogg's **Eliminator** controller.
+* The support module for this is WDDisk.
 
-- This gives the current ECC status for the WD1002-05 hard drive/floppy
-    controller from Frank Hogg's **Eliminator** controller.
-- The support module for this is WDDisk.
+#### Set Status System Calls
 
+You use Set Status System calls with the file manager subroutine SetStt (RBF and SCF, and possibly some 3rd party file managers as well). PIPEMAN does not contain any SetStt calls, so it simply returns without an error). The NitrOS-9 Level Two system reserves function codes 7-127 for use by Microware. You can define codes 128-255 and their parameter-passing conventions for your own use. (See the sections on device drivers in Chapters 4,5, and 6).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-#### Set Status System Calls...........................................................................................
-
-You use Set Status System calls with the file manager subroutine SetStt (RBF and SCF,
-and possibly some 3rd party file managers as well). PIPEMAN does not contain any
-SetStt calls, so it simply returns without an error). The NitrOS-9 Level Two system
-reserves function codes 7-127 for use by Microware. You can define codes 128-255 and
-their parameter-passing conventions for your own use. (See the sections on device
-drivers in Chapters 4,5, and 6).
-
-The Set Status routine passes the register stack and the specified function code to the
-device driver if the call is not generic to the file manager itself.
+The Set Status routine passes the register stack and the specified function code to the device driver if the call is not generic to the file manager itself.
 
 Following are the Set Status functions and their codes.
 
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
 **SS.Opt Writes the option section of the path
 descriptor
 Function Code $00**
@@ -7803,7 +7679,7 @@ B _error code_ , if any
 will stay in effect for your program, but if you then exit back to a calling Shell
 (with it's own paths), it will revert back to the setting that the calling Shell had.
 - For **serial port** devices:
-◦ **Baud Configuration.** The low order byte of Y determines the baud rate, the
+* **Baud Configuration.** The low order byte of Y determines the baud rate, the
 word length, and the number of stop bits. The byte is configured as follows:
 
 PD.BAU
@@ -9198,18 +9074,11 @@ None
 - This call is handled in VRN.
 
 
-```
-NitrOS-9 EOU Technical Reference Manual
-```
-## Appendices.....................................................................................................................
+## Appendices
 
+### A. System Module Diagrams
 
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-### A. System Module Diagrams.......................................................................................
-
-##### Executable Memory Module Format..................................................................
+##### Executable Memory Module Format
 
 #### SYNC BYTES ($87, $CD)
 
@@ -9284,7 +9153,7 @@ constants, and so on)
 ```
 Appendices NitrOS-9 EOU Technical Reference Manual
 ```
-##### Device Descriptor Format...................................................................................
+##### Device Descriptor Format
 
 #### SYNC BYTES ($87, $CD)
 
@@ -9369,7 +9238,7 @@ $12,$12+ n
 ```
 Appendices NitrOS-9 EOU Technical Reference Manual
 ```
-##### INIT Module Format...........................................................................................
+##### INIT Module Format
 
 ```
 SYNC BYTES ($87, $CD)
@@ -9582,7 +9451,7 @@ Appendices NitrOS-9 EOU Technical Reference Manual
 
 Color Computer 3
 
-### Physical Track Format Pattern............................................................................
+### Physical Track Format Pattern
 
 **Format Bytes
 (Dec)**
@@ -9644,11 +9513,11 @@ N $4E (fill to index mark)
 ```
 Appendices NitrOS-9 EOU Technical Reference Manual
 ```
-## B2. 20 Sector per Track Floppy Disk Format...............................................................
+## B2. 20 Sector per Track Floppy Disk Format
 
 Color Computer 3 – FORMAT 20 format command
 
-### Physical Track Format Pattern............................................................................
+### Physical Track Format Pattern
 
 **Format Bytes
 (Dec)**
