@@ -60,6 +60,23 @@ paramBuf(16) := ASC("n")
 paramBuf(17) := ASC("t")
 paramBuf(18) := $0D           \ ! CR terminates parameter string
 
+! --- Step 2a: F$NMLoad (diagnostic) ----------------------
+! Load tForkChild into the system module directory so that
+! F$Fork can find it by name. regs.x is overwritten by
+! NMLoad on return; Step 3 re-stages all Fork regs fresh.
+callCode := $22               \ ! F$NMLoad system call code
+regs.a   := 0                 \ ! any type/language
+regs.x   := ADDR(nameBuf)     \ ! pathlist address (hi-bit terminated)
+PRINT "tForkParent: calling F$NMLoad..."
+RUN SysCall(callCode, regs)
+iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  errVal := regs.b            \ ! stage BYTE error code to INTEGER
+  PRINT "F$NMLoad failed, err: "; errVal
+  ERROR(errVal)
+ENDIF
+PRINT "tForkParent: NMLoad OK"
+
 ! --- Step 3: F$Fork ---------------------------------------
 callCode := $03               \ ! F$Fork system call code
 regs.a   := 0                 \ ! any language/type
@@ -67,8 +84,6 @@ regs.b   := 1                 \ ! 1 additional data page for child
 regs.x   := ADDR(nameBuf)     \ ! INTEGER address of name buffer
 regs.y   := 1                 \ ! 1 page (256 bytes) parameter area
 regs.u   := ADDR(paramBuf)    \ ! INTEGER address of param buffer
-PRINT "nameBuf(1)="; nameBuf(1); " nameBuf(10)="; nameBuf(10)
-PRINT "nameBuf addr="; ADDR(nameBuf)
 PRINT "tForkParent: calling F$Fork..."
 RUN SysCall(callCode, regs)
 iCC := regs.cc                \ ! stage BYTE cc to INTEGER for LAND
