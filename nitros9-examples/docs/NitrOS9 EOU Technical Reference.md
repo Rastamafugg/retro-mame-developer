@@ -3005,7 +3005,7 @@ The process is terminated.
 | A | *language/type code ($00 = any language/type)* |
 | B | *size of the optional data area* (in pages) |
 | X | *address of the module name or filename (can be CR, NUL or hi-bit terminated)* |
-| Y | *size of the parameter area* (in pages); defaults to zero if not specified |
+| Y | *size of the parameter area* (in bytes); defaults to zero if not specified |
 | U | *starting address of the parameter area* ; must be at least one page |
 
 **Exit Conditions**

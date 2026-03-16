@@ -106,7 +106,7 @@ callCode := $03               \ ! F$Fork system call code
 regs.a   := 0                 \ ! any language/type
 regs.b   := 4                 \ ! 4 pages; tune if child fails to start
 regs.x   := ADDR(runbBuf)     \ ! RunB interpreter name
-regs.y   := 1                 \ ! 1 page (256 bytes) parameter area
+regs.y   := 11                \ ! 11 bytes parameter area
 regs.u   := ADDR(paramBuf)    \ ! INTEGER address of param buffer
 PRINT "tForkParent: forking RunB for tForkChild..."
 RUN SysCall(callCode, regs)
