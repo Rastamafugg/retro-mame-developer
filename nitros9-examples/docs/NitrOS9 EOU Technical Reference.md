@@ -2219,273 +2219,177 @@ The function code is retrieved from R$B on the caller’s stack.
 
 ## Chapter 7. The Pipe File Manager (PIPEMAN)
 
-The Pipe file manager handles control or processes that use paths to pipes. Pipes allow
-concurrently executing processes to send each other data by using the output of one
-process (the writer) as input to a second process (the reader). The reader gets input
-from the standard input. The exclamation point (!) or pipe symbol (|) (when used in the
-Shell) operator specifies that the input or output is from or to a pipe. Use the descriptor
-‘/pipe’ instead when using pipes within a program. The Pipe file manager allocates a
-256-byte block and a path descriptor for data transfer. The Pipe file manager also
-determines which process has control of the pipe. The Pipe file manager has the
-standard file manager branch table at its entry point:
+The Pipe file manager handles control or processes that use paths to pipes. Pipes allow concurrently executing processes to send each other data by using the output of one process (the writer) as input to a second process (the reader). The reader gets input from the standard input. The exclamation point (!) or pipe symbol (|) (when used in the Shell) operator specifies that the input or output is from or to a pipe. Use the descriptor ‘/pipe’ instead when using pipes within a program. The Pipe file manager allocates a 256-byte block and a path descriptor for data transfer. The Pipe file manager also determines which process has control of the pipe. The Pipe file manager has the standard file manager branch table at its entry point:
 
-ENTRY LBRA Create
-LBRA Open
-LBRA MakDir
-LBRA ChgDir
-LBRA Delete
-LBRA Seek
-LBRA PRead
-LBRA PWrite
-LBRA PRdLn
-LBRA PWrLn
-LBRA GetStat
-LBRA SetStat
-LBRA Close
+| | | |
+|-|-|-|
+| ENTRY | LBRA | Create |
+| | LBRA | Open |
+| | LBRA | MakDir |
+| | LBRA | ChgDir |
+| | LBRA | Delete |
+| | LBRA | Seek |
+| | LBRA | PRead |
+| | LBRA | PWrite |
+| | LBRA | PRdLn |
+| | LBRA | PWrLn |
+| | LBRA | GetStat |
+| | LBRA | SetStat |
+| | LBRA | Close |
 
-You cannot use MakDir, ChgDir, Delete, and Seek with pipes. If you try to do so, the
-system returns E$UNKSVC (unknown service request). GetStat and SetStat are also no-
-action service routines. They return without error.
+You cannot use MakDir, ChgDir, Delete, and Seek with pipes. If you try to do so, the system returns E$UNKSVC (unknown service request). GetStat and SetStat are also no-action service routines. They return without error.
 
-Create and Open perform the same functions. They set up the 256-byte data exchange
-buffer and save several addresses in the path descriptor.
+Create and Open perform the same functions. They set up the 256-byte data exchange buffer and save several addresses in the path descriptor.
 
-
-```
-Chapter 7. The Pipe File Manager (PIPEMAN) NitrOS-9 EOU Technical Reference Manual
-```
-The Close request checks to see if any process is reading or writing through the pipe. If
-not, NitrOS-9 returns the buffer.
+The Close request checks to see if any process is reading or writing through the pipe. If not, NitrOS-9 returns the buffer.
 
 PRead, PWrite, PRdLn, and PWrLn read data from the buffer and write data to it.
 
-The! or | operator tells the Shell that processes wish to communicate through a pipe.
-For example:
+The ! or | operator tells the Shell that processes wish to communicate through a pipe. For example:
 
 ```
-proc1! proc2
+proc1 ! proc2 [ENTER]
 ```
-In this example, shell forks Proc1 with the standard output path to a pipe and forks
-Proc2 with the standard input path from a pipe.
+In this example, shell forks Proc1 with the standard output path to a pipe and forks Proc2 with the standard input path from a pipe.
 
 Shell can also handle a series of processes using pipe. For example:
 
 ```
-proc1 | proc2 |proc3 | proc4
+proc1 | proc2 | proc3 | proc4 [ENTER]
 ```
+
 The following outline shows how to set up pipes between processes:
+| | |
+|-|-|
+| Open /pipe | save path in variable x |
+| Dup path #1 | save stdout in variable y |
+| Close #1 | make path available |
+| Dup x | put pipe in stdout |
+| | (Dup uses lowest available) |
+| Fork proc1 | fork process 1 |
+| Close #1 | make path available |
+| Dup y | restore stdout |
+| Close y | make path available |
+| | |
+| Dup path #0 | save stdin in Y |
+| Close #0 | make path available |
+| Dup x | put pipe in stdin |
+| Fork proc2 | fork process 2 |
+| Close #0 | make path available |
+| Dup y | restore stdin |
+| Close x | no longer needed |
+| Close y | no longer needed |
 
-```
-Open /pipe save path in variable x
-Dup path #1 save stdout in variable y
-Close #1 make path available
-Dup x put pipe in stdout
-(Dup uses lowest available)
-Fork proc1 fork process 1
-Close #1 make path available
-Dup y restore stdout
-Close y make path available
-```
-```
-Dup path #0 save stdin in Y
-Close #0 make path available
-Dup x put pipe in stdin
-Fork proc2 fork process 2
-Close #0 make path available
-Dup y restore stdin
-Close x no longer needed
-Close y no longer needed
-```
-```
-ENTER
-```
-```
-ENTER
-```
+Example: The following example shows how an application can initiate another process with the stdin and stdout routed through a pipe:
 
-```
-Chapter 7. The Pipe File Manager (PIPEMAN) NitrOS-9 EOU Technical Reference Manual
-```
-Example: The following example shows how an application can initiate another process
-with the stdin and stdout routed through a pipe:
+| | |
+|-|-|
+| Open /pipe1 | save path in variable a |
+| Open /pipe2 | save path in variable b |
+| Dup 0 | save stdin in variable x |
+| Dup 1 | save stdout in variable y |
+| Close #0 | make stdin path available |
+| Close #1 | make stdout path available |
+| Dup a | make pipe1 stdin |
+| Dup b | make pipe2 stdout |
+| Fork new process | |
+| Close #0 | make stdin path available |
+| Close #1 | make stdout path available |
+| Dup x | restore stdin |
+| Dup y | restore stdout |
+| Return a&b | return pipe path numbers to caller |
 
-```
-Open /pipe1 save path in variable a
-Open /pipe2 save path in variable b
-Dup 0 save stdin in variable x
-Dup 1 save stdout in variable y
-Close #0 make stdin path available
-Close #1 make stdout path available
-Dup a make pipe1 stdin
-Dup b make pipe2 stdout
-Fork new process
-Close #0 make stdin path available
-Close #1 make stdout path available
-Dup x restore stdin
-Dup y restore stdout
-Return a&b return pipe path numbers to caller
-```
+## Chapter 8. VIRQ / RAM / NIL Driver (VRN)
 
-```
-Chapter 8. VIRQ / RAM / NIL Driver (VRN) NitrOS-9 EOU Technical Reference Manual
-```
-## Chapter 8. VIRQ / RAM / NIL Driver (VRN).....................................................................
+The VRN driver is a special driver that interfaces through the SCF File Manager (mainly to drive the /nil device), but also allows user process access to setting up and accessing VIRQ's, and allocating/de-allocating RAM blocks outside of the user’s process space. Two specially named descriptors (/FTDD and /VI) are installed for backwards compatibility with programs sold by Tandy, which originally had custom drivers using these descriptors. The newer VRN driver combines both of those older drivers, along with new functionality, in one new, combined driver, and then merged in support for /nil (from the Level 2 Development System) and new memory calls. Some of the original features of those drivers have also been enhanced. It is recommended that all new programs use the standard /NIL device for all functions in this driver, and we will eventually phase out the older descriptors (for those curious, the original descriptor /FTDD was used for special user VIRQ functions in Sub Logic's Flight Simulator II, and the original descriptor /VI was used for different special user VIRQ functions in Sierra's King Quest III and Leisure Suit Larry).
 
-The VRN driver is a special driver that interfaces through the SCF File Manager (mainly
-to drive the /nil device), but also allows user process access to setting up and accessing
-VIRQ's, and allocating/de-allocating RAM blocks outside of the user’s process space.
-Two specially named descriptors (/FTDD and /VI) are installed for backwards
-compatibility with programs sold by Tandy, which originally had custom drivers using
-these descriptors. The newer VRN driver combines both of those older drivers, along
-with new functionality, in one new, combined driver, and then merged in support for
-/nil (from the Level 2 Development System) and new memory calls. Some of the original
-features of those drivers have also been enhanced. It is recommended that all new
-programs use the standard /NIL device for all functions in this driver, and we will
-eventually phase out the older descriptors (for those curious, the original descriptor
-/FTDD was used for special user VIRQ functions in Sub Logic's Flight Simulator II, and the
-original descriptor /VI was used for different special user VIRQ functions in Sierra's King
-Quest III and Leisure Suit Larry).
+**/nil** is a null descriptor; anything directed to it just returns without doing anything and never generates an error; and anything trying to read from it immediately receives an EOF (End of File) error. It is usually used to redirect standard output and/or standard error paths to, so that the output isn't displayed on a screen or written to a file (ex. to do a DIR from a Shell, but not showing normal DIR output, but only errors, one could do a 'DIR >/nil'). All other functionality with VRN is done through GetStat and SetStat calls.
 
-**/nil** is a null descriptor; anything directed to it just returns without doing anything and
-never generates an error; and anything trying to read from it immediately receives an
-EOF (End of File) error. It is usually used to redirect standard output and/or standard
-error paths to, so that the output isn't displayed on a screen or written to a file (ex. to
-do a DIR from a Shell, but not showing normal DIR output, but only errors, one could do
-a 'DIR >/nil'). All other functionality with VRN is done through GetStat and SetStat calls.
+It should be noted that VIRQ signals are based on unique process ID number and path number combinations, combined. This way a single process can specify multiple paths, each with their own VIRQ setting. The system wide limit is currently 4 unique entries.
 
-It should be noted that VIRQ signals are based on unique process ID number and path
-number combinations, combined. This way a single process can specify multiple paths,
-each with their own VIRQ setting. The system wide limit is currently 4 unique entries.
+Since VRN is an SCF based device, the beginning of it's device memory area is the exact same as shown in Chapter 6 (SCF), up through V.SCF. The remainder of it's device memory area is typically defined as follows:
 
-Since VRN is an SCF based device, the beginning of it's device memory area is the exact
-same as shown in Chapter 6 (SCF), up through V.SCF. The remainder of it's device
-memory area is typically defined as follows:
-
-
-```
-Chapter 8. VIRQ / RAM / NIL Driver (VRN) NitrOS-9 EOU Technical Reference Manual
-```
-**Name Relative
-Address**
-
-```
-Size
-(Bytes)
-```
-```
-Use
-```
-VIRQPckt $1D 5 Standard VIRQ packet (see **Virtual Interrupt
-Processing** in Chapter 2)
-PathNmbr $22 1 Current path number
-ProcNmbr $23 1 Current process ID
-VIRQTbls $24 56 4 VIRQ table entries, each 14 bytes (see below)
-RAMTbls $5C 160 32 RAM table entries, each 5 bytes (See below)
+| Name | Relative Address | Size (Bytes) | Use |
+|-|-|-|-|
+| VIRQPckt | $1D | 5 | Standard VIRQ packet (see **Virtual Interrupt Processing** in Chapter 2) |
+| PathNmbr | $22 | 1 | Current path number |
+| ProcNmbr | $23 | 1 | Current process ID |
+| VIRQTbls | $24 | 56 | 4 VIRQ table entries, each 14 bytes (see below) |
+| RAMTbls | $5C | 160 | 32 RAM table entries, each 5 bytes (See below) |
 
 **PathNmbr** is a temp holder for the current path # of the calling process.
+
 **ProcNmbr** is a temp holder for the current process # of the calling process.
 
 For each VIRQTbls entry, the following offsets are used:
 
-**Name Offset Size
-(Bytes)**
-
-```
-Use
-```
-FS2.ID $0 1 Flight Simulator 2 (and FS2+) VIRQ process ID
-FS2.Pth $1 1 Flight Simulator 2 (and FS2+) VIRQ path #
-FS2.Sgl $2 1 Flight Simulator 2 (and FS2+) VIRQ signal code
-FS2.Tmr $3 2 Flight Simulator 2 (and FS2+) VIRQ countdown
-timer
-FS2.Rst $5 2 Flight Simulator 2 (and FS2+) VIRQ reset count
-FS2.STot $7 1 Flight Simulator 2 (and FS2+) VIRQ signal counter
-FS2.VTot $8 4 Flight Simulator 2 (and FS2+) total VIRQ counter
-KQ3.ID $C 1 Kings Quest III VIRQ process ID
-KQ3.Pth $D 1 Kings Quest III VIRQ path number
+| Name | Offset  | Size (Bytes) | Use |
+|-|-|-|-|
+| FS2.ID | $0 | 1 | Flight Simulator 2 (and FS2+) VIRQ process ID |
+| FS2.Pth | $1 | 1 | Flight Simulator 2 (and FS2+) VIRQ path # |
+| FS2.Sgl | $2 | 1 | Flight Simulator 2 (and FS2+) VIRQ signal code |
+| FS2.Tmr | $3 | 2 | Flight Simulator 2 (and FS2+) VIRQ countdown timer |
+| FS2.Rst | $5 | 2 | Flight Simulator 2 (and FS2+) VIRQ reset count |
+| FS2.STot | $7 | 1 | Flight Simulator 2 (and FS2+) VIRQ signal counter |
+| FS2.VTot | $8 | 4 | Flight Simulator 2 (and FS2+) total VIRQ counter |
+| KQ3.ID | $C | 1 | Kings Quest III VIRQ process ID |
+| KQ3.Pth | $D | 1 | Kings Quest III VIRQ path number |
 
 **FS2.Tmr** - # of VIRQ's (1/60th second increments) before a signal is sent.
-**FS2.Rst** - is the reset count. Once a signal has been sent, this how many 1/60th second
-VIRQ's need to happen before the next time the signal is sent. If this is set to 0, it is a
-"one shot" VIRQ, and doesn't ever trigger again.
-**FS2.STot** - this is how many signals (0-255) have been sent (this can be reset to 0 at any
-time by the caller).
-**FS2.VTot** - this is how many VIRQ's (regardless of how many signals have been sent) that
-have occurred since this count was last reset. This is a 32 bit unsigned number (0 to
-4,294,967,296).
 
+**FS2.Rst** - is the reset count. Once a signal has been sent, this how many 1/60th second VIRQ's need to happen before the next time the signal is sent. If this is set to 0, it is a "one shot" VIRQ, and doesn't ever trigger again.
 
-```
-Chapter 8. VIRQ / RAM / NIL Driver (VRN) NitrOS-9 EOU Technical Reference Manual
-```
-- The original Flight Simulator 2 driver always sends a signal code of $80 (this is referred
-to as 'FS2' in this documentation). The FS2+ additions allow the caller to define their
-own signal codes (and also define multiple ones with different countdowns, using
-separate paths). The KQ3 is also hardcoded to send a signal code of $80.
+**FS2.STot** - this is how many signals (0-255) have been sent (this can be reset to 0 at any time by the caller).
+
+**FS2.VTot** - this is how many VIRQ's (regardless of how many signals have been sent) that have occurred since this count was last reset. This is a 32 bit unsigned number (0 to 4,294,967,296).
+
+- The original Flight Simulator 2 driver always sends a signal code of $80 (this is referred to as 'FS2' in this documentation). The FS2+ additions allow the caller to define their own signal codes (and also define multiple ones with different countdowns, using separate paths). The KQ3 is also hardcoded to send a signal code of $80.
 - KQ3 VIRQ's are **always** 1/60th of second.
-- FS2/FS2+ VIRQ's are programmable, can be single shot VIRQ's or repeating, and can
-also keep track of both how many 1/60th second VIRQ's have occurred, and how many
-times each signal has been sent. They are more versatile than the KQ3 ones, but take a
-little longer to service in the VIRQ routine.
+- FS2/FS2+ VIRQ's are programmable, can be single shot VIRQ's or repeating, and can also keep track of both how many 1/60th second VIRQ's have occurred, and how many times each signal has been sent. They are more versatile than the KQ3 ones, but take a little longer to service in the VIRQ routine.
 
 For each RAMTbls entry, the following offsets are used:
 
-**Name Offset Size
-(Bytes)**
+| Name | Offset  | Size (Bytes) | Use |
+|-|-|-|-|
+| RAM.ID | $0 | 1 | RAM process ID |
+| RAM.Pth | $1 | 1 | RAM path # |
+| RAM.Bks | $2 | 1 | Number of 8K RAM blocks allocated |
+| RAM.StB | $3 | 2 | Starting RAM block number |
 
-```
-Use
-```
-RAM.ID $0 1 RAM process ID
-RAM.Pth $1 1 RAM path #
-RAM.Bks $2 1 Number of 8K RAM blocks allocated
-RAM.StB $3 2 Starting RAM block number
-
-Each path's RAM allocation is of contiguous MMU Blocks. A program can open multiple
-paths to get non-contiguous chunks of RAM.
+Each path's RAM allocation is of contiguous MMU Blocks. A program can open multiple paths to get non-contiguous chunks of RAM.
 
 The VRN driver itself has a six entry branch table at it's entry point:
-VRNEnt Ibra Init
-Ibra Read
-Ibra Write
-Ibra GetStat
-Ibra SetStat
-Ibra Term
 
-**Init** allocates a 256 byte device memory page to VRN, which by default allows up to 4
-simultaneous user VIRQ entries active in the system at once. (It also sets up it's VIRQ &
-IRQ routines, for 1/60th of second). In addition, it by default allows up to 32
+| | | |
+|-|-|-|
+| VRNEnt | Ibra | Init |
+| | Ibra | Read |
+| | Ibra | Write |
+| | Ibra | GetStat |
+| | Ibra | SetStat |
+| | Ibra | Term |
 
-
-```
-Chapter 8. VIRQ / RAM / NIL Driver (VRN) NitrOS-9 EOU Technical Reference Manual
-```
-simultaneous contiguous RAM allocation blocks in the system at once. It should be
-noted that both the VIRQ and RAM entries can be from different processes, or multiples
-of each within the same process (the latter requires you opening multiple path's to /nil
-from a single process).
+**Init** allocates a 256 byte device memory page to VRN, which by default allows up to 4 simultaneous user VIRQ entries active in the system at once. (It also sets up it's VIRQ & IRQ routines, for 1/60th of second). In addition, it by default allows up to 32 simultaneous contiguous RAM allocation blocks in the system at once. It should be noted that both the VIRQ and RAM entries can be from different processes, or multiples of each within the same process (the latter requires you opening multiple path's to /nil from a single process).
 
 **Read** always returns an EOF Error.
 
 **Write** always returns with no error, and simply ignores any data written.
 
 **GetStat** handles the following functions (see the **System Call** chapter entries for details):
-**SS.Ready** - Always returns Device Not Ready error.
-**SS.VCtr** - FS2(+) VIRQ call - returns total VIRQ's triggered count, and resets that count
-to 0.
-**SS.VSig** - FS2(+) VIRQ call - returns # of signals triggered, and resets that count to 0.
-All other GetStat calls to VRN return an Unknown Service error.
+* **SS.Ready** - Always returns Device Not Ready error.
+* **SS.VCtr** - FS2(+) VIRQ call - returns total VIRQ's triggered count, and resets that count to 0.
+* **SS.VSig** - FS2(+) VIRQ call - returns # of signals triggered, and resets that count to 0.
+* All other GetStat calls to VRN return an Unknown Service error.
 
 **SetStat** handles the following functions (see the **System Call** chapter entries for details):
-**SS.Close** - This clears all entries (VIRQ or RAM) for the caller's process #/path #.
-**SS.FClr** - Set or Clear FS2 VIRQ for calling process #/path #., or Clear FS2+ VIRQ for
-calling process #/path #..
-**SS.FSet** - Set FS2+ VIRQ for calling process #/path #.
-**SS.KSet** - Set KQ3 VIRQ for calling process #/path #.
-**SS.KClr** - Clear KQ3 VIRQ for calling process #/path #.
-**SS.ARAM** - Allocate RAM blocks for calling process #/path #.
-**SS.DRAM** - Deallocate RAM blocks for calling process #/path #.
-All other SetStat calls to VRN return an Unknown Service error.
+* **SS.Close** - This clears all entries (VIRQ or RAM) for the caller's process #/path #.
+* **SS.FClr** - Set or Clear FS2 VIRQ for calling process #/path #., or Clear FS2+ VIRQ for calling process #/path #..
+* **SS.FSet** - Set FS2+ VIRQ for calling process #/path #.
+* **SS.KSet** - Set KQ3 VIRQ for calling process #/path #.
+* **SS.KClr** - Clear KQ3 VIRQ for calling process #/path #.
+* **SS.ARAM** - Allocate RAM blocks for calling process #/path #.
+* **SS.DRAM** - Deallocate RAM blocks for calling process #/path #.
+* All other SetStat calls to VRN return an Unknown Service error.
 
 **Term** disables VRN's VIRQ and IRQ entries.
 
@@ -9133,499 +9037,270 @@ None
 
 ### A. System Module Diagrams
 
-##### Executable Memory Module Format
-
-#### SYNC BYTES ($87, $CD)
-
-#### MODULE SIZE (BYTES)
-
-#### MODULE NAME OFFSET
-
-#### HEADER PARITY CHECK
-
-#### EXECUTION OFFSET
-
-#### PERMANENT STORAGE SIZE
-
-#### TYPE LANGUAGE
-
-#### ATTRIBUTES REVISION
+#### Executable Memory Module Format
 
 ```
-RELATIVE
-ADDRESS
+RELATIVE                                CHECK
+ADDRESS                                 RANGE
+        -------------------------------<--------
+$00     |                             |    |   |
+        |-   SYNC BYTES ($87, $CD)   -|    |   |
+$01     |                             |    |   |
+        -------------------------------    |   |
+$02     |                             |    |   |
+        |-    MODULE SIZE (BYTES)    -|    |   |
+$03     |                             | HEADER |
+        ------------------------------- PARITY |
+$04     |                             |    |   |
+        |-    MODULE NAME OFFSET     -|    |   |
+$05     |                             |    |   |
+        -------------------------------    |   |
+$06     |     TYPE     |   LANGUAGE   |    |   |
+        |-----------------------------|    |   |
+$07     |  ATTRIBUTES  |   REVISION   |    |   |
+        -------------------------------<---|   |
+$08     |     HEADER PARITY CHECK     |        |
+        -------------------------------        |
+$09     |                             |        |
+        |-     EXECUTION OFFSET      -|        |
+$0A     |                             |        |
+        -------------------------------     MODULE
+$0B     |                             |       CRC
+        |-  PERMANENT STORAGE SIZE   -|        |
+$0C     |                             |        |
+        -------------------------------        |
+$0D     | (Additional optional header |        |
+        | extensions located here),   |        |
+        | then the Module Body (object|        |
+        | code, constants, and so on) |        |
+        -------------------------------        |
+        |-                           -|        |
+        |       CRC CHECK VALUE       |        |
+        |-                           -|        |
+        -------------------------------<-------|
 ```
-$05
 
-$0A
-
-$09
-
-$08
-
-$07
-
-$06
-
-$04
-
-$03
-
-$00
-
-$0C
-
-$0B
-
-$02
-
-$01
-
-$0D
-
-```
-CHECK
-RANGE
-```
-```
-MODULE
-CRC
-```
-```
-HEADER
-PARITY
-```
-#### PERMANENT STORAGE SIZE
+#### Device Descriptor Format
 
 ```
-(Additional optional header extensions located
-here), then the Module Body (object code,
-constants, and so on)
+RELATIVE                                CHECK
+ADDRESS                                 RANGE
+        -------------------------------<--------
+$00     |                             |    |   |
+        |-   SYNC BYTES ($87, $CD)   -|    |   |
+$01     |                             |    |   |
+        -------------------------------    |   |
+$02     |                             |    |   |
+        |-    MODULE SIZE (BYTES)    -|    |   |
+$03     |                             | HEADER |
+        ------------------------------- PARITY |
+$04     |                             |    |   |
+        |-    MODULE NAME OFFSET     -|    |   |
+$05     |                             |    |   |
+        -------------------------------    |   |
+$06     |   $F(TYPE)   | $1(LANGUAGE) |    |   |
+        |-----------------------------|    |   |
+$07     |  ATTRIBUTES  |   REVISION   |    |   |
+        -------------------------------<---|   |
+$08     |     HEADER PARITY CHECK     |        |
+        -------------------------------        |
+$09     |          OFFSET TO          |        |
+        |-     FILE MANAGER NAME     -|        |
+$0A     |           STRING            |        |
+        -------------------------------     MODULE
+$0B     |          OFFSET TO          |       CRC
+        |-     DEVICE DRIVER NAME    -|        |
+$0C     |           STRING            |        |
+        -------------------------------        |
+$0D     |          MODE BYTE          |        |
+        -------------------------------        |
+$0E     |                             |        |
+        |-     DEVICE CONTROLLER     -|        |
+$0F     |          ABSOLUTE           |        |
+        |- PHYSICAL ADDRESS (24 BIT) -|        |
+$10     |                             |        |
+        -------------------------------        |
+$11     |  INITIALIZATION TABLE SIZE  |        |
+        -------------------------------        |
+$12,    |   (INITIALIZATION TABLE)    |        |
+$12+n   |                             |        |
+        -------------------------------        |
+        |       NAME STRINGS,         |        |
+        |         AND SO ON           |        |
+        -------------------------------        |
+        |       CRC CHECK VALUE       |        |
+        -------------------------------<-------|
 ```
-#### CRC CHECK VALUE
 
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-##### Device Descriptor Format
-
-#### SYNC BYTES ($87, $CD)
-
-#### DEVICE CONTROLLER ABSOLUTE
-
-#### PHYSICAL ADDRESS (24 BIT)
-
-#### MODULE SIZE (BYTES)
-
-#### OFFSET TO MODULE NAME
-
-#### HEADER PARITY CHECK
-
-#### OFFSET TO FILE MANAGER NAME STRING
-
-#### OFFSET TO DEVICE DRIVER NAME STRING
-
-#### $F (TYPE) $1 (LANGUAGE)
-
-#### ATTRIBUTES REVISION
-
-```
-RELATIVE
-ADDRESS
-```
-$05
-
-$0A
-
-$09
-
-$08
-
-$07
-
-$06
-
-$04
-
-$03
-
-$00
-
-$0C
-
-$0B
-
-$02
-
-$01
-
-$0D
-
-```
-CHECK
-RANGE
-```
-```
-HEADER
-PARITY
-```
-#### MODE BYTE
-
-$0F
-
-$0E
-
-```
-$10
-$11
-$12,$12+ n
-```
-#### CRC CHECK VALUE
-
-#### (INITIALIZATION TABLE)
-
-#### INITIALIZATION TABLE SIZE
-
-#### NAME STRINGS, AND SO ON
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 ##### INIT Module Format
 
 ```
-SYNC BYTES ($87, $CD)
+RELATIVE                                CHECK
+ADDRESS                                 RANGE
+        ------------------------------------------<--------
+$00     |                                        |    |   |
+        |-         SYNC BYTES ($87, $CD)        -|    |   |
+$01     |                                        |    |   |
+        ------------------------------------------    |   |
+$02     |                                        |    |   |
+        |-          MODULE SIZE (BYTES)         -|    |   |
+$03     |                                        | HEADER |
+        ------------------------------------------ PARITY |
+$04     |                                        |    |   |
+        |-          MODULE NAME OFFSET          -|    |   |
+$05     |                                        |    |   |
+        ------------------------------------------    |   |
+$06     |      $F(TYPE)      |   $1(LANGUAGE)    |    |   |
+        |----------------------------------------|    |   |
+$07     |    ATTRIBUTES      |     REVISION      |    |   |
+        ------------------------------------------<---|   |
+$08     |          HEADER PARITY CHECK           |        |
+        ------------------------------------------        |
+$09     |                                        |        |
+        |-         MAXIMUM FREE MEMORY          -|        |
+        |-                                      -|        |
+        |                                        |        |
+        ------------------------------------------     MODULE
+$0C     |     # OF IRQ POLLING TABLE ENTRIES     |       CRC
+        ------------------------------------------        |
+$0D     |       # OF DEVICE TABLE ENTRIES        |        |
+        ------------------------------------------        |
+$0E     |    OFFSET TO INITIAL STARTUP MODULE    |        |
+        |-             NAME STRING              -|        |
+        |   (HI BIT TERMINATED, NORMALLY SYSGO)  |        |
+        ------------------------------------------        |
+$10     |     OFFSET TO DEFAULT MASS STORAGE     |        |
+        |-          DEVICE NAME STRING          -|        |
+        |   (HI BIT TERMINATED, NORMALLY /DD)    |        |
+        ------------------------------------------        |
+$12     | OFFSET TO DEFAULT INTERACTIVE TERMINAL |        |
+        |-          DEVICE NAME STRING          -|        |
+        |   (HI BIT TERMINATED, NORMALLY /TERM)  |        |
+        ------------------------------------------        |
+$14     |   OFFSET TO DEFAULT BOOTSTRAP MODULE   |        |
+        |-             NAME STRING              -|        |
+        |   (HI BIT TERMINATED, NORMALLY BOOT)   |        |
+        ------------------------------------------        |
+$16     |       WRITE PROTECT ENABLE FLAG*       |        |
+        ------------------------------------------        |
+$17     | OPERATING SYSTEM LEVEL ($02 FOR LVL II)|        |
+        ------------------------------------------        |
+$18     |       OPERATING SYSTEM VERSION #       |        |
+        ------------------------------------------        |
+$19     |   OPERATING SYSTEM MAJOR REVISION #    |        |
+        ------------------------------------------        |
+$1A     |   OPERATING SYSTEM MINOR REVISION #    |        |
+        ------------------------------------------        |
+$1B     |             FEATURE BYTE 1             |        |
+        ------------------------------------------        |
+$1C     |             FEATURE BYTE 2             |        |
+        ------------------------------------------        |
+$1D     | OFFSET TO OPERATING SYSTEM NAME STRING |        |
+        |-           (NULL TERMINATED)          -|        |
+        | (EXAMPLE 'NITROS-9/6809 LEVEL2 V3.3.0')|        |
+        ------------------------------------------        |
+$1F     |    OFFSET TO INSTALLATION NAME STRING  |        |
+        |-           (NULL TERMINATED)          -|        |
+        |   (EXAMPLE 'TANDY COLOW COMPUTER 3')   |        |
+        ------------------------------------------        |
+$21     |                                        |        |
+        |-             RESERVED FOR             -|        |
+        |               FUTURE USE               |        |
+        |-             (SET TO $00)             -|        |
+        |                                        |        |
+        ------------------------------------------        |
+$25     |          DEFAULT MONITOR TYPE          |        |
+        ------------------------------------------        |
+$26     |         DEFAULT MOUSE RESOLTION        |        |
+        ------------------------------------------        |
+$27     |           DEFAULT MOUSE SIDE           |        |
+        ------------------------------------------        |
+$28     |    DEFAULT KEY REPEAT START CONSTANT   |        |
+        ------------------------------------------        |
+$29     |      DEFAULT KEY SPEED CONSTANT        |        |
+        ------------------------------------------        |
+$2A     |             NAME STRINGS               |        |
+        ------------------------------------------        |
+$2B->n  |                                        |        |
+        |-                                      -|        |
+        |            CRC CHECK VALUE             |        |
+        |-                                      -|        |
+        |                                        |        |
+        ------------------------------------------<-------|
 ```
-```
-MODULE SIZE (BYTES)
-```
-```
-MODULE NAME OFFSET
-```
-```
-HEADER PARITY CHECK
-```
-```
-OFFSET TO INITIAL STARTUP MODULE
-NAME STRING (HI BIT TERMINATED, NORMALLY SYSGO)
-OFFSET TO DEFAULT MASS STORAGE
-DEVICE NAME STRING (HI BIT TERMINATED. NORMALLY /DD)
-```
-```
-$F (TYPE) $1 (LANGUAGE)
-ATTRIBUTES REVISION
-```
-```
-RELATIVE
-ADDRESS
-```
-$09
+* *NOTE:* Write Protect Enable Flag unused on Coco 3, set to $01
 
-$08
-
-$07
-
-$06
-
-$04
-
-$00
-
-$0C
-
-$02
-
-$0D
-
-```
-CHECK
-RANGE
-```
-```
-MODULE
-CRC
-```
-```
-HEADER
-PARITY
-```
-```
-MAXIMUM FREE MEMORY
-```
-```
-# OF DEVICE TABLE ENTRIES
-```
-```
-# OF IRQ POLLING TABLE ENTRIES
-```
-```
-OFFSET TO DEFAULT BOOTSTRAP MODULE
-NAME STRING (HI BIT TERMINATED, NORMALLY BOOT)
-WRITE PROTECT ENABLE FLAG (UNUSED ON COCO 3, SET TO $01)
-```
-```
-OFFSET TO DEFAULT INTERACTIVE TERMINAL
-DEVICE NAME STRING (HI BIT TERMINATED, NORMALLY /TERM)
-```
-```
-OPERATING SYSTEM MAJOR REVISION #
-```
-```
-OPERATING SYSTEM VERSION #
-```
-```
-OPERATING SYSTEM LEVEL ($02 FOR LEVEL II)
-```
-```
-OPERATING SYSTEM MINOR REVISION #
-```
-$0E
-
-$10
-
-$18
-
-$12
-
-$14
-
-$16
-
-$19
-
-$17
-
-```
-$1A
-```
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 **Additional Information:**
 
-- The version #'s are raw binary, not ASCII format (example: Version 3 would be
-    $03, not $33)
+- The version #'s are raw binary, not ASCII format (example: Version 3 would be $03, not $33)
 - Feature byte 1 has the following bit flags currently defined:
-Bit 0 = XXXXXXX0 - CRC checking OFF
-Bit 0 = XXXXXXX1 - CRC checking ON
-Bit 1 = XXXXXX0X - 6809 processor
-Bit 1 = XXXXXX1X - 6309 processor
+
+    Bit 0 = XXXXXXX0 - CRC checking OFF
+
+    Bit 0 = XXXXXXX1 - CRC checking ON
+
+    Bit 1 = XXXXXX0X - 6809 processor
+
+    Bit 1 = XXXXXX1X - 6309 processor
+
 - Feature byte 2 is reserved for future use
-- Default monitor type settings are defined as: 0=Composite, 1=RGB,
-2=Monochrome.
+- Default monitor type settings are defined as: 0=Composite, 1=RGB, 2=Monochrome.
+- Default Mouse resolution settings are defined as: 0=low resolution, 1=high resolution interface
+- Default Mouse Side settings are defined as: 0=left joystick port, 1=right joystick port
 
-```
-OFFSET TO OPERATING SYSTEM NAME STRING
-(NUL TERMINATED) (EXAMPLE ‘NITROS-9/6809 LEVEL2 V3.3.0’)
-OFFSET TO INSTALLATION NAME STRING
-(NUL TERMINATED) (EXAMPLE ‘TANDY COLOR COMPUTER 3’)
-```
-```
-RELATIVE
-ADDRESS
-```
-$26
-
-$25
-
-$21
-
-$1F
-
-$1B
-
-$28
-
-$27
-
-$1D
-
-$1C
-
-```
-CRC CHECK VALUE
-```
-$29
-
-```
-CHECK
-RANGE
-```
-```
-MODULE
-CRC
-```
-```
-DEFAULT MOUSE RESOLUTION
-```
-```
-DEFAULT MONITOR TYPE
-```
-```
-DEFAULT KEY REPEAT START CONSTANT
-```
-```
-DEFAULT MOUSE SIDE
-```
-```
-FEATURE BYTE 1
-FEATURE BYTE 2
-```
-```
-RESERVED FOR FUTURE USE (SET TO $00)
-```
-```
-NAME STRINGS
-```
-```
-DEFAULT KEY SPEED CONSTANT
-```
-```
-$2B-
-n
-```
-$2A
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-- Default Mouse resolution settings are defined as: 0=low resolution, 1=high
-    resolution interface
-- Default Mouse Side settings are defined as: 0=left joystick port, 1=right joystick
-    port
-
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 ### B1. Standard Floppy Disk Format
 
 Color Computer 3
 
 ### Physical Track Format Pattern
 
-**Format Bytes
-(Dec)**
+| Format | Bytes (Dec) | Value (Hex) |
+|-|-|-|
+| Header pattern (once per track) | 32 | $4E (Gap 1 MFM) |
+| | 12 | $00 (Gap II MFM) |
+| | 3 | $A1 |
+| Sector pattern (repeated 18 times) | 1 | $FE (ID Address Mark) |
+| | 1 | Track number (base 0) |
+| | 1 | Side number (base 0) |
+| | 1 | Sector number (base 1) |
+| | 1 | Sector length ($01=256 byte sector) |
+| | 2 | Sector header CRC |
+| | 22 | $4E |
+| | 12 | $00 |
+| | 3 | $A1 |
+| | 1 | $FB (Data address mark) |
+| | 256 | Data area |
+| | 2 | Sector CRC |
+| | 22 | $4E |
+| | 12 | $00 |
+| | 3 | $A1 |
+| Trailer pattern (once per track) | N | $4E (fill to index mark) |
 
-**Value
-(Hex)**
-Header pattern
-(once per track)
-
-```
-32
-12
-3
-```
-```
-$4E (Gap 1 MFM)
-$00 (Gap II MFM)
-$A1
-```
-Sector pattern
-(repeated 18 times)
-
-```
-1 1 1 1 1 2
-```
-```
-22
-12
-3
-1
-256
-2
-22
-12
-3
-```
-$FE (ID Address Mark)
-Track number (base 0)
-Side number (base 0)
-Sector number (base 1)
-Sector length ($01=256 byte sector)
-Sector header CRC
-$4E
-$00
-$A1
-$FB (Data address mark)
-Data area
-Sector CRC
-$4E
-$00
-$A1
-Trailer pattern
-(once per track)
-
-```
-N $4E (fill to index mark)
-```
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 ## B2. 20 Sector per Track Floppy Disk Format
 
 Color Computer 3 – FORMAT 20 format command
 
 ### Physical Track Format Pattern
 
-**Format Bytes
-(Dec)**
-
-**Value
-(Hex)**
-Header pattern
-(once per track)
-
-```
-8
-8
-3
-```
-```
-$4E (Gap 1 MFM)
-$00 (Gap II MFM)
-$A1
-```
-Sector pattern
-(repeated 18 times)
-
-```
-1 1 1 1 1 2
-```
-```
-28
-3
-1
-256
-2
-1
-3
-```
-$FE (ID Address Mark)
-Track number (base 0)
-Side number (base 0)
-Sector number (base 1)
-Sector length ($01=256 byte sector)
-Sector header CRC
-$00
-$A1
-$FB (Data address mark)
-Data area
-Sector CRC
-$00
-$A1
-Trailer pattern
-(once per track)
-
-```
-N $4E (fill to index mark)
-```
+| Format | Bytes (Dec) | Value (Hex) |
+|-|-|-|
+| Header pattern (once per track) | 8 | $4E (Gap 1 MFM) |
+| | 8 | $00 (Gap II MFM) |
+| | 3 | $A1 |
+| Sector pattern (repeated 18 times) | 1 | $FE (ID Address Mark) |
+| | 1 | Track number (base 0) |
+| | 1 | Side number (base 0) |
+| | 1 | Sector number (base 1) |
+| | 1 | Sector length ($01=256 byte sector) |
+| | 2 | Sector header CRC |
+| | 28 | $00 |
+| | 3 | $A1 |
+| | 1 | $FB (Data address mark) |
+| | 256 | Data area |
+| | 2 | Sector CRC |
+| | 1 | $00 |
+| | 3 | $A1 |
+| Trailer pattern (once per track) | N | $4E (fill to index mark) |
 
 ## C. System Error Codes
 
@@ -9789,26 +9464,21 @@ I/O device drivers generate the following error codes. In most cases, the codes 
 
 ## F. VIRQ Example Code
 
-```
-NOTE: The following code examples are incomplete and only used to illustrate
-the relevant VIRQ code.
-```
-```
-*VIRQ Example #1 - Device Driver possessing real IRQ's
-```
-```
+**NOTE:** The following code examples are incomplete and only used to illustrate the relevant VIRQ code.
+
+* VIRQ Example #1 - Device Driver possessing real IRQ's
+
+```asm
 *Copyright 1985,1986 by Microware Systems
 *Reproduced Under License
-```
-```
+
 use defsfile
-```
-```
+
 *actual mask byte for hardware interrupt
 IRQReq set 1000000 Interrupt Request
 *offset to the actual hardware status register
 Status equ 1
-```
+
 *VIRQ countdown value
 VIRQCNT equ 1 do the VIRQ on every tick
 
@@ -9822,7 +9492,7 @@ MEM equ. Total static storage requirement
 
 ***************
 *Module Header
-mod MEND,NAM,DRIVR+OBJCT,REENT+1,ENT,MEM
+    mod MEND,NAM,DRIVR+OBJCT,REENT+1,ENT,MEM
 fcb UPDAT.
 
 fcb Edition Current Revision
@@ -9835,13 +9505,7 @@ Ibra GETSTA
 Ibra PUTSTA
 bra TRMNAT
 
-```
 *Actual mask information for F$IRQ call for the
-```
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
 *hardware interrupt MASK fcb 0 no flip bits
 fcb IRQReg Irq polling mas
 fcb 10 (higher) priority
@@ -9889,51 +9553,40 @@ ldx #0 remove from VIRQ table
 leay VIRQBUF,U get address
 os9 F$VIRQ remove modem from VIRQ table
 
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-```
 *next remove from IRQ table
 ldx #0
 OS9 F$IRQ remove modem from polling tbl
 rts
-```
-```
+
 ****************
 *MIRQ
 *process Interrupt
 MDIRQ
-```
-```
+
 <actual interrupt service routine>
-```
-```
+
 rts
 emod Module Crc
 MEND egu *
 ```
-- VIRQ Example #2 - Device Driver without hardware interrupts
 
-```
+* VIRQ Example #2 - Device Driver without hardware interrupts
+
+```asm
 ****************
 *STATIC STORAGE DEFINITION
 *
-```
-```
+
 VIRQBF rmb 5 buffer for VIRQ
 DMEM equ.
-```
-```
+
 ****************
 *Module Header
-```
-```
+
 mod DEND,DNAM,DRIVR+OBJCT,REENT+REV,DENT,DMEM
 fcb UPDAT. mode byte
 fcb 3 EDITION BYTE
-```
-```
+
 *Driver entry table
 DENT Ibra INIT initialize
 Ibra READ
@@ -9941,44 +9594,33 @@ Ibra WRITE
 Ibra GETSTAT get status
 Ibra SETSTAT set status
 Ibra TERM terminate
-```
-```
+
 *Mask information packet for F$IRQ call
 *NOTE: uses the virtual interrupt flag, Vi.IFlag, for
 *the mask byte
-```
 
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-```
 DMSK fcb 0 no flip bits
 fcb Vi.IFlag polling mask for VIRQ
 fcb 10 priority
-```
-```
+
 ****************
 *INITIALIZE STORAGE AND CONTROLLER
 *Includes setting up the IRQ and VIRQ table entries
-```
-```
+
 INIT
-```
-```
+
 *set up IRQ table entry first
 *NOTE: uses the status register of the VIRQ buffer for
 *the interrupt status register since no hardware status
 *register is available
-```
-```
+
 leay VIRQBF+Vi.Stat,U get address of status byte
 tfr y,d put it into D reg
 leay DIRQ,PCR getaddress of interrupt routine
 leax DMSK,PCR get VIRQ mask info
 os9 F$IRQ install onto table
 bcs INIT9 exit on error
-```
-```
+
 *now set up the VIRQ table entry
 leay VIRQBF,U point to the 5-byte packet
 lda #$80 get the reset flag to repeat VIRQ's
@@ -9988,26 +9630,19 @@ std Vi.Rst,y save it in the reset area of buffer
 ldx #1 code to install the VIRQ
 os9 F$VIRQ install on the table
 bcs INIT9 exit on error
-```
-```
+
 INIT9 rts
-```
-```
+
 READ
 WRITE
 GETSTAT
 PUTSTAT
-```
+
 ****************
 *TERM - terminate the device and remove entriesfrom
 *tables
 TERM
 
-
-```
-Appendices NitrOS-9 EOU Technical Reference Manual
-```
-```
 *remove from VIRQ table first
 ldx #0 get zero to remove from table
 leay VIRQBF,U get address of packet
@@ -10016,19 +9651,17 @@ os9 F$VIRQ
 ldx #0 get zero to remove from table
 os9 F$IRQ
 rts
-```
+
 *DIRQ-interrupt service routine
 *NOTE : The service routine must be sure to reset the
 *status byte of the VIRQ packet so that t he interrupt
 *looks as if it is cleared.
 DIRQ
 
-```
 lda VIRQBF+Vi.Stat,U get status byte
 anda #$FF-Vi.IFlag mask off interrupt bit
 sta VIRQBF+Vi.Stat,U put it back
-```
-```
+
 rts
 EMOD
 DEND equ *
