@@ -3468,7 +3468,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4006,7 +4006,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4042,7 +4042,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4089,7 +4089,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4122,7 +4122,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4158,7 +4158,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4227,7 +4227,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4279,7 +4279,7 @@ After the Delete File call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4305,7 +4305,7 @@ After the Delete File call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4338,7 +4338,7 @@ After the Delete File call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4367,7 +4367,7 @@ After the Delete File call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4402,7 +4402,7 @@ After the Delete File call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4508,7 +4508,7 @@ After the Make Directory call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4574,7 +4574,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4612,7 +4612,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4641,7 +4641,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4670,7 +4670,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 | | Other registers depend on the function code |
 **Additional Information**
 
@@ -4706,7 +4706,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4738,7 +4738,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4774,7 +4774,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4833,7 +4833,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4860,7 +4860,7 @@ After the Open Path call:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4889,7 +4889,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4914,7 +4914,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4939,7 +4939,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4964,7 +4964,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -4995,7 +4995,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5026,7 +5026,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5068,7 +5068,7 @@ Output: X = $4329
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5093,7 +5093,7 @@ Output: X = $4329
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5122,7 +5122,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5153,7 +5153,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5188,7 +5188,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5220,7 +5220,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5250,7 +5250,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5281,7 +5281,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5309,7 +5309,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5367,7 +5367,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5400,7 +5400,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5439,7 +5439,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5474,7 +5474,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5504,7 +5504,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5535,7 +5535,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5567,7 +5567,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5618,7 +5618,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5646,7 +5646,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5676,7 +5676,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5707,7 +5707,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5736,7 +5736,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5772,7 +5772,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5803,7 +5803,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5833,7 +5833,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5862,7 +5862,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5941,7 +5941,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -5973,7 +5973,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6004,7 +6004,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6040,7 +6040,7 @@ None
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6082,7 +6082,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6112,7 +6112,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6143,7 +6143,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6174,7 +6174,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6204,7 +6204,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6236,7 +6236,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6268,7 +6268,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6303,7 +6303,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6352,7 +6352,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6386,7 +6386,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -6421,7 +6421,7 @@ If the device is ready:
 | | |
 |-|-|
 | CC | carry set on error |
-| B | *error code* , if any |
+| B | *error code*, if any |
 
 **Additional Information**
 
@@ -7202,7 +7202,7 @@ Reserved. Two packet bytes are reserved for future expansion of the returned dat
 * This gives the current ECC status for the WD1002-05 hard drive/floppy controller from Frank Hogg's **Eliminator** controller.
 * The support module for this is WDDisk.
 
-#### Set Status System Calls
+### Set Status System Calls
 
 You use Set Status System calls with the file manager subroutine SetStt (RBF and SCF, and possibly some 3rd party file managers as well). PIPEMAN does not contain any SetStt calls, so it simply returns without an error). The NitrOS-9 Level Two system reserves function codes 7-127 for use by Microware. You can define codes 128-255 and their parameter-passing conventions for your own use. (See the sections on device drivers in Chapters 4,5, and 6).
 
@@ -7210,1869 +7210,1924 @@ The Set Status routine passes the register stack and the specified function code
 
 Following are the Set Status functions and their codes.
 
-**SS.Opt Writes the option section of the path
-descriptor
-Function Code $00**
+#### **SS.Opt**
 
-**Entry Conditions:**
-A _path number_
-B _$00_
-X _address of the status packet_
+**Writes the option section of the path descriptor**
 
-**Exit Conditions:**
+**Function Code $00**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$00* |
+| X | *address of the status packet* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- SS.Opt writes the option section of the path descriptor from the the 32-byte
-    status packet pointed to by Register X. Use this system call to set the device
-    operating parameters, such as echo and line feed.
--
-NOTE: On RBF devices, this only copies from PD.STP to PD.SAS (13 bytes) of the
-PD.OPT section (PD.DTP and PD.DRV are skipped).
-- This call is handled in SCF & RBF.
+* SS.Opt writes the option section of the path descriptor from the the 32-byte status packet pointed to by Register X. Use this system call to set the device operating parameters, such as echo and line feed.
 
+**NOTE:** On RBF devices, this only copies from PD.STP to PD.SAS (13 bytes) of the PD.OPT section (PD.DTP and PD.DRV are skipped).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Size Changes the size of a file for RBF-
-type devices
-Function Code $02**
+* This call is handled in SCF & RBF.
 
-**Entry Conditions:**
-A _path number_
-B _$02_
-X _most significant 16 bytes of the desired file size_
-U _least significant 16 bytes of the desired file size_
+---
 
-**Exit Conditions:**
+#### **SS.Size**
+
+**Changes the size of a file for RBF-type devices**
+
+**Function Code $02**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$02* |
+| X | *most significant 16 bytes of the desired file size* |
+| U | *least significant 16 bytes of the desired file size* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is handled in RBF.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Reset Restores the disk drive head to Track 0 in
-preparation for formatting and error
-recovery
-Function Code $03**
+#### **SS.Reset**
 
-**Entry Conditions:**
-A _path number_
-B _$03_
+**Restores the disk drive head to Track 0 in preparation for formatting and error recovery**
 
-**Exit Conditions:**
+**Function Code $03**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$03* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is handled in RBF, and only applies to RBF devices (usually older
-    mechanical hard drives).
+* This call is handled in RBF, and only applies to RBF devices (usually older mechanical hard drives).
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.WTrk Formats (writes) a track on a disk**
+#### **SS.WTrk**
+
+**Formats (writes) a track on a disk**
 
 **Function Code $04**
 
-**Entry Conditions:**
-A _path number_
-B _$04_
-U _track number (least significant 8 bits)_
-X _address of the track buffer_
-Y _side/density_
-Bit B0 = side
-0 = Side 0
-1 = Side 1
-Bit B1 = density
-0 = single
-1 = double
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$04* |
+| U | *track number (least significant 8 bits)* |
+| X | *address of the track buffer* |
+| Y | *side/density* |
+| | Bit B0 = side |
+| | 0 = Side 0 |
+| | 1 = Side 1 |
+| | Bit B1 = density | 
+| | 0 = single |
+| | 1 = double |
 
-**Exit Conditions:**
-CC carry set on error
-B _error code_ , if any
+**Exit Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- For hard disks or floppy disks that have a "format entire diskette" command,
-    SS.WTrk formats the entire disk only when the _track number_ is 0.
-- This call is handled in EMUDSK, RB1773, CC3DISK, SDisk3 and any other RBF based
-    driver.
+* For hard disks or floppy disks that have a "format entire diskette" command, SS.WTrk formats the entire disk only when the *track number* is 0.
+* This call is handled in EMUDSK, RB1773, CC3DISK, SDisk3 and any other RBF based driver.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Frz Freeze DD. Information**
+#### **SS.Frz**
+
+**Freeze DD. Information**
 
 **Function Code $0A**
 
-**Entry Conditions:**
-A _path number_
-B _$0A_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0A* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
-
-**Additional Information:**
-
-- This call inhibits SDisk3 from reading LSN0 into the drive tables, allowing for non-
-    standard disks to be read. SDisk3 by default unfreezes immediately after the next
-    read of LSN0 on any drive that SDisk3 controls.
-- This call requires and is handled by Sdisk3.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SQD Starts the shutdown procedure for a hard
-disk that has to sequence down prior to
-removal of power
-Function Code $0C**
-
-**Entry Conditions:**
-A _path number_
-B _$0C_
-
-**Exit Conditions:**
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is handled by hard disk drivers, including EmuDisk, llide, llscsi.
+* This call inhibits SDisk3 from reading LSN0 into the drive tables, allowing for non-standard disks to be read. SDisk3 by default unfreezes immediately after the next read of LSN0 on _any_ drive that SDisk3 controls.
+* This call requires and is handled by Sdisk3.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DCmd Send direct command to disk**
+#### **SS.SQD**
+
+**Starts the shutdown procedure for a hard disk that has to sequence down prior to removal of power**
+
+**Function Code $0C**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0C* |
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call is handled by hard disk drivers, including EmuDisk, llide, llscsi.
+
+---
+
+#### **SS.DCmd**
+
+**Send direct command to disk**
 
 **Function Code $0D**
 
-**Entry Conditions:**
-A _path number_
-B _$0D_
-X _Pointer to transfer buffer_
-Y _Command packet (format depends on driver)_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0D* |
+| X | *Pointer to transfer buffer* |
+| Y | *Command packet (format depends on driver)* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- This call only applies to the the low level 'll' drivers that are part of RBSuper
-    (currently for SCSI and IDE (ATAPI type only) devices). It allows sending direct
-    command packet to the controller in their native format. Thus, it is up to the
-    programmer to determine that packet format, for their specific device type.
-- This call is handled in the RBSuper companion modules llide (for ATAPI devices
-    only) and llscsi.
+**Additional Information**
 
+* This call only applies to the the low level 'll' drivers that are part of RBSuper (currently for SCSI and IDE (ATAPI type only) devices). It allows sending direct command packet to the controller in their native format. Thus, it is up to the programmer to determine that packet format, for their specific device type.
+* This call is handled in the RBSuper companion modules llide (for ATAPI devices only) and llscsi.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FD Writes a file descriptor to disk**
+---
+
+#### **SS.FD**
+
+**Writes a file descriptor to disk**
 
 **Function Code $0F**
 
-**Entry Conditions:**
-A _path number_
-B _$0F_
-X _Ptr to 256 byte FD buffer_
-Y _Number of bytes of file descriptor to write_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$0F* |
+| X | *Ptr to 256 byte FD buffer* |
+| Y | *Number of bytes of file descriptor to write* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- This call will pre-read the existing file descriptor sector, and allows you to modify
-    only Y number of bytes (from the beginning), leaving the rest alone. This allows
-    you to change attributes, file owner, date modified, etc. without changing the
-    creation date and segment list, for example.
-- If the file access mode does not have WRITE access, then only the attributes can
-    be changed.
-- Only the super user (0) can change the file's owner number.
-- This call is handled in RBF (or MSF, if it is installed).
+**Additional Information**
 
+* This call will pre-read the existing file descriptor sector, and allows you to modify only Y number of bytes (from the beginning), leaving the rest alone. This allows you to change attributes, file owner, date modified, etc. without changing the creation date and segment list, for example.
+* If the file access mode does not have WRITE access, then only the attributes can be changed.
+* Only the super user (0) can change the file's owner number.
+* This call is handled in RBF (or MSF, if it is installed).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Ticks Set number of ticks to wait for a
-record lock release
-Function Code $10**
+---
 
-**Entry Conditions:**
-A _path number_
-B _$10_
-X _Number of clock ticks (1/60th second) to wait_
+#### **SS.Ticks**
 
-**Exit Conditions:**
-none
+**Set number of ticks to wait for a record lock release**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Function Code $10**
 
-**Additional Information:**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$10* |
+| X | *Number of clock ticks (1/60th second) to wait* |
 
-- This call is handled in the RBF (or MSF, if it is installed).
+**Exit Conditions**
 
+None
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Lock Lock/Release a record**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call is handled in the RBF (or MSF, if it is installed).
+
+---
+
+#### **SS.Lock**
+
+**Lock/Release a record**
 
 **Function Code $11**
 
-**Entry Conditions:**
-A _path number_
-B _$11_
-U _MSW of size to lock_
-X _LSW of size to lock_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$11* |
+| U | *MSW of size to lock* |
+| X | *LSW of size to lock* |
+
 See Additional Information below about special values & details about the lock size.
 
-**Exit Conditions:**
+**Exit Conditions**
+
 File is locked from current file position for U:X bytes
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- "Locking" means to disallow other processes from modifying the specified part of
-    the file.
-- This call will lock the currently opened file from the current position in the file for
-    as many bytes as you specify in registers U:X.
-- If you specify a length that reaches or goes past the current end of file, the special
-    "End of File Lock" is enabled.
-- If the end lock file position is $FFFF:FFFF, it will instead lock the entire file, without
-    requiring setting the non-sharable attribute bit.
-- If the end lock file position is $0000:0000, it will instead unlock the existing lock
-    on the file
-- One can open multiple paths to a file and lock different portions of it as well, if
-    need be. Locks are automatically released when the file path is closed.
-- See Chapter 5 (Random Block File Manager) for more details on record locking.
-- This call is handled in RBF.
+* "Locking" means to disallow other processes from modifying the specified part of the file.
+* This call will lock the currently opened file from the current position in the file for as many bytes as you specify in registers U:X.
+* If you specify a length that reaches or goes past the current end of file, the special "End of File Lock" is enabled.
+* If the end lock file position is $FFFF:FFFF, it will instead lock the entire file, without requiring setting the non-sharable attribute bit.
+* If the end lock file position is $0000:0000, it will instead unlock the existing lock on the file.
+* One can open multiple paths to a file and lock different portions of it as well, if need be. Locks are automatically released when the file path is closed.
+* See Chapter 5 (Random Block File Manager) for more details on record locking.
+* This call is handled in RBF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SSig Send Signal on Data Ready**
+#### **SS.SSig**
+
+**Send Signal on Data Ready**
 
 **Function Code $1A**
 
-**Entry Conditions:**
-A _path number_
-B _$1A
-X user defined signal code_ (low byte only)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1A* |
+| X | *user defined signal code* (low byte only) |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- SS.SSig sends the process a signal the next time that the device has data ready in
-    it's read buffer. That process can then use SS.Ready to determine how many bytes
-    (up to 255 will be reported) are ready, if desired.
-- See SS.Relea for details on shutting off SS.SSig.
-- This call is handled in VTIO, scdwv, sc6551, sc6850, and possibly other serial
-    drivers.
+* SS.SSig sends the process a signal the next time that the device has data ready in it's read buffer. That process can then use SS.Ready to determine how many bytes (up to 255 will be reported) are ready, if desired.
+* See SS.Relea for details on shutting off SS.SSig.
+* This call is handled in VTIO, scdwv, sc6551, sc6850, and possibly other serial drivers.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Relea Release signals on device**
+#### **SS.Relea**
+
+**Release signals on device**
 
 **Function Code $1B**
 
-**Entry Conditions:**
-A _path number_
-B _$1B_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1B* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- SS.Relea will release any data ready signals set up on the device path specified.
-    NOTE: For windows, this call will release BOTH keyboard data ready (SS.SSig), AND
-    mouse click data ready signals (SS.MsSig). If you had both enabled, and only want
-    to release one of them, then you must reenable the one you want to keep active.
-- If you close a path, any data ready signal triggers on that path are removed.
-- This call is handled in VTIO, scdwv, sc6551, sc6850, and possibly other serial
-    drivers.
+* SS.Relea will release any data ready signals set up on the device path specified.
 
+    **NOTE:** For windows, this call will release BOTH keyboard data ready (SS.SSig), AND mouse click data ready signals (SS.MsSig). If you had both enabled, and only want to release one of them, then you must reenable the one you want to keep active.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Attr Change file/directory attributes
-Function Code $1C**
+* If you close a path, any data ready signal triggers on that path are removed.
+* This call is handled in VTIO, scdwv, sc6551, sc6850, and possibly other serial drivers.
 
-**Entry Conditions:**
-A _path number_
-B _$1C
-X file attributes_ (low byte only)
+---
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+#### **SS.Attr**
 
-**Additional Information:**
+**Change file/directory attributes**
 
-- If the caller's user number is not 0, SS.Attr will return a File Not Accessible error if
-    that user number does not match the user number that created the file.
-- If you attempt to change the directory attribute on the root directory, SS.Attr will
-    return a File Not Accessible error.
-- If you attempt to clear the directory attribute, the directory must be empty,
-    otherwise it will return a Directory Not Empty error (DELDIR uses this).
-- This call is handled in RBF (and/of MSF, if installed).
+**Function Code $1C**
 
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1C* |
+| X | *file attributes* (low byte only) |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Break Transmit a line Break on a serial port**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* If the caller's user number is not 0, SS.Attr will return a File Not Accessible error if that user number does not match the user number that created the file.
+* If you attempt to change the directory attribute on the root directory, SS.Attr will return a File Not Accessible error.
+* If you attempt to clear the directory attribute, the directory must be empty, otherwise it will return a Directory Not Empty error (DELDIR uses this).
+* This call is handled in RBF (and/of MSF, if installed).
+
+---
+
+#### **SS.Break**
+
+**Transmit a line Break on a serial port**
 
 **Function Code $1D**
 
-**Entry Conditions:**
-A _path number_
-B _$1D_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1D* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This transmits an RS-232 break for 0.5 seconds (required to get the attention of
-    some older host systems).
-- For buffered UARTS, it also empties the hardware transmit buffer first, without
-    transmitting.
-- This call is handled in sc6551, sc6850 and possibly other serial port drivers.
+* This transmits an RS-232 break for 0.5 seconds (required to get the attention of some older host systems).
+* For buffered UARTS, it also empties the hardware transmit buffer first, without transmitting.
+* This call is handled in sc6551, sc6850 and possibly other serial port drivers.
 
+#### **SS.RsBit**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.RsBit Reserve bitmap sector (doesn't allocate)**
+**Reserve bitmap sector (doesn't allocate)**
 
 **Function Code $1E**
 
-**Entry Conditions:**
-A _path number_
-B _$1E
-X sector number in bitmap to reserved_ (low byte only)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$1E* |
+| X | *sector number in bitmap to reserved* (low byte only) |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Exit Conditions**
 
-**Additional Information:**
+None
 
-- This call locks out a specific sector in the bit (cluster) allocation map so that other
-    processes can not change allocations within it, helping prevent corruption.
-- This call is handled in RBF.
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
+**Additional Information**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.KySns Enable/disable key sense mode**
+* This call locks out a specific sector in the bit (cluster) allocation map so that other processes can not change allocations within it, helping prevent corruption.
+* This call is handled in RBF.
+
+---
+
+#### **SS.KySns**
+
+**Enable/disable key sense mode**
 
 **Function Code $27**
 
-**Entry Conditions:**
-A _path number_
-B _$27_
-X _key sense switch value_
-0 = normal key sense operation
-<>0 = key sense operation
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$27* |
+| X | *key sense switch value* |
+| | 0 = normal key sense operation |
+| | <>0 = key sense operation |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Exit Conditions**
 
-**Additional Information:**
+None
 
-- When SS.KySns switches the keyboard to key sense mode, the VTIO module
-    suspends transmission of keyboard characters to the SCF manager and the user.
-    While the computer is in key sense mode, the only way to detect key presses is
-    with the SS.KySns GetStat call.
-- This call is handled by VTIO and it's sub-module KEYDRV in NitrOS-9 3.3.0, and
-    EOU Beta 5 and under. It is handled solely by VTIO in EOU Beta 6 and above. It is
-    also handled by scdwv (for Drivewire).
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
+**Additional Information**
+
+* When SS.KySns switches the keyboard to key sense mode, the VTIO module suspends transmission of keyboard characters to the SCF manager and the user. While the computer is in key sense mode, the only way to detect key presses is with the SS.KySns GetStat call.
+* This call is handled by VTIO and it's sub-module KEYDRV in NitrOS-9 3.3.0, and EOU Beta 5 and under. It is handled solely by VTIO in EOU Beta 6 and above. It is also handled by scdwv (for Drivewire).
+
+---
+
+#### **SS.ComSt**
+
+**Used by the SCF manager to configure a serial port**
+
+**Function Code $28**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$28* |
+| Y | *high byte: parity* |
+| | *low byte: baud rate* |
+
+**NOTE:** See Additional Information below for how it works for windows.
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* For CoVDG devices, baud is ignored, and parity has special meaning:
+
+    %XXXXXXX0 = True Lowercase
+
+    %XXXXXXX1 = inverse video lowercase
+
+* This changes for the current path only. So, if you use it in a program, the setting will stay in effect for your program, but if you then exit back to a calling Shell (with it's own paths), it will revert back to the setting that the calling Shell had.
+* For serial port devices:
+    * Baud Configuration. The low order byte of Y determines the baud rate, the word length, and the number of stop bits. T e byte is configured as follows:
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ComSt Used by the SCF manager to configure a
-serial port
-Function Code $28**
-
-**Entry Conditions:**
-A _path number_
-B _$28_
-Y _high byte: parity
-low byte: baud rate_
-NOTE: See Additional Information below for how it works for windows.
-
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
-
-**Additional Information:**
-
-- For **CoVDG** devices, baud is ignored, and parity has special meaning:
-%XXXXXXX0 = True Lowercase
-%XXXXXXX1 = inverse video lowercase
-- This changes for the current path only. So, if you use it in a program, the setting
-will stay in effect for your program, but if you then exit back to a calling Shell
-(with it's own paths), it will revert back to the setting that the calling Shell had.
-- For **serial port** devices:
-* **Baud Configuration.** The low order byte of Y determines the baud rate, the
-word length, and the number of stop bits. The byte is configured as follows:
-
 PD.BAU
-
-```
-7 6 5 4 3 2 1 0
-```
-```
-Baud Rate
-```
-```
-Stop bits
-```
-```
-Reserved
-Word Length
+|7|6|5|4|3|2|1|0|
+ | | | | |     |
+ | --- | -------
+ |  |  |    |
+ |  |  |    ------ Baud Rate
+ |  |  ----------- Reserved
+ |  -------------- Word Length
+ ----------------- Stop Bits
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-Bits 0-3: Baud rate (0-3 for original RS-232 Pak)
-Bit 4 : Reserved
-Bits 5-6: Word Length
-Bit 7 : Stop bits
+| Bit(s) | Function |
+|---|---|
+| 0-3 | Baud rate (0-3 for original RS-232 Pak) |
+| 4 | Reserved |
+| 5-6 | Word Length: |
+| | 00 = 8 bit |
+| | 01 = 7 bit |
+| 7 | Stop bits: |
+| | 0 = 1 |
+| | 1 = 2 |
 
-Stop bits:
-0 = 1
-1 = 2
+**Baud Rate Codes**
+| Code | Definition |
+|---|---|
+| 0000 | 110 baud |
+| 0001 | 300 baud |
+| 0010 | 600 baud |
+| 0011 | 1200 baud |
+| 0100 | 2400 baud |
+| 0101 | 4800 baud |
+| 0110 | 9600 baud (all but scbb (bit banger)) |
+| 0110 | 32,000 baud (only scbb (bit banger) - for MIDI) |
+| 0111 | 19,200 baud |
+| 1000 | 38,400 baud (6552 or 16550 only) |
+| 1001 | 57,600 baud (16550 only) |
+| 1010 | 76,800 baud (16550 only) |
+| 1011 | 115,200 baud (16550 only) |
+| 1100 | undefined |
+| 1101 | undefined |
+| 1110 | undefined |
+| 1111 | 31,135 baud (EXPERIMENTAL - 16550/CoNect only for MIDI) |
 
-Word length:
-00 = 8 bit
-01 = 7 bit
-
-Baud rate:
-0000 = 110 baud
-0001 = 300 baud
-0010 = 600 baud
-0011 = 1200 baud
-0100 = 2400 baud
-0101 = 4800 baud
-0110 = 9600 baud (all but scbb (bit banger))
-0110 = 32,000 baud (only scbb (bit banger) - for MIDI)
-0111 = 19,200 baud
-1000 = 38,400 baud (6552 or 16550 only)
-1001 = 57,600 baud (16550 only)
-1010 = 76,800 baud (16550 only)
-1011 = 115,200 baud (16550 only)
-1100 = undefined
-1101 = undefined
-1110 = undefined
-1111 = 31,135 baud (EXPERIMENTAL - 16550/CoNect only for MIDI)
-
+* **Parity Configuration:** The high order byte of Y determines parity, and some special features. The byte is configured as follows
 
 ```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- **Parity Configuration:** The high order byte of Y determines parity, and some
-    special features. The byte is configured as follows:
-
 PD.PAR
-
-Parity:
-xx0 = none
-001 = odd (non bit banger only)
-011 = even (non bit banger only)
-101 = mark
-111 = space
-
-The following bits are enabled only on hardware serial ports, but not the bit banger
-port:
-
-- Modem Kill:
-0 = No action when Carrier Detect is lost
-1 = Return an E$HangUp error and kill all processes related to the device
-when Carrier Detect is lost
-
-```
-7 6 5 4 3 2 1 0
-```
-```
-CTS/
-RTS
-```
-```
-Parity
-```
-```
-XON/
-XOFF
-Recv
-```
-```
-Modem
-Kill
-```
-```
-XON/
-XOFF
-Xmit
-```
-```
-DSR/
-DTR
+|7|6|5|4|3|2|1|0|
+ | | | | | | | |
+ ----- | | | | --- DSR/DTR
+   |   | | | ----- CTS/RTS
+   |   | | ------- XON/XOFF Xmit
+   |   | --------- XON/XOFF Recv
+   |   ----------- Modem Kill
+   --------------- Parity
 ```
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- XON/XOFF Receive:
-0 = Receive software flow control disabled
-1 = Receive software flow control enabled
-- XON/XOFF Transit:
-0 = Transmit software flow control disabled
-1 = Transmit software flow control enabled
-- CTS/RTS:
-0 = CTS/RTS hardware flow control disabled
-1 = CTS/RTS hardware flow control enabled
-- DSR/DTR
-0 = DSR/DTR hardware flow control disabled
-1 = DSR/DTR hardware flow control enabled
-- The SCF manager users SS.ComSt to inform a driver that serial port configuration
-information has been changed in the path descriptor. After calling SS.ComSt, a
-user routine must call the SS.Opt SetStat to correctly update the path descriptor.
-This is not necessary when being used on a VDG screen vs. a serial port.
-- This call is handled by CoVDG, sc6551, sc6522, sc6850, scdwv, scdwp, scbbt,
-scbbp, and any other serial port drivers.
+| Parity Bits | Meaning |
+|---|---|
+| xx0 | none |
+| 001 | odd (non bit banger only) |
+| 011 | even (non bit banger only) |
+| 101 | mark |
+| 111 | space |
 
+The following bits are enabled only on hardware serial ports, but not the bit banger port:
+* Modem Kill: 
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Open Informs a device driver that a path was
-opened
-Function Code $29**
+    0 = No action when Carrier Detect is lost
+    
+    1 = Return an E$HangUp error and kill all processes related to the device when Carrier Detect is lost.
 
-**Entry Conditions:**
-A _path number_
-B _$29_
+* XON/XOFF Receive:
 
-**Exit Conditions:**
+    0 = Receive software flow control disabled
+    
+    1 = Receive software flow control enabled.
+
+* XON/XOFF Transit:
+
+    0 = Transmit software flow control disabled
+    
+    1 = Transmit software flow control enabled.
+
+* CTS/RTS:
+
+    0 = CTS/RTS hardware flow control disabled
+    
+    1 = CTS/RTS hardware flow control enabled.
+
+* DSR/DTR:
+
+    0 = DSR/DTR hardware flow control disabled
+    
+    1 = DSR/DTR hardware flow control enabled.
+
+* The SCF manager users SS.ComSt to inform a driver that serial port configuration information has been changed in the path descriptor. After calling SS.ComSt, a user routine must call the SS.Opt SetStat to correctly update the path descriptor. This is not necessary when being used on a VDG screen vs. a serial port.
+* This call is handled by CoVDG, sc6551, sc6522, sc6850, scdwv, scdwp, scbbt, scbbp, and any other serial port drivers.
+
+---
+
+#### **SS.Open**
+
+**Informs a device driver that a path was opened**
+
+**Function Code $29**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$29* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is used internally by NitrOS-9's SCF file manager and is not available to
-    user programs. It can be used only by device drivers and file managers. It is
-    usually used when handling wild card calls, like next available window (CoWin) or
-    next virtual port in Drivewire (scdwv).
+* This call is used internally by NitrOS-9's SCF file manager and is not available to user programs. It can be used only by device drivers and file managers. It is usually used when handling wild card calls, like next available window (CoWin) or next virtual port in Drivewire (scdwv).
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Close Informs a device driver that a path is
-closed
-Function Code $2A**
+#### **SS.Close**
 
-**Entry Conditions:**
-A _path number_
-B _$2A_
+**Informs a device driver that a path is closed**
 
-**Exit Conditions:**
+**Function Code $2A**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$2A* |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is used internally by NitrOS-9's SCF file manager and is not available to
-    user programs. It can be used only by device drivers and file managers. The driver
-    may use this to set up some hardware settings, if required.
-- In VRN's case, this clears ALL process/path entries, even if you had multiple
-    entries set up between different programs.
+* This call is used internally by NitrOS-9's SCF file manager and is not available to user programs. It can be used only by device drivers and file managers. The driver may use this to set up some hardware settings, if required.
+* In VRN's case, this clears ALL process/path entries, even if multiple entries were set up between different programs.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.HngUp Informs SCF driver to hang up the phone**
+#### **SS.HngUp**
+
+**Informs SCF driver to hang up the phone**
 
 **Function Code $2B**
 
-**Entry Conditions:**
-A _path number_
-B _$2B_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$2B* |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This hangs up a modem connection by dropping the DTR signal for .5 seconds.
-- This call is handled by sc6551, sc6522, sc6850, and any other hardware based
-    serial port drivers.
+* This hangs up a modem connection by dropping the DTR signal for 0.5 seconds.
+* This call is handled by sc6551, sc6522, sc6850, and any other hardware-based serial port drivers.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FSig Send signal if file has been updated**
+#### **SS.FSig**
+
+**Send signal if file has been updated**
 
 **Function Code $2C**
 
-**Entry Conditions:**
-A _path number_
-B _$2C_
-X _LSB is the signal code to send if file was updated_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$2C* |
+| X | *LSB is the signal code to send if file was updated* |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call sets up a signal to be sent when the file open on the specified path (a
-    regular file or a directory) has been updated, even if by a different process.
-    GShell, for example, uses this to update the current directory display if a file has
-    been removed or added by another process.
-- This call is handled by RBF, and only applies to RBF based paths.
+* This call sets up a signal to be sent when the file open on the specified path (a regular file or a directory) has been updated, even if by a different process. GShell uses this to update the current directory display if a file has been removed or added by another process.
+* This call is handled by RBF, and only applies to RBF-based paths.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.AAGBf Reserves an additional graphics buffer
-Function Code $80**
+#### **SS.AAGBf**
 
-**Entry Conditions:**
-A _path number_
-B _$80_
-
-**Exit Conditions:**
-X _Buffer Address_
-Y _Buffer Number (1-2)_
-
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
-
-**Additional Information:**
-
-- SS.AAGBf allocates an additional 8K graphics buffer. The first buffer (Buffer 0)
-    must be allocated by using the Display Graphics command. To use the Display
-    Graphics Command, send control code $0F to the standard terminal driver.
-    SS.AAGBf can allocate up to two additional buffers (Buffers 1 and 2), one at a
-    time.
-- After calling SS.AAGBf, Register X contains the address of the new buffer. Register
-    Y contains the buffer number.
-- To deallocate all graphics buffers, use the End Graphics control code.
-- When SS.AAGBf allocates a buffer, it also maps the buffer into the applications
-    address space. Each buffer uses 8K of the available memory in the application's
-    address space. Also, if DD.DStat is called, Buffer 0 is also mapped into the
-    application's address space. Allocation of all three buffers reduces the
-    applications free memory by 24K.
-- It should be noted that each of these buffers are for Coco 1/2 Level 1 compatible
-    medium resolution graphics screens (either 128x192x4, or 256x192x2), which only
-    use 6K of the MMU block that gets mapped in. This leaves 2K in each buffer that
-    you can use for additional data memory with clever programming.
-- This call is handled by CoVDG.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DWrit Direct sector Write**
+**Reserves an additional graphics buffer**
 
 **Function Code $80**
 
-**Entry Conditions:**
-A _path number_
-B _$80_
-U _(MSB) Logical track #
-(LSB) Physical sector #_
-X _address of user buffer (in user map) to write data from
-Y sector size/format codes:
-bits 8-15 = least significant 8 bits of 11 bit sector size in bytes
-bit 7 = retry flag (0=normal retry, 1= no retry)
-bits 4-6 = most significant 3 bits of 11 bit sector size in bytes
-bit 3 = high density flag (0=not high density, 1=high density)
-bit 2 = tpi of data on diskette (0=48 tpi, 1=96 tpi)
-bit 1 = density of data on diskette (0=single, 1=double)
-bit 0 = side (0 or 1)
-NOTE: Bit 3 (high density) being set overrides any value in bit 1)_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$80* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
+| | |
+|-|-|
+| X | *Buffer Address* |
+| Y | *Buffer Number (1-2)* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call writes a specified sector from a user buffer. Sector lengths of 128,256,
-    512 and 1024 bytes are supported for single or double density. Non-OS9 disks
-    (such as MS-DOS, CP/M, or FLEX) can be written with this function. NOTE: Some
-    versions of SDisk 3 may not support the retry disable feature. High Density
-    support requires a special controller.
-- This call requires and is handled by Sdisk3.
+* SS.AAGBf allocates an additional 8K graphics buffer. The first buffer (Buffer 0) must be allocated by using the Display Graphics command (control code $0F to standard terminal driver). SS.AAGBf can allocate up to two additional buffers (Buffers 1 and 2), one at a time.
+* After calling SS.AAGBf, Register X contains the address of the new buffer and Register Y contains the buffer number.
+* To deallocate all graphics buffers, use the End Graphics control code.
+* When SS.AAGBf allocates a buffer, it also maps the buffer into the applications address space. Each buffer uses 8K of the available memory in the application's address space. Also, if DD.DStat is called, Buffer 0 is also mapped into the application's address space. Allocation of all three buffers reduces the applications free memory by 24K.
+* It should be noted that each of these buffers are for Coco 1/2 Level 1 compatible medium resolution graphics screens (either 128x192x4, or 256x192x2), which only use 6K of the MMU block that gets mapped in. This leaves 2K in each buffer that you can use for additional data memory with clever programming.
+* This call is handled by CoVDG.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SLGBf Selects a graphics buffer**
+#### **SS.DWrit**
 
-**Function Code $81**
+**Direct sector Write**
 
-**Entry Conditions:**
-A _path number_
-B _$81_
-X _$00 (select buffer for use)
-$01-$FF (select buffer for use and display)_
-Y _buffer number (0-2)_
+**Function Code $80**
 
-**Exit Conditions:**
-X _unchanged from entry_
-Y _unchanged from entry_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$80* |
+| U | *(MSB) Logical track #* |
+| | *(LSB) Physical sector #* |
+| X | *address of user buffer (in user map) to write data from* |
+| Y | *sector size/format codes* (see below) |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Register Y Bit Configuration**
+| Bit(s) | Function |
+|---|---|
+| 8-15 | least significant 8 bits of 11-bit sector size |
+| 7 | retry flag (0=normal retry, 1= no retry) |
+| 4-6 | most significant 3 bits of 11-bit sector size |
+| 3 | high density flag (0=not high density, 1=high density)* |
+| 2 | tpi of data on diskette (0=48 tpi, 1=96 tpi) |
+| 1 | density of data on diskette (0=single, 1=double) |
+| 0 | side (0 or 1) |
 
-**Additional Information:**
+**NOTE:** Bit 3 (high density) being set overrides any value in bit 1.
 
-- Use DISPLAY GRAPHICS to allocate the first graphics buffer. Use SS.AAGBf to
-    allocate the second and third graphics buffers.
-- Save each return address when writing directly to a screen. It is not necessary to
-    save return addresses when using operating system graphics commands.
-- SS.SLGBf does not update hardware information until the next vertical retrace
-    (60Hz or 50Hz rate depending on your locality). Programs that use SS.AAGBf to
-    change current draw buffers need to wait long enough to ensure that OS-9 has
-    moved the current buffer to the screen. An F$Sleep of 2 ticks is usually sufficient.
-- The screen shows the buffer only if the buffer is selected as the interactive device.
-    If the device does not possess the keyboard, OS-9 stores the information until the
-    device is selected as the interactive device. When the device is selected as the
-    interactive device, the display shows the selected device's screen.
-- This call is handled by CoVDG.
+**Exit Conditions**
+None
 
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.UnFrz Unfreezes updating of DD.xxxx
-information
-Function Code $81**
+**Additional Information**
 
-**Entry Conditions:**
-A _path number_
-B _$81_
+* This call writes a specified sector from a user buffer. Sector lengths of 128,256, 512 and 1024 bytes are supported for single or double density. Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be written with this function. NOTE: Some versions of SDisk 3 may not support the retry disable feature. High Density support requires a special controller.
+* This call requires and is handled by Sdisk3.
 
-**Exit Conditions:**
-none
+---
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+#### **SS.SLGBf**
 
-**Additional Information:**
-
-- This call reactivates the reading of LSN 0 information to DD.xxxx variables after
-    the **SS.Frz** call has shut it off.
-- This call requires and is handled by Sdisk3.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FClr Set/Clear FS2 VIRQ**
+**Selects a graphics buffer**
 
 **Function Code $81**
 
-**Entry Conditions:**
-A _path number_
-B _$81_
-Y MSB = $00 (Reserved)
-LSB: $00 = Clear (Shut off) existing FS2 signal
-<>$00 = Set (Turn on) FS2 VIRQ signal
-X Timer/Reset count (in 1/60th of second clock ticks between signals)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$81* |
+| X | *$00 (select buffer for use)* |
+| | *$01-$FF (select buffer for use and display)* |
+| Y | *buffer number (0-2)* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
+| | |
+|-|-|
+| X | *unchanged from entry* |
+| Y | *unchanged from entry* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any (If the internal VIRQ tables are full, a E$DevBsy (Device Busy)
-error will be returned)
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call is the original FS2 (Flight Simulator II) VIRQ SetStat call. This originally
-    used the /ftdd descriptor, but should now be accessed through **/nil** instead. This
-    call will always send Signal code $80 ( **S$FS2Sig** ).
-- This call will send signal $80 every X number of clock ticks, and then resets the
-    count so that it will repeat the signal at the same rate.
-- If you already have the signal sent up, you can re-issue this SetStat call with a new
-    value in X to change the signal timer. This restarts the timer with the new tick
-    count. It also resets the total number of clock ticks and total number of signals
-    sent (see **SS.VCtr** and **SS.VSig** GetStat calls).
-- It is possible to open multiple paths from the same process, each with their own
-    unique FS2 timer.
-- This call is handled in VRN.
+* Use DISPLAY GRAPHICS to allocate the first graphics buffer. Use SS.AAGBf to allocate the second and third graphics buffers.
+* Save each return address when writing directly to a screen. It is not necessary to save return addresses when using operating system graphics commands.
+* SS.SLGBf does not update hardware information until the next vertical retrace (60Hz or 50Hz rate depending on your locality). Programs that use SS.AAGBf to change current draw buffers need to wait long enough to ensure that OS-9 has moved the current buffer to the screen. An F$Sleep of 2 ticks is usually sufficient.
+* The screen shows the buffer only if the buffer is selected as the interactive device. If the device does not possess the keyboard, OS-9 stores the information until the device is selected as the interactive device. When the device is selected as the interactive device, the display shows the selected device's screen.
+* This call is handled by CoVDG.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.MOFF Quick floppy drive motor shutoff**
+#### **SS.UnFrz**
+
+**Unfreezes updating of DD.xxxx information**
+
+**Function Code $81**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$81* |
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call reactivates the reading of LSN 0 information to DD.xxxx variables after the **SS.Frz** call has shut it off.
+* This call requires and is handled by Sdisk3.
+
+---
+
+#### **SS.FClr**
+
+**Set/Clear FS2 VIRQ**
+
+**Function Code $81**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$81* |
+| Y | MSB = $00 (Reserved) |
+| | LSB: $00 = Clear (Shut off) existing FS2 signal |
+| | LSB: <>$00 = Set (Turn on) FS2 VIRQ signal |
+| X | Timer/Reset count (in 1/60th of second clock ticks between signals) |
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any (If the internal VIRQ tables are full, a E$DevBsy (Device Busy) error will be returned) |
+
+**Additional Information**
+
+* This call is the original FS2 (Flight Simulator II) VIRQ SetStat call. This originally used the /ftdd descriptor, but should now be accessed through /nil instead. This call will always send Signal code $80 (S$FS2Sig).
+* This call will send signal $80 every X number of clock ticks, and then resets the count so that it will repeat the signal at the same rate.
+* If you already have the signal sent up, you can re-issue this SetStat call with a new value in X to change the signal timer. This restarts the timer with the new tick count. It also resets the total number of clock ticks and total number of signals sent (see SS.VCtr and SS.VSig GetStat calls).
+* It is possible to open multiple paths from the same process, each with their own unique FS2 timer.
+* This call is handled in VRN.
+
+---
+
+#### **SS.MOFF**
+
+**Quick floppy drive motor shutoff**
 
 **Function Code $82**
 
-**Entry Conditions:**
-A _path number_
-B _$82_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$82* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- This call turns off the floppy drive motors **without** waiting for the normal time
-    delay after last use. Use with caution.
-- This call requires and is handled by Sdisk3.
+**Additional Information**
 
+* This call turns off the floppy drive motors **without** waiting for the normal time delay after last use. Use with caution.
+* This call requires and is handled by Sdisk3.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.MoTim Set floppy drive motor turn on/shut
-off time
-Function Code $83**
+---
 
-**Entry Conditions:**
-A _path number_
-B _$83_
-X _time constant in clock ticks (1/60th of a second)_
+#### **SS.MoTim**
 
-**Exit Conditions:**
-none
+**Set floppy drive motor turn on/shut off time**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Function Code $83**
 
-**Additional Information:**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$83* |
+| X | *time constant in clock ticks (1/60th of a second)* |
 
-- This call sets the amount of time that SDisk3 will wait for floppy drive motors to
-    spin up or shut down. If it is too short, it may cause data corruption
-- This call requires and is handled by Sdisk3.
+**Exit Conditions**
 
+None
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.MpGPB Maps the Get/Put buffer into a user
-address space
-Function Code $84**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Entry Conditions:**
-A _path number_
-B _$84_
-X _high byte: buffer group number_
-l _ow byte: buffer number_
-Y action to take:
-1 = map buffer
-0 = unmap buffer
+**Additional Information**
 
-**Exit Conditions:**
-X _address of the mapped buffer_
-Y _number of bytes in buffer_
+* This call sets the amount of time that SDisk3 will wait for floppy drive motors to spin up or shut down. If it is too short, it may cause data corruption.
+* This call requires and is handled by Sdisk3.
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+---
 
-**Additional Information:**
+#### **SS.MpGPB**
 
-- SS.MpGPB maps a Get/Put buffer into the user address space. You can then save
-    the buffer to disk or directly modify the pixel data contained in the buffer. Use
-    extreme care when modifying the buffer so that you do not write outside of the
-    buffer data area.
-- This call is handled by CoWin.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SDWRT System Direct sector Write**
+**Maps the Get/Put buffer into a user address space**
 
 **Function Code $84**
 
-**Entry Conditions:**
-A _path number_
-B _$84_
-U _(MSB) Logical track #
-(LSB) Physical sector #_
-X _address of buffer (in system map) to write data from
-Y sector size/format codes:
-bits 8-15 = least significant 8 bits of 11 bit sector size in bytes
-bit 7 = retry flag (0=normal retry, 1= no retry)
-bits 4-6 = most significant 3 bits of 11 bit sector size in bytes
-bit 3 = high density flag (0=not high density, 1=high density)
-bit 2 = tpi of data on diskette (0=48 tpi, 1=96 tpi)
-bit 1 = density of data on diskette (0=single, 1=double)
-bit 0 = side (0 or 1)
-NOTE: Bit 3 (high density) being set overrides any value in bit 1)_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$84* |
+| X | High byte: buffer group number |
+| | Low byte: buffer number |
+| Y | Action to take: |
+| | 1 = map buffer |
+| | 0 = unmap buffer |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
+| | |
+|-|-|
+| X | *address of the mapped buffer* |
+| Y | *number of bytes in buffer* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call writes a specified sector from a system map buffer. Sector lengths of
-    128,256, 512 and 1024 bytes are supported for single or double density. Non-OS9
-    disks (such as MS-DOS, CP/M, or FLEX) can be written with this function. NOTE:
-    Some versions of SDisk 3 may not support the retry disable feature. High Density
-    support requires a special controller.
-- This call requires and is handled by Sdisk3.
+* SS.MpGPB maps a Get/Put buffer into the user address space. You can then save the buffer to disk or directly modify the pixel data contained in the buffer. Use extreme care when modifying the buffer so that you do not write outside of the buffer data area.
+* This call is handled by CoWin.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Sleep Enable/Disable F$Sleep calls in SDisk3
-driver (DMC version ONLY)
-Function Code $85**
+#### **SS.SDWRT**
 
-**Entry Conditions:**
-A _path number_
-B _$85_
-X 0 = _disable F$Sleep and use software delay loops instead_
-<>0 = _enable F$Sleep and disable software delay loops_
+**System Direct sector Write**
 
-**Exit Conditions:**
-none
+**Function Code $84**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$84* |
+| U | (MSB) Logical track # |
+| | (LSB) Physical sector # |
+| X | *address of buffer (in system map) to write data from* |
+| Y | *sector size/format codes* (see below) |
 
-**Additional Information:**
+**Register Y Bit Configuration**
+| Bit(s) | Function |
+|---|---|
+| 8-15 | least significant 8 bits of 11-bit sector size |
+| 7 | retry flag (0=normal retry, 1= no retry) |
+| 4-6 | most significant 3 bits of 11-bit sector size |
+| 3 | high density flag (0=not high density, 1=high density)* |
+| 2 | tpi of data on diskette (0=48 tpi, 1=96 tpi) |
+| 1 | density of data on diskette (0=single, 1=double) |
+| 0 | side (0 or 1) |
 
-- This call activates or deactivates the use of F$Sleep for disk I/O operations
-    (read/write/seek). Non I/O operations (motor on speed and head settle delays)
-    are not affected.
-- This call requires and is handled by Sdisk3 (DMC version only).
+**NOTE:** Bit 3 (high density) being set overrides any value in bit 1)
 
+**Exit Conditions**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.WnSet Set up a high level Window (Multi-Vue)**
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call writes a specified sector from a system map buffer. Sector lengths of 128, 256, 512 and 1024 bytes are supported for single or double density. Non-OS9 disks (such as MS-DOS, CP/M, or FLEX) can be written with this function. NOTE: Some versions of SDisk 3 may not support the retry disable feature. High Density support requires a special controller.
+* This call is handled by Sdisk3.
+
+---
+
+#### **SS.Sleep**
+
+**Enable/Disable F$Sleep calls in SDisk3 driver (DMC version ONLY)**
+
+**Function Code $85**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$85* |
+| X | 0 = disable F$Sleep and use software delay loops instead |
+| | <>0 = enable F$Sleep and disable software delay loops |
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call activates or deactivates the use of F$Sleep for disk I/O operations (read/write/seek). Non I/O operations (motor on speed and head settle delays) are not affected.
+* This call requires and is handled by Sdisk3 (DMC version only).
+
+---
+
+#### **SS.WnSet**
+
+**Set up a high level Window (Multi-Vue)**
 
 **Function Code $86**
 
-**Entry Conditions:**
-A _path number_
-B _$86_
-X _window data pointer_ (only used if Y=WT.FSWin or WT.Win - see below)
-Y window type code:
-0 = WT.NBox (no box)
-1 = WT.FWin (Framed window)
-2 = WT.FSWin (Framed window with scroll bars)
-3 = WT.SBox (Shadowed box)
-4 = WT.DBox (Double box)
-5 = WT.PBox (Plain box)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$86* |
+| X | *window data pointer* (only used if Y=WT.FSWin or WT.Win - see belo) |
+| Y | *window type code* (see below) |
 
-**Exit Conditions:**
+**Window Type Codes (Register Y)**
+| Code | Label | Definition |
+|---|---|---|
+| 0 | WT.NBox | No box |
+| 1 | WT.FWin | Framed window |
+| 2 | WT.FSWin | Framed window with scroll bars |
+| 3 | WT.SBox | Shadowed box |
+| 4 | WT.DBox | Double box |
+| 5 | WT.PBox | Plain box |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- The C language data structures for windowing are defined in the wind.h file in the
-    DEFS directory of the system disk.
-- The assembly language data structures for the window data are defined in the file
-    dd/defs/cocovtio.d. In particular, the labels beginning with ‘WN.’, ‘MN.’ and ‘MI’.
-    Further details are in the Multi-Vue manual, Chapter 9 (Programmer’s Notes).
-- You must still create the window using DWSet or OWSet before applying
-    SS.WnSet to define the high level window type.
-- The framed windows use palettes 0-3 (darkest,dark,light,lightest) colors
-- Plain Box & Double Box Use palette 1 for the boxes, Shadowed uses both 1 and 2
-    for the shadow & box.
-- This call is handled by CoWin.
+* The C language data structures for windowing are defined in the wind.h file in the DEFS directory of the system disk.
+* The assembly language data structures for the window data are defined in the file dd/defs/cocovtio.d. In particular, the labels beginning with ‘WN.’, ‘MN.’ and ‘MI’. Further details are in the Multi-Vue manual, Chapter 9 (Programmer’s Notes).
+* You must still create the window using DWSet or OWSet before applying SS.WnSet to define the high level wind w type.
+* The framed windows use palettes 0-3 (darkest,dark,light,lightest) colors
+* Plain Box & Double Box Use palette 1 for the boxes, Shadowed uses both 1 and 2 for the shadow & box.
+* This call is handled by CoWin.
 
+---
 
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
+#### **SS.DrvCh**
 
+**Activates or deactivates disk caching for a particular drive**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DrvCh Activates or deactivates disk caching
-for a particular drive.
-Function Code $86**
+**Function Code $86**
 
-**Entry Conditions:**
-A _path number_
-B _$86_
-X _0 = disable caching for this drive_
-<> _0 = enable caching for this drive_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$86* |
+| X | 0 = disable caching for this drive |
+| | <>0 = enable caching for this drive |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Conditions:**
-CC carry set on error
-B error code (if any).
+None
 
-**Additional Information:**
+**Error Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- This call is **ONLY** supported on the Performance Peripheral DMC caching floppy
-    controller, which was available in 8K or 32K cache RAM versions. It
-    enables/disables caching on the drive specified by the caller's path.
-- This call requires and is handled by Sdisk3. (DMC version only).
+**Additional Information**
 
+* This call is ONLY supported on the Performance Peripheral DMC caching floppy controller, which was available in 8K or 32K cache RAM versions. It enables/disables caching on the drive specified by the caller's path.
+* This call requires and is handled by Sdisk3. (DMC version only).
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.SBar Puts a scroll block at a specified position**
+---
+
+#### **SS.SBar**
+
+**Puts a scroll block at a specified position**
 
 **Function Code $88**
 
-**Entry Conditions:**
-A _path number_
-B _$88_
-X _horizontal position of the scroll block_
-Y _vertical position of the scroll block_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$88* |
+| X | *horizontal position of the scroll block* |
+| Y | *vertical position of the scroll block* |
 
-**Exit Conditions:**
-Scroll marker updated if no I/O error occurs
+**Exit Conditions**
+| | |
+|-|-|
+| | Scroll marker updated if no I/O error occurs |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if out of bounds
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if out of bounds |
 
-**Additional Information:**
+**Additional Information**
 
-- WT.FSWin-type windows have areas at the bottom and right sides to indicate
-    relative positions within a larger area. These areas are called scroll bars. SS.SBar
-    gives an application the ability to maintain relative position markers within the
-    scroll bars. The markers indicate the location of the current screen within a larger
-    screen. Calling SS.SBar updates both scroll markers.
-- Your application must calculate the coordinates to use for the scroll markers. It
-    can use the SS.ScSiz GetStat call to provide the information for the computation
-    (the horizontal and vertical size of the content region of the window). The scroll
-    bar size is on character cell less than the vertical and horizontal sizes returned
-    from the SS.SCSiz GetStat call.
-- When the window is first created, the content area is the size returned by the
-    SS.ScSiz GetStat call. The content region is smaller than the window and it's
-    borders by two character widths horizontally, and three character heights
-    vertically.
-- This call is handled by CoWin.
+* WT.FSWin-type windows have areas at the bottom and right sides to indicate relative positions within a larger area. These areas are called scroll bars. SS.SBar gives an application the ability to maintain relative position markers within the scroll bars. The markers indicate the location of the current screen within a larger screen. Calling SS.SBar updates both scroll markers.
+* Your application must calculate the coordinates to use for the scroll markers. It can use the SS.ScSiz GetStat call to provide the information for the computation (the horizontal and vertical size of the content region of the window). The scroll bar size is on character cell less than the vertical and horizontal sizes returned from the SS.SCSiz GetStat call.
+* When the window is first created, the content area is the size returned by the SS.ScSiz GetStat call. The content region is smaller than the window and it's borders by two character widths horizontally, and three character heights vertically.
+* This call is handled by CoWin.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Mouse Sets the sample rate and button
-timeout for a mouse
-Function Code $89**
+#### **SS.Mouse**
 
-**Entry Conditions:**
-A _path number_
-B $89
-X _mouse sample rate and timeout_
-most significant byte = mouse sample rate
-least significant byte = mouse timeout
+**Sets the sample rate and button timeout for a mouse**
 
-```
-NOTE: Either byte being set to $FF means leave at it's current setting
-```
-Y Auto-follow mouse cursor:
-0 = Autofollow off
-1 = Autofollow on
-(other values for Y are reserved for future use)
+**Function Code $89**
 
-**Exit Conditions:**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$89* |
+| X | mouse sample rate and timeout |
+| | most significant byte = mouse sample rate |
+| | least significant byte = mouse timeout |
+| | **NOTE:** Either byte being set to $FF means leave at it's current setting |
+| Y | Auto-follow mouse cursor: |
+| | 0 = Autofollow off |
+| | 1 = Autofollow on |
+| | (other values for Y are reserved for future use) |
+
+**Exit Conditions**
+
 None
 
-**Error Conditions:**
-CC carry set on error
-B _error code,_ if any
+**Error Conditions**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any |
 
-**Additional Information:**
+**Additional Information**
 
-- SS.Mouse allows the application to define the mouse parameters. The sample
-    rate and button timeout are the number of clock ticks between the actual
-    readings of the mouse status. $FF means to leave the current setting alone; this
-    lets you change one but not the other setting if desired.
-- The auto-follow flag only activates if CoWin is active. It does not function if you
-    are running with CoGrf.
-- This call is handled by VTIO.
+* SS.Mouse allows the application to define the mouse parameters. The sample rate and button timeout are the number of clock ticks between the actual readings of the mouse status. $FF means to leave the current setting alone; this lets you change one but not the other setting if desired.
+* The auto-follow flag only activates if CoWin is active. It does not function if you are running with CoGrf.
+* This call is handled by VTIO.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.MsSig Sends a signal to a process when the
-mouse button is pressed
-Function Code $8A**
+#### **SS.MsSig**
 
-**Entry Conditions:**
-A _path number_
-B _$8A_
-X _user defined signal code_ (low byte only)
+**Sends a signal to a process when the mouse button is pressed**
 
-**Exit Conditions:**
+**Function Code $8A**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8A* |
+| X | *user defined signal code* (low byte only) |
+
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- SS.MsSig sends the process a signal the next time a mouse button changes state
-    (from open to closed). Once SS.MsSig sends the signal, the process must repeat
-    the SetStat each time that it needs to set up the signal.
-- Processes using SS.MsSig should have an intercept routine to trap the signal. By
-    intercepting the signal, other processes can be notified when the change occurs.
-    Therefore, the other processes do not need to continually poll the mouse.
-- The SS.Relea SetStat clears the pending signal request, if desired. It also clears any
-    pending signal from SS.SSig. Because of this, if you want to clear only one signal,
-    you must reset the other signal after calling SS.MsSig.
-- This call is handled by VTIO.
+* SS.MsSig sends the process a signal the next time a mouse button changes state (from open to closed). Once SS.MsSig sends the signal, the process must repeat the SetStat each time that it needs to set up the signal.
+* Processes using SS.MsSig should have an intercept routine to trap the signal. By intercepting the signal, other processes can be notified when the change occurs. Therefore, the other processes do not need to continually poll the mouse.
+* The SS.Relea SetStat clears the pending signal request, if desired. It also clears any pending signal from SS.SSig. Because of this, if you want to clear only one signal, you must reset the other signal after calling SS.MsSig.
+* This call is handled by VTIO.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.AScrn Allocates and maps a high-resolution
-screen into an application address space
-Function Code $8B**
+#### **SS.AScrn**
 
-**Entry Conditions:**
-A _path number_
-B _$8B_
-X _screen type_
-0 = 640 x 192 x 2 colors (16K)
-1 = 320 x 192 x 4 colors (16K)
-2 = 160 x 192 x 16 colors (16K)
-3 = 640 x 192 x 4 colors (32K)
-4 = 320 x 192 x 16 colors (32K)
+**Allocates and maps a high-resolution screen into an application address space**
 
-**Exit Conditions:**
-X _application address space of screen_
-Y _screen number (1-3)_
+**Function Code $8B**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8B* |
+| X | *new screen type* |
+| | 0 = 640 x 192 x 2 colors (16K) |
+| | 1 = 320 x 192 x 4 colors (16K) |
+| | 2 = 160 x 192 x 16 colors (16K) |
+| | 3 = 640 x 192 x 4 colors (32K) |
+| | 4 = 320 x 192 x 16 colors (32K) |
 
-**Additional Information:**
+**Exit Conditions**
+| | |
+|-|-|
+| X | *application address space of screen* |
+| Y | *screen number (1-3)* |
 
-- SS.AScrn is particularly useful in systems with minimal memory when you want to
-    allocate a high resolution graphics screen with all screen updating handled by a
-    process.
-- This call uses CoVDG (CoGrf/CoWin is not required, nor even used).
-- All screens are allocated in multiples of 8K blocks. You can allocate a maximum of
-    three buffers at one time. To select between buffers, use the SS.DScrn SetStat call.
-- Screen memory is allocated but not cleared. The application using the screen
-    must do this.
-- Screens must be allocated from a VDG-type device - a standard 32-column text
-    screen must be available for the device. You can do this via XMODE or the
-    I$ModDsc call, by changing the PAR(ity) byte from $80 to $01 (VDG with real
-    lowercase) or $00 (VDG with inverse video).
-- Since screens are always allocated by even 8K MMU blocks, there is a little room
-    left over after each screen that can be used for data.
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
+**Additional Information**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-- This call is handled by CoVDG.
+* SS.AScrn is particularly useful in systems with minimal memory when you want to allocate a high resolution graphics screen with all screen updating handled by a process.
+* This call uses CoVDG (CoGrf/CoWin is not required, nor even used).
+* All screens are allocated in multiples of 8K blocks. You can allocate a maximum of three buffers at one time. To select between buffers, use the SS.DScrn SetStat call.
+* Screen memory is allocated but not cleared. The application using the screen must do this.
+* Screens must be allocated from a VDG-type device - a standard 32-column text screen must be available for the device. You can do this via XMODE or the I$ModDsc call, by changing the PAR(ity) byte from $80 to $01 (VDG with real lowercase) or $00 (VDG with inverse video).
+* Since screens are always allocated by even 8K MMU blocks, there is a little room left over after each screen that can be used for data.
+* This call is handled by CoVDG.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DScrn Causes CoVDG to display a screen that was
-allocated by SS.AScrn
-Function Code $8C**
+#### **SS.DScrn**
 
-**Entry Conditions:**
-A _path number_
-B _$8C_
-Y _screen number_
-0 = text screen (32x16)
-1-3 = high resolution screen number
+**Causes CoVDG to display a screen that was allocated by SS.AScrn**
 
-**Exit Conditions:**
-_None_
+**Function Code $8C**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8C* |
+| Y | *screen number* |
+| | 0 = text screen (32x16) |
+| | 1-3 = high resolution screen number |
 
-**Additional Information:**
+**Exit Conditions**
 
-- SS.DScrn shows the requested screen if the requested screen is the current
-    interactive device.
-- Screen 0 (text screen) should be selected before using SS.FScrn to free all high
-    resolution screen memory.
-- This call is handled by CoVDG.
+None
 
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FScrn Frees the memory of a screen allocated by
-SS.AScrn
-Function Code $8D**
+**Additional Information**
 
-**Entry Conditions:**
-A _path number_
-B _$8D_
-Y _screen number (1-3)_
+* SS.DScrn shows the requested screen if the requested screen is the current interactive device.
+* Screen 0 (text screen) should be selected before using **SS.FScrn** to free all high-resolution screen memory.
+* This call is handled by CoVDG.
 
-**Exit Conditions:**
-_None_
+---
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+#### **SS.FScrn**
 
-**Additional Information:**
+**Frees the memory of a screen allocated by SS.AScrn**
 
-- Do not attempt to free a screen that is currently on display.
-- SS.FScrn returns the screen memory to the system and removes it from an
-    application's address space.
-- This call is handled by CoVDG.
+**Function Code $8D**
 
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8D* |
+| Y | *screen number (1-3)* |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.PScrn Converts a screen to a different type**
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* Do not attempt to free a screen that is currently on display.
+* SS.FScrn returns the screen memory to the system and removes it from an application's address space.
+* This call is handled by CoVDG.
+
+---
+
+#### **SS.PScrn**
+
+**Converts a screen to a different type**
 
 **Function Code $8E**
 
-**Entry Conditions:**
-A _path number_
-B _$8E_
-X _new screen type_
-0 = 640 x 192 x 2 colors (16K)
-1 = 320 x 192 x 4 colors (16K)
-2 = 160 x 192 x 16 colors (16K)
-3 = 640 x 192 x 4 colors (32K)
-4 = 320 x 192 x 16 colors (32K)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$8E* |
+| X | *new screen type* |
+| | 0 = 640 x 192 x 2 colors (16K) |
+| | 1 = 320 x 192 x 4 colors (16K) |
+| | 2 = 160 x 192 x 16 colors (16K) |
+| | 3 = 640 x 192 x 4 colors (32K) |
+| | 4 = 320 x 192 x 16 colors (32K) |
 
-**Exit Conditions:**
-_None_
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- SS.PScrn changes a screen allocated by SS.AScrn to a new screen type. You can
-    change a 32K screen to either a 32K screen or a 16K screen. You can change a 16K
-    screen only to another 16K screen type. SS.PScrn updates the current display
-    screen at the next clock interrupt.
-- If you change a 32K screen to a 16K screen, NitrOS-9 does not reclaim the extra
-    16K of memory. This means that you can later change the 16K screen back to a
-    32K screen.
-- This call is handled by CoVDG.
+**Additional Information**
 
+* SS.PScrn changes a screen allocated by SS.AScrn to a new screen type. You can change a 32K screen to either a 32K screen or a 16K screen. You can change a 16K screen only to another 16K screen type. SS.PScrn updates the current display screen at the next clock interrupt.
+* If you change a 32K screen to a 16K screen, NitrOS-9 does not reclaim the extra 16K of memory. This means that you can later change the 16K screen back to a 32K screen.
+* This call is handled by CoVDG.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Montr Sets the monitor type**
+---
+
+#### **SS.Montr**
+
+**Sets the monitor type**
 
 **Function Code $92**
 
-**Entry Conditions:**
-A _path number_
-B _$92_
-X _monitor type_
-0 = color composite
-1 = analog RGB
-2 = monochrome composite
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$92* |
+| X | *monitor type* |
+| | 0 = color composite |
+| | 1 = analog RGB |
+| | 2 = monochrome composite |
 
-**Exit Conditions:**
-_None_
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-- SS.Montr loads the hardware palette registers with the codes for the default color
-    set for three types of monitors. The system default is set by the **Init** module when
-    booting NitrOS-9.
-- The monochrome mode removes color information from the signals sent to a
-    monitor.
-- When a composite monitor is in use, a conversion table maps colors from RGB
-    color numbers. In RGB and monochrome modes, the system uses RGB color
-    numbers directly.
-- This call is handled by VTIO.
+**Additional Information**
 
+* SS.Montr loads the hardware palette registers with the codes for the default color set for three types of monitors. The system default is set by the Init module when booting NitrOS-9.
+* The monochrome mode removes color information from the signals sent to a monitor.
+* When a composite monitor is in use, a conversion table maps colors from RGB color numbers. In RGB and monochrome modes, the system uses RGB color numbers directly.
+* This call is handled by VTIO.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.GIP Sets the system wide mouse and key repeat
-parameters
-Function Code $94**
+---
 
-**Entry Conditions:**
-A _path number_
-B _$94_
-X _mouse resolution;_ in the most significant byte
-0 = low resolution mouse
-1 = optional high resolution adapter
-$FF = leave current setting alone
-_mouse port location;_ in the least significant byte
-1 = right port
-2 = left port
-$FF = leave current setting alone
-Y _key repeat start constant;_ in the most significant byte
-$00 = No key repeat
-$01-$FE = number of 1/60th second ticks before key repeat starts
-$FF = leave current setting alone
-_key repeat delay;_ in the least significant byte
-$00-$FE = number of 1/60th second ticks between key repeats
-$FF = leave current setting alone
+#### **SS.GIP**
 
-**Exit Conditions:**
-_None_
+**Sets the system wide mouse and key repeat parameters**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Function Code $94**
 
-**Additional Information:**
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$94* |
+| X | *mouse resolution; in the most significant byte* |
+| | 0 = low resolution mouse |
+| | 1 = optional high resolution adapter |
+| | $FF = leave current setting alone |
+| | *mouse port location; in the least significant byte* |
+| | 1 = right port
+| | 2 = left port
+| | $FF = leave current setting alone |
+| Y | *key repeat start constant; in the most significant byte* |
+| | $00 = No key repeat |
+| | $01-$FE = number of 1/60th second ticks before key repeat starts |
+| | $FF = leave current setting alone |
+| | *key repeat delay; in the least significant byte* |
+| | $00-$FE = number of 1/60th second ticks between key repeats |
+| | $FF = leave current setting alone |
 
-- Because this function affects system-wide settings, it is best to use it from system
-    configuration utilities and not from general application programs.
-- This call is handled by VTIO.
+**Exit Conditions**
 
+None
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**As of Ease of Use (EOU) Beta 5, the $FF (leave current setting alone) also works
-on mouse settings, not just keyboard.**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
+**Additional Information**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.UMBar Requests the high level menu manager to
-update the menu bar
-Function Code $95**
+* Because this function affects system-wide settings, it is best to use it from system configuration utilities and not from general application programs.
+* This call is handled by VTIO.
 
-**Entry Conditions:**
-A _path number_
-B _$95_
+**NOTE:** As of Ease of Use (EOU) Beta 5, the $FF (leave current setting alone) also works on mouse settings, not just keyboard.
 
-**Exit Conditions:**
-_None_
+---
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+#### **SS.UMBar**
 
-**Additional Information:**
+**Requests the high level menu manager to update the menu bar**
 
-- An application can call SS.UMBar when it needs to redraw the menu bar
-    information, such as when it enables or disables menus, or when it completes a
-    window _pull down_ and needs to restore the menu.
-- This call is handled by CoWin.
+**Function Code $95**
 
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$95* |
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DFPal Sets the default palette register values**
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* An application can call SS.UMBar when it needs to redraw the menu bar information, such as when it enables or disables menus, or when it completes a window pull down and needs to restore the menu.
+* This call is handled by CoWin.
+
+---
+
+#### **SS.DFPal**
+
+**Sets the default palette register values**
 
 **Function Code $97**
 
-**Entry Conditions:**
-A _path number_
-B _$97_
-X pointer to 16 bytes of palette data
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$97* |
+| X | *pointer to 16 bytes of palette data* |
 
-**Exit Conditions:**
-X unchanged, bytes moved to system defaults
+**Exit Conditions**
+| | |
+|-|-|
+| X | *unchanged, bytes moved to system defaults* |
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- Use SS.DFPal to alter the system-wide palette register defaults. The system uses
-    these defaults when it allocates a new screen using the DWSet command.
-- Because this function affects system wide settings, it is best to use it from system
-    configuration utilities, not general application programs.
-- This call is handled by CoWin.
+* Use SS.DFPal to alter the system-wide palette register defaults. The system uses these defaults when it allocates a new screen using the DWSet command.
+* Because this function affects system wide settings, it is best to use it from system configuration utilities, not general application programs.
+* This call is handled by CoWin.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Tone Creates a sound through the terminal
-output device
-Function Code $98**
+#### **SS.Tone**
 
-**Entry Conditions:**
-A _path number_
-B _$98_
-X _duration and amplitude (volume) of the tone
-LSB = duration in ticks (1/60th of a second) in the range 0-255
-MSB = amplitude (volume) of the tone in the range 0-63
-Y relative frequency counter (0=low, 4095=high)_
-bit 15: 1=8 bit volume (used on TC-9). Means MSB of X uses 0-255 (all 8 bits)
+**Creates a sound through the terminal output device**
 
-**Exit Conditions:**
+**Function Code $98**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$98* |
+| X | *duration and amplitude (volume) of the tone* |
+| | LSB = duration in ticks (1/60th of a second) in the range 0-255
+| | MSB = amplitude (volume) of the tone in the range 0-63 |
+| Y | *relative frequency counter (0=low, 4095=high)* |
+| | bit 15: 1=8 bit volume (used on TC-9). Means MSB of X uses 0-255 (all 8 bits) |
+
+**Exit Conditions**
+
 These are the same as the entry conditions.
 
-**Error Output:**
+**Error Output**
+
 None
 
-**Additional Information:**
+**Additional Information**
 
-- This call produces a programmed IO tone through the speaker of the monitor
-    used by the terminal device. You can make the call on any valid path open to a
-    VDG or a window device.
-- The system does not mask interrupts during the time the tone is being produced;
-    however the calling process is paused until the tone is complete.
-- The frequency of the tone is a relative number ranging from 0 for a low frequency
-    to 4095 for a high frequency. The widest variation of tones occurs at the high
-    range of the scale.
-- This call is handled by VTIO/SndDrv or TC9IO.
+* This call produces a programmed IO tone through the speaker of the monitor used by the terminal device. You can make the call on any valid path open to a VDG or a window device.
+* The system does not mask interrupts during the time the tone is being produced; however the calling process is paused until the tone is complete.
+* The frequency of the tone is a relative number ranging from 0 for a low frequency to 4095 for a high frequency. The widest variation of tones occurs at the high range of the scale.
+* This call is handled by VTIO/SndDrv or TC9IO.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.GIP2 Set Global Input Parameters 2
-Function Code $99**
+#### **SS.GIP2**
 
-**Entry Conditions:**
-A _path number_
-B _$99_
-X _MSB: 0xxxxxxx = Leave 2nd mouse button function unchanged
-10xxxxxx = Disable 2nd mouse button as CLEAR key
-11xxxxxx = Enable 2nd mouse button as CLEAR key
-xx0xxxxx = Leave current key click setting alone
-xx10xxxx = Disable key click on the current window
-xx11xxxx = Enable key click on the current window
-LSB: $00 (reserved for future use)
-Y $0000 (reserved for future use)
-U $0000 (reserved for future use)_
+**Set Global Input Parameters 2**
 
-**Exit Conditions:**
-_none_
+**Function Code $99**
 
-**Error Output:**
-CC _carry set on error_
-B _error code, if any_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$99* |
+| X | MSB: *Input configuration bits* (see below) |
+| | LSB: *$00 (reserved for future use)* |
+| Y | *$0000 (reserved for future use)* |
+| U | *$0000 (reserved for future use)* |
 
-**Additional Information:**
+**X Register Bit Definitions (MSB)**
+| Bits | Function |
+|---|---|
+| 0xxxxxxx | Leave 2nd mouse button function unchanged |
+| 10xxxxxx | Disable 2nd mouse button as CLEAR key |
+| 11xxxxxx | Enable 2nd mouse button as CLEAR key |
+| xx0xxxxx | Leave current key click setting alone |
+| xx10xxxx | Disable key click on the current window |
+| xx11xxxx | Enable key click on the current window |
 
-- Because this function can affect system-wide settings, it is best to use it from
-    system configuration utilities. One exception is the key click, which affects the
-    current window (via it’s path number) only.
-- Bits not defined for the X register seen above, and the Y and U registers, are
-    reserved for future use, and should be all set to 0’s (thus leaving any future
-    functions added as “unchanged”, and ensuring that current programs will still
-    function correctly in the future, with an updated SS.GIP2 call.
-- This call is used to set other input parameters not handled by the SS.GIP call.
-- This call is handled by VTIO and some of it’s sub-modules.
-- If the 2nd mouse button is enabled as the CLEAR key, then if the 1st mouse button
-    is pressed at the time the 2nd button is clicked and released, it acts like SHIFT-
-    CLEAR (reverse window direction).
--
+**Exit Conditions**
 
-```
-This call was introduced in EOU Beta 6. It currently defaults to both of these
-(2nd mouse button function and key click) features being off.
-```
+None
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.CDSig Send Signal on Carrier Detect (CD) or
-DSR change
-Function Code $9A**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Entry Conditions:**
-A _path number_
-B _$9A_
-X MSB: not used (set to 0)
-LSB: signal code to send on DSR or CD change
+**Additional Information**
 
-**Exit Conditions:**
-none
+* Because this function can affect system-wide settings, it is best to use it from system configuration utilities. One exception is the key click, which affects the current window (via it’s path number) only.
+* Bits not defined for the X register seen above, and the Y and U registers, are reserved for future use, and should be all set to 0’s (thus leaving any future functions added as “unchanged”, and ensuring that current programs will still function correctly in the future, with an updated SS.GIP2 call.
+* This call is used to set other input parameters not handled by the SS.GIP call.
+* This call is handled by VTIO and some of it’s sub-modules.
+* If the 2nd mouse button is enabled as the CLEAR key, then if the 1st mouse button is pressed at the time the 2nd button is clicked and released, it acts like SHIFT-CLEAR (reverse window direction).
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**NOTE:** This call was introduced in EOU Beta 6. It currently defaults to both of these (2nd mouse button function and key click) features being off.
 
-**Additional Information:**
+---
 
-- This call will send the calling process a signal if either the Carrier Detect (CD) or
-    Data Set Ready (DSR) changes from the state when SS.CDSig was called.
-- This is a one shot signal call, and is released upon triggering. Therefore, this call
-    must be made for each signal sent.
-- This call is handled in sc6551, sc6850, s16550 and other hardware based serial
-    port drivers.
+#### **SS.CDSig**
 
+**Send Signal on Carrier Detect (CD) or DSR change**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.CDRel Release a pending SS.CDSig signal**
+**Function Code $9A**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$9A* |
+| X | MSB: *Not used (set to 0)* |
+| | LSB: *Signal code to send on DSR or CD change* |
+
+**Exit Conditions**
+
+None
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* This call will send the calling process a signal if either the Carrier Detect (CD) or Data Set Ready (DSR) changes from the state when SS.CDSig was called.
+* This is a one shot signal call, and is released upon triggering. Therefore, this call must be made for each signal sent.
+* This call is handled in sc6551, sc6850, s16550 and other hardware based serial port drivers.
+
+---
+
+#### **SS.CDRel**
+
+**Release a pending SS.CDSig signal**
 
 **Function Code $9B**
 
-**Entry Conditions:**
-A _path number_
-B _$9B_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$9B* |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 None
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
 
-**Additional Information:**
+**Additional Information**
 
-- This call will cancel a pending SS.CDSig call, as long as the process ID number of
-    the caller is the same process ID number that issued the original SS.CDSig call.
-- This call is handled in sc6551, sc6850, s16550 and other hardware based serial
-    port drivers.
+* This call will cancel a pending SS.CDSig call, as long as the process ID number of the caller is the same process ID number that issued the original SS.CDSig call.
+* This call is handled in sc6551, sc6850, s16550 and other hardware based serial port drivers.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.Fill Pre-fill the SCF line edit buffer with data**
+#### **SS.Fill**
+
+**Pre-fill the SCF line edit buffer with data**
 
 **Function Code $A0**
 
-**Entry Conditions:**
-A _path number_
-B $A0
-X Address of the data to pre-fill I$ReadLn buffer with
-Y MSB = Flags:
-high bit=0 = append carriage return to ReadLn buffer
-high bit=1 = do NOT append carriage return to ReadLn buffer
-LSB = number of bytes to pre-fill (maximum of 255)
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$A0* |
+| X | *Address of the data to pre-fill I$ReadLn buffer with* |
+| Y | MSB Flags: |
+| | high bit=0 = append carriage return to ReadLn buffer |
+| | high bit=1 = do NOT append carriage return to ReadLn buffer |
+| | LSB = number of bytes to pre-fill (maximum of 255) |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 None
 
-**Additional Information:**
+**Additional Information**
 
-- This allows pre-loading the input (I$ReadLn) keyboard buffer on any SCF device
-    (windows, VDG screens, serial ports) with data. This allows the SCF editing keys (if
-    enabled) to immediately act on this data (including insert, delete, etc.). Use this to
-    pre-load default data for prompt responses, for example.
-- The support module for this is SCF.
+* This allows pre-loading the input (I$ReadLn) keyboard buffer on any SCF device (windows, VDG screens, serial ports) with data. This allows the SCF editing keys (if enabled) to immediately act on this data (including insert, delete, etc.). Use this to pre-load default data for prompt responses, for example.
+* The support module for this is SCF.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ECC Enable/Disable ECC corrected data errors**
+#### **SS.ECC**
+
+**Enable/Disable ECC corrected data errors**
 
 **Function Code $B0**
 
-**Entry Conditions:**
-A _path number_
-B $B0
-X Change _ECC error correction status:_
-0 = ECC error correction disabled
-1 = ECC error correction enabled
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$B0* |
+| X | *Change ECC error correction status:* |
+| | 0 = ECC error correction disabled |
+| | 1 = ECC error correction enabled |
 
-**Exit Conditions:**
+**Exit Conditions**
+
 None
 
-**Additional Information:**
+**Additional Information**
 
-- This enables or disables ECC error correction for the WD1002-05 hard
-    drive/floppy controller from Frank Hogg's **Eliminator** controller.
-- The support module for this is WDDisk.
+* This enables or disables ECC error correction for the WD1002-05 hard drive/floppy controller from Frank Hogg's Eliminator controller.
+* The support module for this is WDDisk.
 
+---
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.FSet Set FS2+ VIRQ**
+#### **SS.FSet**
+
+**Set FS2+ VIRQ**
 
 **Function Code $C7**
 
-**Entry Conditions:**
-A _path number_
-B _$C7_
-X Initial timer count (in 1/60th of a second clock ticks between signals)
-Y Reset count:
-$0000=one shot VIRQ, will not repeat
-$0001-$FFFF = number of 1/60th of a second clock ticks before re-signaling
-U MSB : $00 (Reserved)
-LSB : Signal code to send
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$C7* |
+| X | *Initial timer count* (in 1/60th of a second clock ticks between signals) |
+| Y | *Reset count:* |
+| | $0000 = one shot VIRQ, will not repeat |
+| | $0001-$FFFF = number of 1/60th of a second clock ticks before re-signaling |
+| U | MSB: $00 (Reserved) |
+| | LSB: *Signal code to send* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any (if VRN's VIRQ table is full, you will received a Device Busy error)
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any (if VRN's VIRQ table is full, you will received a Device Busy error) |
 
-- This is an enhanced version of the original FS2 (Flight Simulator II) VIRQ SetStat
-    call.
-- For a one shot VIRQ, set the the number of 1/60th second ticks before the one
-    VIRQ triggers in X, and set Y to 0.
-- For a repeating VIRQ, you can either have it always trigger in the same number of
-    clock ticks (set both X and Y to the same value), or you can set it up so that the
-    first VIRQ will have a unique time count, and all subsequent VIRQ's will have a
-    second, repeating time count (use X for the first time count, and Y for the
-    repeating one).
-- Unlike the original FS2 VIRQ, you can define your own unique signal code in the
-    lower byte of U. If you have multiple paths to /nil open, you can set different VIRQ
-    timers to different signals, and deal with them separately.
-- If you already have a signal set up for your current process and path numbers, you
-    can re-issue this SetStat call with new values in X to (initial tick count), Y
-    (repeating tick count) and U (signal code). This restarts the timer with the new
+**Additional Information**
 
+* This is an enhanced version of the original FS2 (Flight Simulator II) VIRQ SetStat call.
+* For a one shot VIRQ, set the the number of 1/60th second ticks before the one VIRQ triggers in X, and set Y to 0.
+* For a repeating VIRQ, you can either have it always trigger in the same number of clock ticks (set both X and Y to the same value), or you can set it up so that the first VIRQ will have a unique time count, and all subsequent VIRQ's will have a second, repeating time count (use X for the first time count, and Y for the repeating one).
+* Unlike the original FS2 VIRQ, you can define your own unique signal code in the lower byte of U. If you have multiple paths to /nil open, you can set different VIRQ timers to different signals, and deal with them separately.
+* If you already have a signal set up for your current process and path numbers, you can re-issue this SetStat call with new values in X to (initial tick count), Y (repeating tick count) and U (signal code). This restarts the timer with the new inital and repeat tick counts, and also resets the total number of clock ticks and total number of signals sent (see SS.VCtr and SS.VSig GetStat calls).
+* It is possible to open multiple paths from the same process, each with their own unique FS2 timer.
+* This call is handled in VRN.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-```
-intital and repeat tick counts, and also resets the total number of clock ticks and
-total number of signals sent (see SS.VCtr and SS.VSig GetStat calls).
-```
-- It is possible to open multiple paths from the same process, each with their own
-    unique FS2 timer.
-- This call is handled in VRN.
+---
 
+#### **SS.KSet**
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.KSet Set KQ3 VIRQ**
+**Set KQ3 VIRQ**
 
 **Function Code $C8**
 
-**Entry Conditions:**
-A _path number_
-B _$C8_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$C8* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
-CC carry set on error
-B _error code_ , if any (if VRN's VIRQ table is full, you will received a Device Busy error)
+None
 
-**Additional Information:**
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code,* if any (if VRN's VIRQ table is full, you will received a Device Busy error) |
 
-- Sets up a Sierra style VIRQ, which is a fixed signal code ($80 - S$KQ3Sig), and
-    always sends the signal every 1/60th of a second.
-- There can be a maximum of 4 FS2/FS2+/KQ3 type signals installed in the system
-    at one time, each with their own unique combination of Process ID number and
-    path #.
-- There is no point in having multiple KQ3 signals defined for one process, as there
-    is only one hardcoded signal code and timer value allowed.
-- No metrics are done for KQ3 signals (unlike FS2/FS2+) - no total tick count or total
-    signals sent.
-- This call is handled in VRN.
+**Additional Information**
 
+* Sets up a Sierra style VIRQ, which is a fixed signal code ($80 - S$KQ3Sig), and always sends the signal every 1/60th of a second.
+* There can be a maximum of 4 FS2/FS2+/KQ3 type signals installed in the system at one time, each with their own unique combination of Process ID number and path #.
+* There is no point in having multiple KQ3 signals defined for one process, as there is only one hardcoded signal code and timer value allowed.
+* No metrics are done for KQ3 signals (unlike FS2/FS2+) - no total tick count or total signals sent.
+* This call is handled in VRN.
 
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.KClr Clears KQ3 VIRQ**
+---
+
+#### **SS.KClr**
+
+**Clears KQ3 VIRQ**
 
 **Function Code $C9**
 
-**Entry Conditions:**
-A _path number_
-B _$C9_
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$C9* |
 
-**Exit Conditions:**
-none
+**Exit Conditions**
 
-**Error Output:**
 None
 
-**Additional Information:**
+**Error Output**
 
-- Clears/disables a Sierra style VIRQ (see the SS.Kset SetStat for details)
-- There can be a maximum of 4 FS2/FS2+/KQ3 type signals installed in the system
-    at one time, each with their own unique combination of Process ID number and
-    path number.
-- This call is handled in VRN.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.ARAM Allocate contiguous RAM outside of user
-space
-Function Code $CA**
-
-**Entry Conditions:**
-A _path number_
-B _$CA
-X MSB : $00 (Reserved)
-LSB : number of contiguous 8K RAM blocks to allocate (from free low RAM)_
-
-**Exit Conditions:**
-_X Starting block number of allocated RAM_
-
-**Error Output:**
-CC carry set on error
-B _error code_ , if any
-
-**Additional Information:**
-
-- A Sierra memory allocation call, SS.ARAM will look for the specified number of
-    contiguous 8K RAM blocks starting in low memory.
-- Each unique process ID number and path # can allocate it's own block, allowing a
-    single process (using multiple paths) to allocate several chunks of memory that do
-    not have to be contiguous between each other (but each chunk is contiguous
-    within themselves).
-- 32 is the current limit of such allocations allowed, across the entire system.
-- This call is handled in VRN.
-
-
-```
-Chapter 9. System Calls NitrOS-9 EOU Technical Reference Manual
-```
-**SS.DRAM De-allocates contiguous RAM outside of
-user space
-Function Code $CB**
-
-**Entry Conditions:**
-A _path number_
-B _$CB_
-
-**Exit Conditions:**
 None
 
-**Error Output:**
+**Additional Information**
+
+* Clears/disables a Sierra style VIRQ (see the SS.Kset SetStat for details)
+* There can be a maximum of 4 FS2/FS2+/KQ3 type signals installed in the system at one time, each with their own unique combination of Process ID number and path number.
+* This call is handled in VRN.
+
+---
+
+#### **SS.ARAM**
+
+**Allocate contiguous RAM outside of user space**
+
+**Function Code $CA**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$CA* |
+| X | MSB: $00 (Reserved) |
+| | LSB: *number of contiguous 8K RAM blocks to allocate (from free low RAM)* |
+
+**Exit Conditions**
+| | |
+|-|-|
+| X | *Starting block number of allocated RAM* |
+
+**Error Output**
+| | |
+|-|-|
+| CC | carry set on error |
+| B | *error code*, if any |
+
+**Additional Information**
+
+* A Sierra memory allocation call, SS.ARAM will look for the specified number of contiguous 8K RAM blocks starting in low memory.
+* Each unique process ID number and path # can allocate it's own block, allowing a single process (using multiple paths) to allocate several chunks of memory that do not have to be contiguous between each other (but each chunk is contiguous within themselves).
+* 32 is the current limit of such allocations allowed, across the entire system.
+* This call is handled in VRN.
+
+---
+
+#### **SS.DRAM**
+
+**De-allocates contiguous RAM outside of user space**
+
+**Function Code $CB**
+
+**Entry Conditions**
+| | |
+|-|-|
+| A | *path number* |
+| B | *$CB* |
+
+**Exit Conditions**
+
 None
 
-**Additional Information:**
+**Additional Information**
 
-- A Sierra memory allocation call, SS.DRAM will de-allocate previously allocated
-    external RAM set up by the **SS.ARAM** call, based on the unique process ID
-    number and path number combination that did the original allocate call.
-- No error is returned if you attempt to SS.DRAM a process/path number
-    combination that never did a previous allocation.
-- This call is handled in VRN.
+* A Sierra memory allocation call, SS.DRAM will de-allocate previously allocated external RAM set up by the SS.ARAM call, based on the unique process ID number and path number combination that did the original allocate call.
+* No error is returned if you attempt to SS.DRAM a process/path number combination that never did a previous allocation.
+* This call is handled in VRN.
 
+---
 
 ## Appendices
 
