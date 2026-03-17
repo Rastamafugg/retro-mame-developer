@@ -2,20 +2,19 @@ PROCEDURE tForkChild
 (* ================================================== *)
 (* PROCEDURE: tForkChild                              *)
 (* PURPOSE:   Child process for F$Fork / F$Wait test.*)
-(*            Reads one line from stdin, prints it   *)
-(*            as confirmation, then exits normally.  *)
-(*            Parameters from the parent are in the  *)
-(*            OS-level parameter area; they are not  *)
-(*            accessible from Basic09 directly.      *)
-(* PARAMS:    None                                    *)
+(*            Receives a string param via the RunB   *)
+(*            command line, prints it, then calls    *)
+(*            tForkLib (pre-loaded by parent) to     *)
+(*            handle user I/O.                       *)
+(* PARAMS:    childParam - string passed by parent   *)
 (* ================================================== *)
-DIM rcvLine : STRING[80]
+PARAM childParam : STRING[80]
 
 ON ERROR GOTO 900
 
-PRINT "tForkChild: running. Type a line and press Enter:"
-INPUT rcvLine
-PRINT "tForkChild received: "; rcvLine
+PRINT "tForkChild: This is my param '"; childParam; "'"
+RUN indepProc2
+RUN tForkLib
 END
 
 900 \ ! Error handler

@@ -1,0 +1,22 @@
+PROCEDURE tForkLib
+(* ================================================== *)
+(* PROCEDURE: tForkLib                                *)
+(* PURPOSE:   Library module called by tForkChild.   *)
+(*            Prompts for user input and confirms    *)
+(*            receipt. Demonstrates pre-loaded       *)
+(*            module linkage in a forked RunB        *)
+(*            process.                               *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+DIM rcvLine : STRING[80]
+
+ON ERROR GOTO 900
+
+PRINT "tForkLib: running. Type a line and press Enter:"
+INPUT rcvLine
+PRINT "tForkLib received: "; rcvLine
+END
+
+900 \ ! Error handler
+PRINT "tForkLib error ("; ERR; ")"
+END
