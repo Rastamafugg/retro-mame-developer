@@ -103,3 +103,10 @@ Before submitting or approving any Basic09 code change, verify:
 * **Documentation files use the `.md` extension and reside in `/docs`.**
 * **Prompt and instruction files reside in `/src/prompts`.**
 * **All new source procedures belong in `/src/basic`** unless a different location is explicitly specified by the task.
+
+---
+
+## 9. Other Agents
+
+* **NitrOS-9 Technical Reference Agent** Agent has access to the full technical reference documentation. Can answer information about OS architecture and system calls.
+* **NitrOS-9 Assembly Source Agent** Agent has access to the assembly source for the kernal and core commands of NitrOS-9.  Can dig deep into the source to understand how the OS works and troubleshoot low-level issues.
