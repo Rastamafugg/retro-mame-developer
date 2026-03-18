@@ -1,0 +1,524 @@
+PROCEDURE TSTFKPGSER
+(* ============================================================ *)
+(* PROCEDURE : TSTFKPGSER                                       *)
+(* PURPOSE   : S3 pre-game serialization test. Ensures          *)
+(*             snbUtil, snbSaveLoad, snbSetup (which contains   *)
+(*             pgChild and serPG) are resident. Opens /pipe,    *)
+(*             redirects child stdout to pipe, forks pgChild    *)
+(*             via RunB, waits, reads 179-byte ForkPG payload   *)
+(*             from pipe, and spot-checks known-constant fields. *)
+(*             No deserialization or reconstruction in this step.*)
+(* PARAMS    : None                                             *)
+(* NOTE      : User must complete setup (not quit) for payload  *)
+(*             check to run. Zero-byte read = user quit; test   *)
+(*             prints a note and skips spot-checks (not FAIL).  *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+
+DIM regs      : Register
+DIM callCode  : BYTE
+DIM pipePath  : BYTE    \ ! path number from I$Open /pipe
+DIM savedOut  : BYTE    \ ! path number from I$Dup stdout
+DIM iCC       : INTEGER \ ! staged regs.cc for LAND
+DIM iPath     : INTEGER \ ! staged pipePath for display
+DIM iErr      : INTEGER \ ! staged regs.b for display
+DIM iRed      : INTEGER \ ! bytes read from pipe after F$Wait
+DIM iChildIO  : INTEGER \ ! staged regs.a from F$Fork
+DIM iChildPID : INTEGER \ ! staged regs.a from F$Wait
+DIM iStatus   : INTEGER \ ! staged regs.b from F$Wait
+DIM failCnt   : INTEGER \ ! running failure count
+DIM pipeOpen  : BOOLEAN \ ! TRUE while pipePath is open
+
+! Critical section staging — no PRINT between I$Dup stdout
+! and final I$Dup restore. Capture results; print after restore.
+DIM ccDup1    : INTEGER \ ! carry from I$Dup stdout
+DIM eDup1     : INTEGER
+DIM ccCls1a   : INTEGER \ ! carry from I$Close path 1 (first)
+DIM eCls1a    : INTEGER
+DIM ccDup2    : INTEGER \ ! carry from I$Dup pipePath -> slot 1
+DIM eDup2     : INTEGER
+DIM ccFork    : INTEGER \ ! carry from F$Fork
+DIM eFork     : INTEGER
+DIM ccCls1b   : INTEGER \ ! carry from I$Close path 1 (second)
+DIM ccDup3    : INTEGER \ ! carry from I$Dup savedOut -> slot 1
+DIM eDup3     : INTEGER
+DIM ccCls2    : INTEGER \ ! carry from I$Close savedOut
+
+! Name and parameter buffers.
+DIM pthBuf(8)   : BYTE  \ ! "/pipe" + CR
+DIM utilBuf(10) : BYTE  \ ! "snbUtil" hi-bit terminated
+DIM slBuf(14)   : BYTE  \ ! "snbSaveLoad" hi-bit terminated
+DIM setupBuf(12): BYTE  \ ! "snbSetup" hi-bit terminated
+DIM cldBuf(10)  : BYTE  \ ! "pgChild" hi-bit terminated
+DIM runbBuf(6)  : BYTE  \ ! "RunB" hi-bit terminated
+DIM paramBuf(12): BYTE  \ ! "pgChild" + CR (8 bytes)
+DIM rdBuf(180)  : BYTE  \ ! read buffer; payload at indices 1..179
+DIM iSave       : INTEGER \ ! staged savedOut for display
+DIM i           : INTEGER \ ! loop index
+
+ON ERROR GOTO 900
+
+failCnt  := 0
+pipeOpen := FALSE
+
+FOR i := 1 TO 180
+  rdBuf(i) := 0
+NEXT i
+FOR i := 1 TO 12
+  paramBuf(i) := 0
+NEXT i
+
+! --- Build path and name buffers ----------------------------
+pthBuf(1) := ASC("/")
+pthBuf(2) := ASC("p")
+pthBuf(3) := ASC("i")
+pthBuf(4) := ASC("p")
+pthBuf(5) := ASC("e")
+pthBuf(6) := $0D
+
+utilBuf(1) := ASC("s")
+utilBuf(2) := ASC("n")
+utilBuf(3) := ASC("b")
+utilBuf(4) := ASC("U")
+utilBuf(5) := ASC("t")
+utilBuf(6) := ASC("i")
+utilBuf(7) := LOR(ASC("l"), $80) \ ! hi-bit terminates name
+
+slBuf(1)  := ASC("s")
+slBuf(2)  := ASC("n")
+slBuf(3)  := ASC("b")
+slBuf(4)  := ASC("S")
+slBuf(5)  := ASC("a")
+slBuf(6)  := ASC("v")
+slBuf(7)  := ASC("e")
+slBuf(8)  := ASC("L")
+slBuf(9)  := ASC("o")
+slBuf(10) := ASC("a")
+slBuf(11) := LOR(ASC("d"), $80)
+
+setupBuf(1) := ASC("s")
+setupBuf(2) := ASC("n")
+setupBuf(3) := ASC("b")
+setupBuf(4) := ASC("S")
+setupBuf(5) := ASC("e")
+setupBuf(6) := ASC("t")
+setupBuf(7) := ASC("u")
+setupBuf(8) := LOR(ASC("p"), $80)
+
+cldBuf(1) := ASC("p")
+cldBuf(2) := ASC("g")
+cldBuf(3) := ASC("C")
+cldBuf(4) := ASC("h")
+cldBuf(5) := ASC("i")
+cldBuf(6) := ASC("l")
+cldBuf(7) := LOR(ASC("d"), $80)
+
+runbBuf(1) := ASC("R")
+runbBuf(2) := ASC("u")
+runbBuf(3) := ASC("n")
+runbBuf(4) := LOR(ASC("B"), $80)
+
+paramBuf(1) := ASC("p")
+paramBuf(2) := ASC("g")
+paramBuf(3) := ASC("C")
+paramBuf(4) := ASC("h")
+paramBuf(5) := ASC("i")
+paramBuf(6) := ASC("l")
+paramBuf(7) := ASC("d")
+paramBuf(8) := $0D         \ ! CR terminates RunB argument
+
+PRINT "TSTFKPGSER: S3 pre-game serialization test"
+
+! --- Block 1: Ensure snbUtil resident ------------------------
+PRINT "TSTFKPGSER: [1] checking snbUtil"
+callCode := $21             \ ! F$NMLink
+regs.a   := 0
+regs.x   := ADDR(utilBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  PRINT "TSTFKPGSER: snbUtil not resident; loading"
+  callCode := $22           \ ! F$NMLoad
+  regs.a   := 0
+  regs.x   := ADDR(utilBuf)
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 1 THEN
+    iErr := regs.b
+    PRINT "FAIL [1]: NMLoad snbUtil err="; iErr
+    failCnt := failCnt + 1
+    GOTO 800
+  ENDIF
+  PRINT "PASS [1]: snbUtil loaded"
+ELSE
+  PRINT "PASS [1]: snbUtil already resident"
+ENDIF
+
+! --- Block 2: Ensure snbSaveLoad resident --------------------
+PRINT "TSTFKPGSER: [2] checking snbSaveLoad"
+callCode := $21
+regs.a   := 0
+regs.x   := ADDR(slBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  PRINT "TSTFKPGSER: snbSaveLoad not resident; loading"
+  callCode := $22
+  regs.a   := 0
+  regs.x   := ADDR(slBuf)
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 1 THEN
+    iErr := regs.b
+    PRINT "FAIL [2]: NMLoad snbSaveLoad err="; iErr
+    failCnt := failCnt + 1
+    GOTO 800
+  ENDIF
+  PRINT "PASS [2]: snbSaveLoad loaded"
+ELSE
+  PRINT "PASS [2]: snbSaveLoad already resident"
+ENDIF
+
+! --- Block 3: Ensure snbSetup resident (includes pgChild, ---
+! serPG, initPlayer, initMkt, scrStart, scrSetup, scrConfirm).
+PRINT "TSTFKPGSER: [3] checking snbSetup"
+callCode := $21
+regs.a   := 0
+regs.x   := ADDR(setupBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  PRINT "TSTFKPGSER: snbSetup not resident; loading"
+  callCode := $22
+  regs.a   := 0
+  regs.x   := ADDR(setupBuf)
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 1 THEN
+    iErr := regs.b
+    PRINT "FAIL [3]: NMLoad snbSetup err="; iErr
+    failCnt := failCnt + 1
+    GOTO 800
+  ENDIF
+  PRINT "PASS [3]: snbSetup loaded"
+ELSE
+  PRINT "PASS [3]: snbSetup already resident"
+ENDIF
+
+! --- Block 4: Confirm pgChild linkable -----------------------
+PRINT "TSTFKPGSER: [4] confirm pgChild linkable"
+callCode := $21
+regs.a   := 0
+regs.x   := ADDR(cldBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [4]: pgChild not in module dir err="; iErr
+  failCnt := failCnt + 1
+  GOTO 800
+ENDIF
+PRINT "PASS [4]: pgChild linkable"
+
+RUN waitKey
+
+! --- Block 5: I$Open /pipe mode 3 ---------------------------
+PRINT "TSTFKPGSER: [5] I$Open /pipe mode=3"
+callCode := $84             \ ! I$Open
+regs.a   := 3               \ ! update mode (read+write)
+regs.x   := ADDR(pthBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [5]: I$Open /pipe err="; iErr
+  failCnt := failCnt + 1
+  GOTO 800
+ENDIF
+pipePath := regs.a
+iPath    := pipePath        \ ! stage BYTE -> INTEGER for display
+pipeOpen := TRUE
+PRINT "PASS [5]: /pipe opened path="; iPath
+
+! ==============================================================
+! CRITICAL SECTION BEGIN — no PRINT or I/O from here through
+! the final I$Dup restore. All results staged to INTEGER vars.
+! ==============================================================
+
+! --- Step A: I$Dup path 1 (stdout) ---------------------------
+callCode := $82
+regs.a   := 1
+RUN SysCall(callCode, regs)
+ccDup1   := regs.cc
+eDup1    := regs.b
+savedOut := regs.a
+
+! --- Step B: I$Close path 1 ----------------------------------
+callCode := $8F
+regs.a   := 1
+RUN SysCall(callCode, regs)
+ccCls1a  := regs.cc
+eCls1a   := regs.b
+
+! --- Step C: I$Dup pipePath -> slot 1 -----------------------
+callCode := $82
+regs.a   := pipePath
+RUN SysCall(callCode, regs)
+ccDup2   := regs.cc
+eDup2    := regs.b
+
+! --- Step D: F$Fork RunB / pgChild ---------------------------
+callCode := $03
+regs.a   := 0               \ ! any language/type
+regs.b   := 4               \ ! 4 data pages for child
+regs.x   := ADDR(runbBuf)
+regs.y   := 8               \ ! "pgChild" + CR
+regs.u   := ADDR(paramBuf)
+RUN SysCall(callCode, regs)
+ccFork   := regs.cc
+eFork    := regs.b
+iChildIO := regs.a
+
+! --- Step E: I$Close path 1 (parent pipe dup) ----------------
+callCode := $8F
+regs.a   := 1
+RUN SysCall(callCode, regs)
+ccCls1b  := regs.cc
+
+! --- Step F: I$Dup savedOut -> slot 1 (restore stdout) ------
+callCode := $82
+regs.a   := savedOut
+RUN SysCall(callCode, regs)
+ccDup3   := regs.cc
+eDup3    := regs.b
+
+! --- Step G: I$Close savedOut --------------------------------
+callCode := $8F
+regs.a   := savedOut
+RUN SysCall(callCode, regs)
+ccCls2   := regs.cc
+
+! ==============================================================
+! CRITICAL SECTION END — stdout restored; PRINT safe.
+! ==============================================================
+
+iSave := savedOut
+PRINT "TSTFKPGSER: critical section results"
+
+IF LAND(ccDup1, 1) = 0 THEN
+  PRINT "PASS [6]: I$Dup stdout -> savedOut="; iSave
+ELSE
+  PRINT "FAIL [6]: I$Dup stdout err="; eDup1
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccCls1a, 1) = 0 THEN
+  PRINT "PASS [7]: I$Close path 1 (free slot)"
+ELSE
+  PRINT "FAIL [7]: I$Close path 1 err="; eCls1a
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccDup2, 1) = 0 THEN
+  PRINT "PASS [8]: I$Dup pipe -> slot 1"
+ELSE
+  PRINT "FAIL [8]: I$Dup pipePath err="; eDup2
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccFork, 1) = 0 THEN
+  PRINT "PASS [9]: F$Fork OK childIO="; iChildIO
+ELSE
+  PRINT "FAIL [9]: F$Fork err="; eFork
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccCls1b, 1) = 0 THEN
+  PRINT "PASS [10]: I$Close path 1 (parent pipe dup)"
+ELSE
+  PRINT "FAIL [10]: I$Close path 1 2nd err"
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccDup3, 1) = 0 THEN
+  PRINT "PASS [11]: I$Dup savedOut -> slot 1 (stdout restored)"
+ELSE
+  PRINT "FAIL [11]: I$Dup savedOut err="; eDup3
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccCls2, 1) = 0 THEN
+  PRINT "PASS [12]: I$Close savedOut"
+ELSE
+  PRINT "FAIL [12]: I$Close savedOut err"
+  failCnt := failCnt + 1
+ENDIF
+
+IF LAND(ccFork, 1) = 1 THEN
+  GOTO 700                  \ ! fork failed; no child to wait for
+ENDIF
+
+PRINT "TSTFKPGSER: setup screens running in child process"
+PRINT "(complete setup flow; do not quit from scrStart)"
+
+! --- Block 13: F$Wait ----------------------------------------
+LOOP
+  callCode  := $04          \ ! F$Wait
+  regs.cc   := 0
+  regs.a    := 0
+  regs.b    := 0
+  regs.dp   := 0
+  regs.x    := 0
+  regs.y    := 0
+  regs.u    := 0
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  EXITIF LAND(iCC, 1) = 1 THEN
+  ENDEXIT
+  iChildPID := regs.a       \ ! stage BYTE -> INTEGER
+  EXITIF iChildPID <> 0 THEN
+  ENDEXIT
+ENDLOOP
+
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [13]: F$Wait err="; iErr
+  failCnt := failCnt + 1
+  GOTO 700
+ENDIF
+iStatus := regs.b           \ ! stage BYTE -> INTEGER
+PRINT "PASS [13]: child exited PID="; iChildPID; " status="; iStatus
+
+! --- Block 14: I$Read 179 bytes ------------------------------
+PRINT "TSTFKPGSER: [14] I$Read 179 bytes from pipe"
+callCode := $89             \ ! I$Read (binary; not I$ReadLn)
+regs.a   := pipePath        \ ! BYTE path: BYTE->BYTE OK
+regs.x   := ADDR(rdBuf)
+regs.y   := 179             \ ! exact expected byte count
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [14]: I$Read err="; iErr
+  failCnt := failCnt + 1
+  GOTO 700
+ENDIF
+iRed := regs.y              \ ! bytes actually read (INTEGER <- INTEGER)
+
+! Handle quit case: 0 bytes = user quit from scrStart.
+IF iRed = 0 THEN
+  PRINT "NOTE [14]: 0 bytes read; user quit from scrStart"
+  PRINT "NOTE: quit path confirmed; re-run and complete setup"
+  PRINT "      to validate payload byte count and spot-checks"
+  GOTO 700
+ENDIF
+
+IF iRed = 179 THEN
+  PRINT "PASS [14]: byte count="; iRed
+ELSE
+  PRINT "FAIL [14]: expected 179 bytes, got "; iRed
+  failCnt := failCnt + 1
+  GOTO 700
+ENDIF
+
+RUN waitKey
+
+! --- Block 15: Spot-check constant fields --------------------
+PRINT "TSTFKPGSER: [15] spot-checking constant fields"
+
+! rdBuf(1) = pgMag = $53 = 83 (format marker, always constant)
+IF rdBuf(1) = $53 THEN
+  PRINT "PASS [15a]: byte 1 pgMag=$53"
+ELSE
+  PRINT "FAIL [15a]: byte 1 pgMag="; rdBuf(1); " expected $53=83"
+  failCnt := failCnt + 1
+ENDIF
+
+! rdBuf(3) = pgCYr = 1 (always 1 at pre-game exit)
+IF rdBuf(3) = 1 THEN
+  PRINT "PASS [15b]: byte 3 pgCYr=1"
+ELSE
+  PRINT "FAIL [15b]: byte 3 pgCYr="; rdBuf(3); " expected 1"
+  failCnt := failCnt + 1
+ENDIF
+
+! rdBuf(6) = pgSPhs = 0 (savedPhase always 0 at pre-game exit)
+IF rdBuf(6) = 0 THEN
+  PRINT "PASS [15c]: byte 6 pgSPhs=0"
+ELSE
+  PRINT "FAIL [15c]: byte 6 pgSPhs="; rdBuf(6); " expected 0"
+  failCnt := failCnt + 1
+ENDIF
+
+! rdBuf(7) = pgSPlr = 0 (savedPlyr always 0 at pre-game exit)
+IF rdBuf(7) = 0 THEN
+  PRINT "PASS [15d]: byte 7 pgSPlr=0"
+ELSE
+  PRINT "FAIL [15d]: byte 7 pgSPlr="; rdBuf(7); " expected 0"
+  failCnt := failCnt + 1
+ENDIF
+
+! rdBuf(12) = pgDeck(1): first deck byte; must be 1..36
+IF rdBuf(12) >= 1 AND rdBuf(12) <= 36 THEN
+  PRINT "PASS [15e]: byte 12 pgDeck(1)="; rdBuf(12); " (1..36 range)"
+ELSE
+  PRINT "FAIL [15e]: byte 12 pgDeck(1)="; rdBuf(12); " out of 1..36"
+  failCnt := failCnt + 1
+ENDIF
+
+! rdBuf(4) = pgPCnt: player count; print for manual verification.
+PRINT "INFO [15f]: byte 4 pgPCnt="; rdBuf(4); " (verify matches setup)"
+
+700 \ ! --- Block 16: I$Close pipePath -------------------------
+callCode := $8F
+regs.a   := pipePath
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [16]: I$Close pipePath err="; iErr
+  failCnt := failCnt + 1
+ELSE
+  PRINT "PASS [16]: pipePath closed"
+ENDIF
+pipeOpen := FALSE
+
+800 \ ! --- Summary ---------------------------------------------
+PRINT "TSTFKPGSER: failures="; failCnt
+IF failCnt = 0 THEN
+  PRINT "TSTFKPGSER: PASS"
+ELSE
+  PRINT "TSTFKPGSER: FAIL"
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "TSTFKPGSER error ("; ERR; ")"
+IF pipeOpen THEN
+  callCode := $8F
+  regs.a   := pipePath
+  RUN SysCall(callCode, regs)
+ENDIF
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
+END

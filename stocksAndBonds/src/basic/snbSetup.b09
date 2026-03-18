@@ -330,3 +330,127 @@ END
 
 900 PRINT "scrConfirm error ("; ERR; ")"
 END
+
+PROCEDURE pgChild
+(* ============================================================ *)
+(* PROCEDURE : pgChild                                          *)
+(* PURPOSE   : Child entry point for pre-game fork. Allocates  *)
+(*             local game state, runs the full setup flow via   *)
+(*             snbSetup, then serializes to stdout (pipe) via   *)
+(*             serPG if the user did not quit. If menuAct = 3   *)
+(*             (quit from scrStart), writes nothing and ENDs;   *)
+(*             parent treats zero-byte read as quit signal.     *)
+(* PARAMS    : None (child process; no PARAM handoff possible)  *)
+(* SIDE EFX  : Writes 179-byte ForkPG payload to stdout (path  *)
+(*             1) on normal exit. Writes nothing on quit.       *)
+(* NOTE      : snbSetup, snbUtil, snbSaveLoad must be resident  *)
+(*             in the module directory before this runs.        *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM menuAct    : INTEGER
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+
+ON ERROR GOTO 900
+
+menuAct := 0
+
+RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
+
+! If user quit from scrStart, write nothing; parent reads 0 bytes.
+IF menuAct <> 3 THEN
+  RUN serPG(hdr, deckOrd, plyrs)
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "pgChild error ("; ERR; ")"
+END
+
+PROCEDURE serPG
+(* ============================================================ *)
+(* PROCEDURE : serPG                                            *)
+(* PURPOSE   : Serialize pre-game handoff state to stdout       *)
+(*             (path 1 = pipe after parent redirect). Packs     *)
+(*             SaveHdr fields, shuffled deck, and per-player    *)
+(*             name/type/tier into a ForkPG TYPE and writes     *)
+(*             it as a single 179-byte I$Write call.            *)
+(* PARAMS    : hdr     - confirmed SaveHdr from snbSetup        *)
+(*             deckOrd - shuffled deck order array (36 BYTE)    *)
+(*             plyrs   - player records with name/type/tier set *)
+(* SIDE EFX  : Writes exactly 179 bytes to stdout (path 1).    *)
+(*             No screen output. No file I/O.                   *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE ForkPG = pgMag,pgFmtV,pgCYr,pgPCnt,pgRMod,pgSPhs,pgSPlr,pgDkPs,pgChks:BYTE;pgOblg:INTEGER;pgDeck(36):BYTE;pgNam1,pgNam2,pgNam3,pgNam4,pgNam5,pgNam6:STRING[20];pgTyp(6),pgTier(6):BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM hdr      : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6) : PlyrRec
+DIM pgBuf   : ForkPG
+DIM regs    : Register
+DIM callCode: BYTE
+DIM iCC     : INTEGER  \ ! staged regs.cc for LAND
+DIM iErr    : INTEGER  \ ! staged regs.b for error display
+DIM iSz     : INTEGER  \ ! SIZE(pgBuf) staged for regs.y
+DIM i       : INTEGER  \ ! loop index
+
+ON ERROR GOTO 900
+
+! --- Populate SaveHdr fields ----------------------------------
+pgBuf.pgMag  := hdr.magic
+pgBuf.pgFmtV := hdr.fmtVersion
+pgBuf.pgCYr  := hdr.currYear
+pgBuf.pgPCnt := hdr.plyrCount
+pgBuf.pgRMod := hdr.rollMode
+pgBuf.pgSPhs := hdr.savedPhase
+pgBuf.pgSPlr := hdr.savedPlyr
+pgBuf.pgOblg := hdr.obligation \ ! INTEGER := INTEGER
+pgBuf.pgDkPs := hdr.deckPos
+pgBuf.pgChks := hdr.checksum
+
+! --- Populate deck array --------------------------------------
+FOR i := 1 TO 36
+  pgBuf.pgDeck(i) := deckOrd(i)
+NEXT i
+
+! --- Populate per-player name, type, tier --------------------
+pgBuf.pgNam1 := plyrs(1).plyrName
+pgBuf.pgNam2 := plyrs(2).plyrName
+pgBuf.pgNam3 := plyrs(3).plyrName
+pgBuf.pgNam4 := plyrs(4).plyrName
+pgBuf.pgNam5 := plyrs(5).plyrName
+pgBuf.pgNam6 := plyrs(6).plyrName
+FOR i := 1 TO 6
+  pgBuf.pgTyp(i)  := plyrs(i).plyrType
+  pgBuf.pgTier(i) := plyrs(i).aiTier
+NEXT i
+
+! --- I$Write pgBuf to stdout (path 1 = pipe) -----------------
+iSz      := SIZE(pgBuf)     \ ! 179; INTEGER result; safe for regs.y
+callCode := $8A             \ ! I$Write
+regs.a   := 1               \ ! path 1 = stdout = pipe in child
+regs.x   := ADDR(pgBuf)
+regs.y   := iSz
+RUN SysCall(callCode, regs)
+iCC := regs.cc              \ ! stage BYTE -> INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b            \ ! stage BYTE -> INTEGER
+  PRINT "serPG: I$Write failed err="; iErr
+  ERROR(iErr)
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "serPG error ("; ERR; ")"
+END
