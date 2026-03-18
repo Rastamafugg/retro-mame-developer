@@ -1,0 +1,152 @@
+PROCEDURE TSTFKPIPE
+(* ============================================================ *)
+(* PROCEDURE : TSTFKPIPE                                        *)
+(* PURPOSE   : S1 pipe round-trip test. Opens /pipe in mode 3  *)
+(*             (update), writes 1 known byte via I$Write,       *)
+(*             reads it back via I$Read, confirms value match.  *)
+(*             Confirms PIPEMAN is available and basic pipe     *)
+(*             infrastructure works end-to-end.                 *)
+(* PARAMS    : None                                             *)
+(* SIDE EFX  : None. All paths closed on exit.                 *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM regs     : Register
+DIM callCode : BYTE
+DIM pipePath : BYTE     \ ! raw path number returned by I$Open
+DIM iCC      : INTEGER  \ ! staged: regs.cc BYTE -> INTEGER for LAND
+DIM iPath    : INTEGER  \ ! staged: pipePath BYTE -> INTEGER for display
+DIM iErr     : INTEGER  \ ! staged: regs.b BYTE -> INTEGER for display
+DIM iWrt     : INTEGER  \ ! bytes written, from regs.y after I$Write
+DIM iRed     : INTEGER  \ ! bytes read, from regs.y after I$Read
+DIM pthBuf(8): BYTE     \ ! "/pipe" + CR path string for I$Open
+DIM wBuf(4)  : BYTE     \ ! write buffer; sentinel in index 1
+DIM rBuf(4)  : BYTE     \ ! read buffer; pre-filled to detect overwrite
+DIM failCnt  : INTEGER  \ ! running failure counter
+DIM pipeOpen : BOOLEAN  \ ! TRUE after I$Open succeeds
+
+ON ERROR GOTO 900
+
+failCnt  := 0
+pipeOpen := FALSE
+
+! Build NitrOS-9 pathlist: "/pipe" terminated by CR ($0D).
+pthBuf(1) := ASC("/")
+pthBuf(2) := ASC("p")
+pthBuf(3) := ASC("i")
+pthBuf(4) := ASC("p")
+pthBuf(5) := ASC("e")
+pthBuf(6) := $0D          \ ! CR terminates NitrOS-9 pathlist
+
+! Write buffer: known sentinel value $A5 (1010 0101).
+wBuf(1) := $A5
+
+! Read buffer: pre-fill with 0 to confirm overwrite on read.
+rBuf(1) := 0
+
+PRINT "TSTFKPIPE: S1 pipe round-trip test"
+
+! --- Block 1: I$Open /pipe in update mode (3) ----------------
+PRINT "TSTFKPIPE: [1] I$Open /pipe mode=3"
+callCode := $85           \ ! I$Open system call
+regs.a   := 3             \ ! access mode 3 = update (read+write)
+regs.x   := ADDR(pthBuf) \ ! pathlist address
+RUN SysCall(callCode, regs)
+iCC := regs.cc            \ ! stage BYTE cc to INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b          \ ! stage BYTE error code to INTEGER
+  PRINT "FAIL [1]: I$Open /pipe err="; iErr
+  failCnt := failCnt + 1
+  GOTO 800                \ ! no path open; skip to summary
+ENDIF
+pipePath := regs.a        \ ! BYTE path number from I$Open
+iPath    := pipePath      \ ! stage BYTE -> INTEGER for display
+pipeOpen := TRUE
+PRINT "PASS [1]: /pipe opened path="; iPath
+
+RUN waitKey
+
+! --- Block 2: I$Write 1 byte ----------------------------------
+PRINT "TSTFKPIPE: [2] I$Write 1 byte (sentinel $A5)"
+callCode := $8A           \ ! I$Write system call
+regs.a   := pipePath      \ ! path number (BYTE field ok: BYTE->BYTE)
+regs.x   := ADDR(wBuf)   \ ! write buffer address
+regs.y   := 1             \ ! write exactly 1 byte
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [2]: I$Write err="; iErr
+  failCnt := failCnt + 1
+  GOTO 700                \ ! skip read; still close pipe
+ENDIF
+iWrt := regs.y            \ ! bytes actually written
+IF iWrt = 1 THEN
+  PRINT "PASS [2]: I$Write wrote "; iWrt; " byte"
+ELSE
+  PRINT "FAIL [2]: expected 1 byte written, got "; iWrt
+  failCnt := failCnt + 1
+ENDIF
+
+! --- Block 3: I$Read 1 byte -----------------------------------
+PRINT "TSTFKPIPE: [3] I$Read 1 byte"
+callCode := $89           \ ! I$Read system call
+regs.a   := pipePath      \ ! same path (PIPEMAN FIFO)
+regs.x   := ADDR(rBuf)   \ ! read buffer address
+regs.y   := 1             \ ! read exactly 1 byte
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [3]: I$Read err="; iErr
+  failCnt := failCnt + 1
+  GOTO 700
+ENDIF
+iRed := regs.y
+IF iRed = 1 THEN
+  PRINT "PASS [3]: I$Read returned "; iRed; " byte"
+ELSE
+  PRINT "FAIL [3]: expected 1 byte read, got "; iRed
+  failCnt := failCnt + 1
+ENDIF
+
+! --- Block 4: Confirm round-trip value ------------------------
+PRINT "TSTFKPIPE: [4] confirming round-trip byte value"
+IF rBuf(1) = wBuf(1) THEN
+  PRINT "PASS [4]: byte match; wrote $A5, read "; rBuf(1)
+ELSE
+  PRINT "FAIL [4]: byte mismatch; wrote "; wBuf(1); " read "; rBuf(1)
+  failCnt := failCnt + 1
+ENDIF
+
+700 \ ! --- Block 5: I$Close pipe --------------------------------
+PRINT "TSTFKPIPE: [5] I$Close path="; iPath
+callCode := $8F           \ ! I$Close system call
+regs.a   := pipePath      \ ! BYTE path number
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b
+  PRINT "FAIL [5]: I$Close err="; iErr
+  failCnt := failCnt + 1
+ELSE
+  PRINT "PASS [5]: pipe closed"
+ENDIF
+pipeOpen := FALSE
+
+800 \ ! --- Summary ---------------------------------------------
+PRINT "TSTFKPIPE: failures="; failCnt
+IF failCnt = 0 THEN
+  PRINT "TSTFKPIPE: PASS"
+ELSE
+  PRINT "TSTFKPIPE: FAIL"
+ENDIF
+END
+
+900 \ ! Error handler
+PRINT "TSTFKPIPE error ("; ERR; ")"
+IF pipeOpen THEN
+  callCode := $8F
+  regs.a   := pipePath
+  RUN SysCall(callCode, regs)
+ENDIF
+END
