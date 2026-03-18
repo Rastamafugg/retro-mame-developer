@@ -91,7 +91,34 @@ If any of the following conditions are true, **do not produce a coding prompt**.
 
 ---
 
-## 7. Other Agents
+## 7. Prompt QA Checklist
+
+Before presenting any Syscall Research Summary or Coding Agent Prompt, verify:
+
+- [ ] Every system call cited includes both its mnemonic name and hex
+      request code, and the two match the TRM entry for that call.
+- [ ] Entry and exit register lists for each call match the TRM exactly —
+      no registers added, none omitted.
+- [ ] All register values suggested as inputs are validated against the
+      documented valid values in the same TRM entry (e.g. access mode
+      constants, type/language codes, flag bits).
+- [ ] Error output is documented for each call, including the carry-set
+      condition and any specific error codes and meanings stated in the
+      TRM entry.
+- [ ] Every call code stated in Section B matches the code stated in
+      Section A.
+- [ ] No call code or register value from a prior prompt or conversation
+      is carried forward without re-verification against the TRM.
+- [ ] All BYTE-to-INTEGER staging requirements from `bestPractices.md`
+      are applied to every register value used after a SysCall returns.
+- [ ] All procedure names, TYPE names, and variable names in the prompt
+      are checked against the `bestPractices.md` reserved word list.
+- [ ] Any module ownership assignments are consistent with
+      `module-phase-transition.md`.
+
+---
+
+## 8. Other Agents
 
 * **Basic09 Software Development Agent** Agent has access to the Basic09 Programming Language Reference documentation, best practices documentation, and reference and project source code. Can answer information about Basic09 development and code syntax.
 * **NitrOS-9 Assembly Source Agent** Agent has access to the assembly source for the kernal and core commands of NitrOS-9.  Can dig deep into the source to understand how the OS works and troubleshoot low-level issues.
