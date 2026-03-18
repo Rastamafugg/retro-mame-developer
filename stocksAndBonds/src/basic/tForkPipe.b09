@@ -47,7 +47,7 @@ PRINT "TSTFKPIPE: S1 pipe round-trip test"
 
 ! --- Block 1: I$Open /pipe in update mode (3) ----------------
 PRINT "TSTFKPIPE: [1] I$Open /pipe mode=3"
-callCode := $85           \ ! I$Open system call
+callCode := $84           \ ! I$Open system call
 regs.a   := 3             \ ! access mode 3 = update (read+write)
 regs.x   := ADDR(pthBuf) \ ! pathlist address
 RUN SysCall(callCode, regs)
@@ -149,4 +149,26 @@ IF pipeOpen THEN
   regs.a   := pipePath
   RUN SysCall(callCode, regs)
 ENDIF
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Display continue prompt, block on key. *)
+(* PARAMS:    None                                    *)
+(* EFFECTS:   Prints prompt to stdout. Reads one     *)
+(*            character from path 0. Discards input. *)
+(*            Prints newline after keypress.         *)
+(* ================================================== *)
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 \ ! Error handler
+PRINT "waitKey error ("; ERR; ")"
 END
