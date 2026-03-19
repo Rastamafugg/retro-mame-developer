@@ -1,69 +1,55 @@
 PROCEDURE TSTFKFORK
 (* ============================================================ *)
 (* PROCEDURE : TSTFKFORK                                        *)
-(* PURPOSE   : S2 pipe redirect + fork test. Opens /pipe,       *)
-(*             redirects child stdout to pipe, forks tPipeChild *)
-(*             via RunB, waits for child, reads sentinel string  *)
-(*             back from pipe, confirms match.                   *)
-(*             Verifies path slot manipulation and fork handoff  *)
-(*             work end-to-end before binary payloads are added. *)
+(* PURPOSE   : S2 pipe PARAM handoff test. Opens /pipe at path  *)
+(*             N, builds BYTE array parameter string            *)
+(*             "TSTChild N\r", forks RunB targeting TSTChild,   *)
+(*             F$Waits for child, reads 4-byte sentinel back    *)
+(*             from pipe, confirms all 4 bytes match.           *)
+(*             Demonstrates that:                               *)
+(*               (a) pipe path number is correctly delivered to *)
+(*                   child as iPipePath PARAM via RunB          *)
+(*               (b) child path 1 remains the terminal          *)
+(*               (c) child I$Write to iPipePath reaches parent  *)
+(*             No path slot manipulation is performed.           *)
 (* PARAMS    : None                                             *)
-(* SIDE EFX  : None. All paths closed on exit.                  *)
-(* CRITICAL  : Steps 2-8 (I$Dup stdout through I$Dup restore)   *)
-(*             contain no PRINT or I/O calls. Results staged to  *)
-(*             INTEGER vars; printed after stdout is restored.   *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-
 DIM regs      : Register
 DIM callCode  : BYTE
-DIM pipePath  : BYTE    \ ! path number from I$Open /pipe
-DIM savedOut  : BYTE    \ ! path number from I$Dup stdout
-DIM iCC       : INTEGER \ ! staged regs.cc for LAND checks
-DIM iPath     : INTEGER \ ! staged pipePath for display
-DIM iSave     : INTEGER \ ! staged savedOut for display
+DIM pipePath  : BYTE    \ ! raw path number from I$Open /pipe
+DIM iPath     : INTEGER \ ! staged pipePath for use and display
+DIM iCC       : INTEGER \ ! staged regs.cc for LAND
 DIM iErr      : INTEGER \ ! staged regs.b for display
-DIM iRed      : INTEGER \ ! staged regs.y from I$ReadLn
+DIM iRed      : INTEGER \ ! bytes read from I$Read
 DIM iChildIO  : INTEGER \ ! staged regs.a from F$Fork
 DIM iChildPID : INTEGER \ ! staged regs.a from F$Wait
 DIM iStatus   : INTEGER \ ! staged regs.b from F$Wait
-DIM failCnt   : INTEGER \ ! running failure counter
+DIM failCnt   : INTEGER \ ! running failure count
 DIM pipeOpen  : BOOLEAN \ ! TRUE while pipePath is open
-DIM nmLoaded  : BOOLEAN \ ! TRUE after NMLink/NMLoad succeeds
+DIM loopIdx   : INTEGER \ ! loop index for buffer init
 
-! Critical section result staging — no PRINT allowed between
-! steps 2 and 8; capture here, report after stdout restored.
-DIM ccDup1    : INTEGER \ ! carry from I$Dup stdout (step 2)
-DIM eDup1     : INTEGER \ ! error from step 2 if failed
-DIM ccCls1a   : INTEGER \ ! carry from I$Close path 1 (step 3)
-DIM eCls1a    : INTEGER
-DIM ccDup2    : INTEGER \ ! carry from I$Dup pipePath (step 4)
-DIM eDup2     : INTEGER
-DIM ccFork    : INTEGER \ ! carry from F$Fork (step 5)
-DIM eFork     : INTEGER
-DIM ccCls1b   : INTEGER \ ! carry from I$Close path 1 (step 6)
-DIM ccDup3    : INTEGER \ ! carry from I$Dup savedOut (step 7)
-DIM eDup3     : INTEGER
-DIM ccCls2    : INTEGER \ ! carry from I$Close savedOut (step 8)
-
-! Name and parameter buffers.
 DIM pthBuf(8)   : BYTE  \ ! "/pipe" + CR path string
-DIM namBuf(12)  : BYTE  \ ! "tPipeChild" hi-bit terminated
-DIM runbBuf(8)  : BYTE  \ ! "RunB" hi-bit terminated
-DIM paramBuf(16): BYTE  \ ! "tPipeChild" + CR (11 bytes)
-DIM rdBuf(32)   : BYTE  \ ! I$ReadLn receive buffer
-DIM i           : INTEGER
+DIM cldBuf(12)  : BYTE  \ ! "TSTChild" hi-bit terminated for NMLink
+DIM runbBuf(6)  : BYTE  \ ! "RunB" hi-bit terminated for F$Fork
+DIM paramBuf(16): BYTE  \ ! "TSTChild N\r" parameter string
+DIM rdBuf(4)    : BYTE  \ ! I$Read receive buffer
 
 ON ERROR GOTO 900
 
 failCnt  := 0
 pipeOpen := FALSE
-nmLoaded := FALSE
+iPath    := 0
 
-! Zero-fill rdBuf to detect overwrite clearly.
-FOR i := 1 TO 32
-  rdBuf(i) := 0
-NEXT i
+! Pre-fill rdBuf with $FF so unwritten bytes are detectable.
+rdBuf(1) := $FF
+rdBuf(2) := $FF
+rdBuf(3) := $FF
+rdBuf(4) := $FF
+
+FOR loopIdx := 1 TO 16
+  paramBuf(loopIdx) := 0
+NEXT loopIdx
 
 ! Build /pipe pathlist terminated by CR.
 pthBuf(1) := ASC("/")
@@ -73,17 +59,15 @@ pthBuf(4) := ASC("p")
 pthBuf(5) := ASC("e")
 pthBuf(6) := $0D
 
-! Build hi-bit terminated name "tPipeChild" for NMLink/NMLoad.
-namBuf(1)  := ASC("t")
-namBuf(2)  := ASC("P")
-namBuf(3)  := ASC("i")
-namBuf(4)  := ASC("p")
-namBuf(5)  := ASC("e")
-namBuf(6)  := ASC("C")
-namBuf(7)  := ASC("h")
-namBuf(8)  := ASC("i")
-namBuf(9)  := ASC("l")
-namBuf(10) := LOR(ASC("d"), $80) \ ! hi-bit terminates name
+! Build hi-bit terminated "TSTChild" for F$NMLink.
+cldBuf(1) := ASC("T")
+cldBuf(2) := ASC("S")
+cldBuf(3) := ASC("T")
+cldBuf(4) := ASC("C")
+cldBuf(5) := ASC("h")
+cldBuf(6) := ASC("i")
+cldBuf(7) := ASC("l")
+cldBuf(8) := LOR(ASC("d"), $80) \ ! hi-bit terminates name
 
 ! Build "RunB" hi-bit terminated for F$Fork.
 runbBuf(1) := ASC("R")
@@ -91,284 +75,181 @@ runbBuf(2) := ASC("u")
 runbBuf(3) := ASC("n")
 runbBuf(4) := LOR(ASC("B"), $80)
 
-! Build RunB parameter: "tPipeChild" + CR (11 bytes).
-FOR i := 1 TO 16
-  paramBuf(i) := 0
-NEXT i
-paramBuf(1)  := ASC("t")
-paramBuf(2)  := ASC("P")
-paramBuf(3)  := ASC("i")
-paramBuf(4)  := ASC("p")
-paramBuf(5)  := ASC("e")
-paramBuf(6)  := ASC("C")
-paramBuf(7)  := ASC("h")
-paramBuf(8)  := ASC("i")
-paramBuf(9)  := ASC("l")
-paramBuf(10) := ASC("d")
-paramBuf(11) := $0D         \ ! CR terminates RunB argument
+PRINT "TSTFKFORK: S2 PARAM pipe path handoff test"
 
-PRINT "TSTFKFORK: S2 pipe redirect + fork test"
+! --- Block 1: Confirm TSTChild is resident -------------------
+PRINT "TSTFKFORK: [1] F$NMLink TSTChild"
+callCode := $21           \ ! F$NMLink
+regs.a   := 0
+regs.x   := ADDR(cldBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  PRINT "TSTFKFORK: TSTChild not resident; loading via NMLoad"
+  callCode := $22         \ ! F$NMLoad
+  regs.a   := 0
+  regs.x   := ADDR(cldBuf)
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) = 1 THEN
+    iErr := regs.b
+    PRINT "FAIL [1]: NMLoad TSTChild err="; iErr
+    failCnt := failCnt + 1
+    GOTO 800
+  ENDIF
+  PRINT "PASS [1]: TSTChild loaded"
+ELSE
+  PRINT "PASS [1]: TSTChild already resident"
+ENDIF
 
-! --- Block 1: I$Open /pipe mode 3 ---------------------------
-PRINT "TSTFKFORK: [1] I$Open /pipe mode=3"
-callCode := $84             \ ! I$Open system call
-regs.a   := 3               \ ! access mode 3 = update (read+write)
+RUN waitKey
+
+! --- Block 2: I$Open /pipe mode 3 ---------------------------
+PRINT "TSTFKFORK: [2] I$Open /pipe mode=3"
+callCode := $84           \ ! I$Open
+regs.a   := 3             \ ! update mode (read+write)
 regs.x   := ADDR(pthBuf)
 RUN SysCall(callCode, regs)
 iCC := regs.cc
 IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "FAIL [1]: I$Open /pipe err="; iErr
+  PRINT "FAIL [2]: I$Open /pipe err="; iErr
   failCnt := failCnt + 1
   GOTO 800
 ENDIF
-pipePath := regs.a          \ ! BYTE path from I$Open
-iPath    := pipePath        \ ! stage BYTE->INTEGER for display
+pipePath := regs.a        \ ! BYTE path number from I$Open
+iPath    := pipePath      \ ! stage BYTE -> INTEGER for all use
 pipeOpen := TRUE
-PRINT "PASS [1]: /pipe opened path="; iPath
+PRINT "PASS [2]: /pipe opened path="; iPath
 
-RUN waitKey
+! --- Block 3: Build parameter string "TSTChild N\r" ----------
+! Format: module-name SP single-decimal-digit CR = 11 bytes.
+! iPath is expected to be 3..9; $30 + iPath gives ASCII digit.
+PRINT "TSTFKFORK: [3] building param string for path="; iPath
+paramBuf(1)  := ASC("T")
+paramBuf(2)  := ASC("S")
+paramBuf(3)  := ASC("T")
+paramBuf(4)  := ASC("C")
+paramBuf(5)  := ASC("h")
+paramBuf(6)  := ASC("i")
+paramBuf(7)  := ASC("l")
+paramBuf(8)  := ASC("d")
+paramBuf(9)  := ASC(" ")
+paramBuf(10) := $30 + iPath  \ ! decimal digit: $30=48='0'
+paramBuf(11) := $0D          \ ! CR terminates RunB argument
+PRINT "PASS [3]: param built; digit byte="; paramBuf(10)
 
-! --- Block 2: F$NMLink to check tPipeChild residency ---------
-PRINT "TSTFKFORK: [2] F$NMLink tPipeChild"
-callCode := $21             \ ! F$NMLink
-regs.a   := 0               \ ! any type/language
-regs.x   := ADDR(namBuf)
+! --- Block 4: F$Fork RunB / TSTChild -------------------------
+PRINT "TSTFKFORK: [4] F$Fork RunB targeting TSTChild"
+callCode := $03           \ ! F$Fork
+regs.a   := 0             \ ! any language/type
+regs.b   := 4             \ ! 4 data pages (matches tForkParent.b09)
+regs.x   := ADDR(runbBuf)
+regs.y   := 11            \ ! "TSTChild N\r" = 11 bytes exactly
+regs.u   := ADDR(paramBuf)
 RUN SysCall(callCode, regs)
 iCC := regs.cc
-IF LAND(iCC, 1) = 0 THEN
-  PRINT "PASS [2]: tPipeChild already resident (NMLink OK)"
-  nmLoaded := TRUE
-ELSE
+IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "[2]: tPipeChild not resident (err="; iErr; "); calling NMLoad"
-  callCode := $22           \ ! F$NMLoad
-  regs.a   := 0
-  regs.x   := ADDR(namBuf)
-  RUN SysCall(callCode, regs)
-  iCC := regs.cc
-  IF LAND(iCC, 1) = 1 THEN
-    iErr := regs.b
-    PRINT "FAIL [2]: F$NMLoad tPipeChild err="; iErr
-    failCnt := failCnt + 1
-    GOTO 700
-  ENDIF
-  PRINT "PASS [2]: F$NMLoad tPipeChild OK"
-  nmLoaded := TRUE
-ENDIF
-
-RUN waitKey
-
-! ==============================================================
-! CRITICAL SECTION BEGIN — no PRINT or I/O from here through
-! step 8. All results captured in staging INTEGER vars.
-! ==============================================================
-
-! --- Step 2: I$Dup path 1 (stdout) ---------------------------
-callCode  := $82            \ ! I$Dup
-regs.a    := 1              \ ! source: stdout (path 1)
-RUN SysCall(callCode, regs)
-ccDup1    := regs.cc        \ ! stage BYTE->INTEGER
-eDup1     := regs.b
-savedOut  := regs.a         \ ! BYTE dup path number
-
-! --- Step 3: I$Close path 1 (free slot 1) --------------------
-callCode  := $8F            \ ! I$Close
-regs.a    := 1
-RUN SysCall(callCode, regs)
-ccCls1a   := regs.cc
-eCls1a    := regs.b
-
-! --- Step 4: I$Dup pipePath (assigns to slot 1) --------------
-callCode  := $82            \ ! I$Dup
-regs.a    := pipePath       \ ! BYTE path: BYTE->BYTE param OK
-RUN SysCall(callCode, regs)
-ccDup2    := regs.cc
-eDup2     := regs.b
-
-! --- Step 5: F$Fork RunB / tPipeChild ------------------------
-callCode  := $03            \ ! F$Fork
-regs.a    := 0              \ ! any language/type
-regs.b    := 4              \ ! 4 data pages for child
-regs.x    := ADDR(runbBuf)  \ ! RunB name (hi-bit terminated)
-regs.y    := 11             \ ! param byte count: "tPipeChild"+CR
-regs.u    := ADDR(paramBuf)
-RUN SysCall(callCode, regs)
-ccFork    := regs.cc
-eFork     := regs.b
-iChildIO  := regs.a         \ ! stage child I/O BYTE->INTEGER
-
-! --- Step 6: I$Close path 1 (parent's pipe dup) --------------
-callCode  := $8F            \ ! I$Close
-regs.a    := 1
-RUN SysCall(callCode, regs)
-ccCls1b   := regs.cc
-
-! --- Step 7: I$Dup savedOut (restores stdout to slot 1) ------
-callCode  := $82            \ ! I$Dup
-regs.a    := savedOut       \ ! BYTE dup path: BYTE->BYTE OK
-RUN SysCall(callCode, regs)
-ccDup3    := regs.cc
-eDup3     := regs.b
-
-! --- Step 8: I$Close savedOut (release extra copy) -----------
-callCode  := $8F            \ ! I$Close
-regs.a    := savedOut
-RUN SysCall(callCode, regs)
-ccCls2    := regs.cc
-
-! ==============================================================
-! CRITICAL SECTION END — stdout now restored; PRINT safe.
-! ==============================================================
-
-! Report critical section results.
-iSave := savedOut           \ ! stage BYTE->INTEGER for display
-PRINT "TSTFKFORK: critical section results"
-
-IF LAND(ccDup1, 1) = 0 THEN
-  PRINT "PASS [3]: I$Dup stdout -> savedOut="; iSave
-ELSE
-  PRINT "FAIL [3]: I$Dup stdout err="; eDup1
+  PRINT "FAIL [4]: F$Fork err="; iErr
   failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccCls1a, 1) = 0 THEN
-  PRINT "PASS [4]: I$Close path 1 (free slot)"
-ELSE
-  PRINT "FAIL [4]: I$Close path 1 err="; eCls1a
-  failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccDup2, 1) = 0 THEN
-  PRINT "PASS [5]: I$Dup pipe -> slot 1"
-ELSE
-  PRINT "FAIL [5]: I$Dup pipePath err="; eDup2
-  failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccFork, 1) = 0 THEN
-  PRINT "PASS [6]: F$Fork OK childIO="; iChildIO
-ELSE
-  PRINT "FAIL [6]: F$Fork err="; eFork
-  failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccCls1b, 1) = 0 THEN
-  PRINT "PASS [7]: I$Close path 1 (parent pipe dup)"
-ELSE
-  PRINT "FAIL [7]: I$Close path 1 (2nd) err"
-  failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccDup3, 1) = 0 THEN
-  PRINT "PASS [8]: I$Dup savedOut -> slot 1 (stdout restored)"
-ELSE
-  PRINT "FAIL [8]: I$Dup savedOut err="; eDup3
-  failCnt := failCnt + 1
-ENDIF
-
-IF LAND(ccCls2, 1) = 0 THEN
-  PRINT "PASS [9]: I$Close savedOut"
-ELSE
-  PRINT "FAIL [9]: I$Close savedOut err"
-  failCnt := failCnt + 1
-ENDIF
-
-! If fork failed, no child to wait for; skip to close.
-IF LAND(ccFork, 1) = 1 THEN
   GOTO 700
 ENDIF
+iChildIO := regs.a        \ ! stage child I/O number BYTE -> INTEGER
+PRINT "PASS [4]: F$Fork OK childIO="; iChildIO
+PRINT "TSTFKFORK: expect TSTChild terminal output before PASS [5]"
 
-RUN waitKey
-
-! --- Block 10: F$Wait (loop on signal; expect child death) ----
-PRINT "TSTFKFORK: [10] F$Wait for child"
+! --- Block 5: F$Wait -----------------------------------------
 LOOP
-  callCode  := $04          \ ! F$Wait
-  regs.cc   := 0
-  regs.a    := 0
-  regs.b    := 0
-  regs.dp   := 0
-  regs.x    := 0
-  regs.y    := 0
-  regs.u    := 0
+  callCode := $04         \ ! F$Wait
+  regs.cc  := 0
+  regs.a   := 0
+  regs.b   := 0
+  regs.dp  := 0
+  regs.x   := 0
+  regs.y   := 0
+  regs.u   := 0
   RUN SysCall(callCode, regs)
   iCC := regs.cc
-  EXITIF LAND(iCC, 1) = 1 THEN \ ! error on F$Wait
+  EXITIF LAND(iCC, 1) = 1 THEN
   ENDEXIT
-  iChildPID := regs.a       \ ! stage BYTE->INTEGER
-  EXITIF iChildPID <> 0 THEN \ ! child death (not signal)
+  iChildPID := regs.a     \ ! stage BYTE -> INTEGER
+  EXITIF iChildPID <> 0 THEN
   ENDEXIT
 ENDLOOP
 
 IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "FAIL [10]: F$Wait err="; iErr
+  PRINT "FAIL [5]: F$Wait err="; iErr
   failCnt := failCnt + 1
   GOTO 700
 ENDIF
-iStatus := regs.b           \ ! stage exit status BYTE->INTEGER
-PRINT "PASS [10]: child exited PID="; iChildPID; " status="; iStatus
+iStatus := regs.b         \ ! stage exit status BYTE -> INTEGER
+PRINT "PASS [5]: child exited PID="; iChildPID; " status="; iStatus
 
-! --- Block 11: I$ReadLn from pipePath ------------------------
-PRINT "TSTFKFORK: [11] I$ReadLn from pipe"
-callCode := $8B             \ ! I$ReadLn
-regs.a   := pipePath        \ ! BYTE path: BYTE->BYTE OK
+! --- Block 6: I$Read 4 bytes from pipe -----------------------
+PRINT "TSTFKFORK: [6] I$Read 4 bytes from path="; iPath
+callCode := $89           \ ! I$Read (binary; exact count)
+regs.a   := pipePath      \ ! BYTE path: BYTE -> BYTE field OK
 regs.x   := ADDR(rdBuf)
-regs.y   := 32              \ ! max bytes
+regs.y   := 4             \ ! exact byte count
 RUN SysCall(callCode, regs)
 iCC := regs.cc
 IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "FAIL [11]: I$ReadLn err="; iErr
+  PRINT "FAIL [6]: I$Read err="; iErr
   failCnt := failCnt + 1
   GOTO 700
 ENDIF
-iRed := regs.y              \ ! bytes read (INTEGER <- INTEGER: OK)
-PRINT "PASS [11]: I$ReadLn read "; iRed; " bytes"
-
-! --- Block 12: Verify sentinel string spot-checks ------------
-PRINT "TSTFKFORK: [12] verify sentinel: expect FKPIPE-S2-OK"
-IF iRed >= 12 THEN
-  PRINT "PASS [12a]: byte count "; iRed; " >= 12"
+iRed := regs.y            \ ! INTEGER <- INTEGER: no staging needed
+IF iRed = 4 THEN
+  PRINT "PASS [6]: I$Read returned "; iRed; " bytes"
 ELSE
-  PRINT "FAIL [12a]: byte count "; iRed; " < 12"
+  PRINT "FAIL [6]: expected 4 bytes got "; iRed
+  failCnt := failCnt + 1
+  GOTO 700
+ENDIF
+
+RUN waitKey
+
+! --- Block 7: Confirm all 4 sentinel bytes -------------------
+PRINT "TSTFKFORK: [7] checking sentinel bytes ($DE $AD $BE $EF)"
+IF rdBuf(1) = $DE THEN
+  PRINT "PASS [7a]: byte 1 = $DE"
+ELSE
+  PRINT "FAIL [7a]: byte 1 = "; rdBuf(1); " expected $DE=222"
+  failCnt := failCnt + 1
+ENDIF
+IF rdBuf(2) = $AD THEN
+  PRINT "PASS [7b]: byte 2 = $AD"
+ELSE
+  PRINT "FAIL [7b]: byte 2 = "; rdBuf(2); " expected $AD=173"
+  failCnt := failCnt + 1
+ENDIF
+IF rdBuf(3) = $BE THEN
+  PRINT "PASS [7c]: byte 3 = $BE"
+ELSE
+  PRINT "FAIL [7c]: byte 3 = "; rdBuf(3); " expected $BE=190"
+  failCnt := failCnt + 1
+ENDIF
+IF rdBuf(4) = $EF THEN
+  PRINT "PASS [7d]: byte 4 = $EF"
+ELSE
+  PRINT "FAIL [7d]: byte 4 = "; rdBuf(4); " expected $EF=239"
   failCnt := failCnt + 1
 ENDIF
 
-IF rdBuf(1) = ASC("F") THEN
-  PRINT "PASS [12b]: byte 1 = 'F'"
-ELSE
-  PRINT "FAIL [12b]: byte 1 = "; rdBuf(1); " expected "; ASC("F")
-  failCnt := failCnt + 1
-ENDIF
-
-IF rdBuf(7) = ASC("-") THEN
-  PRINT "PASS [12c]: byte 7 = '-'"
-ELSE
-  PRINT "FAIL [12c]: byte 7 = "; rdBuf(7); " expected "; ASC("-")
-  failCnt := failCnt + 1
-ENDIF
-
-IF rdBuf(12) = ASC("K") THEN
-  PRINT "PASS [12d]: byte 12 = 'K'"
-ELSE
-  PRINT "FAIL [12d]: byte 12 = "; rdBuf(12); " expected "; ASC("K")
-  failCnt := failCnt + 1
-ENDIF
-
-700 \ ! --- Block 13: I$Close pipePath -------------------------
-PRINT "TSTFKFORK: [13] I$Close pipePath="; iPath
-callCode := $8F
-regs.a   := pipePath
+700 \ ! --- Block 8: I$Close pipePath -------------------------
+callCode := $8F           \ ! I$Close
+regs.a   := pipePath      \ ! BYTE path: BYTE -> BYTE field OK
 RUN SysCall(callCode, regs)
 iCC := regs.cc
 IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "FAIL [13]: I$Close pipePath err="; iErr
+  PRINT "FAIL [8]: I$Close pipePath err="; iErr
   failCnt := failCnt + 1
 ELSE
-  PRINT "PASS [13]: pipePath closed"
+  PRINT "PASS [8]: pipePath="; iPath; " closed"
 ENDIF
 pipeOpen := FALSE
 
@@ -390,20 +271,52 @@ IF pipeOpen THEN
 ENDIF
 END
 
-PROCEDURE tPipeChild
+PROCEDURE TSTChild
 (* ============================================================ *)
-(* PROCEDURE : tPipeChild                                       *)
-(* PURPOSE   : Minimal child for S2 pipe redirect test.         *)
-(*             PRINTs a known sentinel string to stdout (which  *)
-(*             is the pipe after parent redirect), then ENDs.   *)
-(* PARAMS    : None                                             *)
+(* PROCEDURE : TSTChild                                         *)
+(* PURPOSE   : S2 companion child. Receives pipe path number    *)
+(*             from parent via RunB parameter string. PRINTs a  *)
+(*             confirmation line to the terminal (path 1 =      *)
+(*             terminal, confirming stdout is NOT the pipe).    *)
+(*             Writes a 4-byte known sentinel to iPipePath via  *)
+(*             I$Write ($8A). ENDs.                             *)
+(* PARAMS    : iPipePath - pipe path number passed by parent    *)
 (* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM iPipePath : INTEGER
+DIM regs     : Register
+DIM callCode : BYTE
+DIM iCC      : INTEGER  \ ! staged regs.cc for LAND
+DIM iErr     : INTEGER  \ ! staged regs.b for error display
+DIM wBuf(4)  : BYTE     \ ! 4-byte sentinel write buffer
+
 ON ERROR GOTO 900
 
-PRINT "FKPIPE-S2-OK"
+! Confirm path 1 is still the terminal (not the pipe).
+! This PRINT must appear on the terminal during the test.
+PRINT "TSTChild: running; path 1 is terminal; pipe path="; iPipePath
+
+! Load known sentinel: $DE $AD $BE $EF
+wBuf(1) := $DE
+wBuf(2) := $AD
+wBuf(3) := $BE
+wBuf(4) := $EF
+
+! I$Write 4 bytes to the inherited pipe path.
+callCode := $8A           \ ! I$Write
+regs.a   := iPipePath     \ ! INTEGER -> BYTE field: safe for 0-127
+regs.x   := ADDR(wBuf)
+regs.y   := 4             \ ! exact byte count
+RUN SysCall(callCode, regs)
+iCC := regs.cc            \ ! stage BYTE -> INTEGER for LAND
+IF LAND(iCC, 1) = 1 THEN
+  iErr := regs.b          \ ! stage BYTE -> INTEGER
+  PRINT "TSTChild: I$Write err="; iErr
+ENDIF
 END
 
 900 \ ! Error handler
+PRINT "TSTChild error ("; ERR; ")"
 END
 
 PROCEDURE waitKey
