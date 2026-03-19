@@ -2,17 +2,17 @@ PROCEDURE TSTFKFORK
 (* ============================================================ *)
 (* PROCEDURE : TSTFKFORK                                        *)
 (* PURPOSE   : S2 pipe PARAM handoff test. Opens /pipe at path  *)
-(*             N, builds BYTE array parameter string            *)
-(*             "TSTChild N\r", forks RunB targeting TSTChild,   *)
-(*             F$Waits for child, reads 4-byte sentinel back    *)
-(*             from pipe, confirms all 4 bytes match.           *)
-(*             Demonstrates that:                               *)
-(*               (a) pipe path number is correctly delivered to *)
-(*                   child as iPipePath PARAM via RunB          *)
-(*               (b) child path 1 remains the terminal          *)
-(*               (c) child I$Write to iPipePath reaches parent  *)
+(*             N. Builds BYTE array parameter string in RunB    *)
+(*             format "TSTChild (N)\r". Forks RunB targeting    *)
+(*             TSTChild. TSTChild receives iPipePath=N via the  *)
+(*             RunB parameter, PRINTs to terminal, I$Writes     *)
+(*             4-byte sentinel to N. Parent F$Waits, I$Reads    *)
+(*             4 bytes, confirms sentinel. I$Closes pipe.       *)
 (*             No path slot manipulation is performed.           *)
 (* PARAMS    : None                                             *)
+(* NOTE      : RunB parameter format requires parentheses:      *)
+(*             "procname (intval)\r" — matching the RUN         *)
+(*             statement convention per tForkParent.b09.        *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 DIM regs      : Register
@@ -32,7 +32,7 @@ DIM loopIdx   : INTEGER \ ! loop index for buffer init
 DIM pthBuf(8)   : BYTE  \ ! "/pipe" + CR path string
 DIM cldBuf(12)  : BYTE  \ ! "TSTChild" hi-bit terminated for NMLink
 DIM runbBuf(6)  : BYTE  \ ! "RunB" hi-bit terminated for F$Fork
-DIM paramBuf(16): BYTE  \ ! "TSTChild N\r" parameter string
+DIM paramBuf(16): BYTE  \ ! "TSTChild (N)\r" = 13 bytes
 DIM rdBuf(4)    : BYTE  \ ! I$Read receive buffer
 
 ON ERROR GOTO 900
@@ -59,7 +59,7 @@ pthBuf(4) := ASC("p")
 pthBuf(5) := ASC("e")
 pthBuf(6) := $0D
 
-! Build hi-bit terminated "TSTChild" for F$NMLink.
+! Build hi-bit terminated "TSTChild" for F$NMLink/NMLoad.
 cldBuf(1) := ASC("T")
 cldBuf(2) := ASC("S")
 cldBuf(3) := ASC("T")
@@ -122,9 +122,10 @@ iPath    := pipePath      \ ! stage BYTE -> INTEGER for all use
 pipeOpen := TRUE
 PRINT "PASS [2]: /pipe opened path="; iPath
 
-! --- Block 3: Build parameter string "TSTChild N\r" ----------
-! Format: module-name SP single-decimal-digit CR = 11 bytes.
-! iPath is expected to be 3..9; $30 + iPath gives ASCII digit.
+! --- Block 3: Build parameter string "TSTChild (N)\r" --------
+! RunB format per tForkParent.b09: "procname (intparam)\r"
+! TSTChild(8) + SP(1) + ((1) + digit(1) + )(1) + CR(1) = 13 bytes
+! iPath expected 3..9; digit = $30 + iPath
 PRINT "TSTFKFORK: [3] building param string for path="; iPath
 paramBuf(1)  := ASC("T")
 paramBuf(2)  := ASC("S")
@@ -135,9 +136,11 @@ paramBuf(6)  := ASC("i")
 paramBuf(7)  := ASC("l")
 paramBuf(8)  := ASC("d")
 paramBuf(9)  := ASC(" ")
-paramBuf(10) := $30 + iPath  \ ! decimal digit: $30=48='0'
-paramBuf(11) := $0D          \ ! CR terminates RunB argument
-PRINT "PASS [3]: param built; digit byte="; paramBuf(10)
+paramBuf(10) := ASC("(")
+paramBuf(11) := $30 + iPath  \ ! ASCII digit: '0'=48 + path number
+paramBuf(12) := ASC(")")
+paramBuf(13) := $0D          \ ! CR terminates RunB argument
+PRINT "PASS [3]: param built; digit="; paramBuf(11)
 
 ! --- Block 4: F$Fork RunB / TSTChild -------------------------
 PRINT "TSTFKFORK: [4] F$Fork RunB targeting TSTChild"
@@ -145,7 +148,7 @@ callCode := $03           \ ! F$Fork
 regs.a   := 0             \ ! any language/type
 regs.b   := 4             \ ! 4 data pages (matches tForkParent.b09)
 regs.x   := ADDR(runbBuf)
-regs.y   := 11            \ ! "TSTChild N\r" = 11 bytes exactly
+regs.y   := 13            \ ! "TSTChild (N)\r" = 13 bytes exactly
 regs.u   := ADDR(paramBuf)
 RUN SysCall(callCode, regs)
 iCC := regs.cc
@@ -275,11 +278,11 @@ PROCEDURE TSTChild
 (* ============================================================ *)
 (* PROCEDURE : TSTChild                                         *)
 (* PURPOSE   : S2 companion child. Receives pipe path number    *)
-(*             from parent via RunB parameter string. PRINTs a  *)
-(*             confirmation line to the terminal (path 1 =      *)
-(*             terminal, confirming stdout is NOT the pipe).    *)
-(*             Writes a 4-byte known sentinel to iPipePath via  *)
-(*             I$Write ($8A). ENDs.                             *)
+(*             from parent via RunB parameter string format     *)
+(*             "TSTChild (N)". PRINTs a confirmation line to    *)
+(*             the terminal (path 1 = terminal, confirming      *)
+(*             stdout is NOT the pipe). Writes 4-byte sentinel  *)
+(*             to iPipePath via I$Write ($8A). ENDs.            *)
 (* PARAMS    : iPipePath - pipe path number passed by parent    *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
