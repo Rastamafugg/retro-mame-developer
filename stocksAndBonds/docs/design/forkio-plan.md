@@ -9,8 +9,7 @@ parameter string. Path 1 (stdout) remains terminal throughout child execution.
 
 ### 1.1 ForkPG — Pre-Game Handoff (179 bytes)
 
-Used by the pre-game child to write final setup state to the pipe before exiting.
-The parent reads this after `F$Wait` returns and uses it to reconstruct live game state.
+Documents the fields written to / read from `SNBSTATE` via the project save/load infrastructure. Used by the pre-game child to write final setup state before exiting. The parent reads this after `F$Wait` returns and uses it to reconstruct live game state.
 
 #### TYPE Definition
 
@@ -67,8 +66,7 @@ SIZE(PlyrRec) = 61, which is consistent with plyrName = 20 bytes, not 22).
 
 ### 1.2 ForkYL — Year-Loop Handoff (199 bytes)
 
-Used by the year-loop child to write mutated game state to the pipe after a year
-completes (or after all years complete). The parent reads this and overlays only the
+Documents the fields written to / read from `SNBSTATE` via the project save/load infrastructure. Used by the year-loop child to write mutated game state after a year completes (or after all years complete). The parent reads this and overlays only the
 mutable fields; static/structural fields (deck order, player names, types, tiers) are
 preserved from the parent's live state and not retransmitted.
 
@@ -233,11 +231,11 @@ creates the state also serializes it.
 
 A separate child entry procedure (`pgChild`) is required in snbSetup.b09 because
 the forked child process cannot receive PARAM-based output — it is a new OS-9
-process. 
+process.
 
 `pgChild` has one PARAM: `iPipePath:INTEGER`. RunB parses the pipe path number from
 the parameter string passed by the parent at fork time and assigns it to `iPipePath`.
-`pgChild` allocates local game-state variables, calls `snbSetup(...)` as if it were 
+`pgChild` allocates local game-state variables, calls `snbSetup(...)` as if it were
 the parent, then passes `iPipePath` through to `serPG` to write ForkPG
 to iPipePath (pipe), then ENDs. Path 1 (stdout) remains the terminal
 throughout `pgChild` execution; all UI output goes to the terminal as normal.
@@ -253,12 +251,13 @@ to child is possible across a fork boundary.
 
 `ylChild` has one PARAM: `iPipePath:INTEGER`, passed through to `serYL`. Path 1
 (stdout) remains the terminal throughout `ylChild` execution. `ylChild` loads initial
-game state from `SNBFORK` (written by parent before F$Fork), calls `runYearLoop`,
+game state from `SNBSTATE` (written by parent before F$Fork), calls `runYearLoop`,
 then calls `serYL(hdr, plyrs, mkt, iPipePath)`, then ENDs.
 
 This design reuses the existing save/load infrastructure to get initial state INTO
-the child. The parent calls `saveGame` to a temp file (`SNBFORK`) before forking.
-The child calls `loadGame` at startup. This is the only mechanism that avoids
+the child. The parent writes `SNBSTATE` before `F$Fork`. The child reads `SNBSTATE`
+at startup, runs `runYearLoop`, then overwrites `SNBSTATE` via `serYL` on exit.
+This is the only mechanism that avoids
 passing > 256 bytes of structured game state via the RunB parameter buffer.
 
 ### 2.4 Deserialization and Reconstruction
@@ -270,6 +269,23 @@ the parent's live game-state variables. Both `desPG` and `desYL` are added to SN
 This is consistent with SNB already owning `hdr`, `deckOrd`, `plyrs`, and `mkt` as
 DIM variables in the `SNB` procedure.
 
+### 2.5 Save-Game Name Collision Guard
+
+**Module: snbSaveLoad.b09**
+
+The save game procedure must reject any user-supplied filename that matches the reserved name `SNBSTATE` before issuing any `I$Create` call. The check is a direct string comparison between the user-supplied filename and the literal `"SNBSTATE"`. If the names match, the procedure prints an error message and returns without writing. This guard is the exclusive responsibility of `snbSaveLoad.b09`. No other module enforces it. The load game procedure does not require a symmetric guard — loading from `SNBSTATE` directly is not a user-accessible action; it is performed only internally by the fork coordinator in `SNB.b09`.
+
+### 2.6 Startup Stale-File Check
+
+**Module: SNB.b09**
+
+At new-game startup, before forking the pre-game child, `SNB.b09` checks whether `SNBSTATE` exists on disk via `I$Open` in read mode. If the file is found, two behaviours are acceptable and the choice is deferred:
+
+- **Discard**: delete `SNBSTATE` and proceed. The pre-game child will create a fresh one.
+- **Resume**: offer the player a prompt to resume the interrupted session by loading `SNBSTATE` directly into live state, bypassing the pre-game phase entirely.
+
+The plan adopts **Discard** as the default pending a UI decision on resume. The check must be implemented regardless of which branch is taken. Failure to find `SNBSTATE` is not an error — proceed normally. This check is not performed before forking the year-loop child; by that point `SNBSTATE` is known to be the current session file.
+
 ---
 
 ## Section 3 — New Procedure Signatures
@@ -280,12 +296,12 @@ per `bestPractices.md`. All procedures need `ON ERROR GOTO` handlers.
 | Procedure | Module | Params | Direction | Purpose |
 |-----------|--------|--------|-----------|---------|
 | `forkPG` | SNB.b09 | hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | all OUTPUT | Open pipe, redirect child stdout, fork `pgChild`, wait, read ForkPG, call desPG, close pipe |
-| `forkYL` | SNB.b09 | savPath:STRING[20], hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | hdr/plyrs/mkt are IN/OUT | Save state to SNBFORK, open pipe, redirect, fork `ylChild`, wait, read ForkYL, call desYL, close pipe, delete SNBFORK |
+| `forkYL` | SNB.b09 | savPath:STRING[20], hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | hdr/plyrs/mkt are IN/OUT | Write state to SNBSTATE, open pipe, redirect, fork `ylChild`, wait, read ForkYL, call desYL, close pipe, delete SNBSTATE |
 | `desPG` | SNB.b09 | pgBuf:ForkPG, hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | pgBuf INPUT; others OUTPUT | Unpack ForkPG into hdr/deckOrd/plyrs fields; call initPlayer for each slot; call initMkt; overlay plyrName/plyrType/aiTier from pgBuf |
 | `desYL` | SNB.b09 | ylBuf:ForkYL, hdr:SaveHdr, plyrs(6):PlyrRec, mkt:MktState | ylBuf INPUT; others IN/OUT | Unpack ForkYL; overlay mutable fields in plyrs and mkt; unpack bit fields via LAND; update hdr fields |
 | `pgChild` | snbSetup.b09 | none | — | Child entry point for pre-game fork. Allocates local SaveHdr/deckOrd/PlyrRec/MktState; calls snbSetup; if menuAct <> 3 calls serPG; ENDs |
 | `serPG` | snbSetup.b09 | hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec | all INPUT | Populate ForkPG TYPE from params; call I$Write to stdout (path 1) with ADDR(pgBuf) and SIZE(ForkPG) |
-| `ylChild` | snbYearLoop.b09 | none | — | Child entry point for year-loop fork. Loads SNBFORK via loadGame; calls runYearLoop; calls serYL; ENDs |
+| `ylChild` | snbYearLoop.b09 | none | — | Child entry point for year-loop fork. Loads SNBSTATE via loadGame; calls runYearLoop; calls serYL; ENDs |
 | `serYL` | snbYearLoop.b09 | hdr:SaveHdr, plyrs(6):PlyrRec, mkt:MktState | all INPUT | Populate ForkYL TYPE from params; pack divSuspnd, mgnHeld, flags; call I$Write to stdout (path 1) with ADDR(ylBuf) and SIZE(ForkYL) |
 | `TSTFKPIPE` | test file | none | — | S1: pipe open/close/write/read round-trip |
 | `TSTFKFORK` | test file | none | — | S2: pipe redirect + fork minimal child + read string back |
@@ -295,6 +311,8 @@ per `bestPractices.md`. All procedures need `ON ERROR GOTO` handlers.
 | `TSTFKYLDS` | test file | none | — | S6: year-loop deserialization correctness |
 | `TSTFKPGINT` | test file | none | — | S7: full pre-game fork integration |
 | `TSTFKYLINT` | test file | none | — | S8: full year-loop fork integration |
+| `guardSave` | snbSaveLoad.b09 | savName:STRING[20] | INPUT | Compare savName to `"SNBSTATE"`. If match, print rejection message and return error flag to caller. Otherwise, allow save to proceed. |
+| `chkStale` | SNB.b09 | none | — | Attempt `I$Open SNBSTATE` in read mode. If found, close and delete (Discard path). If not found, continue. Returns boolean `wasStale` to caller for optional logging. |
 
 ### Notes on `desPG` reconstruction
 
@@ -431,7 +449,7 @@ Prints "TSTFKPGINT: PASS".
 
 **Procedure:** TSTFKYLINT
 
-**What it tests:** End-to-end from `forkYL` call. Parent writes SNBFORK, forks
+**What it tests:** End-to-end from `forkYL` call. Parent writes SNBSTATE, forks
 `ylChild`. Child loads state, runs one year of `runYearLoop`, writes ForkYL, exits.
 Parent reads ForkYL and calls `desYL`. Confirms:
 - `hdr.currYear` advanced by 1
@@ -439,13 +457,31 @@ Parent reads ForkYL and calls `desYL`. Confirms:
 - `plyrs` mutable fields reflect year-end state
 
 **Pass criterion:** `hdr.currYear` = 2 after one-year run. At least one stckPrice
-differs from 100. SNBFORK temp file deleted. Prints "TSTFKYLINT: PASS".
+differs from 100. SNBSTATE temp file deleted. Prints "TSTFKYLINT: PASS".
+
+### Step S9 — Save-Game Collision Guard
+
+**Procedure:** TSTGUARDSAVE
+
+**What it tests:** Calls `guardSave` with filename `"SNBSTATE"`. Confirms rejection (error flag set, no file written). Calls `guardSave` with a valid filename `"TESTSAVE"`. Confirms acceptance (no error). Confirms `TESTSAVE` is created and then deletes it.
+
+**Pass criterion:** Rejection confirmed for reserved name. Acceptance confirmed for valid name. Prints "TSTGUARDSAVE: PASS".
+
+### Step S10 — Startup Stale-File Check
+
+**Procedure:** TSTCHKSTALE
+
+**What it tests:** Creates a dummy `SNBSTATE` file. Calls `chkStale`. Confirms `wasStale = TRUE` and `SNBSTATE` no longer exists. Calls `chkStale` again. Confirms `wasStale = FALSE` and no error.
+
+**Pass criterion:** Both branches (file present, file absent) behave correctly. Prints "TSTCHKSTALE: PASS".
 
 ---
 
 ## Section 5 — Risk and Constraint Register
 
 ### 5.1 256-Byte Pipe Buffer Ceiling
+
+A single file `SNBSTATE` serves as the IPC channel for all fork phases.
 
 This is a hard limit imposed by PIPEMAN on NitrOS-9. The child must write the
 complete payload in a single I$Write call before exiting.
@@ -538,11 +574,9 @@ bondUnts > 200 as early warning).
 
 ### 5.7 Child State Delivery Mechanism (Year Loop)
 
-The year-loop child (ylChild) receives initial game state via a save file (`SNBFORK`)
+The year-loop child (ylChild) receives initial game state via a save file (`SNBSTATE`)
 written by the parent before F$Fork. This adds one `saveGame` + one `loadGame`
-round-trip per year. Risk: if F$Fork fails after `saveGame` writes SNBFORK, the
-temp file is left on disk. The parent must delete SNBFORK in its error handler
-regardless of fork/wait outcome.
+round-trip per year. The parent must delete `SNBSTATE` in its `ON ERROR` handler if a fork or wait failure leaves the file in an indeterminate state. `SNBSTATE` should be considered owned by the coordinator (`SNB.b09`) and is always safe to delete on abnormal exit.
 
 ### 5.8 Reserved Word Check for New Names
 
@@ -557,7 +591,15 @@ reserved word list:
 - Procedure names: `forkPG`, `forkYL`, `desPG`, `desYL`, `pgChild`, `ylChild`,
   `serPG`, `serYL` — CLEAR
 - Test names: `TSTFKPIPE`, `TSTFKFORK`, `TSTFKPGSER`, `TSTFKPGDES`,
-  `TSTFKYLSER`, `TSTFKYLDS`, `TSTFKPGINT`, `TSTFKYLINT` — CLEAR
+  `TSTFKYLSER`, `TSTFKYLDS`, `TSTFKPGINT`, `TSTFKYLINT`,
+  `TSTGUARDSAVE`, `TSTCHKSTALE` — CLEAR
 
-One caution: `pgOblg` and `ylOblg` map to `hdr.obligation` (INTEGER). Field naming
-is consistent with no reserved word conflicts.
+`SNBSTATE` is the single canonical live-state filename. It must not conflict with any existing save file name used by the project's save/load system. The collision guard in `snbSaveLoad.b09` enforces this at save time.
+
+### 5.9 Temp File Naming Collision
+
+If `SNBSTATE` exists at new-game startup due to a prior crash, `chkStale` in `SNB.b09` deletes it before the pre-game child is forked. The parent should also delete any pre-existing `SNBSTATE` before writing it prior to the year-loop fork, though by that point in a normal session `SNBSTATE` is expected to be the valid current-session file from the pre-game phase. `SNBSTATE` must never appear as an option in the save-game filename prompt shown to the player.
+
+### 5.10 Reserved Name Enforcement Gap
+
+The collision guard in `guardSave` protects against user-initiated overwrites of `SNBSTATE`. It does not protect against a developer-introduced call to `saveGame` that bypasses `guardSave`. All call sites of `saveGame` in `snbSaveLoad.b09` and `SNB.b09` must route through `guardSave` before any `I$Create` is issued.
