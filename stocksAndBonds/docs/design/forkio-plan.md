@@ -1,6 +1,7 @@
 # forkio-plan.md — Pipe-Based Phase Handoff: Planning Document
 
-**Status:** Step 0 — pending review before any implementation proceeds.
+**Status:** Step 0 revised — pipe path passed as PARAM to child via RunB
+parameter string. Path 1 (stdout) remains terminal throughout child execution.
 
 ---
 
@@ -232,9 +233,14 @@ creates the state also serializes it.
 
 A separate child entry procedure (`pgChild`) is required in snbSetup.b09 because
 the forked child process cannot receive PARAM-based output — it is a new OS-9
-process. `pgChild` has no PARAMs; it allocates local game-state variables, calls
-`snbSetup(...)` as if it were the parent, then calls `serPG(...)` to write ForkPG
-to stdout (pipe), then ENDs.
+process. 
+
+`pgChild` has one PARAM: `iPipePath:INTEGER`. RunB parses the pipe path number from
+the parameter string passed by the parent at fork time and assigns it to `iPipePath`.
+`pgChild` allocates local game-state variables, calls `snbSetup(...)` as if it were 
+the parent, then passes `iPipePath` through to `serPG` to write ForkPG
+to iPipePath (pipe), then ENDs. Path 1 (stdout) remains the terminal
+throughout `pgChild` execution; all UI output goes to the terminal as normal.
 
 ### 2.3 Year-Loop Serialization
 
@@ -245,9 +251,10 @@ to snbYearLoop is consistent. A child entry procedure (`ylChild`) in snbYearLoop
 is required for the same reason as `pgChild`: no PARAM-based handoff from parent
 to child is possible across a fork boundary.
 
-`ylChild` has no PARAMs. It loads game state from the pre-fork save file (written by
-the parent via `saveGame` before F$Fork), calls `runYearLoop(...)`, then calls
-`serYL(...)` to write ForkYL to stdout (pipe), then ENDs.
+`ylChild` has one PARAM: `iPipePath:INTEGER`, passed through to `serYL`. Path 1
+(stdout) remains the terminal throughout `ylChild` execution. `ylChild` loads initial
+game state from `SNBFORK` (written by parent before F$Fork), calls `runYearLoop`,
+then calls `serYL(hdr, plyrs, mkt, iPipePath)`, then ENDs.
 
 This design reuses the existing save/load infrastructure to get initial state INTO
 the child. The parent calls `saveGame` to a temp file (`SNBFORK`) before forking.
@@ -326,11 +333,11 @@ No carry-set errors from any SysCall. Prints "TSTFKPIPE: PASS".
 
 **What it tests:** Full parent-side path manipulation sequence:
 1. Open `/pipe` (mode 3)
-2. Dup path 1 → save as savedOut
-3. Close path 1
-4. Dup pipePath (assigns pipe to slot 1)
+2. Dup path iPipePath → save as savedOut
+3. Close path iPipePath
+4. Dup pipePath (assigns pipe to slot iPipePath)
 5. Fork RunB with a minimal child that PRINTs a known string and ENDs
-6. Close path 1
+6. Close path iPipePath
 7. Dup savedOut (restore stdout)
 8. Close savedOut
 9. F$Wait
