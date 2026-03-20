@@ -13,6 +13,18 @@ The primary reference for all file I/O behavior is the Basic09 Programming
 Language Reference Manual, Sections on GET, PUT, SEEK, CREATE, OPEN, and
 CLOSE.
 
+The save file format serves two purposes:
+
+1. **User save/load**: player-initiated saves persist game state across
+   sessions using named files (see Section 3).
+2. **Internal phase handoff**: `SNBSTATE` is the sole IPC channel between
+   the SNB coordinator process and each forked phase child. It uses the
+   identical file format. See `forkio-plan.md` for coordinator design.
+
+The shuffled deck is trimmed on first write. Only the first `maxYears`
+entries of the 36-element deck are written to disk. Entries beyond
+`maxYears` are never drawn during play and are not persisted.
+
 ---
 
 ## 2. I/O Format Selection
@@ -28,9 +40,8 @@ Rationale:
 - All game state values are integers, booleans, and bytes. No REAL values
   are required (spec Section 15). Binary format represents these types
   compactly and exactly.
-- Fixed-size TYPE records make the file layout deterministic. Total save
-  file size is 440 bytes. Random access via `SEEK` is available if a
-  multi-slot save system is added later.
+- Fixed-size TYPE records make the file layout deterministic. Random access
+  via `SEEK` is available if a multi-slot save system is added later.
 - Sequential `READ`/`WRITE` would require converting every INTEGER to
   ASCII and back. For a save/load operation this is unnecessary overhead
   and produces larger files.
@@ -42,20 +53,23 @@ during normal save/load; the file pointer advances naturally via PUT/GET.
 
 ## 3. File Naming Convention
 
-| Purpose              | Filename    | Notes                              |
-|----------------------|-------------|------------------------------------|
-| Default active save  | `SNBGAME`   | Overwritten on each save           |
-| Named save slot 1    | `SNBSAVE1`  | Player-named; optional feature     |
-| Named save slot 2    | `SNBSAVE2`  |                                    |
-| Named save slot 3    | `SNBSAVE3`  |                                    |
-| Named save slot 4    | `SNBSAVE4`  |                                    |
+| Purpose              | Filename    | Notes                                        |
+|----------------------|-------------|----------------------------------------------|
+| Internal IPC file    | `SNBSTATE`  | Reserved. Written/read by coordinator only.  |
+|                      |             | Never shown to player. Never user-writable.  |
+| Default active save  | `SNBGAME`   | Overwritten on each save                     |
+| Named save slot 1    | `SNBSAVE1`  | Player-named; optional feature               |
+| Named save slot 2    | `SNBSAVE2`  |                                              |
+| Named save slot 3    | `SNBSAVE3`  |                                              |
+| Named save slot 4    | `SNBSAVE4`  |                                              |
+
+`SNBSTATE` is a reserved internal filename. The `guardSave` procedure in
+`snbSaveLoad.b09` rejects any player-supplied save name that matches
+`SNBSTATE` before any `I$Create` call is made.
 
 Save files are written to the current data directory. The load screen
 (see `ui-screen-flow.md`) lists available save files by attempting to
-open each known filename.
-
-OS-9 filename length is not restricted to 8 characters, but short names
-are conventional for this era and platform.
+open each known filename. `SNBSTATE` is never included in this list.
 
 ---
 
@@ -74,30 +88,29 @@ procedure uses this to route directly to the correct resume point.
 | 2            | BUY_PHASE   | Steps 1–9 applied; buy turn `savedPlyr` pending    | S17 — Buy Phase (human) or   |
 |              |             |                                                    | S19 — Computer Buy Summary   |
 | 3            | FORCED_LIQ  | Forced liquidation active for `savedPlyr`;         | S21 — Forced Liquidation     |
-|              |             | `obligation` holds outstanding amount              |                              |
+|              |             | `plyrs(savedPlyr).obligation` holds outstanding    |                              |
+|              |             | amount                                             |                              |
 
 ### YEAR_START resume behavior
 
-When `savedPhase = 0`, the deck position (`deckPos`) points to the next
-card to be drawn for `currYear`. Steps 1–8 have not been applied. On
-resume, the game proceeds through S8 and then executes steps 1–8 normally:
-a card is drawn from the deck at `deckPos`, dice are rolled, and prices
-are updated. The player sees the full market resolution sequence (S11–S15)
-as if the year is beginning fresh.
+When `savedPhase = 0`, the deck position is derived from `currYear`. Steps
+1–8 have not been applied. On resume, the game proceeds through S8 and
+then executes steps 1–8 normally: card `deckOrd(currYear)` is drawn, dice
+are rolled, and prices are updated. The player sees the full market
+resolution sequence (S11–S15) as if the year is beginning fresh.
 
 ### SELL_PHASE and BUY_PHASE resume behavior
 
 When `savedPhase = 1` or `2`, steps 1–8 are already reflected in the
 current stock prices stored in `MktState`. The deck position has already
-advanced past the drawn card. On resume, the market resolution screens
-(S11–S15) are skipped. The game jumps directly to the sell or buy turn
-for player `savedPlyr`.
+advanced. On resume, the market resolution screens (S11–S15) are skipped.
+The game jumps directly to the sell or buy turn for player `savedPlyr`.
 
 ### FORCED_LIQ resume behavior
 
-`obligation` holds the outstanding amount that triggered forced
-liquidation. The game resumes at S21 for player `savedPlyr` with
-`obligation` as the initial `obligationRemaining` value.
+`plyrs(savedPlyr).obligation` holds the outstanding amount that triggered
+forced liquidation. The game resumes at S21 for player `savedPlyr` with
+`plyrs(savedPlyr).obligation` as the initial `obligationRemaining` value.
 
 ---
 
@@ -110,25 +123,52 @@ them, before any PARAM or DIM declarations (per `bestPractices.md`).
 
 File header. Always the first record written and first record read.
 
+Fields are grouped: static fields (written once at pre-game exit, never
+subsequently modified) precede dynamic fields (updated at one or more
+phase exits).
+
 ```
 TYPE SaveHdr
+    ! Static fields — written once at pre-game exit
     magic       : BYTE      ! Format marker. Expected value: $53 ('S')
     fmtVersion  : BYTE      ! Save format version. Current: 1
-    currYear    : BYTE      ! Current game year (1–10)
+    maxYears    : BYTE      ! Configured game length in years (1–10)
     plyrCount   : BYTE      ! Number of players (1–6)
     rollMode    : BYTE      ! Market roll mode: 1=A, 2=B, 3=C
+    ! Dynamic fields — updated at phase boundaries
+    currYear    : BYTE      ! Current game year (1–maxYears)
     savedPhase  : BYTE      ! Save checkpoint (0–3; see Section 4)
     savedPlyr   : BYTE      ! Player turn index at save (1–plyrCount)
-    obligation  : INTEGER   ! Outstanding forced liquidation amount
-    deckPos     : BYTE      ! Next card index in deckOrder (1–36)
+    gameStage   : BYTE      ! Macro phase (1=pregame, 2=year, 3=done)
+    bnkrFlgs    : BYTE      ! Bankruptcy bit flags (bit p-1 = player p)
     checksum    : BYTE      ! Header integrity byte (see Section 7)
 ```
 
-SIZE(SaveHdr) = 11 bytes.
+SIZE(SaveHdr) = 11 bytes (11 BYTE fields, 1 byte each).
 
-Note: `magic`, `fmtVersion`, `currYear`, `plyrCount`, `rollMode`,
-`savedPhase`, `savedPlyr`, `deckPos`, `checksum` are all BYTE (1 byte
-each = 9 bytes); `obligation` is INTEGER (2 bytes). Total: 11 bytes.
+**`gameStage` values:**
+
+| Value | Constant | Written By | Coordinator Action |
+|-------|----------|-----------|-------------------|
+| 1 | GS_PREGM | Pre-game child | Fork first year-loop child |
+| 2 | GS_YEAR | Year-loop child | Re-evaluate; fork year-loop or end-game |
+| 3 | GS_DONE | Year-loop child | Fork end-game child; exit loop |
+
+**`bnkrFlgs` bit assignment:**
+
+| Bit | Mask | Player |
+|-----|------|--------|
+| 0 | $01 | Player 1 |
+| 1 | $02 | Player 2 |
+| 2 | $04 | Player 3 |
+| 3 | $08 | Player 4 |
+| 4 | $10 | Player 5 |
+| 5 | $20 | Player 6 |
+| 6–7 | $C0 | Reserved — must be 0 |
+
+`bnkrFlgs` is computed by `saveGame` from the `plyrs` array before
+writing, analogous to how `checksum` is computed. The caller does not
+set `bnkrFlgs` directly.
 
 ### 5.2 PlyrRec
 
@@ -140,6 +180,7 @@ TYPE PlyrRec
     plyrType    : BYTE         ! 1 = HUMAN, 2 = COMP
     cashBal     : INTEGER      ! Current cash balance
     marginTot   : INTEGER      ! Outstanding margin total
+    obligation  : INTEGER      ! Outstanding forced liquidation amount
     isBankrupt  : BOOLEAN      ! TRUE if player has been eliminated
     hadCashPur  : BOOLEAN      ! TRUE if prior cash purchase made
     aiTier      : BYTE         ! AI difficulty: 1=Easy,2=Med,3=Hard;0=human
@@ -148,11 +189,12 @@ TYPE PlyrRec
     bondUnts(3) : INTEGER      ! Bond units held per denomination (index 1–3)
 ```
 
-SIZE per player: 20 + 1 + 2 + 2 + 1 + 1 + 1 + 18 + 9 + 6 = **61 bytes**.
+SIZE per player: 20 + 1 + 2 + 2 + 2 + 1 + 1 + 1 + 18 + 9 + 6 = **63 bytes**.
 
-Note: `stckShrs`, `mgnHeld`, and `bondUnts` use inline array syntax
-within the TYPE definition, following the pattern demonstrated in the
-Basic09 reference manual: `address(3):STRING`.
+`obligation` records the outstanding forced liquidation amount for this
+player when `savedPhase = 3`. It is 0 for all players when `savedPhase`
+is 0, 1, or 2. The load procedure reads it from `plyrs(hdr.savedPlyr)`
+when resuming a `FORCED_LIQ` checkpoint.
 
 `aiTier` stores the difficulty tier for computer players. On load, the
 full `AIProfile` record is reconstructed from `aiTier` without saving
@@ -178,21 +220,26 @@ SIZE: 18 + 9 = **27 bytes**.
 
 ## 6. Byte-Size Accounting
 
-| Component             | Type/Count         | Bytes       |
-|-----------------------|--------------------|-------------|
-| SaveHdr               | 1 record           | 11          |
-| deckOrder array       | 36 × BYTE          | 36          |
-| PlyrRec               | 6 records × 61     | 366         |
-| MktState              | 1 record           | 27          |
-| **Total**             |                    | **440**     |
+The deck section is variable-length: `maxYears` bytes, bounded by the
+configured game length. The maximum game length is 10 years.
 
-440 bytes is negligible on any OS-9 storage medium. The variable memory
+| Component             | Type/Count              | Bytes (max)  |
+|-----------------------|-------------------------|--------------|
+| SaveHdr               | 1 record                | 11           |
+| deckOrd (trimmed)     | maxYears × BYTE (max 10)| 10           |
+| PlyrRec               | 6 records × 63          | 378          |
+| MktState              | 1 record                | 27           |
+| **Total (max)**       |                         | **426**      |
+| **Total (min, 1 yr)** |                         | **417**      |
+
+426 bytes is negligible on any OS-9 storage medium. The variable memory
 budget (32KB) is unaffected: the TYPE definitions and working variables
 for save/load require under 200 bytes at runtime.
 
-The `deckOrder` array is written separately as a `DIM deckOrder(36):BYTE`
-array, not embedded in `SaveHdr`. Basic09's `PUT` statement writes the
-exact binary representation of the array in one operation.
+The in-memory `deckOrd` array is declared as `DIM deckOrd(36):BYTE`
+and fully shuffled. Only indices 1 through `maxYears` are written to
+and read from disk. Indices `maxYears+1` through 36 are never used
+after the shuffle and are not persisted.
 
 All 6 `PlyrRec` entries are always written and read regardless of
 `plyrCount`. Inactive slots (index > plyrCount) contain whatever values
@@ -203,7 +250,7 @@ during gameplay.
 
 ## 7. Checksum
 
-The `checksum` field is a single BYTE computed from the other nine
+The `checksum` field is a single BYTE computed from the other ten
 header fields. It provides format validation: a mismatched checksum
 on load indicates a corrupt or incompatible save file.
 
@@ -211,20 +258,28 @@ Computation:
 
 ```
 hdr.checksum := LAND(
-    hdr.magic    + hdr.fmtVersion + hdr.currYear  +
-    hdr.plyrCount + hdr.rollMode  + hdr.savedPhase +
-    hdr.savedPlyr + hdr.deckPos   + hdr.obligation,
+    hdr.magic      + hdr.fmtVersion + hdr.maxYears  +
+    hdr.plyrCount  + hdr.rollMode   + hdr.currYear   +
+    hdr.savedPhase + hdr.savedPlyr  + hdr.gameStage  +
+    hdr.bnkrFlgs,
     255)
 ```
+
+All ten covered fields are BYTE (1 byte each). The maximum sum is
+10 × 255 = 2550, which fits safely in a Basic09 INTEGER. No INTEGER
+staging is required for this computation.
 
 `LAND(..., 255)` retains only the low 8 bits of the INTEGER sum,
 producing a value in the BYTE range 0–255.
 
-`obligation` is INTEGER (2 bytes); when added to the BYTE fields it is
-automatically widened to INTEGER for the arithmetic, then truncated to
-BYTE by `LAND`. This is expected behavior.
-
 The checksum is computed immediately before the `PUT #path, hdr` call.
+`bnkrFlgs` must also be computed before the checksum is computed, since
+it is a covered field. The correct sequence in `saveGame` is:
+
+1. Compute `hdr.bnkrFlgs` from the `plyrs` array.
+2. Compute `hdr.checksum` from all ten header fields including `bnkrFlgs`.
+3. `PUT #path, hdr`.
+
 On load, the checksum is recomputed from the loaded header fields and
 compared to `hdr.checksum` before any game state is applied.
 
@@ -237,34 +292,57 @@ the `DELETE` before `CREATE` pattern follow `bestPractices.md`.
 
 ```
 PROCEDURE saveGame
-(*                                                          *)
-(* PURPOSE : Serialize complete game state to a save file.  *)
-(* PARAMS  : savePath - target filename                     *)
-(*           hdr      - populated SaveHdr record            *)
-(*           deckOrd  - shuffled deck order array (36 BYTE) *)
-(*           plyrs    - player records array (6 PlyrRec)    *)
-(*           mkt      - current market state                *)
-(*                                                          *)
+(*                                                                    *)
+(* PURPOSE : Serialize complete game state to a save file.           *)
+(* PARAMS  : savePath  - target filename                              *)
+(*           hdr       - populated SaveHdr record                     *)
+(*           deckOrd   - shuffled deck order array (36 BYTE)         *)
+(*           plyrs     - player records array (6 PlyrRec)            *)
+(*           mkt       - current market state                         *)
+(*                                                                    *)
+(* CALLER MUST SET before calling:                                    *)
+(*   hdr.magic, hdr.fmtVersion, hdr.maxYears, hdr.plyrCount,        *)
+(*   hdr.rollMode, hdr.currYear, hdr.savedPhase, hdr.savedPlyr,     *)
+(*   hdr.gameStage                                                    *)
+(*                                                                    *)
+(* saveGame computes hdr.bnkrFlgs and hdr.checksum internally.       *)
+(*                                                                    *)
 TYPE SaveHdr = ...
 TYPE PlyrRec = ...
 TYPE MktState = ...
-PARAM savePath   : STRING[20]
-PARAM hdr        : SaveHdr
-PARAM deckOrd(36): BYTE
-PARAM plyrs(6)   : PlyrRec
-PARAM mkt        : MktState
-DIM path    : BYTE
-DIM pathOpen: BOOLEAN
+PARAM savePath    : STRING[20]
+PARAM hdr         : SaveHdr
+PARAM deckOrd(36) : BYTE
+PARAM plyrs(6)    : PlyrRec
+PARAM mkt         : MktState
+DIM path     : BYTE
+DIM pathOpen : BOOLEAN
+DIM i        : INTEGER
+DIM iMask    : INTEGER
+DIM iFlgs    : INTEGER
+DIM shft     : INTEGER
 
 ON ERROR GOTO 900
 
 pathOpen := FALSE
 
-! Compute and store header checksum before writing.
+! Compute bnkrFlgs from plyrs.isBankrupt before checksum.
+hdr.bnkrFlgs := 0
+shft := 1
+FOR i := 1 TO hdr.plyrCount
+    IF plyrs(i).isBankrupt THEN
+        iFlgs         := hdr.bnkrFlgs   ! stage BYTE to INTEGER
+        hdr.bnkrFlgs  := iFlgs LOR shft
+    ENDIF
+    shft := shft * 2
+NEXT i
+
+! Compute header checksum.
 hdr.checksum := LAND(
-    hdr.magic    + hdr.fmtVersion + hdr.currYear  +
-    hdr.plyrCount + hdr.rollMode  + hdr.savedPhase +
-    hdr.savedPlyr + hdr.deckPos   + hdr.obligation,
+    hdr.magic      + hdr.fmtVersion + hdr.maxYears  +
+    hdr.plyrCount  + hdr.rollMode   + hdr.currYear   +
+    hdr.savedPhase + hdr.savedPlyr  + hdr.gameStage  +
+    hdr.bnkrFlgs,
     255)
 
 ! Remove existing file; ignore error if not found.
@@ -277,8 +355,13 @@ CREATE #path, savePath: WRITE
 pathOpen := TRUE
 
 PUT #path, hdr
-PUT #path, deckOrd     ! 36-element BYTE array; one PUT writes all 36
-PUT #path, plyrs       ! 6-element PlyrRec array; one PUT writes all 6
+
+! Write only the first maxYears deck entries.
+FOR i := 1 TO hdr.maxYears
+    PUT #path, deckOrd(i)
+NEXT i
+
+PUT #path, plyrs   ! 6-element PlyrRec array; one PUT writes all 6
 PUT #path, mkt
 
 CLOSE #path
@@ -293,27 +376,25 @@ END
 END
 ```
 
-The entire save is four PUT statements. The array forms of PUT (`plyrs`
-and `deckOrd`) write all elements in one operation.
-
 ---
 
 ## 9. Read Sequence
 
 Pseudocode for the load procedure. Validates format version and checksum
-before applying any state.
+before applying any state. Reads `hdr.maxYears` from the header before
+reading the variable-length deck section.
 
 ```
 PROCEDURE loadGame
-(*                                                              *)
-(* PURPOSE : Deserialize game state from a save file.          *)
-(* PARAMS  : savePath  - source filename                       *)
-(*           hdr       - receives SaveHdr                      *)
-(*           deckOrd   - receives deck order array (36 BYTE)   *)
-(*           plyrs     - receives player records (6 PlyrRec)   *)
-(*           mkt       - receives market state                 *)
-(*           loadOK    - returns TRUE on success               *)
-(*                                                             *)
+(*                                                                    *)
+(* PURPOSE : Deserialize game state from a save file.                *)
+(* PARAMS  : savePath  - source filename                              *)
+(*           hdr       - receives SaveHdr                            *)
+(*           deckOrd   - receives deck order array (36 BYTE)         *)
+(*           plyrs     - receives player records (6 PlyrRec)         *)
+(*           mkt       - receives market state                        *)
+(*           loadOK    - returns TRUE on success                      *)
+(*                                                                    *)
 TYPE SaveHdr = ...
 TYPE PlyrRec = ...
 TYPE MktState = ...
@@ -326,6 +407,7 @@ PARAM loadOK      : BOOLEAN
 DIM path      : BYTE
 DIM pathOpen  : BOOLEAN
 DIM chkExpect : BYTE
+DIM i         : INTEGER
 
 ON ERROR GOTO 900
 
@@ -335,15 +417,10 @@ loadOK   := FALSE
 OPEN #path, savePath: READ
 pathOpen := TRUE
 
+! Read header first — maxYears governs the deck section length.
 GET #path, hdr
-GET #path, deckOrd
-GET #path, plyrs
-GET #path, mkt
 
-CLOSE #path
-pathOpen := FALSE
-
-! Validate magic byte.
+! Validate magic byte before reading further.
 IF hdr.magic <> $53 THEN
     PRINT "Error: not a valid save file."
     END
@@ -357,14 +434,26 @@ ENDIF
 
 ! Validate checksum.
 chkExpect := LAND(
-    hdr.magic    + hdr.fmtVersion + hdr.currYear  +
-    hdr.plyrCount + hdr.rollMode  + hdr.savedPhase +
-    hdr.savedPlyr + hdr.deckPos   + hdr.obligation,
+    hdr.magic      + hdr.fmtVersion + hdr.maxYears  +
+    hdr.plyrCount  + hdr.rollMode   + hdr.currYear   +
+    hdr.savedPhase + hdr.savedPlyr  + hdr.gameStage  +
+    hdr.bnkrFlgs,
     255)
 IF chkExpect <> hdr.checksum THEN
     PRINT "Error: save file is corrupt."
     END
 ENDIF
+
+! Read trimmed deck — only maxYears entries were written.
+FOR i := 1 TO hdr.maxYears
+    GET #path, deckOrd(i)
+NEXT i
+
+GET #path, plyrs
+GET #path, mkt
+
+CLOSE #path
+pathOpen := FALSE
 
 loadOK := TRUE
 END
@@ -387,8 +476,8 @@ and `hdr.savedPlyr`:
 ```
 IF hdr.savedPhase = 0 THEN
     ! Resume at S8 (Year Header).
-    ! Steps 1-8 will execute normally: card drawn, dice rolled,
-    ! prices updated, market resolution screens shown.
+    ! Steps 1-8 will execute normally: card deckOrd(currYear) drawn,
+    ! dice rolled, prices updated, market resolution screens shown.
     RUN enterYearLoop(hdr.currYear, hdr.rollMode, deckOrd, plyrs, mkt)
 
 ELSE IF hdr.savedPhase = 1 THEN
@@ -404,7 +493,10 @@ ELSE IF hdr.savedPhase = 2 THEN
 
 ELSE IF hdr.savedPhase = 3 THEN
     ! Resume in forced liquidation for player hdr.savedPlyr.
-    RUN enterForcedLiq(hdr.savedPlyr, hdr.obligation, plyrs, mkt)
+    ! obligation is read from the player record, not the header.
+    RUN enterForcedLiq(hdr.savedPlyr,
+                       plyrs(hdr.savedPlyr).obligation,
+                       plyrs, mkt)
 
 ENDIF \ENDIF \ENDIF \ENDIF
 ```
@@ -414,7 +506,8 @@ ENDIF \ENDIF \ENDIF \ENDIF
 ## 10. Save State Population Reference
 
 For each save checkpoint, the following fields require explicit
-population before calling `saveGame`.
+population before calling `saveGame`. Fields computed internally by
+`saveGame` (bnkrFlgs, checksum) are excluded from caller responsibility.
 
 ### 10.1 All Checkpoints
 
@@ -422,24 +515,26 @@ population before calling `saveGame`.
 |-------------------|------------------------------------------------------|
 | `hdr.magic`       | Constant $53                                         |
 | `hdr.fmtVersion`  | Constant 1                                           |
-| `hdr.currYear`    | Current year loop variable                           |
+| `hdr.maxYears`    | Game length from setup; set once at pre-game exit    |
 | `hdr.plyrCount`   | Player count from setup                              |
 | `hdr.rollMode`    | Market roll mode from setup (1/2/3)                  |
-| `hdr.deckPos`     | Current deck position (next undrawn card index). New game: set to 1 immediately after the initial shuffleDeck call in the game initialization procedure. Load: restored directly from hdr.deckPos by loadGame.      |
-| `hdr.checksum`    | Computed by saveGame; do not set before calling      |
-| `deckOrd(1..36)`  | Shuffled deck array (persists for full game)         |
+| `hdr.currYear`    | Current year loop variable                           |
+| `hdr.gameStage`   | Phase constant written by child at exit              |
+| `hdr.savedPhase`  | Current intra-year checkpoint (0–3)                  |
+| `hdr.savedPlyr`   | Current player index at checkpoint                   |
+| `deckOrd(1..36)`  | Shuffled deck array (only 1..maxYears written)       |
 | `plyrs(1..n)`     | All PlyrRec fields for active players                |
 | `mkt.stckPrice`   | Current price per stock                              |
 | `mkt.divSuspnd`   | Dividend suspension state per stock                  |
 
 ### 10.2 Per-Checkpoint Fields
 
-| `savedPhase` | `savedPlyr`                          | `obligation`                  |
-|--------------|--------------------------------------|-------------------------------|
-| 0            | 0 (unused)                           | 0 (unused)                    |
-| 1            | Index of next player to sell (1–n)   | 0 (unused)                    |
-| 2            | Index of next player to buy (1–n)    | 0 (unused)                    |
-| 3            | Index of player in liquidation (1–n) | Outstanding obligation amount |
+| `savedPhase` | `savedPlyr`                          | `obligation` (in PlyrRec)                    |
+|--------------|--------------------------------------|----------------------------------------------|
+| 0            | 0 (unused)                           | 0 for all players (unused)                   |
+| 1            | Index of next player to sell (1–n)   | 0 for all players (unused)                   |
+| 2            | Index of next player to buy (1–n)    | 0 for all players (unused)                   |
+| 3            | Index of player in liquidation (1–n) | `plyrs(savedPlyr).obligation` = outstanding amount |
 
 ---
 
@@ -459,6 +554,23 @@ directly in `PlyrRec`.
 
 ## 12. Known Constraints and Limitations
 
+### SNBSTATE is a reserved internal filename
+
+`SNBSTATE` is used exclusively by the SNB coordinator and phase child
+processes as an IPC channel. It must never appear in the player-visible
+save slot list. The `guardSave` procedure in `snbSaveLoad.b09` rejects
+any player-supplied filename matching `SNBSTATE` before any `I$Create`
+call. See `forkio-plan.md` for the `chkStale` procedure that handles
+stale `SNBSTATE` files on new-game startup.
+
+### Variable-length deck section
+
+The deck section of the save file is `maxYears` bytes, not a fixed 36
+bytes. Any procedure that reads the deck section must first read the
+header to obtain `maxYears`. The load procedure enforces this ordering.
+The in-memory `deckOrd` array is always declared as 36 elements; only
+the first `maxYears` elements are populated from disk.
+
 ### Single active save
 
 The design supports one active save file (`SNBGAME`) plus four named
@@ -475,10 +587,9 @@ of the first sell turn (`savedPhase = 1`).
 
 ### Checksum covers header only
 
-The checksum validates the 9-byte header only. Corruption in player
-records or market state is not detected by the checksum. Full-file
-checksumming would require byte-level iteration over the entire 440-byte
-image, which is feasible but adds implementation complexity. Deferred.
+The checksum validates the 11-byte header only (all fields except
+checksum itself). Corruption in player records or market state is not
+detected by the checksum. Full-file checksumming is deferred.
 
 ### Format version
 

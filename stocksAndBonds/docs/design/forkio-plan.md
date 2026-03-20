@@ -1,605 +1,560 @@
-# forkio-plan.md — Pipe-Based Phase Handoff: Planning Document
+# forkio-plan.md — Phase Coordination and Refactoring Roadmap
 
-**Status:** Step 0 revised — pipe path passed as PARAM to child via RunB
-parameter string. Path 1 (stdout) remains terminal throughout child execution.
-
----
-
-## Section 1 — Handoff TYPE Definitions
-
-### 1.1 ForkPG — Pre-Game Handoff (179 bytes)
-
-Documents the fields written to / read from `SNBSTATE` via the project save/load infrastructure. Used by the pre-game child to write final setup state before exiting. The parent reads this after `F$Wait` returns and uses it to reconstruct live game state.
-
-#### TYPE Definition
-
-```
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE ForkPG = pgMag,pgFmtV,pgCYr,pgPCnt,pgRMod,pgSPhs,pgSPlr,pgDkPs,pgChks:BYTE;pgOblg:INTEGER;pgDeck(36):BYTE;pgNam1,pgNam2,pgNam3,pgNam4,pgNam5,pgNam6:STRING[20];pgTyp(6),pgTier(6):BYTE
-```
-
-#### Field Layout — Write Order
-
-| # | Field | Type | Bytes | Running Total | Source Field | Notes |
-|---|-------|------|-------|---------------|--------------|-------|
-| 1 | pgMag | BYTE | 1 | 1 | hdr.magic | Format marker |
-| 2 | pgFmtV | BYTE | 1 | 2 | hdr.fmtVersion | |
-| 3 | pgCYr | BYTE | 1 | 3 | hdr.currYear | Always 1 at pre-game exit |
-| 4 | pgPCnt | BYTE | 1 | 4 | hdr.plyrCount | |
-| 5 | pgRMod | BYTE | 1 | 5 | hdr.rollMode | |
-| 6 | pgSPhs | BYTE | 1 | 6 | hdr.savedPhase | Always 0 at pre-game exit |
-| 7 | pgSPlr | BYTE | 1 | 7 | hdr.savedPlyr | Always 0 at pre-game exit |
-| 8 | pgOblg | INTEGER | 2 | 9 | hdr.obligation | Always 0 at pre-game exit |
-| 9 | pgDkPs | BYTE | 1 | 10 | hdr.deckPos | Set to 1 after shuffleDeck |
-| 10 | pgChks | BYTE | 1 | 11 | hdr.checksum | Computed per save-load-design.md §7 |
-| 11 | pgDeck(36) | BYTE[36] | 36 | 47 | deckOrd(1..36) | Shuffled deck order array |
-| 12 | pgNam1 | STRING[20] | 20 | 67 | plyrs(1).plyrName | |
-| 13 | pgNam2 | STRING[20] | 20 | 87 | plyrs(2).plyrName | |
-| 14 | pgNam3 | STRING[20] | 20 | 107 | plyrs(3).plyrName | |
-| 15 | pgNam4 | STRING[20] | 20 | 127 | plyrs(4).plyrName | |
-| 16 | pgNam5 | STRING[20] | 20 | 147 | plyrs(5).plyrName | |
-| 17 | pgNam6 | STRING[20] | 20 | 167 | plyrs(6).plyrName | |
-| 18 | pgTyp(6) | BYTE[6] | 6 | 173 | plyrs(i).plyrType | Flat array; index 1..6 |
-| 19 | pgTier(6) | BYTE[6] | 6 | 179 | plyrs(i).aiTier | Flat array; index 1..6 |
-
-**Confirmed total: 179 bytes. Margin: 77 bytes below 256-byte ceiling.**
-
-#### Packing Logic
-
-No packing is required for ForkPG. All fields are direct assignments:
-
-```
-pgMag   := hdr.magic
-pgFmtV  := hdr.fmtVersion
-...
-pgDeck(i) := deckOrd(i)   ! i = 1..36
-pgNam1  := plyrs(1).plyrName
-...
-pgTyp(i) := plyrs(i).plyrType   ! i = 1..6
-pgTier(i) := plyrs(i).aiTier
-```
-
-STRING[20] field in a TYPE occupies 20 bytes on this platform (confirmed by TSTSIZE:
-SIZE(PlyrRec) = 61, which is consistent with plyrName = 20 bytes, not 22).
+**Architecture:** Option 2 — File-based IPC. `SNBSTATE` is the sole handoff
+channel between the SNB coordinator and each phase child. Pipe-based IPC
+(ForkPG, ForkYL, I$Dup/I$Close sequences) has been superseded and is not
+implemented.
 
 ---
 
-### 1.2 ForkYL — Year-Loop Handoff (199 bytes)
+## Section 1 — Architecture Overview
 
-Documents the fields written to / read from `SNBSTATE` via the project save/load infrastructure. Used by the year-loop child to write mutated game state after a year completes (or after all years complete). The parent reads this and overlays only the
-mutable fields; static/structural fields (deck order, player names, types, tiers) are
-preserved from the parent's live state and not retransmitted.
-
-#### TYPE Definition
-
-```
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE ForkYL = ylMag,ylFmtV,ylCYr,ylPCnt,ylRMod,ylSPhs,ylSPlr,ylDkPs,ylChks:BYTE;ylOblg:INTEGER;ylSPrc(9):INTEGER;ylDvPk:INTEGER;ylCash(6),ylMgns(6):INTEGER;ylFlgs(6):BYTE;ylShrs(54):INTEGER;ylMgPk(6):INTEGER;ylBnds(18):BYTE
-```
-
-#### Field Layout — Write Order
-
-| # | Field | Type | Bytes | Running Total | Source Field | Notes |
-|---|-------|------|-------|---------------|--------------|-------|
-| 1 | ylMag | BYTE | 1 | 1 | hdr.magic | |
-| 2 | ylFmtV | BYTE | 1 | 2 | hdr.fmtVersion | |
-| 3 | ylCYr | BYTE | 1 | 3 | hdr.currYear | Year at handoff exit |
-| 4 | ylPCnt | BYTE | 1 | 4 | hdr.plyrCount | |
-| 5 | ylRMod | BYTE | 1 | 5 | hdr.rollMode | |
-| 6 | ylSPhs | BYTE | 1 | 6 | hdr.savedPhase | 0 at normal year exit |
-| 7 | ylSPlr | BYTE | 1 | 7 | hdr.savedPlyr | |
-| 8 | ylOblg | INTEGER | 2 | 9 | hdr.obligation | |
-| 9 | ylDkPs | BYTE | 1 | 10 | hdr.deckPos | Deck position after year |
-| 10 | ylChks | BYTE | 1 | 11 | hdr.checksum | |
-| 11 | ylSPrc(9) | INTEGER[9] | 18 | 29 | mkt.stckPrice(1..9) | Post-year prices |
-| 12 | ylDvPk | INTEGER | 2 | 31 | mkt.divSuspnd(1..9) | Packed; see below |
-| 13 | ylCash(6) | INTEGER[6] | 12 | 43 | plyrs(i).cashBal | |
-| 14 | ylMgns(6) | INTEGER[6] | 12 | 55 | plyrs(i).marginTot | |
-| 15 | ylFlgs(6) | BYTE[6] | 6 | 61 | isBankrupt + hadCashPur | Packed; see below |
-| 16 | ylShrs(54) | INTEGER[54] | 108 | 169 | plyrs(i).stckShrs(s) | Flat; index (i-1)*9+s |
-| 17 | ylMgPk(6) | INTEGER[6] | 12 | 181 | plyrs(i).mgnHeld(1..9) | Packed per player; see below |
-| 18 | ylBnds(18) | BYTE[18] | 18 | 199 | plyrs(i).bondUnts(b) | Flat; index (i-1)*3+b |
-
-**Confirmed total: 199 bytes. Margin: 57 bytes below 256-byte ceiling.**
-
-#### Packing Logic
-
-**`ylDvPk` — packing `mkt.divSuspnd(1..9)` into one INTEGER:**
-
-Stock index s maps to bit (s-1). Shift doubles each iteration:
+The SNB coordinator (`SNB.b09`) runs as the persistent parent process for
+the entire game session. It forks a child process for each major phase.
+Each child reads `SNBSTATE` at startup, runs its phase logic, writes the
+updated `SNBSTATE` at exit, then terminates. The coordinator reads only
+the 11-byte `SaveHdr` from `SNBSTATE` after each `F$Wait` to decide what
+to fork next.
 
 ```
-ylDvPk := 0
-shft   := 1
-FOR s := 1 TO 9
-  IF mkt.divSuspnd(s) THEN
-    ylDvPk := ylDvPk LOR shft
-  ENDIF
-  shft := shft * 2
-NEXT s
+SNB (coordinator)
+  │
+  ├─ chkStale          Delete stale SNBSTATE if present
+  │
+  ├─ forkPhase(pgChild) ── pgChild reads nothing (first write)
+  │    F$Wait              pgChild runs setup screens
+  │    read SaveHdr        pgChild writes SNBSTATE (gameStage=GS_PREGM)
+  │
+  ├─ LOOP while gameStage <> GS_DONE
+  │    │
+  │    ├─ forkPhase(ylChild) ── ylChild reads SNBSTATE
+  │    │    F$Wait              ylChild runs one year
+  │    │    read SaveHdr        ylChild writes SNBSTATE (gameStage=GS_YEAR
+  │    │                        or GS_DONE)
+  │    │
+  │    └─ evaluate: currYear > maxYears? activePlayers <= 1?
+  │         if true: exit LOOP
+  │
+  └─ forkPhase(egChild) ── egChild reads SNBSTATE
+       F$Wait              egChild runs end-game screens
+                           (no SNBSTATE write required)
 ```
 
-Unpack (parent side):
+The coordinator never holds live game state in memory between phase
+transitions. All state is owned by `SNBSTATE`.
+
+---
+
+## Section 2 — gameStage State Machine
+
+`gameStage` is written by each child at exit. The coordinator reads it
+after `F$Wait` to select the next fork target.
+
+| Value | Constant | Written By | Coordinator Action |
+|-------|----------|-----------|-------------------|
+| 1 | GS_PREGM | Pre-game child | Fork first year-loop child |
+| 2 | GS_YEAR | Year-loop child | Evaluate year count and bankruptcy; fork again or advance |
+| 3 | GS_DONE | Year-loop child | Fork end-game child; exit coordinator loop |
+
+### Coordinator Phase Selection Logic
+
+After each `F$Wait` and header read:
 
 ```
-shft := 1
-FOR s := 1 TO 9
-  iDvPk := ylDvPk   ! stage INTEGER field to INTEGER var
-  mkt.divSuspnd(s) := LAND(iDvPk, shft) <> 0
-  shft := shft * 2
-NEXT s
-```
+IF gameStage = GS_PREGM THEN
+    ! First year: fork ylChild unconditionally
+    RUN forkPhase("ylChild")
 
-Bit positions for `ylDvPk` and all `ylMgPk(p)` fields:
+ELSE IF gameStage = GS_YEAR THEN
+    ! Evaluate exit conditions
+    activePlrs := plyrCount - countBits(bnkrFlgs)
+    IF currYear > maxYears OR activePlrs <= 1 THEN
+        gameStage := GS_DONE   ! force end-game fork
+    ELSE
+        RUN forkPhase("ylChild")
+    ENDIF
 
-| Stock index | Bit | Mask value |
-|-------------|-----|------------|
-| 1 | 0 | $0001 |
-| 2 | 1 | $0002 |
-| 3 | 2 | $0004 |
-| 4 | 3 | $0008 |
-| 5 | 4 | $0010 |
-| 6 | 5 | $0020 |
-| 7 | 6 | $0040 |
-| 8 | 7 | $0080 |
-| 9 | 8 | $0100 |
+ENDIF \ENDIF
 
-**`ylMgPk(p)` — packing `plyrs(p).mgnHeld(1..9)` into one INTEGER per player:**
-
-Identical bit assignment to `ylDvPk`. For each player p (1..6):
-
-```
-ylMgPk(p) := 0
-shft       := 1
-FOR s := 1 TO 9
-  IF plyrs(p).mgnHeld(s) THEN
-    iMgPk    := ylMgPk(p)   ! stage BYTE array element to INTEGER
-    iMgPk    := iMgPk LOR shft
-    ylMgPk(p) := iMgPk
-  ENDIF
-  shft := shft * 2
-NEXT s
-```
-
-Note: `ylMgPk(p)` is declared as `INTEGER` (not BYTE), so no staging is needed
-when reading it. However `shft` and any intermediate value must also be `INTEGER`.
-
-**`ylFlgs(p)` — packing `isBankrupt` and `hadCashPur` per player:**
-
-```
-ylFlgs(p) := 0
-IF plyrs(p).isBankrupt THEN
-  ylFlgs(p) := 1
-ENDIF
-IF plyrs(p).hadCashPur THEN
-  iFlg      := ylFlgs(p)   ! stage BYTE to INTEGER for LOR
-  iFlg      := iFlg LOR 2
-  ylFlgs(p) := iFlg
+IF gameStage = GS_DONE THEN
+    RUN forkPhase("egChild")
+    ! F$Wait for egChild; then exit coordinator loop
 ENDIF
 ```
 
-Unpack (parent side) — stage `ylFlgs(p)` to INTEGER before LAND:
-
-```
-iFlg := ylFlgs(p)   ! BYTE → INTEGER
-plyrs(p).isBankrupt  := LAND(iFlg, 1) <> 0
-plyrs(p).hadCashPur  := LAND(iFlg, 2) <> 0
-```
-
-Bit assignments for `ylFlgs(p)`:
-
-| Bit | Mask | Field |
-|-----|------|-------|
-| 0 | $01 | isBankrupt |
-| 1 | $02 | hadCashPur |
-
-**`ylShrs(54)` flat index** — player p, stock s: `ylShrs((p-1)*9 + s)`
-
-**`ylBnds(18)` flat index** — player p, bond b: `ylBnds((p-1)*3 + b)`
-
-**`ylBnds` downcast note:** `plyrs(p).bondUnts(b)` is INTEGER. Assignment to
-BYTE field silently truncates values > 255. The game's starting cash is $5000
-and bond units are purchased at $1000 each; max practical units per denomination
-is bounded well below 255. This is assumed safe. See Section 5 — Risk Register.
+`countBits` is a local inline computation over bits 0–5 of `bnkrFlgs`.
+`activePlrs <= 1` triggers end-game when only one player (or zero) remains
+solvent; one player cannot meaningfully continue.
 
 ---
 
-## Section 2 — Module Ownership
+## Section 3 — SNBSTATE as IPC Channel
 
-### 2.1 Pipe Open / Fork / Wait / Read Wrappers
+`SNBSTATE` is a standard save file (identical format to user saves) written
+to the current data directory. It is not a pipe, not a special file, and
+requires no OS-level IPC primitives beyond standard `I$Create`/`I$Open`.
 
-**Module: SNB.b09**
+### Parent writes SNBSTATE before forking ylChild
 
-Justification: SNB is the permanent coordinator — it is never released after
-PH-00 and orchestrates all phase transitions. The existing `SNB` procedure already
-calls `RUN snbSetup(...)` (pre-game) and `RUN runYearLoop(...)` (year loop) directly.
-The fork wrappers replace these two call sites. No other module is an appropriate
-owner because no other module is guaranteed resident across phase boundaries.
+The coordinator calls `saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)`
+before each `forkPhase("ylChild")` call. The header fields `currYear`,
+`gameStage`, and any coordinator-level overrides are set before this call.
+The year-loop child reads this file at startup.
 
-The phase transition table confirms: SNB is `Load on Entry: SNB, snbUtil` at PH-00
-and is `Required Resident` in every subsequent phase through PH-12. This is the
-only module with a persistent-resident guarantee spanning both fork points.
+### Parent does NOT write SNBSTATE before forking pgChild
 
-### 2.2 Pre-Game Serialization
+The pre-game child creates `SNBSTATE` from scratch. There is no prior
+state to hand forward.
 
-**Module: snbSetup.b09**
+### Parent reads ONLY SaveHdr after F$Wait
 
-The child process runs the setup phase. `snbSetup` owns `initPlayer`, `initMkt`,
-`scrStart`, `scrSetup`, and `scrConfirm` — all the procedures that produce the
-pre-game state. Adding `serPG` to snbSetup is consistent: the procedure that
-creates the state also serializes it.
+The coordinator opens `SNBSTATE` in read mode, reads only `SIZE(SaveHdr)`
+= 11 bytes, then closes the file. It does not read player records or market
+state. All decisions are made from the 11-byte header.
 
-A separate child entry procedure (`pgChild`) is required in snbSetup.b09 because
-the forked child process cannot receive PARAM-based output — it is a new OS-9
-process.
+### SNBSTATE lifecycle
 
-`pgChild` has one PARAM: `iPipePath:INTEGER`. RunB parses the pipe path number from
-the parameter string passed by the parent at fork time and assigns it to `iPipePath`.
-`pgChild` allocates local game-state variables, calls `snbSetup(...)` as if it were
-the parent, then passes `iPipePath` through to `serPG` to write ForkPG
-to iPipePath (pipe), then ENDs. Path 1 (stdout) remains the terminal
-throughout `pgChild` execution; all UI output goes to the terminal as normal.
-
-### 2.3 Year-Loop Serialization
-
-**Module: snbYearLoop.b09**
-
-Same reasoning as pre-game. `runYearLoop` owns all year-loop state. Adding `serYL`
-to snbYearLoop is consistent. A child entry procedure (`ylChild`) in snbYearLoop.b09
-is required for the same reason as `pgChild`: no PARAM-based handoff from parent
-to child is possible across a fork boundary.
-
-`ylChild` has one PARAM: `iPipePath:INTEGER`, passed through to `serYL`. Path 1
-(stdout) remains the terminal throughout `ylChild` execution. `ylChild` loads initial
-game state from `SNBSTATE` (written by parent before F$Fork), calls `runYearLoop`,
-then calls `serYL(hdr, plyrs, mkt, iPipePath)`, then ENDs.
-
-This design reuses the existing save/load infrastructure to get initial state INTO
-the child. The parent writes `SNBSTATE` before `F$Fork`. The child reads `SNBSTATE`
-at startup, runs `runYearLoop`, then overwrites `SNBSTATE` via `serYL` on exit.
-This is the only mechanism that avoids
-passing > 256 bytes of structured game state via the RunB parameter buffer.
-
-### 2.4 Deserialization and Reconstruction
-
-**Module: SNB.b09**
-
-The parent reads the pipe payload after `F$Wait` returns. Deserialization populates
-the parent's live game-state variables. Both `desPG` and `desYL` are added to SNB.b09.
-This is consistent with SNB already owning `hdr`, `deckOrd`, `plyrs`, and `mkt` as
-DIM variables in the `SNB` procedure.
-
-### 2.5 Save-Game Name Collision Guard
-
-**Module: snbSaveLoad.b09**
-
-The save game procedure must reject any user-supplied filename that matches the reserved name `SNBSTATE` before issuing any `I$Create` call. The check is a direct string comparison between the user-supplied filename and the literal `"SNBSTATE"`. If the names match, the procedure prints an error message and returns without writing. This guard is the exclusive responsibility of `snbSaveLoad.b09`. No other module enforces it. The load game procedure does not require a symmetric guard — loading from `SNBSTATE` directly is not a user-accessible action; it is performed only internally by the fork coordinator in `SNB.b09`.
-
-### 2.6 Startup Stale-File Check
-
-**Module: SNB.b09**
-
-At new-game startup, before forking the pre-game child, `SNB.b09` checks whether `SNBSTATE` exists on disk via `I$Open` in read mode. If the file is found, two behaviours are acceptable and the choice is deferred:
-
-- **Discard**: delete `SNBSTATE` and proceed. The pre-game child will create a fresh one.
-- **Resume**: offer the player a prompt to resume the interrupted session by loading `SNBSTATE` directly into live state, bypassing the pre-game phase entirely.
-
-The plan adopts **Discard** as the default pending a UI decision on resume. The check must be implemented regardless of which branch is taken. Failure to find `SNBSTATE` is not an error — proceed normally. This check is not performed before forking the year-loop child; by that point `SNBSTATE` is known to be the current session file.
+| Event | Action |
+|-------|--------|
+| New game start | `chkStale` deletes stale `SNBSTATE` if found |
+| Pre-game child exit | Child creates `SNBSTATE` with `gameStage=GS_PREGM` |
+| Year-loop child exit | Child overwrites `SNBSTATE` with updated state |
+| End-game child exit | Child reads `SNBSTATE`; no write required |
+| Game complete | Coordinator exits; `SNBSTATE` remains on disk until next new game |
+| Player-initiated save | `saveGame` writes named user file; `SNBSTATE` unaffected |
 
 ---
 
-## Section 3 — New Procedure Signatures
+## Section 4 — Module Ownership
 
-All new procedures require TYPE declarations in the standard order (TYPE, PARAM, DIM)
-per `bestPractices.md`. All procedures need `ON ERROR GOTO` handlers.
+### SNB.b09 — Coordinator
 
-| Procedure | Module | Params | Direction | Purpose |
-|-----------|--------|--------|-----------|---------|
-| `forkPG` | SNB.b09 | hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | all OUTPUT | Open pipe, redirect child stdout, fork `pgChild`, wait, read ForkPG, call desPG, close pipe |
-| `forkYL` | SNB.b09 | savPath:STRING[20], hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | hdr/plyrs/mkt are IN/OUT | Write state to SNBSTATE, open pipe, redirect, fork `ylChild`, wait, read ForkYL, call desYL, close pipe, delete SNBSTATE |
-| `desPG` | SNB.b09 | pgBuf:ForkPG, hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, mkt:MktState | pgBuf INPUT; others OUTPUT | Unpack ForkPG into hdr/deckOrd/plyrs fields; call initPlayer for each slot; call initMkt; overlay plyrName/plyrType/aiTier from pgBuf |
-| `desYL` | SNB.b09 | ylBuf:ForkYL, hdr:SaveHdr, plyrs(6):PlyrRec, mkt:MktState | ylBuf INPUT; others IN/OUT | Unpack ForkYL; overlay mutable fields in plyrs and mkt; unpack bit fields via LAND; update hdr fields |
-| `pgChild` | snbSetup.b09 | none | — | Child entry point for pre-game fork. Allocates local SaveHdr/deckOrd/PlyrRec/MktState; calls snbSetup; if menuAct <> 3 calls serPG; ENDs |
-| `serPG` | snbSetup.b09 | hdr:SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec | all INPUT | Populate ForkPG TYPE from params; call I$Write to stdout (path 1) with ADDR(pgBuf) and SIZE(ForkPG) |
-| `ylChild` | snbYearLoop.b09 | none | — | Child entry point for year-loop fork. Loads SNBSTATE via loadGame; calls runYearLoop; calls serYL; ENDs |
-| `serYL` | snbYearLoop.b09 | hdr:SaveHdr, plyrs(6):PlyrRec, mkt:MktState | all INPUT | Populate ForkYL TYPE from params; pack divSuspnd, mgnHeld, flags; call I$Write to stdout (path 1) with ADDR(ylBuf) and SIZE(ForkYL) |
-| `TSTFKPIPE` | test file | none | — | S1: pipe open/close/write/read round-trip |
-| `TSTFKFORK` | test file | none | — | S2: pipe redirect + fork minimal child + read string back |
-| `TSTFKPGSER` | test file | none | — | S3: pre-game serialization byte-count and spot-check |
-| `TSTFKPGDES` | test file | none | — | S4: pre-game deserialization + reconstruction correctness |
-| `TSTFKYLSER` | test file | none | — | S5: year-loop serialization + packing round-trip |
-| `TSTFKYLDS` | test file | none | — | S6: year-loop deserialization correctness |
-| `TSTFKPGINT` | test file | none | — | S7: full pre-game fork integration |
-| `TSTFKYLINT` | test file | none | — | S8: full year-loop fork integration |
-| `guardSave` | snbSaveLoad.b09 | savName:STRING[20] | INPUT | Compare savName to `"SNBSTATE"`. If match, print rejection message and return error flag to caller. Otherwise, allow save to proceed. |
-| `chkStale` | SNB.b09 | none | — | Attempt `I$Open SNBSTATE` in read mode. If found, close and delete (Discard path). If not found, continue. Returns boolean `wasStale` to caller for optional logging. |
+Owns the top-level coordinator loop, `forkPhase`, `chkStale`, and
+`readHdr` (header-only file read). SNB is resident for the entire game
+session and is the only module guaranteed present across all phase
+boundaries.
 
-### Notes on `desPG` reconstruction
+No live game state (plyrs, mkt, deckOrd) is held in SNB between phases
+under Option 2. SNB holds only the SaveHdr struct after each phase
+transition.
 
-`desPG` calls `initPlayer` for each slot 1..6 (zeroes financial state), then calls
-`initMkt` (sets all prices to 100, all divSuspnd to FALSE). It then overlays:
-- `hdr.*` fields from pgBuf
-- `deckOrd(i)` from `pgBuf.pgDeck(i)` for i=1..36
-- `plyrs(p).plyrName` from `pgBuf.pgNam1..pgNam6`
-- `plyrs(p).plyrType` from `pgBuf.pgTyp(p)` (BYTE array)
-- `plyrs(p).aiTier` from `pgBuf.pgTier(p)` (BYTE array)
-- For computer players, call `initAIProf` using `plyrs(p).aiTier`
+### snbSetup.b09 — Pre-Game Child Entry
 
-Financial state (cashBal, shares, etc.) is fully handled by `initPlayer`, since
-ForkPG does not carry those fields — they are always at initial values after setup.
+Owns `pgChild`: the top-level entry procedure for the pre-game fork.
+`pgChild` allocates local SaveHdr, deckOrd, PlyrRec, and MktState
+variables; calls the existing setup procedures (`initPlayer`, `initMkt`,
+`scrStart`, `scrSetup`, `scrConfirm`); then calls `saveGame("SNBSTATE")`
+with `gameStage = GS_PREGM` and `maxYears` set from the configured game
+length.
 
----
+Existing setup procedures (`initPlayer`, `initMkt`, etc.) are unchanged.
+They continue to take their existing parameters.
 
-## Section 4 — Incremental Test Plan
+### snbYearLoop.b09 — Year-Loop Child Entry
 
-All steps are hardware-testable in order. Step N+1 does not proceed until Step N
-passes on device. Each step has a named TST* procedure.
+Owns `ylChild`: the top-level entry procedure for the year-loop fork.
+`ylChild` calls `loadGame("SNBSTATE")` at startup, calls `runYearLoop`
+with the loaded state, then updates `hdr.currYear`, `hdr.gameStage`, and
+calls `saveGame("SNBSTATE")` at exit.
 
-### Step S1 — Pipe Open/Close Round-Trip
+`ylChild` determines `gameStage` at exit:
+- If the year just completed is `maxYears` or only one player remains
+  active: write `GS_DONE`.
+- Otherwise: write `GS_YEAR`.
 
-**Procedure:** TSTFKPIPE
+Existing year-loop procedures are unchanged.
 
-**What it tests:** I$Open `/pipe` in mode 3, I$Write one byte, I$Read it back,
-I$Close. Confirms PIPEMAN is available and the basic pipe path works.
+### End-Game Module — End-Game Child Entry
 
-**Pass criterion:** PRINT confirms written byte value matches read byte value.
-No carry-set errors from any SysCall. Prints "TSTFKPIPE: PASS".
+Owns `egChild`: the top-level entry procedure for the end-game fork.
+`egChild` calls `loadGame("SNBSTATE")`, runs closing price display and
+winner determination, then ENDs. No `saveGame` call is required at exit
+unless save-on-exit for the completed game is desired (deferred decision).
 
-### Step S2 — Fork/Pipe Stdout Redirect
+### snbSaveLoad.b09 — Save/Load Infrastructure
 
-**Procedure:** TSTFKFORK
-
-**What it tests:** Full parent-side path manipulation sequence:
-1. Open `/pipe` (mode 3)
-2. Dup path iPipePath → save as savedOut
-3. Close path iPipePath
-4. Dup pipePath (assigns pipe to slot iPipePath)
-5. Fork RunB with a minimal child that PRINTs a known string and ENDs
-6. Close path iPipePath
-7. Dup savedOut (restore stdout)
-8. Close savedOut
-9. F$Wait
-10. I$ReadLn from pipePath; confirm string matches
-11. Close pipePath
-
-**Pass criterion:** Read string matches the known string. F$Wait returns nonzero PID.
-No carry-set errors. Prints "TSTFKFORK: PASS".
-
-**Note:** The child used here is a separate minimal test procedure, not pgChild
-or ylChild. Keeps this step independent of serialization.
-
-### Step S3 — Pre-Game Serialization Only
-
-**Procedure:** TSTFKPGSER
-
-**What it tests:** Forks `pgChild` (which calls `snbSetup` with known test values,
-then calls `serPG`). Parent reads raw bytes from pipe. Confirms:
-- Byte count read = 179
-- Spot-checks: `pgBuf.pgMag = $53`, `pgBuf.pgPCnt` matches configured player count,
-  `pgBuf.pgTyp(1)` = 1 (HUMAN), `pgBuf.pgNam1` = expected test string
-
-**Pass criterion:** Byte count = 179 confirmed via I$Read return value in regs.y.
-At least 3 field spot-checks pass. Prints "TSTFKPGSER: PASS".
-
-### Step S4 — Pre-Game Deserialization and Reconstruction
-
-**Procedure:** TSTFKPGDES
-
-**What it tests:** Calls `desPG` with the ForkPG buffer from S3. Confirms:
-- `hdr.magic = $53`
-- `hdr.plyrCount` correct
-- `deckOrd(1..36)` non-zero (deck was shuffled)
-- `plyrs(1).cashBal = 5000` (from initPlayer)
-- `plyrs(1).plyrName` = expected test string
-- `mkt.stckPrice(1) = 100` (from initMkt)
-- `mkt.divSuspnd(1) = FALSE`
-
-**Pass criterion:** All assertions pass. Prints "TSTFKPGDES: PASS".
-
-### Step S5 — Year-Loop Serialization and Packing Round-Trip
-
-**Procedure:** TSTFKYLSER
-
-**What it tests:** Populates a known ForkYL buffer with test values including
-specific divSuspnd and mgnHeld bit patterns. Reads the buffer back and confirms
-packing round-trips correctly. Focus: bit-packing symmetry between child (pack)
-and parent (unpack).
-
-Specific checks:
-- Set `divSuspnd(1)=TRUE`, all others FALSE → `ylDvPk` should equal 1
-- Set `divSuspnd(9)=TRUE`, all others FALSE → `ylDvPk` should equal 256
-- Set `divSuspnd(1)` and `divSuspnd(9)=TRUE` → `ylDvPk` should equal 257
-- Round-trip: pack then unpack for each of the above; confirm BOOLEAN array matches
-
-**Pass criterion:** All bit-pattern round-trips confirmed. Byte count read = 199.
-Prints "TSTFKYLSER: PASS".
-
-### Step S6 — Year-Loop Deserialization Correctness
-
-**Procedure:** TSTFKYLDS
-
-**What it tests:** Calls `desYL` with a ForkYL buffer containing known test values.
-Confirms:
-- `mkt.stckPrice(i)` values match for all 9 stocks
-- `mkt.divSuspnd(i)` unpacked correctly for test bit pattern
-- `plyrs(p).cashBal` correct for all 6 players
-- `plyrs(p).isBankrupt` and `hadCashPur` unpacked correctly from `ylFlgs(p)`
-- `plyrs(p).stckShrs(s)` correct for all 9 stocks per player (via flat array index)
-- `plyrs(p).mgnHeld(s)` correct for test bit pattern
-- `plyrs(p).bondUnts(b)` correct for all 3 bonds per player
-- Static fields (plyrName, plyrType, aiTier) are NOT altered by desYL
-
-**Pass criterion:** All 6 × (cashBal + isBankrupt + hadCashPur + 9 shares + 9 mgnHeld
-+ 3 bonds) assertions pass. Static fields unchanged. Prints "TSTFKYLDS: PASS".
-
-### Step S7 — Integration: Pre-Game Full Path
-
-**Procedure:** TSTFKPGINT
-
-**What it tests:** End-to-end from `forkPG` call in SNB context. User interacts
-with the setup screens (scrStart → scrSetup → scrConfirm) in the child process.
-After child exits, parent confirms `hdr`, `deckOrd`, and `plyrs` contain the
-values entered during setup.
-
-**Pass criterion:** `plyrs(1).plyrName` matches entered name. `hdr.plyrCount`
-matches entered count. `deckOrd` is non-trivially shuffled. All cashBal = 5000.
-Prints "TSTFKPGINT: PASS".
-
-### Step S8 — Integration: Year-Loop Full Path
-
-**Procedure:** TSTFKYLINT
-
-**What it tests:** End-to-end from `forkYL` call. Parent writes SNBSTATE, forks
-`ylChild`. Child loads state, runs one year of `runYearLoop`, writes ForkYL, exits.
-Parent reads ForkYL and calls `desYL`. Confirms:
-- `hdr.currYear` advanced by 1
-- `mkt.stckPrice` values changed (at least one non-100 price expected after Year 1)
-- `plyrs` mutable fields reflect year-end state
-
-**Pass criterion:** `hdr.currYear` = 2 after one-year run. At least one stckPrice
-differs from 100. SNBSTATE temp file deleted. Prints "TSTFKYLINT: PASS".
-
-### Step S9 — Save-Game Collision Guard
-
-**Procedure:** TSTGUARDSAVE
-
-**What it tests:** Calls `guardSave` with filename `"SNBSTATE"`. Confirms rejection (error flag set, no file written). Calls `guardSave` with a valid filename `"TESTSAVE"`. Confirms acceptance (no error). Confirms `TESTSAVE` is created and then deletes it.
-
-**Pass criterion:** Rejection confirmed for reserved name. Acceptance confirmed for valid name. Prints "TSTGUARDSAVE: PASS".
-
-### Step S10 — Startup Stale-File Check
-
-**Procedure:** TSTCHKSTALE
-
-**What it tests:** Creates a dummy `SNBSTATE` file. Calls `chkStale`. Confirms `wasStale = TRUE` and `SNBSTATE` no longer exists. Calls `chkStale` again. Confirms `wasStale = FALSE` and no error.
-
-**Pass criterion:** Both branches (file present, file absent) behave correctly. Prints "TSTCHKSTALE: PASS".
+Owns `saveGame`, `loadGame`, and `guardSave`. Updated to reflect the
+revised SaveHdr and PlyrRec types, trimmed deck write/read, and updated
+checksum. `guardSave` rejects `SNBSTATE` as a player-supplied filename.
 
 ---
 
-## Section 5 — Risk and Constraint Register
+## Section 5 — Procedure Signatures
 
-### 5.1 256-Byte Pipe Buffer Ceiling
+All procedures require TYPE declarations in the standard order
+(TYPE, PARAM, DIM) per `bestPractices.md`. All require `ON ERROR GOTO`.
 
-A single file `SNBSTATE` serves as the IPC channel for all fork phases.
+| Procedure | Module | Key Params | Purpose |
+|-----------|--------|-----------|---------|
+| `forkPhase` | SNB.b09 | childName:STRING[20] | Fork RunB with childName as target; F$Wait; call readHdr |
+| `readHdr` | SNB.b09 | hdr:SaveHdr OUT | Open SNBSTATE, read 11-byte header, close |
+| `chkStale` | SNB.b09 | wasStale:BOOLEAN OUT | Attempt I$Open SNBSTATE; if found, close and delete |
+| `pgChild` | snbSetup.b09 | none | Pre-game child entry; allocates state; calls setup procs; calls saveGame(SNBSTATE) |
+| `ylChild` | snbYearLoop.b09 | none | Year-loop child entry; calls loadGame; runs year; calls saveGame(SNBSTATE) |
+| `egChild` | (end-game module) | none | End-game child entry; calls loadGame; runs end-game; ENDs |
+| `saveGame` | snbSaveLoad.b09 | savePath, hdr, deckOrd(36), plyrs(6), mkt | Write full state; compute bnkrFlgs and checksum internally |
+| `loadGame` | snbSaveLoad.b09 | savePath, hdr, deckOrd(36), plyrs(6), mkt, loadOK | Read full state; validate header; return loadOK |
+| `guardSave` | snbSaveLoad.b09 | savName:STRING[20], isOK:BOOLEAN OUT | Reject SNBSTATE as filename; set isOK=FALSE if match |
 
-This is a hard limit imposed by PIPEMAN on NitrOS-9. The child must write the
-complete payload in a single I$Write call before exiting.
+`forkPhase` passes the child module name as the RunB parameter string
+(module name + CR), consistent with the confirmed F$Fork/RunB pattern
+from project hardware tests.
 
-| Payload | Current Size | Headroom | Fields That Would First Breach Limit |
-|---------|-------------|----------|--------------------------------------|
-| ForkPG | 179 bytes | 77 bytes | Adding bondUnts(3) as INTEGER per player would add 18 bytes → 197 (still safe). Adding stckShrs(9) per player (108 bytes) would breach at 287. |
-| ForkYL | 199 bytes | 57 bytes | Upgrading ylBnds to INTEGER (18→36 bytes) would add 18 → 217 (still safe). Adding a second flags byte per player (6 bytes) → 205 (safe). Adding per-player divRate snapshot (9×2×6=108 bytes) would breach. |
+---
 
-If any new field addition to either TYPE would exceed 256 bytes, the design must
-first evaluate whether the field can be packed (bit-packing, BYTE downcast) before
-concluding that a different IPC mechanism is required.
+## Section 6 — Refactoring Roadmap
 
-### 5.2 I$Write and I$Read Exact Byte Counts
+Steps are ordered by dependency. Each step is independently
+hardware-testable. Step N+1 does not proceed until Step N passes on
+device.
 
-`I$Write` must be called with `regs.y = SIZE(ForkPG)` (179) or `SIZE(ForkYL)` (199).
-`I$WriteLn` is **prohibited** for binary payloads — it appends CR ($0D), which
-corrupts binary fields and breaks the exact-count contract.
+---
 
-`I$Read` on the parent side must use the same exact byte count. The framing is
-positional only — there are no delimiters or length headers in the payload.
+### R1 — TYPE Revisions
 
-The `regs.y` register for I$Write and I$Read holds the byte count as an INTEGER.
-Both 179 and 199 fit safely within the signed 16-bit INTEGER range.
+**Scope:** Update SaveHdr and PlyrRec TYPE declarations in every
+procedure that declares them.
 
-### 5.3 I$Dup / I$Close / I$Dup Sequence Atomicity
+**SaveHdr changes:**
+- Remove: `obligation`, `deckPos`
+- Add: `maxYears`, `gameStage`, `bnkrFlgs`
+- Field order: static block (magic, fmtVersion, maxYears, plyrCount,
+  rollMode) then dynamic block (currYear, savedPhase, savedPlyr,
+  gameStage, bnkrFlgs, checksum)
+- SIZE remains 11 bytes
 
-The path slot manipulation sequence (Section A of the syscall research document)
-depends on `I$Dup` always assigning the **lowest available** slot number.
+**PlyrRec changes:**
+- Add `obligation:INTEGER` after `marginTot`
+- SIZE grows from 61 to 63 bytes
 
-The sequence for redirecting stdout to the pipe is:
+**Files affected:** All .b09 procedures that declare SaveHdr or PlyrRec.
+Minimum: `snbSaveLoad.b09`, `SNB.b09`, `snbSetup.b09`, `snbYearLoop.b09`.
 
-1. Open `/pipe` → assigned to some path N
-2. Dup path 1 (stdout) → saves to slot M (lowest available after step 1)
-3. Close path 1 (frees slot 1)
-4. Dup path N (pipe) → assigns to slot 1 (now lowest available)
-5. Fork child (child inherits path 1 = pipe)
-6. Close path 1 again (frees slot 1 from parent's perspective)
-7. Dup savedOut (M) → assigns to slot 1 (restore parent stdout)
-8. Close savedOut (M)
-9. F$Wait
+**Test:** `TSTRTYPE`
+- Compile all affected modules
+- Print `SIZE(SaveHdr)` — expected 11
+- Print `SIZE(PlyrRec)` — expected 63
+- **Pass criterion:** Both values confirmed on hardware. No compile errors.
 
-**No other I/O operations of any kind may occur between steps 2 and 4, or between
-steps 6 and 7.** Any intervening PRINT, OPEN, GET, or other path operation will
-break the slot ordering assumption and corrupt the path table state.
+---
 
-All PRINT debug statements inside `forkPG` and `forkYL` must be placed outside this
-critical section.
+### R2 — snbSaveLoad.b09 Behavioral Update
 
-### 5.4 Bit-Packing Symmetry
+**Scope:** Update `saveGame` and `loadGame` for the new types. Add
+`guardSave`.
 
-The pack/unpack logic for `ylDvPk`, `ylMgPk(p)`, and `ylFlgs(p)` must be identical
-in child (serYL) and parent (desYL). Any asymmetry is silent — there are no type
-errors or runtime checks on INTEGER bit values.
+**saveGame changes:**
+- Caller no longer sets `bnkrFlgs` or `checksum` — computed internally
+- Caller no longer sets `deckPos` (eliminated from header)
+- Deck write: loop `FOR i := 1 TO hdr.maxYears; PUT #path, deckOrd(i)`
+- Checksum covers 10 BYTE fields (see `save-load-design.md §7`)
+- `bnkrFlgs` computation precedes checksum computation
 
-The canonical bit assignment for all 9-element BOOLEAN→INTEGER pack operations
-is stock index s → bit (s-1). Mask value = 2^(s-1). The shift is computed via
-integer multiplication (shft := 1; shft := shft * 2) because Basic09 has no
-shift operator.
+**loadGame changes:**
+- Read header first; validate before reading deck section
+- Deck read: loop `FOR i := 1 TO hdr.maxYears; GET #path, deckOrd(i)`
+- Updated checksum verification formula
 
-S5 (TSTFKYLSER) specifically tests round-trip symmetry for boundary cases
-(only stock 1, only stock 9, both stock 1 and 9) before any integration step.
+**guardSave:** String comparison of caller-supplied filename against
+literal `"SNBSTATE"`. If match: set `isOK := FALSE`, print rejection
+message, return. Otherwise: `isOK := TRUE`, return. Does not open any
+file.
 
-### 5.5 BYTE-to-INTEGER Staging Rules
+**Forced liquidation resume path:** Update any call to
+`enterForcedLiq(...)` that passed `hdr.obligation` to instead pass
+`plyrs(hdr.savedPlyr).obligation`.
 
-All LAND and LOR operations on values derived from BYTE fields or BYTE array
-elements must stage through a local INTEGER DIM variable first. The rules from
-`bestPractices.md` (hardware-confirmed TSTBYTEINT H2/H5) apply:
+**Test:** `TSTSLV2`
+- Populate known SaveHdr, deckOrd (5-year game), 6 PlyrRec, MktState
+- Call saveGame; verify file created with no error
+- Call loadGame; verify all fields round-trip correctly
+- Spot-check: `hdr.maxYears`, `hdr.gameStage`, `plyrs(1).obligation`,
+  `deckOrd(5)` (last written entry), `deckOrd(6)` (not written; verify
+  unchanged from pre-load value in memory)
+- Call guardSave with `"SNBSTATE"` — verify `isOK = FALSE`
+- Call guardSave with `"SNBGAME"` — verify `isOK = TRUE`
+- **Pass criterion:** All field round-trips correct. guardSave both
+  branches confirmed. Prints "TSTSLV2: PASS".
 
-- `ylFlgs(p)` is declared BYTE. Before LAND: `iFlg := ylFlgs(p)`; use `iFlg` in LAND.
-- Path numbers returned in `regs.a` (BYTE) must be staged: `iPath := regs.a`.
-- `regs.cc` (BYTE) must be staged: `iCC := regs.cc` before LAND carry test.
-- `regs.b` (BYTE) error codes must be staged: `iErr := regs.b` before printing.
-- `ylBnds(i)` is BYTE; when assigning back to `plyrs(p).bondUnts(b)` (INTEGER),
-  direct assignment is safe (BYTE→INTEGER widens correctly). No staging needed
-  for that direction.
+---
 
-### 5.6 bondUnts BYTE Truncation
+### R3 — SNB.b09: Coordinator Infrastructure
 
-`plyrs(p).bondUnts(b)` is INTEGER in PlyrRec. Assignment to `ylBnds(i):BYTE`
-silently truncates values > 255. Based on game rules: starting cash $5000, bonds
-cost $1000/$5000/$10000 each. Maximum practical units:
-- $1000 bond: 5 units initial, grows via dividends but rarely exceeds 50
-- $5000 bond: 1 unit initially, rarely exceeds 10
-- $10000 bond: 0 units initially, rarely exceeds 5
+**Scope:** Add `chkStale`, `readHdr`, and `forkPhase` to SNB.b09.
+Do not yet wire them into the main coordinator loop (that is R4).
 
-All values are expected to remain well below 255. This assumption should be
-verified with a max-value guard in serYL during testing (print warning if any
-bondUnts > 200 as early warning).
+**chkStale:**
+- Attempt `I$Open "SNBSTATE"` in read mode via SysCall
+- If carry clear (file found): close it; call `I$Delete "SNBSTATE"`
+- If carry set (file not found): no action
+- Return `wasStale:BOOLEAN`
 
-### 5.7 Child State Delivery Mechanism (Year Loop)
+**readHdr:**
+- `I$Open "SNBSTATE"` in read mode
+- `GET #path, hdr` (reads exactly SIZE(SaveHdr) = 11 bytes)
+- `I$Close`
+- Returns populated `hdr:SaveHdr`
+- On error: delegate to caller via `ERROR(ERR)`
 
-The year-loop child (ylChild) receives initial game state via a save file (`SNBSTATE`)
-written by the parent before F$Fork. This adds one `saveGame` + one `loadGame`
-round-trip per year. The parent must delete `SNBSTATE` in its `ON ERROR` handler if a fork or wait failure leaves the file in an indeterminate state. `SNBSTATE` should be considered owned by the coordinator (`SNB.b09`) and is always safe to delete on abnormal exit.
+**forkPhase:**
+- Accepts `childName:STRING[20]`
+- Builds parameter string: childName + CR
+- Issues F$Fork targeting RunB with parameter string
+- Issues F$Wait; captures child PID and exit status
+- Returns child exit status to caller
+- On non-zero exit status: delegate error to caller
 
-### 5.8 Reserved Word Check for New Names
+**Test:** `TSTCOORD`
+- Write a synthetic SNBSTATE with known header values using saveGame
+- Call readHdr; verify `hdr.gameStage`, `hdr.currYear`, `hdr.maxYears`
+  match written values
+- Write a second SNBSTATE; call chkStale; verify `wasStale = TRUE` and
+  file is gone; call chkStale again; verify `wasStale = FALSE`
+- Call forkPhase with a trivial test module that exits with code 0;
+  verify F$Wait returns and exit status is 0
+- **Pass criterion:** All three sub-tests pass. Prints "TSTCOORD: PASS".
 
-All new TYPE field names and procedure names checked against `bestPractices.md`
-reserved word list:
+---
 
-- `pgMag`, `pgFmtV`, `pgCYr`, `pgPCnt`, `pgRMod`, `pgSPhs`, `pgSPlr`, `pgOblg`,
-  `pgDkPs`, `pgChks`, `pgDeck`, `pgNam1`..`pgNam6`, `pgTyp`, `pgTier` — CLEAR
-- `ylMag`, `ylFmtV`, `ylCYr`, `ylPCnt`, `ylRMod`, `ylSPhs`, `ylSPlr`, `ylOblg`,
-  `ylDkPs`, `ylChks`, `ylSPrc`, `ylDvPk`, `ylCash`, `ylMgns`, `ylFlgs`, `ylShrs`,
-  `ylMgPk`, `ylBnds` — CLEAR
-- Procedure names: `forkPG`, `forkYL`, `desPG`, `desYL`, `pgChild`, `ylChild`,
-  `serPG`, `serYL` — CLEAR
-- Test names: `TSTFKPIPE`, `TSTFKFORK`, `TSTFKPGSER`, `TSTFKPGDES`,
-  `TSTFKYLSER`, `TSTFKYLDS`, `TSTFKPGINT`, `TSTFKYLINT`,
-  `TSTGUARDSAVE`, `TSTCHKSTALE` — CLEAR
+### R4 — SNB.b09: Coordinator Loop
 
-`SNBSTATE` is the single canonical live-state filename. It must not conflict with any existing save file name used by the project's save/load system. The collision guard in `snbSaveLoad.b09` enforces this at save time.
+**Scope:** Replace the existing direct `RUN snbSetup(...)` and
+`RUN runYearLoop(...)` calls in the main SNB procedure with the
+coordinator loop. The coordinator loop uses `chkStale`, `forkPhase`,
+and `readHdr` from R3.
 
-### 5.9 Temp File Naming Collision
+**Main SNB procedure changes:**
+- Call `chkStale` at new-game entry
+- Call `forkPhase("pgChild")`; call `readHdr` → confirm `gameStage = GS_PREGM`
+- Enter coordinator loop:
+  - Call `forkPhase("ylChild")` while `gameStage = GS_YEAR` or `GS_PREGM`
+  - After each wait: call `readHdr`; evaluate `currYear > maxYears` and
+    `bnkrFlgs`; set `gameStage := GS_DONE` if exit condition met
+  - On `gameStage = GS_DONE`: call `forkPhase("egChild")`; `F$Wait`;
+    exit loop
 
-If `SNBSTATE` exists at new-game startup due to a prior crash, `chkStale` in `SNB.b09` deletes it before the pre-game child is forked. The parent should also delete any pre-existing `SNBSTATE` before writing it prior to the year-loop fork, though by that point in a normal session `SNBSTATE` is expected to be the valid current-session file from the pre-game phase. `SNBSTATE` must never appear as an option in the save-game filename prompt shown to the player.
+**Existing direct RUN calls to snbSetup and runYearLoop are removed.**
 
-### 5.10 Reserved Name Enforcement Gap
+**Test:** `TSTCOORDLP`
+- Write a synthetic SNBSTATE with `gameStage = GS_YEAR`, `currYear = 10`,
+  `maxYears = 10`; verify coordinator loop exits to end-game fork on next
+  `readHdr` evaluation
+- Write a synthetic SNBSTATE with `bnkrFlgs` indicating 5 of 6 players
+  bankrupt and `plyrCount = 6`; verify coordinator exits to end-game fork
+- **Pass criterion:** Both early-exit conditions trigger correctly.
+  Prints "TSTCOORDLP: PASS".
 
-The collision guard in `guardSave` protects against user-initiated overwrites of `SNBSTATE`. It does not protect against a developer-introduced call to `saveGame` that bypasses `guardSave`. All call sites of `saveGame` in `snbSaveLoad.b09` and `SNB.b09` must route through `guardSave` before any `I$Create` is issued.
+---
+
+### R5 — snbSetup.b09: pgChild Entry Procedure
+
+**Scope:** Add `pgChild` to `snbSetup.b09`. Existing setup procedures
+are unchanged.
+
+**pgChild logic:**
+- Declare local SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, MktState
+- Initialize all via `initPlayer` (all 6 slots) and `initMkt`
+- Call existing setup procedures to populate player config and game rules
+- Populate `hdr.magic`, `hdr.fmtVersion`, `hdr.maxYears`, `hdr.plyrCount`,
+  `hdr.rollMode`, `hdr.currYear := 1`, `hdr.savedPhase := 0`,
+  `hdr.savedPlyr := 0`, `hdr.gameStage := GS_PREGM`
+- Call `guardSave("SNBSTATE", isOK)` — should always pass; log if not
+- Call `saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)`
+- END
+
+**Deck trimming:** The shuffle procedure fills all 36 entries of `deckOrd`.
+After the shuffle, `maxYears` is known. `saveGame` writes only entries
+1 through `maxYears`. No additional trimming step is required in `pgChild`.
+
+**Test:** `TSTPGCHLD`
+- Fork `pgChild` via `forkPhase`; interact with setup screens to configure
+  a 5-player, 8-year game
+- After `F$Wait`: call `readHdr`; verify `gameStage = 1` (GS_PREGM),
+  `plyrCount = 5`, `maxYears = 8`, `currYear = 1`, `bnkrFlgs = 0`
+- Call `loadGame("SNBSTATE", ...)`: verify `plyrs(1).plyrName`,
+  `plyrs(1).cashBal = 5000`, `deckOrd(8)` non-zero, `deckOrd(9)`
+  untouched (not loaded from file)
+- **Pass criterion:** All assertions pass. Prints "TSTPGCHLD: PASS".
+
+---
+
+### R6 — snbYearLoop.b09: ylChild Entry Procedure
+
+**Scope:** Add `ylChild` to `snbYearLoop.b09`. Existing year-loop
+procedures are unchanged.
+
+**ylChild logic:**
+- Declare local SaveHdr, deckOrd(36):BYTE, plyrs(6):PlyrRec, MktState
+- Call `loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)`
+- If not `loadOK`: print error; END
+- Call `runYearLoop(hdr, deckOrd, plyrs, mkt)` (or equivalent entry)
+- After `runYearLoop` returns: update `hdr.currYear` to reflect
+  completed year
+- Determine `gameStage` at exit:
+  - Count active players from `plyrs` array
+  - If `hdr.currYear > hdr.maxYears` OR `activePlayers <= 1`:
+    `hdr.gameStage := GS_DONE`
+  - Else: `hdr.gameStage := GS_YEAR`
+- Call `saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)`
+  (saveGame computes bnkrFlgs and checksum internally)
+- END
+
+**Test:** `TSTYLCHLD`
+- Write a synthetic SNBSTATE with known state (Year 2 of 5, 4 players)
+- Fork `ylChild`; wait
+- Call `readHdr`: verify `currYear = 3`, `gameStage = GS_YEAR`
+- Call `loadGame`: verify at least one `stckPrice` differs from 100
+  (market resolved during the year)
+- Repeat with `currYear = 5` of `maxYears = 5`; verify `gameStage = GS_DONE`
+- **Pass criterion:** Both year-exit scenarios produce correct `gameStage`.
+  Prints "TSTYLCHLD: PASS".
+
+---
+
+### R7 — End-Game Phase
+
+**Scope:** Implement `egChild` in the end-game module.
+
+**egChild logic:**
+- Call `loadGame("SNBSTATE", ...)`
+- Sell all remaining securities at closing prices (spec end-game rules)
+- Display closing portfolio values and determine winner
+- END (no saveGame call required)
+
+**Test:** `TSTEGCHLD`
+- Write a synthetic SNBSTATE with `gameStage = GS_DONE`, known player
+  portfolios, known stock prices
+- Fork `egChild`; wait
+- Verify correct output displayed (winner announcement matches expected
+  winner given known state)
+- **Pass criterion:** End-game runs to completion without error.
+  Prints "TSTEGCHLD: PASS".
+
+---
+
+### R8 — Full Integration
+
+**Scope:** End-to-end game run from coordinator loop through all phases.
+
+**Test:** `TSTFULLGM`
+- Launch SNB normally
+- Play a complete 3-year game with 2 human players (minimum viable game)
+- Verify all phase transitions execute without error
+- Verify `SNBSTATE` reflects correct final state before end-game
+- Verify end-game displays correct winner
+- **Pass criterion:** Game completes. No error popups. Correct winner
+  displayed. Prints "TSTFULLGM: PASS".
+
+---
+
+## Section 7 — Test Summary
+
+| Step | Test Procedure | Module | What It Confirms |
+|------|---------------|--------|-----------------|
+| R1 | TSTRTYPE | Multiple | SIZE(SaveHdr)=11, SIZE(PlyrRec)=63 |
+| R2 | TSTSLV2 | snbSaveLoad.b09 | saveGame/loadGame round-trip; guardSave |
+| R3 | TSTCOORD | SNB.b09 | readHdr, chkStale, forkPhase |
+| R4 | TSTCOORDLP | SNB.b09 | Coordinator loop exit conditions |
+| R5 | TSTPGCHLD | snbSetup.b09 | Pre-game child writes correct SNBSTATE |
+| R6 | TSTYLCHLD | snbYearLoop.b09 | Year child reads, runs, writes correctly |
+| R7 | TSTEGCHLD | end-game module | End-game child runs to completion |
+| R8 | TSTFULLGM | All | Full game end-to-end |
+
+Each test must pass on hardware before the next step begins.
+
+---
+
+## Section 8 — Risk and Constraint Register
+
+### 8.1 Header Read After F$Wait — File Ordering
+
+The coordinator calls `saveGame("SNBSTATE")` before forking `ylChild`.
+The child calls `loadGame("SNBSTATE")` at startup. This sequence is safe
+because `F$Fork` does not return to the parent until the child process is
+scheduled — the parent's `saveGame` write completes before the child
+executes.
+
+The coordinator's `readHdr` call after `F$Wait` is safe for the same
+reason: `F$Wait` does not return until the child has exited, ensuring the
+child's `saveGame` write is complete.
+
+No synchronization primitives are required.
+
+### 8.2 SNBSTATE Deletion on Abnormal Exit
+
+If `forkPhase` returns an error (child exited abnormally), `SNBSTATE`
+may be in an indeterminate state. The coordinator's `ON ERROR` handler
+should attempt to delete `SNBSTATE` before propagating the error, to
+prevent a stale file from corrupting a subsequent new-game session.
+`chkStale` at new-game startup provides a secondary safeguard.
+
+### 8.3 bnkrFlgs BYTE-to-INTEGER Staging
+
+`hdr.bnkrFlgs` is a BYTE field. All LAND and LOR operations on it must
+stage through a local INTEGER variable first per `bestPractices.md`.
+This applies in:
+- `saveGame`: computing bnkrFlgs from plyrs.isBankrupt
+- `ylChild`: computing gameStage exit decision from bnkrFlgs
+- Coordinator loop: counting active players from bnkrFlgs
+
+The confirmed hardware rule: BYTE field directly into an INTEGER PARAM
+produces `byteValue × 256 + nextMemByte`. Always assign BYTE to INTEGER
+DIM variable before arithmetic.
+
+### 8.4 Deck Array Sizing
+
+The in-memory `deckOrd` array must be declared as `DIM deckOrd(36):BYTE`
+in all procedures that hold it. Basic09 array sizes are compile-time
+constants; the array cannot be sized dynamically to `maxYears`. `saveGame`
+and `loadGame` access only indices 1 through `hdr.maxYears` via loops.
+Indices above `maxYears` in the live array contain shuffle residue and
+are never read or written to disk.
+
+### 8.5 obligation Field Location in Resume Path
+
+All procedures that reference `hdr.obligation` (as it existed in the
+prior SaveHdr design) must be updated to reference
+`plyrs(hdr.savedPlyr).obligation`. Search for `hdr.obligation` and
+`.obligation` across all .b09 files before R2 is considered complete.
+The forced liquidation resume path in the load-game caller is the
+primary location.
+
+### 8.6 Reserved Word Check for New Names
+
+All new procedure names and variable names checked against
+`bestPractices.md` reserved word list:
+
+- Procedure names: `forkPhase`, `readHdr`, `chkStale`, `pgChild`,
+  `ylChild`, `egChild`, `guardSave` — CLEAR
+- Variable names: `wasStale`, `isOK`, `childName`, `activePlrs`,
+  `iFlgs`, `iMask` — CLEAR
+- Header field names: `maxYears`, `gameStage`, `bnkrFlgs` — CLEAR
+- Constants: `GS_PREGM`, `GS_YEAR`, `GS_DONE` — these are used as
+  literal BYTE values (1, 2, 3) in code; the labels are documentation
+  only
+
+### 8.7 Pipe IPC Infrastructure — Disposition
+
+The following procedures and test files from the previous pipe-based
+design are superseded and should not be implemented:
+
+- `forkPG`, `forkYL`, `desPG`, `desYL`, `serPG`, `serYL`
+- `ForkPG` TYPE, `ForkYL` TYPE
+- `TSTFKFORK`, `TSTFKPGSER`, `TSTFKPGDES`, `TSTFKYLSER`, `TSTFKYLDS`,
+  `TSTFKPGINT`, `TSTFKYLINT`
+
+`TSTFKPIPE` (basic pipe open/close/write/read round-trip) may be
+retained as a general IPC diagnostic if desired, but is not part of the
+SNB production architecture.
+
+### 8.8 Module Loading — pgChild and ylChild Availability
+
+`pgChild` and `ylChild` must be reachable by RunB when forked. Both
+procedures are I-code modules in their respective .b09 source files.
+They must be compiled, packed, and ATTRed with the execute bit before
+`forkPhase` is called. The module name passed to `forkPhase` must match
+the compiled procedure name exactly, including case.
+
+Confirm the RunB parameter string format (module name + CR, no trailing
+spaces) against the project's confirmed F$Fork/RunB test results before
+R5 proceeds.
