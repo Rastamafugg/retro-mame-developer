@@ -10,6 +10,10 @@ PROCEDURE SNB
 (*              net fires (year exceeded or last      *)
 (*              player standing).                    *)
 (*            Forks egChild (end-game screens).      *)
+(*            Before each fork: ensures the child    *)
+(*            module and snbSaveLoad are resident in  *)
+(*            the OS module directory via             *)
+(*            ensureModule(forChild=TRUE).            *)
 (*            pgChild writes SNBSTATE on normal exit.*)
 (*            On quit (no SNBSTATE written), readHdr  *)
 (*            returns loadOK=FALSE and SNB exits.    *)
@@ -36,7 +40,7 @@ ON ERROR GOTO 900
 
 ! Load snbUtil as permanent resident for SNB's lifetime.
 modNam := "snbUtil"
-RUN ensureModule(modNam, ok)
+RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to load snbUtil"
   END
@@ -46,6 +50,22 @@ ENDIF
 RUN chkStale(wasStale)
 IF wasStale THEN
   PRINT "SNB: stale SNBSTATE deleted"
+ENDIF
+
+! Ensure pgChild module and snbSaveLoad are in the OS module
+! directory before forking. snbSaveLoad provides saveGame to
+! pgChild. forChild=TRUE uses F$NMLink / F$NMLoad.
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbSaveLoad for pgChild"
+  END
+ENDIF
+modNam := "snbSetup"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbSetup (pgChild)"
+  END
 ENDIF
 
 ! Fork pre-game child: runs setup screens, writes SNBSTATE.
@@ -69,6 +89,22 @@ ENDIF
 iGSt := hdr.gameStage  \ ! stage BYTE
 IF iGSt <> 1 THEN
   PRINT "SNB: unexpected gameStage after pgChild: "; iGSt
+  END
+ENDIF
+
+! Ensure ylChild module and snbSaveLoad are in the OS module
+! directory. snbSaveLoad provides loadGame and saveGame to
+! ylChild.
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbSaveLoad for ylChild"
+  END
+ENDIF
+modNam := "snbYearLoop"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbYearLoop (ylChild)"
   END
 ENDIF
 
@@ -117,7 +153,23 @@ LOOP
 
 ENDLOOP
 
-! Fork end-game child: computes final wealth, displays winner.
+! Ensure egChild module and snbSaveLoad are in the OS module
+! directory. snbSaveLoad provides loadGame to egChild.
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbSaveLoad for egChild"
+  END
+ENDIF
+modNam := "snbEndGame"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "SNB: failed to ensure snbEndGame (egChild)"
+  END
+ENDIF
+
+! Fork end-game child: loads SNBSTATE, computes wealth,
+! displays winner.
 RUN forkPhase("egChild", exitStat)
 IF exitStat <> 0 THEN
   PRINT "SNB: egChild failed exitStat="; exitStat
@@ -133,9 +185,14 @@ PROCEDURE chkStale
 (* PURPOSE   : Check whether a stale SNBSTATE file is present  *)
 (*             on disk. If found, close and delete it. If not   *)
 (*             found, do nothing.                               *)
-(*             ON ERROR GOTO 100 handles the expected           *)
-(*             file-not-found case (ERR 216) cleanly.           *)
-(*             Unexpected errors print and END; no ERROR(ERR).  *)
+(*             Called at new-game entry to prevent a leftover   *)
+(*             SNBSTATE from a previous crashed session from    *)
+(*             corrupting the new game's coordinator loop.      *)
+(*             Uses Basic09 OPEN/CLOSE/DELETE; no SysCall       *)
+(*             required. The ON ERROR GOTO 100 branch handles   *)
+(*             the expected file-not-found case (ERR 216)       *)
+(*             cleanly. Unexpected errors print and END;        *)
+(*             no ERROR(ERR) to avoid infinite loop.            *)
 (* PARAMS    : wasStale - TRUE if SNBSTATE was found and deleted*)
 (*                        FALSE if not found                    *)
 (* SIDE EFX  : Deletes SNBSTATE from disk if present.          *)
@@ -184,10 +241,15 @@ PROCEDURE readHdr
 (*             SIZE(SaveHdr) bytes via GET, closes the file.    *)
 (*             Sets loadOK=TRUE on success, FALSE on any error. *)
 (*             Caller must check loadOK before using hdr.       *)
-(*             No ERROR(ERR); failure signalled via loadOK.     *)
+(*             Used by the coordinator after each F$Wait to    *)
+(*             determine gameStage and other header fields      *)
+(*             without reading the full save file.             *)
+(*             No ERROR(ERR); failure signalled via loadOK      *)
+(*             to avoid infinite loop in 900 handler.           *)
 (* PARAMS    : hdr    - receives populated SaveHdr on success   *)
 (*             loadOK - TRUE on success, FALSE on any error     *)
-(* SIDE EFX  : None beyond file I/O.                           *)
+(* SIDE EFX  : None beyond file I/O. Does not modify any       *)
+(*             game state variables.                            *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
@@ -224,29 +286,46 @@ PROCEDURE forkPhase
 (* PURPOSE   : Fork a phase child process via F$Fork / RunB.   *)
 (*             Builds hi-bit-terminated "RunB" name buffer and  *)
 (*             a parameter string of the form childName + CR.  *)
+(*             Issues F$Fork targeting the RunB interpreter,   *)
+(*             passing childName as RunB's command-line so that *)
+(*             RunB resolves and executes the named procedure.  *)
 (*             Blocks on F$Wait until the child exits.          *)
-(*             Returns child exit status in exitStat.           *)
-(*             On any failure: exitStat is set to the error     *)
+(*             Returns the child exit status in exitStat.       *)
+(*             On F$Fork failure, F$Wait failure, or non-zero   *)
+(*             child exit: exitStat is set to the error/status  *)
 (*             value and the procedure ENDs. No ERROR(ERR).     *)
 (*             Caller detects failure by checking exitStat <> 0.*)
+(*                                                             *)
+(*             Parameter string format confirmed from           *)
+(*             tForkParent.b09 hardware tests:                  *)
+(*               childName + $0D (CR)                          *)
+(*             RunB parses this as RUN childName for procedures  *)
+(*             that take no parameters.                         *)
+(*                                                             *)
+(*             Pages: 4 data pages (tForkParent.b09 default).  *)
+(*                                                             *)
 (* PARAMS    : childName - name of procedure RunB will execute  *)
 (*             exitStat  - OUT: 0=clean; non-zero=error/status  *)
+(* SIDE EFX  : Advances OS process table (fork/wait cycle).    *)
+(*             Prints progress to terminal.                     *)
 (* NOTE      : Requires SysCall machine-lang module resident.  *)
 (*             RunB must be in the execution directory.         *)
+(*             Child module must already be in OS module        *)
+(*             directory; call ensureModule(TRUE) before fork.  *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM childName : STRING[20]
 PARAM exitStat  : INTEGER
 DIM regs        : Register
 DIM callCode    : BYTE
-DIM runbBuf(6)  : BYTE
-DIM paramBuf(24): BYTE
-DIM iCC         : INTEGER
-DIM iErr        : INTEGER
-DIM iChildIO    : INTEGER
-DIM iChildPID   : INTEGER
-DIM iStatus     : INTEGER
-DIM nameLen     : INTEGER
+DIM runbBuf(6)  : BYTE    \ ! hi-bit terminated "RunB"
+DIM paramBuf(24): BYTE    \ ! childName + CR (max 20 + 1 + slack)
+DIM iCC         : INTEGER \ ! staged regs.cc for LAND
+DIM iErr        : INTEGER \ ! staged regs.b error code
+DIM iChildIO    : INTEGER \ ! staged regs.a child I/O number
+DIM iChildPID   : INTEGER \ ! staged regs.a child PID from F$Wait
+DIM iStatus     : INTEGER \ ! staged regs.b exit status
+DIM nameLen     : INTEGER \ ! LEN(childName)
 DIM i           : INTEGER
 
 ON ERROR GOTO 900
@@ -260,6 +339,9 @@ runbBuf(3) := ASC("n")
 runbBuf(4) := LOR(ASC("B"), $80) \ ! hi-bit terminates name
 
 ! --- Build parameter string: childName + CR -----------------
+! Copy characters from childName into paramBuf byte-by-byte,
+! then append CR. RunB reads this as its command-line argument
+! and invokes the named procedure with no parameters.
 nameLen := LEN(childName)
 FOR i := 1 TO 24
   paramBuf(i) := 0
@@ -288,7 +370,8 @@ iChildIO := regs.a          \ ! stage child I/O number
 PRINT "forkPhase: forked "; childName; " childIO="; iChildIO
 
 ! --- F$Wait --------------------------------------------------
-! Loop discards signal-delivery returns (iChildPID = 0).
+! Loop discards signal-delivery returns (iChildPID = 0);
+! only a non-zero PID indicates true child termination.
 LOOP
   callCode := $04           \ ! F$Wait
   regs.cc  := 0
@@ -324,60 +407,102 @@ END
 END
 
 PROCEDURE ensureModule
-(* ================================================== *)
-(* PROCEDURE: ensureModule                            *)
-(* PURPOSE:   Ensure a module is resident in memory. *)
-(*            Checks via F$Link; if present undoes   *)
-(*            test link and returns ok=TRUE. If not  *)
-(*            present, F$Loads from disk.            *)
-(* PARAMS:    modNam - module name (= entry proc)    *)
-(*            ok     - TRUE if module now resident   *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(* ================================================== *)
+(* ============================================================ *)
+(* PROCEDURE : ensureModule                                     *)
+(* PURPOSE   : Ensure a named module is resident, using one of *)
+(*             two strategies selected by the forChild flag.   *)
+(*                                                             *)
+(*             forChild = FALSE — current-process load:        *)
+(*               Uses F$Link ($00) to check residency, then    *)
+(*               F$Load ($01) if not found. Loads the module   *)
+(*               into the current process workspace.           *)
+(*                                                             *)
+(*             forChild = TRUE — child-process load:           *)
+(*               Uses F$NMLink ($21) to check residency, then  *)
+(*               F$NMLoad ($22) if not found. Loads the module *)
+(*               into the OS module directory so forked child  *)
+(*               processes can link to it by name.             *)
+(*                                                             *)
+(*             In both cases: if the link call succeeds (carry *)
+(*             clear), the module is already resident and no   *)
+(*             load is required. If the link call fails (carry *)
+(*             set), the appropriate load call is made.        *)
+(*             The two variants differ only in call codes.     *)
+(*                                                             *)
+(*             Both variants use an MSB-terminated BYTE buffer  *)
+(*             built from modNam, matching the pattern         *)
+(*             confirmed in tForkParent.b09 hardware tests.    *)
+(*                                                             *)
+(* PARAMS    : modNam   - module name to ensure resident       *)
+(*             forChild - FALSE=current process (F$Link/Load)  *)
+(*                        TRUE=child process (F$NMLink/NMLoad) *)
+(*             ok       - TRUE if now resident; FALSE on fail  *)
+(* SIDE EFX  : Prints status and error messages to terminal.   *)
+(* NOTE      : Requires SysCall machine-lang module resident.  *)
+(* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM modNam : STRING[20]
-PARAM ok     : BOOLEAN
-DIM regs     : Register
-DIM callCode : BYTE
-DIM nameAddr : INTEGER
-DIM iCC      : INTEGER
-DIM errB     : INTEGER
-DIM foundLib : BOOLEAN
+PARAM modNam   : STRING[20]
+PARAM forChild : BOOLEAN
+PARAM ok       : BOOLEAN
+DIM regs      : Register
+DIM namBuf(22): BYTE    \ ! MSB-terminated name buffer
+DIM linkCode  : BYTE    \ ! F$Link ($00) or F$NMLink ($21)
+DIM loadCode  : BYTE    \ ! F$Load ($01) or F$NMLoad ($22)
+DIM nameLen   : INTEGER
+DIM iCC       : INTEGER \ ! staged regs.cc for LAND
+DIM errB      : INTEGER \ ! staged regs.b error code
+DIM i         : INTEGER
 
 ON ERROR GOTO 900
 
 ok := FALSE
-foundLib := FALSE
 
-nameAddr := ADDR(modNam)
-callCode := $00 \ ! F$Link
-regs.a   := 0
-regs.x   := nameAddr
-RUN SysCall(callCode, regs)
-iCC := regs.cc
+! Select call codes based on target (current process vs child).
+IF forChild THEN
+  linkCode := $21  \ ! F$NMLink
+  loadCode := $22  \ ! F$NMLoad
+ELSE
+  linkCode := $00  \ ! F$Link
+  loadCode := $01  \ ! F$Load
+ENDIF
+
+! Build MSB-terminated name buffer for both call variants.
+! All characters except the last are plain ASCII; the last
+! character has bit 7 set to signal end-of-name to the OS.
+nameLen := LEN(modNam)
+IF nameLen = 0 THEN
+  PRINT "ensureModule: empty module name"
+  END
+ENDIF
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+! Link call: check residency. Carry clear = already resident.
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(linkCode, regs)
+iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
 IF LAND(iCC, 1) = 0 THEN
-  foundLib := TRUE
+  PRINT "ensureModule: "; modNam; " already resident"
   ok := TRUE
-  PRINT "ensureModule: library already in memory: "; modNam
   END
 ENDIF
 
-IF NOT foundLib THEN
-  callCode := $01 \ ! F$Load
-  regs.a   := 0
-  nameAddr := ADDR(modNam)
-  regs.x   := nameAddr
-  RUN SysCall(callCode, regs)
-  iCC := regs.cc
-  IF LAND(iCC, 1) <> 0 THEN
-    errB := regs.b \ ! Stage BYTE error code to INTEGER
-    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
-    END
-  ENDIF
-
-  ok := TRUE
-  PRINT "ensureModule: load successful: "; modNam
+! Load call: module not found; load from execution directory.
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(loadCode, regs)
+iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+IF LAND(iCC, 1) <> 0 THEN
+  errB := regs.b  \ ! stage BYTE -> INTEGER
+  PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+  END
 ENDIF
+
+ok := TRUE
+PRINT "ensureModule: loaded: "; modNam
 END
 
 900 PRINT "ensureModule error ("; ERR; ")"

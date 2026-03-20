@@ -6,10 +6,66 @@ PROCEDURE snbEndGame
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbEndGame"
+PRINT "  egChild"
 PRINT "  scrFinalMkt"
 PRINT "  scrWealth"
 PRINT "  scrWinner"
 PRINT "  scrPostGame"
+END
+
+PROCEDURE egChild
+(* ============================================================ *)
+(* PROCEDURE : egChild                                          *)
+(* PURPOSE   : End-game child process entry point. Loads       *)
+(*             SNBSTATE written by the last ylChild iteration, *)
+(*             then runs the full end-game screen sequence:    *)
+(*               S24 scrFinalMkt  — final market board         *)
+(*               S25 scrWealth    — wealth summary (sorted)    *)
+(*               S26 scrWinner    — winner declaration         *)
+(*               S27 scrPostGame  — post-game menu             *)
+(*             pgAct from scrPostGame is not acted on; the     *)
+(*             coordinator exits after this child returns.     *)
+(*             New game / load routing is a future step.       *)
+(*             Called by the SNB coordinator via forkPhase.    *)
+(* PARAMS    : None (child process; no PARAM handoff)          *)
+(* SIDE EFX  : Reads SNBSTATE. Displays screens. No writes.   *)
+(* NOTE      : snbSaveLoad must be pre-loaded by coordinator.  *)
+(*             snbUtil (clrScr, fmtMoney, waitKey) is          *)
+(*             permanently resident. All four screen           *)
+(*             procedures are in this same packed file.        *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM wlth(6)    : INTEGER
+DIM srtOrd(6)  : INTEGER
+DIM loadOK     : BOOLEAN
+DIM iPlyrCnt   : INTEGER  \ ! stages hdr.plyrCount BYTE for INTEGER PARAM
+DIM pgAct      : INTEGER
+
+ON ERROR GOTO 900
+
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "egChild: loadGame failed"
+  END
+ENDIF
+
+iPlyrCnt := hdr.plyrCount  \ ! stage BYTE -> INTEGER
+
+RUN scrFinalMkt(mkt)
+RUN scrWealth(plyrs, iPlyrCnt, mkt, wlth, srtOrd)
+RUN scrWinner(plyrs, iPlyrCnt, wlth, srtOrd)
+RUN scrPostGame(pgAct)
+END
+
+900 PRINT "egChild error ("; ERR; ")"
 END
 
 PROCEDURE scrFinalMkt

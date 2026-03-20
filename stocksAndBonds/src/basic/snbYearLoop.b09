@@ -7,6 +7,7 @@ PROCEDURE snbYearLoop
 (* ================================================== *)
 PRINT "snbYearLoop"
 PRINT "  runYearLoop"
+PRINT "  ylChild"
 END
 
 PROCEDURE runYearLoop
@@ -616,4 +617,63 @@ END
 722 DATA "United Auto","Uranium Ent","Valley Power"
 
 900 PRINT "runYearLoop error ("; ERR; ")"
+END
+
+PROCEDURE ylChild
+(* ============================================================ *)
+(* PROCEDURE : ylChild                                          *)
+(* PURPOSE   : Year-loop child process entry point. Loads      *)
+(*             SNBSTATE written by the coordinator (or by the   *)
+(*             previous ylChild iteration), then calls          *)
+(*             runYearLoop which runs all remaining years to    *)
+(*             completion. When runYearLoop returns the game is *)
+(*             fully over (all years complete or only one       *)
+(*             player remaining), so ylChild always writes      *)
+(*             GS_DONE (3) to hdr.gameStage before saving.     *)
+(*             Mid-game player-initiated saves during the year  *)
+(*             loop are directed to SNBGAME (the player-visible *)
+(*             save file); SNBSTATE is used only for            *)
+(*             coordinator IPC at entry and exit.               *)
+(*             Called by the SNB coordinator via forkPhase.     *)
+(* PARAMS    : None (child process; no PARAM handoff)           *)
+(* SIDE EFX  : Reads SNBSTATE at entry. Writes SNBSTATE at     *)
+(*             exit with gameStage=GS_DONE. Mid-game saves      *)
+(*             written to SNBGAME by runYearLoop.               *)
+(* NOTE      : snbSaveLoad must be pre-loaded by coordinator.  *)
+(*             snbUtil is permanently resident.                 *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM loadOK     : BOOLEAN
+DIM savPath    : STRING[20]
+
+ON ERROR GOTO 900
+
+! Load full game state from coordinator IPC file.
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "ylChild: loadGame failed"
+  END
+ENDIF
+
+! Mid-game saves during the year loop go to the player-visible
+! save file, not to SNBSTATE. SNBSTATE is written only at exit.
+savPath := "SNBGAME"
+RUN runYearLoop(savPath, hdr, deckOrd, plyrs, mkt)
+
+! runYearLoop only returns when the game is fully complete:
+! all years run or only one player remaining. Always GS_DONE.
+hdr.gameStage := 3  \ ! GS_DONE
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+900 PRINT "ylChild error ("; ERR; ")"
 END
