@@ -2,7 +2,7 @@ PROCEDURE snbMktEng
 (* ================================================== *)
 (* PROCEDURE: snbMktEng                               *)
 (* PURPOSE:   README entry for snbMktEng module.      *)
-(*            Lists all procedures in this module.   *)
+(*            Lists all procedures in this module.    *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbMktEng"
@@ -428,7 +428,7 @@ PROCEDURE applyMktYear
 (*             Apply separately to player cashBal after return. *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
@@ -530,7 +530,7 @@ PROCEDURE applyDivInt
 (*             here. That is handled during card resolution.   *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM currYear : INTEGER
 PARAM plyrCnt  : INTEGER
@@ -616,7 +616,7 @@ PROCEDURE applyMgnInt
 (*             becomes negative.                                *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 PARAM currYear    : INTEGER
 PARAM plyrCnt     : INTEGER
 PARAM plyrs(6)    : PlyrRec

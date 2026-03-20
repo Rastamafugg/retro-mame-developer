@@ -3,17 +3,17 @@ PROCEDURE SNB
 (* PROCEDURE: SNB                                     *)
 (* PURPOSE:   Application entry point.                *)
 (*            PH-00: loads snbUtil.                   *)
-(*            PH-01 to PH-03: loads snbSetup; runs   *)
+(*            PH-01 to PH-03: loads snbSetup; runs    *)
 (*            pre-game; receives confirmed game state.*)
-(*            PH-04: releases snbSetup; loads year   *)
-(*            loop modules; seeds RND; starts loop.  *)
-(*            On quit, exits cleanly.                *)
+(*            PH-04: releases snbSetup; loads year    *)
+(*            loop modules; seeds RND; starts loop.   *)
+(*            On quit, exits cleanly.                 *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,currYear,plyrCount,rollMode,savedPhase,savedPlyr,deckPos,checksum:BYTE;obligation:INTEGER
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 DIM menuAct     : INTEGER
 DIM hdr         : SaveHdr
