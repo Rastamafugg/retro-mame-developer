@@ -66,6 +66,7 @@ These instructions govern how to build, edit, review, and QA Basic09 code in thi
 
 Before submitting or approving any Basic09 code change, verify:
 
+- [ ] Unless directed otherwise, leave comments in place in code that you update, only altering them when the situation requires it (For example, logic changes).
 - [ ] No reserved word is used as a variable, type attribute, array, or procedure name. This includes lowercase or mixed case versions of the identifiers.
 - [ ] All `IF` blocks have a matching `ENDIF`; all `WHILE` blocks have `ENDWHILE`; all `FOR` loops have `NEXT`; all `LOOP` blocks have `ENDLOOP`; all `REPEAT` blocks have `UNTIL`; all `EXITIF` blocks have `ENDEXIT`
 - [ ] `ELSE IF` nesting is fully closed with the correct number of `ENDIF` statements
