@@ -62,13 +62,14 @@ REPEAT
     RUN shuffleDeck(deckOrd)
     hdr.magic      := $53
     hdr.fmtVersion := 1
-    hdr.currYear   := 1
+    hdr.maxYears   := 10
     hdr.plyrCount  := setupCnt  \ ! INTEGER->BYTE; 1-6 safe
     hdr.rollMode   := setupMode \ ! INTEGER->BYTE; 1-3 safe
+    hdr.currYear   := 1
     hdr.savedPhase := 0
     hdr.savedPlyr  := 1
-    hdr.deckPos    := 1
-    hdr.obligation := 0
+    hdr.gameStage  := 0
+    hdr.bnkrFlgs   := 0
     hdr.checksum   := 0
     menuAct := 1
     done    := TRUE
@@ -408,13 +409,12 @@ ON ERROR GOTO 900
 ! --- Populate SaveHdr fields ----------------------------------
 pgBuf.pgMag  := hdr.magic
 pgBuf.pgFmtV := hdr.fmtVersion
-pgBuf.pgCYr  := hdr.currYear
+pgBuf.pgMYr  := hdr.maxYears
 pgBuf.pgPCnt := hdr.plyrCount
 pgBuf.pgRMod := hdr.rollMode
+pgBuf.pgCYr  := hdr.currYear
 pgBuf.pgSPhs := hdr.savedPhase
 pgBuf.pgSPlr := hdr.savedPlyr
-pgBuf.pgOblg := hdr.obligation \ ! INTEGER := INTEGER
-pgBuf.pgDkPs := hdr.deckPos
 pgBuf.pgChks := hdr.checksum
 
 ! --- Populate deck array --------------------------------------
