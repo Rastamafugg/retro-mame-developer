@@ -84,6 +84,8 @@ Before submitting or approving any Basic09 code change, verify:
 - [ ] No `MODULE` or `ENDMODULE` statements are present
 - [ ] Every end-of-line comment uses `\ !` syntax, not bare `!`
 - [ ] No `DIM` or `PARAM` variable name matches any field name defined in a `TYPE` declaration within the same procedure (causes Error #076 Multiply-defined Variable)
+- [ ] Avoid ERROR(ERR) inside of the 900 error handling block of a procedure.  It results in an infinite loop, returning to line 900 and throwing the same error again.  It does not propagate upwards in the call stack.
+- [ ] LAND, LOR, LNOT, and LXOR calls are called like other built-in functions in Basic09. For example: LAND(m,n)
 
 ---
 
