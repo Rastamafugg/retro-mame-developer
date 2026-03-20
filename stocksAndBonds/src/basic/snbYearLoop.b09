@@ -42,7 +42,7 @@ PROCEDURE runYearLoop
 (*     cYear <- hdr.currYear   pCnt <- hdr.plyrCount           *)
 (*     rMode <- hdr.rollMode                                   *)
 (*                                                             *)
-(* SIDE EFX  : Modifies hdr.currYear, hdr.deckPos. Modifies   *)
+(* SIDE EFX  : Modifies hdr.currYear, hdr.currYear. Modifies   *)
 (*             plyrs(1..pCnt) cashBal, stckShrs, bondUnts,     *)
 (*             marginTot, isBankrupt. Modifies mkt.stckPrice,  *)
 (*             mkt.divSuspnd. Writes to disk on save.          *)
@@ -304,7 +304,7 @@ LOOP
   ! ==========================================================
 
   ! ---- Step 3: Draw and decode situation card --------------
-  RUN drawCard(deckOrd, hdr.deckPos, cardId)
+  RUN drawCard(deckOrd, hdr.currYear, cardId)
   RUN getCard(cardId, crd)
 
   ! ---- Step 4: Display situation card (S11) ----------------
