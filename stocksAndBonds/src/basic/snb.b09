@@ -1,33 +1,40 @@
 PROCEDURE SNB
 (* ================================================== *)
 (* PROCEDURE: SNB                                     *)
-(* PURPOSE:   Application entry point.                *)
-(*            PH-00: loads snbUtil.                   *)
-(*            PH-01 to PH-03: loads snbSetup; runs   *)
-(*            pre-game; receives confirmed game state.*)
-(*            PH-04: releases snbSetup; loads year   *)
-(*            loop modules; seeds RND; starts loop.  *)
-(*            On quit, exits cleanly.                *)
+(* PURPOSE:   Application coordinator.                *)
+(*            Loads snbUtil as permanent resident.   *)
+(*            Deletes stale SNBSTATE if present.     *)
+(*            Forks pgChild (pre-game setup).        *)
+(*            Loops: forks ylChild (one year each    *)
+(*              iteration) until GS_DONE or safety   *)
+(*              net fires (year exceeded or last      *)
+(*              player standing).                    *)
+(*            Forks egChild (end-game screens).      *)
+(*            pgChild writes SNBSTATE on normal exit.*)
+(*            On quit (no SNBSTATE written), readHdr  *)
+(*            returns loadOK=FALSE and SNB exits.    *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
-! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM menuAct     : INTEGER
-DIM hdr         : SaveHdr
-DIM deckOrd(36) : BYTE
-DIM plyrs(6)    : PlyrRec
-DIM mkt         : MktState
-DIM savPath     : STRING[20]
-DIM modNam      : STRING[20]
-DIM rSeed       : REAL
-DIM ok          : BOOLEAN
+DIM hdr        : SaveHdr
+DIM wasStale   : BOOLEAN
+DIM loadOK     : BOOLEAN
+DIM exitStat   : INTEGER
+DIM iGSt       : INTEGER  \ ! staged hdr.gameStage
+DIM iCYr       : INTEGER  \ ! staged hdr.currYear
+DIM iMaxYr     : INTEGER  \ ! staged hdr.maxYears
+DIM iPlyrCnt   : INTEGER  \ ! staged hdr.plyrCount
+DIM iBnkr      : INTEGER  \ ! staged hdr.bnkrFlgs for bit scan
+DIM bankrCnt   : INTEGER  \ ! count of bankrupt players
+DIM activePlrs : INTEGER  \ ! plyrCount - bankrCnt
+DIM modNam     : STRING[20]
+DIM ok         : BOOLEAN
+DIM i          : INTEGER
 
 ON ERROR GOTO 900
 
-! PH-00: load snbUtil
+! Load snbUtil as permanent resident for SNB's lifetime.
 modNam := "snbUtil"
 RUN ensureModule(modNam, ok)
 IF NOT ok THEN
@@ -35,56 +42,86 @@ IF NOT ok THEN
   END
 ENDIF
 
-! PH-01: load snbSetup
-modNam := "snbSetup"
-RUN ensureModule(modNam, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to load snbSetup"
+! Check for stale SNBSTATE from a previous crashed session.
+RUN chkStale(wasStale)
+IF wasStale THEN
+  PRINT "SNB: stale SNBSTATE deleted"
+ENDIF
+
+! Fork pre-game child: runs setup screens, writes SNBSTATE.
+! On user quit pgChild exits cleanly but writes no SNBSTATE;
+! readHdr returns loadOK=FALSE and SNB exits below.
+RUN forkPhase("pgChild", exitStat)
+IF exitStat <> 0 THEN
+  PRINT "SNB: pgChild failed exitStat="; exitStat
   END
 ENDIF
 
-! PH-01: load snbSaveLoad
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to load snbSaveLoad"
+! Read header written by pgChild.
+RUN readHdr(hdr, loadOK)
+IF NOT loadOK THEN
+  ! No SNBSTATE: user quit from pre-game menu.
   END
 ENDIF
 
-RUN waitKey
-
-! PH-01 to PH-03: pre-game screens; returns game state.
-RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
-
-IF menuAct = 3 THEN
+! Confirm pgChild wrote GS_PREGM (1).
+! Any other value indicates an unexpected pgChild exit state.
+iGSt := hdr.gameStage  \ ! stage BYTE
+IF iGSt <> 1 THEN
+  PRINT "SNB: unexpected gameStage after pgChild: "; iGSt
   END
 ENDIF
 
-! PH-04: release snbSetup
-modNam := "snbSetup"
-RUN releaseModule(modNam, ok)
+! ---- Coordinator year loop ----------------------------------
+! Each iteration forks ylChild to run one game year.
+! ylChild writes GS_DONE (3) when the final year completes.
+! Safety net catches: year count exceeded, or last player left.
+LOOP
 
-! PH-04: release snbSaveLoad
-modNam := "snbSaveLoad"
-RUN releaseModule(modNam, ok)
+  RUN forkPhase("ylChild", exitStat)
+  IF exitStat <> 0 THEN
+    PRINT "SNB: ylChild failed exitStat="; exitStat
+    END
+  ENDIF
 
-RUN waitKey
+  RUN readHdr(hdr, loadOK)
+  IF NOT loadOK THEN
+    PRINT "SNB: readHdr failed after ylChild"
+    END
+  ENDIF
 
-! PH-04: load snbYearLoop
-modNam := "snbYearLoop"
-RUN ensureModule(modNam, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to load snbYearLoop"
-  END
+  ! Exit loop if ylChild wrote GS_DONE.
+  iGSt := hdr.gameStage  \ ! stage BYTE
+  EXITIF iGSt = 3 THEN
+  ENDEXIT
+
+  ! Safety net: exit if year count exceeded.
+  iCYr   := hdr.currYear  \ ! stage BYTE
+  iMaxYr := hdr.maxYears  \ ! stage BYTE
+  EXITIF iCYr > iMaxYr THEN
+  ENDEXIT
+
+  ! Safety net: exit if only one (or zero) players remain.
+  iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
+  iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
+  bankrCnt := 0
+  FOR i := 1 TO 6
+    IF LAND(iBnkr, 1) = 1 THEN
+      bankrCnt := bankrCnt + 1
+    ENDIF
+    iBnkr := iBnkr / 2
+  NEXT i
+  activePlrs := iPlyrCnt - bankrCnt
+  EXITIF activePlrs <= 1 THEN
+  ENDEXIT
+
+ENDLOOP
+
+! Fork end-game child: computes final wealth, displays winner.
+RUN forkPhase("egChild", exitStat)
+IF exitStat <> 0 THEN
+  PRINT "SNB: egChild failed exitStat="; exitStat
 ENDIF
-
-RUN waitKey
-
-! Seed RND before year loop per runYearLoop contract.
-rSeed := RND(-1)
-
-savPath := "SNBGAME"
-RUN runYearLoop(savPath, hdr, deckOrd, plyrs, mkt)
 END
 
 900 PRINT "SNB error ("; ERR; ")"
@@ -96,11 +133,8 @@ PROCEDURE chkStale
 (* PURPOSE   : Check whether a stale SNBSTATE file is present  *)
 (*             on disk. If found, close and delete it. If not   *)
 (*             found, do nothing.                               *)
-(*             Called at new-game entry to prevent a leftover   *)
-(*             SNBSTATE from a crashed session from corrupting  *)
-(*             the new game's coordinator loop.                 *)
-(*             The ON ERROR GOTO 100 branch handles the         *)
-(*             expected file-not-found case (ERR 216) cleanly.  *)
+(*             ON ERROR GOTO 100 handles the expected           *)
+(*             file-not-found case (ERR 216) cleanly.           *)
 (*             Unexpected errors print and END; no ERROR(ERR).  *)
 (* PARAMS    : wasStale - TRUE if SNBSTATE was found and deleted*)
 (*                        FALSE if not found                    *)
@@ -150,10 +184,7 @@ PROCEDURE readHdr
 (*             SIZE(SaveHdr) bytes via GET, closes the file.    *)
 (*             Sets loadOK=TRUE on success, FALSE on any error. *)
 (*             Caller must check loadOK before using hdr.       *)
-(*             Used by the coordinator after each F$Wait to    *)
-(*             determine gameStage without reading full state.  *)
-(*             Does not use ERROR(ERR) — caller detects failure *)
-(*             via loadOK flag.                                 *)
+(*             No ERROR(ERR); failure signalled via loadOK.     *)
 (* PARAMS    : hdr    - receives populated SaveHdr on success   *)
 (*             loadOK - TRUE on success, FALSE on any error     *)
 (* SIDE EFX  : None beyond file I/O.                           *)
@@ -193,29 +224,13 @@ PROCEDURE forkPhase
 (* PURPOSE   : Fork a phase child process via F$Fork / RunB.   *)
 (*             Builds hi-bit-terminated "RunB" name buffer and  *)
 (*             a parameter string of the form childName + CR.  *)
-(*             Issues F$Fork targeting the RunB interpreter,   *)
-(*             passing childName as RunB's command-line so that *)
-(*             RunB resolves and executes the named procedure.  *)
 (*             Blocks on F$Wait until the child exits.          *)
 (*             Returns child exit status in exitStat.           *)
-(*             On F$Fork failure, F$Wait failure, or non-zero   *)
-(*             child exit: exitStat is set to the error/status  *)
+(*             On any failure: exitStat is set to the error     *)
 (*             value and the procedure ENDs. No ERROR(ERR).     *)
 (*             Caller detects failure by checking exitStat <> 0.*)
-(*                                                             *)
-(*             Parameter string format confirmed from           *)
-(*             tForkParent.b09 hardware tests:                  *)
-(*               childName + $0D (CR)                          *)
-(*             RunB parses this as RUN childName for procedures  *)
-(*             that take no parameters.                         *)
-(*                                                             *)
-(*             Pages: 4 data pages (tForkParent.b09 default).  *)
-(*                                                             *)
 (* PARAMS    : childName - name of procedure RunB will execute  *)
-(*             exitStat  - OUT: 0 = clean exit; non-zero = error*)
-(*                         or child non-zero exit status        *)
-(* SIDE EFX  : Advances OS process table (fork/wait cycle).    *)
-(*             Prints progress to terminal.                     *)
+(*             exitStat  - OUT: 0=clean; non-zero=error/status  *)
 (* NOTE      : Requires SysCall machine-lang module resident.  *)
 (*             RunB must be in the execution directory.         *)
 (* ============================================================ *)
@@ -224,14 +239,14 @@ PARAM childName : STRING[20]
 PARAM exitStat  : INTEGER
 DIM regs        : Register
 DIM callCode    : BYTE
-DIM runbBuf(6)  : BYTE    \ ! hi-bit terminated "RunB"
-DIM paramBuf(24): BYTE    \ ! childName + CR (max 20 + 1 + slack)
-DIM iCC         : INTEGER \ ! staged regs.cc for LAND
-DIM iErr        : INTEGER \ ! staged regs.b error code
-DIM iChildIO    : INTEGER \ ! staged regs.a child I/O number
-DIM iChildPID   : INTEGER \ ! staged regs.a child PID from F$Wait
-DIM iStatus     : INTEGER \ ! staged regs.b exit status
-DIM nameLen     : INTEGER \ ! LEN(childName)
+DIM runbBuf(6)  : BYTE
+DIM paramBuf(24): BYTE
+DIM iCC         : INTEGER
+DIM iErr        : INTEGER
+DIM iChildIO    : INTEGER
+DIM iChildPID   : INTEGER
+DIM iStatus     : INTEGER
+DIM nameLen     : INTEGER
 DIM i           : INTEGER
 
 ON ERROR GOTO 900
@@ -327,10 +342,12 @@ DIM callCode : BYTE
 DIM nameAddr : INTEGER
 DIM iCC      : INTEGER
 DIM errB     : INTEGER
+DIM foundLib : BOOLEAN
 
 ON ERROR GOTO 900
 
 ok := FALSE
+foundLib := FALSE
 
 nameAddr := ADDR(modNam)
 callCode := $00 \ ! F$Link
@@ -339,163 +356,29 @@ regs.x   := nameAddr
 RUN SysCall(callCode, regs)
 iCC := regs.cc
 IF LAND(iCC, 1) = 0 THEN
-  callCode := $02 \ ! F$UnLink: undo test link
-  RUN SysCall(callCode, regs)
+  foundLib := TRUE
   ok := TRUE
+  PRINT "ensureModule: library already in memory: "; modNam
   END
 ENDIF
 
-callCode := $01 \ ! F$Load
-regs.a   := 0
-nameAddr := ADDR(modNam)
-regs.x   := nameAddr
-RUN SysCall(callCode, regs)
-iCC := regs.cc
-IF LAND(iCC, 1) <> 0 THEN
-  errB := regs.b \ ! Stage BYTE error code to INTEGER
-  PRINT "ensureModule: load failed: "; modNam; " err: "; errB
-  END
-ENDIF
+IF NOT foundLib THEN
+  callCode := $01 \ ! F$Load
+  regs.a   := 0
+  nameAddr := ADDR(modNam)
+  regs.x   := nameAddr
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) <> 0 THEN
+    errB := regs.b \ ! Stage BYTE error code to INTEGER
+    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+    END
+  ENDIF
 
-ok := TRUE
-PRINT "ensureModule: load successful: "; modNam
+  ok := TRUE
+  PRINT "ensureModule: load successful: "; modNam
+ENDIF
 END
 
 900 PRINT "ensureModule error ("; ERR; ")"
-END
-
-PROCEDURE releaseModule
-(* ================================================== *)
-(* PROCEDURE: releaseModule                           *)
-(* PURPOSE:   Unload all procedures in a module from *)
-(*            memory via module header traversal and  *)
-(*            F$UnLoad per discovered procedure name. *)
-(*            SNB and snbUtil are never released.    *)
-(* PARAMS:    modNam - module name (= entry proc)    *)
-(*            ok     - TRUE on successful release    *)
-(* NOTE:      Requires SysCall machine-lang module.  *)
-(*            procList(9): sized for largest module.  *)
-(* ================================================== *)
-TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
-PARAM modNam  : STRING[20]
-PARAM ok      : BOOLEAN
-DIM regs        : Register
-DIM callCode    : BYTE
-DIM nameAddr    : INTEGER
-DIM iCC         : INTEGER
-DIM hdrAddr     : INTEGER
-DIM modAddr     : INTEGER
-DIM procList(9) : STRING[20]
-DIM procCnt     : INTEGER
-DIM i           : INTEGER
-DIM j           : INTEGER
-DIM syncOk      : BOOLEAN
-DIM eofReach    : BOOLEAN
-DIM curSize     : INTEGER
-DIM namOff      : INTEGER
-DIM nAddr       : INTEGER
-DIM hiPeek      : INTEGER
-DIM loPeek      : INTEGER
-DIM curName     : STRING[20]
-DIM chInt       : INTEGER
-
-ON ERROR GOTO 900
-
-ok := FALSE
-
-IF modNam = "SNB" OR modNam = "snbUtil" THEN
-  ok := TRUE
-  END
-ENDIF
-
-PRINT "releaseModule: unloading: "; modNam
-
-nameAddr := ADDR(modNam)
-callCode := $00 \ ! F$Link
-regs.a   := 0
-regs.x   := nameAddr
-RUN SysCall(callCode, regs)
-iCC := regs.cc
-IF LAND(iCC, 1) <> 0 THEN
-  ok := TRUE \ ! Not resident; nothing to release
-  END
-ENDIF
-hdrAddr  := regs.u
-callCode := $02 \ ! F$UnLink: undo test link
-RUN SysCall(callCode, regs)
-
-procCnt  := 0
-modAddr  := hdrAddr
-eofReach := FALSE
-
-REPEAT
-  syncOk := (PEEK(modAddr) = $87) AND (PEEK(modAddr+1) = $CD)
-  IF NOT syncOk THEN
-    eofReach := TRUE
-  ENDIF
-  IF syncOk THEN
-    IF procCnt >= 9 THEN
-      eofReach := TRUE
-    ELSE
-      hiPeek  := PEEK(modAddr + 2)
-      loPeek  := PEEK(modAddr + 3)
-      curSize := hiPeek * 256 + loPeek
-      hiPeek  := PEEK(modAddr + 4)
-      loPeek  := PEEK(modAddr + 5)
-      namOff  := hiPeek * 256 + loPeek
-      nAddr   := modAddr + namOff
-      curName := ""
-      j := 0
-      LOOP
-        chInt := PEEK(nAddr + j)
-        IF LAND(chInt, $80) = 0 THEN
-          curName := curName + CHR$(chInt)
-        ELSE
-          curName := curName + CHR$(LAND(chInt, $7F))
-        ENDIF
-        EXITIF LAND(chInt, $80) <> 0 THEN
-        ENDEXIT
-        j := j + 1
-      ENDLOOP
-      procCnt := procCnt + 1
-      procList(procCnt) := curName
-      modAddr := modAddr + curSize
-      IF modAddr < hdrAddr THEN
-        eofReach := TRUE
-      ENDIF
-    ENDIF
-  ENDIF
-UNTIL eofReach
-
-FOR i := 1 TO procCnt
-  nameAddr := ADDR(procList(i))
-  callCode := $1D \ ! F$UnLoad: unlink by name
-  regs.a   := 0
-  regs.x   := nameAddr
-  RUN SysCall(callCode, regs)
-  IF LAND(regs.cc, 1) = 1 THEN
-    PRINT "releaseModule: unload failed: "; procList(i)
-  ELSE
-    ok := TRUE
-    PRINT "releaseModule: unloaded: "; procList(i)
-  ENDIF
-NEXT i
-
-nameAddr := ADDR(modNam)
-callCode := $00 \ ! F$Link: confirm no longer resident
-regs.a   := 0
-regs.x   := nameAddr
-RUN SysCall(callCode, regs)
-iCC := regs.cc
-IF LAND(iCC, 1) = 0 THEN
-  callCode := $02 \ ! F$UnLink: undo test link
-  RUN SysCall(callCode, regs)
-  PRINT "releaseModule: still resident after unload: "; modNam
-ELSE
-  ok := TRUE
-  PRINT "releaseModule: successfully unloaded: "; modNam
-ENDIF
-END
-
-900 PRINT "releaseModule error ("; ERR; ")"
 END
