@@ -1,0 +1,413 @@
+PROCEDURE TSTAIPRB
+(* ============================================================ *)
+(* PROCEDURE : TSTAIPRB                                         *)
+(* PURPOSE   : Forked probe harness for AI trade-phase runtime. *)
+(*             Verifies that initAIProf and scrAITurn are       *)
+(*             callable from a child process when the same      *)
+(*             phase modules as trdChild are ensured for child  *)
+(*             residency.                                       *)
+(*                                                              *)
+(*             Block 1: initAIProf only                         *)
+(*             Block 2: scrAITurn only                          *)
+(*             Block 3: initAIProf + scrAITurn sequence         *)
+(* ============================================================ *)
+DIM exitStat : INTEGER
+DIM failCnt  : INTEGER
+DIM modNam   : STRING[20]
+DIM ok       : BOOLEAN
+
+ON ERROR GOTO 900
+
+failCnt := 0
+
+modNam := "snbUtil"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTAIPRB: failed to load snbUtil"
+  END
+ENDIF
+
+PRINT "=== TSTAIPRB: AI PROCEDURE PROBE ==="
+PRINT
+
+GOSUB 100
+
+PRINT "Block 1: initAIProf child probe"
+RUN forkPhase("aiPrbIni", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [1]: initAIProf callable in child"
+ELSE
+  PRINT "  FAIL [1]: initAIProf child failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 2: scrAITurn child probe"
+RUN forkPhase("aiPrbSum", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [2]: scrAITurn callable in child"
+ELSE
+  PRINT "  FAIL [2]: scrAITurn child failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 3: combined initAIProf + scrAITurn child probe"
+RUN forkPhase("aiPrbAll", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [3]: combined child path callable"
+ELSE
+  PRINT "  FAIL [3]: combined child failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "=== TSTAIPRB SUMMARY ==="
+PRINT "Failures: "; failCnt
+IF failCnt = 0 THEN
+  PRINT "TSTAIPRB: PASS"
+ELSE
+  PRINT "TSTAIPRB: FAIL"
+ENDIF
+END
+
+100 modNam := "TSTAIPRB"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure TSTAIPRB"
+      END
+    ENDIF
+    modNam := "snbUtil"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure snbUtil"
+      END
+    ENDIF
+    modNam := "snbSaveLoad"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure snbSaveLoad"
+      END
+    ENDIF
+    modNam := "snbBuySell"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure snbBuySell"
+      END
+    ENDIF
+    modNam := "snbTrade"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure snbTrade"
+      END
+    ENDIF
+    modNam := "snbAI"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "TSTAIPRB: failed to ensure snbAI"
+      END
+    ENDIF
+    RETURN
+
+900 PRINT "TSTAIPRB error ("; ERR; ")"
+PRINT "TSTAIPRB: FAIL"
+END
+
+PROCEDURE aiPrbIni
+(* ============================================================ *)
+(* PROCEDURE : aiPrbIni                                         *)
+(* PURPOSE   : Child probe for initAIProf only.                 *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM prof    : AIProfile
+DIM tNum    : INTEGER
+DIM stepTxt : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbIni: child start"
+tNum := 2
+stepTxt := "before initAIProf"
+PRINT "aiPrbIni: calling initAIProf tier="; tNum
+RUN initAIProf(tNum, prof)
+stepTxt := "after initAIProf"
+PRINT "aiPrbIni: initAIProf returned"
+PRINT "  prof.tier="; prof.tier; " useMargin="; prof.useMargin
+RUN waitKey
+END
+
+900 PRINT "aiPrbIni error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbSum
+(* ============================================================ *)
+(* PROCEDURE : aiPrbSum                                         *)
+(* PURPOSE   : Child probe for scrAITurn only.                  *)
+(* ============================================================ *)
+DIM plyrNam    : STRING[20]
+DIM phase      : BYTE
+DIM decAct(12) : BYTE
+DIM decType(12): INTEGER
+DIM decId(12)  : INTEGER
+DIM decQty(12) : INTEGER
+DIM decCnt     : INTEGER
+DIM i          : INTEGER
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbSum: child start"
+FOR i := 1 TO 12
+  decAct(i)  := 0
+  decType(i) := 0
+  decId(i)   := 0
+  decQty(i)  := 0
+NEXT i
+
+plyrNam    := "AI PROBE"
+phase      := 2
+decCnt     := 2
+decAct(1)  := 2
+decType(1) := 1
+decId(1)   := 1
+decQty(1)  := 10
+decAct(2)  := 3
+decType(2) := 0
+decId(2)   := 0
+decQty(2)  := 200
+
+stepTxt := "before scrAITurn"
+PRINT "aiPrbSum: calling scrAITurn"
+RUN scrAITurn(plyrNam, phase, decAct, decType, decId, decQty, decCnt)
+stepTxt := "after scrAITurn"
+PRINT "aiPrbSum: scrAITurn returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbSum error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbAll
+(* ============================================================ *)
+(* PROCEDURE : aiPrbAll                                         *)
+(* PURPOSE   : Child probe for initAIProf followed by           *)
+(*             scrAITurn, matching the two key RUN sites from   *)
+(*             trdChild.                                        *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM prof       : AIProfile
+DIM plyrNam    : STRING[20]
+DIM phase      : BYTE
+DIM decAct(12) : BYTE
+DIM decType(12): INTEGER
+DIM decId(12)  : INTEGER
+DIM decQty(12) : INTEGER
+DIM decCnt     : INTEGER
+DIM i          : INTEGER
+DIM tNum       : INTEGER
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbAll: child start"
+tNum := 2
+stepTxt := "before initAIProf"
+PRINT "aiPrbAll: calling initAIProf tier="; tNum
+RUN initAIProf(tNum, prof)
+PRINT "aiPrbAll: initAIProf returned tier="; prof.tier
+
+FOR i := 1 TO 12
+  decAct(i)  := 0
+  decType(i) := 0
+  decId(i)   := 0
+  decQty(i)  := 0
+NEXT i
+
+plyrNam    := "AI PROBE"
+phase      := 1
+decCnt     := 1
+decAct(1)  := 1
+decType(1) := 2
+decId(1)   := 1
+decQty(1)  := 1
+
+stepTxt := "before scrAITurn"
+PRINT "aiPrbAll: calling scrAITurn"
+RUN scrAITurn(plyrNam, phase, decAct, decType, decId, decQty, decCnt)
+stepTxt := "after scrAITurn"
+PRINT "aiPrbAll: scrAITurn returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbAll error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE forkPhase
+(* ============================================================ *)
+(* PROCEDURE : forkPhase                                        *)
+(* PURPOSE   : Fork a child process via the same RunB /         *)
+(*             F$Fork / F$Wait flow used by SNB.                *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM childName : STRING[20]
+PARAM exitStat  : INTEGER
+DIM regs        : Register
+DIM callCode    : BYTE
+DIM runbBuf(6)  : BYTE
+DIM paramBuf(24): BYTE
+DIM iCC         : INTEGER
+DIM iErr        : INTEGER
+DIM iChildIO    : INTEGER
+DIM iChildPID   : INTEGER
+DIM iStatus     : INTEGER
+DIM nameLen     : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+exitStat := 0
+
+runbBuf(1) := ASC("R")
+runbBuf(2) := ASC("u")
+runbBuf(3) := ASC("n")
+runbBuf(4) := LOR(ASC("B"), $80)
+
+nameLen := LEN(childName)
+FOR i := 1 TO 24
+  paramBuf(i) := 0
+NEXT i
+FOR i := 1 TO nameLen
+  paramBuf(i) := ASC(MID$(childName, i, 1))
+NEXT i
+paramBuf(nameLen + 1) := $0D
+
+callCode := $03
+regs.a   := 0
+regs.b   := 4
+regs.x   := ADDR(runbBuf)
+regs.y   := nameLen + 1
+regs.u   := ADDR(paramBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr     := regs.b
+  exitStat := iErr
+  PRINT "forkPhase: F$Fork failed err="; iErr; " child="; childName
+  END
+ENDIF
+iChildIO := regs.a
+PRINT "forkPhase: forked "; childName; " childIO="; iChildIO
+
+LOOP
+  callCode := $04
+  regs.cc  := 0
+  regs.a   := 0
+  regs.b   := 0
+  regs.dp  := 0
+  regs.x   := 0
+  regs.y   := 0
+  regs.u   := 0
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  EXITIF LAND(iCC, 1) = 1 THEN
+  ENDEXIT
+  iChildPID := regs.a
+  EXITIF iChildPID <> 0 THEN
+  ENDEXIT
+ENDLOOP
+
+IF LAND(iCC, 1) = 1 THEN
+  iErr     := regs.b
+  exitStat := iErr
+  PRINT "forkPhase: F$Wait failed err="; iErr
+  END
+ENDIF
+
+iStatus  := regs.b
+exitStat := iStatus
+PRINT "forkPhase: "; childName; " exited PID="; iChildPID; " status="; iStatus
+END
+
+900 PRINT "forkPhase error ("; ERR; ")"
+    exitStat := ERR
+END
+
+PROCEDURE ensureModule
+(* ============================================================ *)
+(* PROCEDURE : ensureModule                                     *)
+(* PURPOSE   : Ensure a named module is resident using the same *)
+(*             logic as SNB.                                    *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam   : STRING[20]
+PARAM forChild : BOOLEAN
+PARAM ok       : BOOLEAN
+DIM regs       : Register
+DIM namBuf(22) : BYTE
+DIM linkCode   : BYTE
+DIM loadCode   : BYTE
+DIM nameLen    : INTEGER
+DIM iCC        : INTEGER
+DIM errB       : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+IF forChild THEN
+  linkCode := $21
+  loadCode := $22
+ELSE
+  linkCode := $00
+  loadCode := $01
+ENDIF
+
+nameLen := LEN(modNam)
+IF nameLen = 0 THEN
+  PRINT "ensureModule: empty module name"
+  END
+ENDIF
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(linkCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "ensureModule: "; modNam; " already resident"
+  ok := TRUE
+  END
+ENDIF
+
+IF NOT ok THEN
+  regs.a := 0
+  regs.x := ADDR(namBuf)
+  RUN SysCall(loadCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) <> 0 THEN
+    errB := regs.b
+    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+    END
+  ENDIF
+  ok := TRUE
+  PRINT "ensureModule: loaded: "; modNam
+ENDIF
+END
+
+900 PRINT "ensureModule error ("; ERR; ")"
+END
