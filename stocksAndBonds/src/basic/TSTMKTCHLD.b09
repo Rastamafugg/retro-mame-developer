@@ -226,15 +226,16 @@ PRINT
 RUN waitKey
 
 ! ==========================================================
-! Block 3: Year 5 forced split. Card 13 gives stock 5 a
-! guaranteed split from starting price 153 for any bull roll.
-! Expected: shares double; cash unchanged.
+! Block 3: Year 1 forced split. Starting price 205 guarantees
+! stock 5 still resolves at or above 150 after any market and
+! card delta, so split handling is deterministic. Year 1 also
+! guarantees Card 1 dividend bonus is skipped.
 ! ==========================================================
-PRINT "Block 3: Year 5 (forced split doubles shares)"
+PRINT "Block 3: Year 1 (forced split doubles shares)"
 
-hdr.currYear         := 5
+hdr.currYear         := 1
 hdr.gameStage        := 1
-deckOrd(5)           := 13
+deckOrd(1)           := 13
 plyrs(1).cashBal     := 7000
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0
@@ -246,7 +247,7 @@ FOR b := 1 TO 3
   plyrs(1).bondUnts(b) := 0
 NEXT b
 plyrs(1).stckShrs(5) := 10
-mkt.stckPrice(5)     := 153
+mkt.stckPrice(5)     := 205
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 modNam := "snbSaveLoad"
@@ -268,14 +269,14 @@ iCYr := hdr.currYear
 iGSt := hdr.gameStage
 
 PRINT "  exitStat = "; exitStat; " (expected 0)"
-PRINT "  currYear = "; iCYr; " (expected 5)"
+PRINT "  currYear = "; iCYr; " (expected 1)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
 PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7000)"
 PRINT "  shares(5) = "; plyrs(1).stckShrs(5); " (expected 20)"
 
 blkOK := FALSE
 IF loadOK THEN
-  IF exitStat = 0 AND iCYr = 5 AND iGSt = 2 THEN
+  IF exitStat = 0 AND iCYr = 1 AND iGSt = 2 THEN
     IF plyrs(1).cashBal = 7000 AND plyrs(1).stckShrs(5) = 20 THEN
       blkOK := TRUE
     ENDIF
