@@ -56,6 +56,7 @@ DIM k:STRING[1]
 
 ON ERROR GOTO 900
 
+PRINT
 PRINT "Press any key to continue...";
 GET #0, k
 PRINT

@@ -115,12 +115,9 @@ IF iCYr > 1 THEN
   NEXT p
 ENDIF
 
-! Buy phase runs every year. New margin purchases are blocked
-! in the final year only.
-mgnYrOk := TRUE
-IF iCYr >= iMaxYr THEN
-  mgnYrOk := FALSE
-ENDIF
+! Buy phase runs every year. Margin purchases are currently
+! disabled until the margin rule is restored.
+mgnYrOk := FALSE
 
 FOR p := 1 TO iPCnt
   IF NOT plyrs(p).isBankrupt THEN
@@ -298,7 +295,7 @@ FOR b := 1 TO 3
 NEXT b
 
 PRINT
-PRINT "1=Enter orders  2=Pass turn"
+PRINT "1=Enter sales  2=Pass turn"
 RUN getMenuKey(1, 2, key)
 
 IF key = 2 THEN
@@ -461,7 +458,7 @@ PROCEDURE scrBuy
 (*             mgnElig    - margin purchase eligible           *)
 (*                          (plyr.hadCashPur from caller)      *)
 (*             mgnYrOk    - margin allowed this year           *)
-(*                          (FALSE for Year 10)               *)
+(*                          (currently FALSE while disabled)   *)
 (*             ordType    - output: 1=STOCK 2=BOND per order   *)
 (*             ordId      - output: asset index per order      *)
 (*             ordQty     - output: quantity per order         *)
@@ -506,6 +503,7 @@ DIM pStr     : STRING[8]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
+DIM minCash  : INTEGER
 
 ON ERROR GOTO 900
 
@@ -547,7 +545,7 @@ LOOP
     PRINT "  (No margin: no prior cash purchase)"
   ENDIF
   IF NOT mgnYrOk THEN
-    PRINT "  (No margin: Year 10)"
+    PRINT "  (No margin: rule disabled)"
   ENDIF
   PRINT
 
@@ -625,14 +623,88 @@ LOOP
   ! --- Stock entries ----------------------------------------
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
-      RUN fmtMoney(mkt.stckPrice(s), pStr)
-      PRINT sNam(s); " @ $"; pStr
+      minCash := 10 * mkt.stckPrice(s)
+      IF canMgn THEN
+        minCash := minCash / 2
+      ENDIF
+      IF simCash >= minCash THEN
+        RUN fmtMoney(mkt.stckPrice(s), pStr)
+        PRINT sNam(s); " @ $"; pStr
+        RUN fmtMoney(simCash, pStr)
+        PRINT "  (cash avail: $"; pStr; ")"
+
+        valid := FALSE
+        WHILE NOT valid DO
+          INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
+          IF qIn = "" THEN
+            qty   := 0
+            valid := TRUE
+          ELSE
+            RUN getNumIn(qIn, qty, numOk)
+            IF NOT numOk THEN
+              PRINT "  Invalid: enter a number."
+            ELSE IF qty < 0 THEN
+              PRINT "  Invalid: enter 0 or positive mult of 10."
+            ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+              PRINT "  Invalid: must be a multiple of 10."
+            ELSE IF qty > 0 THEN
+              ! Determine purchase type.
+              IF canMgn THEN
+                PRINT "  1=Cash  2=Margin"
+                RUN getMenuKey(1, 2, purch)
+              ELSE
+                purch := 1
+              ENDIF
+              ! Compute cost based on type.
+              IF purch = 1 THEN
+                cashCost := qty * mkt.stckPrice(s)
+              ELSE
+                ! Margin: player pays 50% cash upfront.
+                cashCost := (qty * mkt.stckPrice(s)) / 2
+              ENDIF
+              IF cashCost > simCash THEN
+                IF purch = 1 THEN
+                  PRINT "  Insufficient cash (need $"; cashCost; ")."
+                ELSE
+                  PRINT "  Insufficient cash for margin (need $";
+                  PRINT cashCost; ")."
+                ENDIF
+              ELSE
+                simCash := simCash - cashCost
+                valid   := TRUE
+              ENDIF
+            ELSE
+              valid := TRUE
+            ENDIF \ENDIF \ENDIF \ENDIF
+          ENDIF
+        ENDWHILE
+
+        IF qty > 0 THEN
+          ordCnt              := ordCnt + 1
+          ordType(ordCnt)     := 1
+          ordId(ordCnt)       := s
+          ordQty(ordCnt)      := qty
+          ordPurch(ordCnt)    := purch
+        ENDIF
+      ENDIF
+
+    ENDIF
+  NEXT s
+
+  ! --- Bond entries -----------------------------------------
+  FOR b := 1 TO 3
+    IF simCash >= bPar(b) THEN
+      PRINT "$"; bPar(b); " bond  (int=$";
+      IF b = 1 THEN PRINT "50)"
+      ELSE IF b = 2 THEN PRINT "250)"
+      ELSE PRINT "500)"
+      ENDIF \ENDIF
       RUN fmtMoney(simCash, pStr)
       PRINT "  (cash avail: $"; pStr; ")"
 
       valid := FALSE
       WHILE NOT valid DO
-        INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
+        INPUT "  Units to buy (0/Enter=skip): ", qIn
         IF qIn = "" THEN
           qty   := 0
           valid := TRUE
@@ -641,94 +713,28 @@ LOOP
           IF NOT numOk THEN
             PRINT "  Invalid: enter a number."
           ELSE IF qty < 0 THEN
-            PRINT "  Invalid: enter 0 or positive mult of 10."
-          ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
-            PRINT "  Invalid: must be a multiple of 10."
+            PRINT "  Invalid: enter 0 or a positive number."
           ELSE IF qty > 0 THEN
-            ! Determine purchase type.
-            IF canMgn THEN
-              PRINT "  1=Cash  2=Margin"
-              RUN getMenuKey(1, 2, purch)
-            ELSE
-              purch := 1
-            ENDIF
-            ! Compute cost based on type.
-            IF purch = 1 THEN
-              cashCost := qty * mkt.stckPrice(s)
-            ELSE
-              ! Margin: player pays 50% cash upfront.
-              cashCost := (qty * mkt.stckPrice(s)) / 2
-            ENDIF
+            cashCost := qty * bPar(b)
             IF cashCost > simCash THEN
-              IF purch = 1 THEN
-                PRINT "  Insufficient cash (need $"; cashCost; ")."
-              ELSE
-                PRINT "  Insufficient cash for margin (need $";
-                PRINT cashCost; ")."
-              ENDIF
+              PRINT "  Insufficient cash (need $"; cashCost; ")."
             ELSE
               simCash := simCash - cashCost
               valid   := TRUE
             ENDIF
           ELSE
             valid := TRUE
-          ENDIF \ENDIF \ENDIF \ENDIF
+          ENDIF \ENDIF \ENDIF
         ENDIF
       ENDWHILE
 
       IF qty > 0 THEN
-        ordCnt              := ordCnt + 1
-        ordType(ordCnt)     := 1
-        ordId(ordCnt)       := s
-        ordQty(ordCnt)      := qty
-        ordPurch(ordCnt)    := purch
+        ordCnt           := ordCnt + 1
+        ordType(ordCnt)  := 2
+        ordId(ordCnt)    := b
+        ordQty(ordCnt)   := qty
+        ordPurch(ordCnt) := 1
       ENDIF
-
-    ENDIF
-  NEXT s
-
-  ! --- Bond entries -----------------------------------------
-  FOR b := 1 TO 3
-    PRINT "$"; bPar(b); " bond  (int=$";
-    IF b = 1 THEN PRINT "50)"
-    ELSE IF b = 2 THEN PRINT "250)"
-    ELSE PRINT "500)"
-    ENDIF \ENDIF
-    RUN fmtMoney(simCash, pStr)
-    PRINT "  (cash avail: $"; pStr; ")"
-
-    valid := FALSE
-    WHILE NOT valid DO
-      INPUT "  Units to buy (0/Enter=skip): ", qIn
-      IF qIn = "" THEN
-        qty   := 0
-        valid := TRUE
-      ELSE
-        RUN getNumIn(qIn, qty, numOk)
-        IF NOT numOk THEN
-          PRINT "  Invalid: enter a number."
-        ELSE IF qty < 0 THEN
-          PRINT "  Invalid: enter 0 or a positive number."
-        ELSE IF qty > 0 THEN
-          cashCost := qty * bPar(b)
-          IF cashCost > simCash THEN
-            PRINT "  Insufficient cash (need $"; cashCost; ")."
-          ELSE
-            simCash := simCash - cashCost
-            valid   := TRUE
-          ENDIF
-        ELSE
-          valid := TRUE
-        ENDIF \ENDIF \ENDIF
-      ENDIF
-    ENDWHILE
-
-    IF qty > 0 THEN
-      ordCnt           := ordCnt + 1
-      ordType(ordCnt)  := 2
-      ordId(ordCnt)    := b
-      ordQty(ordCnt)   := qty
-      ordPurch(ordCnt) := 1
     ENDIF
 
   NEXT b

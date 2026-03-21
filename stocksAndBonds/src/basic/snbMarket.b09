@@ -76,6 +76,7 @@ DIM shrAf(6)   : INTEGER     \ ! shares after split per player
 DIM evTyp      : INTEGER     \ ! 1=suspended 2=reinstated
 DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
 DIM actByt     : BYTE     \ ! action return from screens (discarded)
+DIM iSeed      : INTEGER  \ ! per-year RNG seed for child-process roll variance
 DIM tInt       : INTEGER  \ ! reused loop counter / staging variable
 DIM p          : INTEGER
 DIM s          : INTEGER
@@ -105,6 +106,13 @@ RUN getCard(cardId, crd)
 ! Display S11 situation card (flavour text stub for now).
 flavTxt := ""
 RUN scrCard(cardId, crd, flavTxt, actByt)
+
+! Each market phase runs in a fresh child process, so reseed the
+! RNG from persisted game state before generating this year's dice.
+iSeed := (iCYr * 97) + (cardId * 13)
+iSeed := iSeed + mkt.stckPrice(1) + mkt.stckPrice(5)
+iSeed := iSeed + mkt.stckPrice(9)
+tInt := RND(0 - iSeed)
 
 ! Generate dice rolls per active roll mode.
 RUN doRolls(iRMode, iCYr, dOne, dTwo, rTot, rCnt, oAct)
@@ -670,16 +678,16 @@ PROCEDURE drawCard
 (*             deckPos to 1 so the next draw starts fresh.      *)
 (* PARAMS    : deckOrd(36) - shuffled deck order (modified on  *)
 (*                           reshuffle)                         *)
-(*             deckPos     - current draw position (1..36);     *)
-(*                           incremented on return; reset to 1  *)
-(*                           after position 36                  *)
+(*             deckPos     - current draw position (1..36);    *)
+(*                           incremented on return; reset to 1 *)
+(*                           after position 36                 *)
 (*             cardId      - receives card ID 1..36 for this    *)
 (*                           draw                               *)
 (* SIDE EFX  : Modifies deckPos. On reshuffle: modifies        *)
 (*             deckOrd and advances RND sequence.               *)
 (* ============================================================ *)
 PARAM deckOrd(36) : BYTE
-PARAM deckPos     : BYTE
+PARAM deckPos     : INTEGER
 PARAM cardId      : INTEGER
 
 ON ERROR GOTO 900
