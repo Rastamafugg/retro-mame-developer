@@ -1,0 +1,155 @@
+PROCEDURE TSTFULLGM
+(* ================================================== *)
+(* PROCEDURE: TSTFULLGM                               *)
+(* PURPOSE:   C4 full-integration confirmation test. *)
+(*            Loads SNB and its support modules, then *)
+(*            launches the real coordinator for a     *)
+(*            manual end-to-end run. When SNB returns,*)
+(*            asks the tester to confirm PASS/FAIL.   *)
+(*                                                    *)
+(*            This is a visual/manual integration     *)
+(*            harness, not a machine-verifiable game  *)
+(*            simulator. The tester drives setup and  *)
+(*            gameplay inside SNB, then records the   *)
+(*            result here on return.                  *)
+(* ================================================== *)
+DIM modNam : STRING[20]
+DIM ok     : BOOLEAN
+DIM key    : INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "=== TSTFULLGM: C4 FULL INTEGRATION TEST ==="
+PRINT
+PRINT "This test launches the real SNB coordinator."
+PRINT
+PRINT "Checklist before marking PASS:"
+PRINT "  1. pgChild setup completed normally."
+PRINT "  2. divChild, mktChild, and trdChild transitions ran."
+PRINT "  3. egChild end-game screens displayed without error."
+PRINT "  4. Winner display matched the observed final state."
+PRINT
+PRINT "Press any key to ensure modules and launch SNB...";
+RUN waitKey
+
+modNam := "snbUtil"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTFULLGM: failed to load snbUtil"
+  END
+ENDIF
+
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTFULLGM: failed to load snbSaveLoad"
+  END
+ENDIF
+
+modNam := "SNB"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTFULLGM: failed to load SNB"
+  END
+ENDIF
+
+RUN SNB
+
+PRINT
+PRINT "SNB returned to TSTFULLGM."
+PRINT "1=PASS  2=FAIL"
+RUN getMenuKey(1, 2, key)
+
+IF key = 1 THEN
+  PRINT "TSTFULLGM: PASS"
+ELSE
+  PRINT "TSTFULLGM: FAIL"
+ENDIF
+END
+
+900 PRINT "TSTFULLGM error ("; ERR; ")"
+PRINT "TSTFULLGM: FAIL"
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Pause before launching SNB.             *)
+(* NOTE:      Local copy; do not pack with snbUtil.   *)
+(* ================================================== *)
+DIM k : STRING[1]
+ON ERROR GOTO 900
+GET #0, k
+PRINT
+END
+900 PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE ensureModule
+(* ============================================================ *)
+(* PROCEDURE : ensureModule                                     *)
+(* PURPOSE   : Ensure a named module is resident, using the    *)
+(*             same logic as SNB and the child tests.          *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam   : STRING[20]
+PARAM forChild : BOOLEAN
+PARAM ok       : BOOLEAN
+DIM regs       : Register
+DIM namBuf(22) : BYTE
+DIM linkCode   : BYTE
+DIM loadCode   : BYTE
+DIM nameLen    : INTEGER
+DIM iCC        : INTEGER
+DIM errB       : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+IF forChild THEN
+  linkCode := $21
+  loadCode := $22
+ELSE
+  linkCode := $00
+  loadCode := $01
+ENDIF
+
+nameLen := LEN(modNam)
+IF nameLen = 0 THEN
+  PRINT "ensureModule: empty module name"
+  END
+ENDIF
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(linkCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "ensureModule: "; modNam; " already resident"
+  ok := TRUE
+  END
+ENDIF
+
+IF NOT ok THEN
+  regs.a := 0
+  regs.x := ADDR(namBuf)
+  RUN SysCall(loadCode, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) <> 0 THEN
+    errB := regs.b
+    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+    END
+  ENDIF
+  ok := TRUE
+  PRINT "ensureModule: loaded: "; modNam
+ENDIF
+END
+
+900 PRINT "ensureModule error ("; ERR; ")"
+END

@@ -11,11 +11,10 @@ PROCEDURE TSTDIVCHLD
 (*            Calls divChild via RUN (no fork).       *)
 (*            Prints TSTDIVCHLD: PASS if all correct. *)
 (*                                                   *)
-(* PRE:       snbSaveLoad, snbMktEng, snbMktScr must *)
-(*            all be packed and resident before run.  *)
+(* PRE:       snbSaveLoad and snbDividend must be    *)
+(*            packed and resident before run.         *)
 (*            RUN snbSaveLoad                         *)
-(*            RUN snbMktEng                           *)
-(*            RUN snbMktScr   (contains divChild)    *)
+(*            RUN snbDividend                         *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE

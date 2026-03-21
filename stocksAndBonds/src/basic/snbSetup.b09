@@ -104,7 +104,7 @@ PROCEDURE initPlayer
 (* ================================================= *)
 
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 
 PARAM plyr: PlyrRec
 
@@ -117,6 +117,7 @@ plyr.plyrType   := 0
 plyr.aiTier     := 0
 plyr.cashBal    := 5000
 plyr.marginTot  := 0
+plyr.obligation := 0
 plyr.isBankrupt := FALSE
 plyr.hadCashPur := FALSE
 

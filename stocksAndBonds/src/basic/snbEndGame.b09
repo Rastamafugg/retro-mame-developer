@@ -17,7 +17,7 @@ PROCEDURE egChild
 (* ============================================================ *)
 (* PROCEDURE : egChild                                          *)
 (* PURPOSE   : End-game child process entry point. Loads       *)
-(*             SNBSTATE written by the last ylChild iteration, *)
+(*             SNBSTATE written by the final phase child,      *)
 (*             then runs the full end-game screen sequence:    *)
 (*               S24 scrFinalMkt  - final market board         *)
 (*               S25 scrWealth    - wealth summary (sorted)    *)
@@ -145,7 +145,7 @@ PROCEDURE scrWealth
 (* SIDE EFX  : Clears screen. Returns after waitKey.           *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM plyrs(6)  : PlyrRec
 PARAM plyrCount : INTEGER
@@ -257,7 +257,7 @@ PROCEDURE scrWinner
 (* SIDE EFX  : Clears screen. Returns after waitKey.           *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 PARAM plyrs(6)  : PlyrRec
 PARAM plyrCount : INTEGER
 PARAM wlth(6)   : INTEGER
