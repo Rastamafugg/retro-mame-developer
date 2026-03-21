@@ -138,6 +138,8 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 1)"
   END
 ENDIF
+PRINT "  Child libraries ensured for block 1. Press a key to fork."
+RUN waitKey
 RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
@@ -207,6 +209,8 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 2)"
   END
 ENDIF
+PRINT "  Child libraries ensured for block 2. Press a key to fork."
+RUN waitKey
 RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
@@ -280,6 +284,8 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 3)"
   END
 ENDIF
+PRINT "  Child libraries ensured for block 3. Press a key to fork."
+RUN waitKey
 RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
@@ -350,6 +356,8 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 4)"
   END
 ENDIF
+PRINT "  Child libraries ensured for block 4. Press a key to fork."
+RUN waitKey
 RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
