@@ -583,6 +583,8 @@ DIM divRate(9): INTEGER
 
 ON ERROR GOTO 900
 
+PRINT "scrBuy: start"
+
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -669,6 +671,7 @@ LOOP
   ENDIF
 
   IF key = passKey THEN
+    PRINT "scrBuy: pass selected"
     ordCnt := 0
     action := 2
     END
@@ -785,6 +788,7 @@ LOOP
           ordId(ordCnt)       := s
           ordQty(ordCnt)      := qty
           ordPurch(ordCnt)    := purch
+          PRINT "scrBuy: stock order idx="; ordCnt; " s="; s; " q="; qty
         ENDIF
       ENDIF
 
@@ -834,6 +838,7 @@ LOOP
         ordId(ordCnt)    := b
         ordQty(ordCnt)   := qty
         ordPurch(ordCnt) := 1
+        PRINT "scrBuy: bond order idx="; ordCnt; " b="; b; " q="; qty
       ENDIF
     ENDIF
 
@@ -880,12 +885,16 @@ LOOP
   PRINT
   PRINT "1=Confirm  2=Revise orders"
   RUN getMenuKey(1, 2, key)
+  PRINT "scrBuy: summary key="; key
 
   EXITIF key = 1 THEN
   ENDEXIT
 
 ENDLOOP
 
+PRINT "scrBuy: pre-return ordCnt="; ordCnt; " repay="; mgnRepay
+RUN fmtMoney(simCash, pStr)
+PRINT "scrBuy: pre-return self-check cash="; pStr
 action := 1
 END
 
