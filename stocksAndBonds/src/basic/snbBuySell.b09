@@ -65,6 +65,7 @@ DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM actByt     : BYTE
 DIM tInt       : INTEGER
+DIM aiTierVal  : INTEGER
 DIM p          : INTEGER
 
 ON ERROR GOTO 900
@@ -98,7 +99,12 @@ IF iCYr > 1 THEN
       ELSE
 
         ! AI sell phase.
-        tInt := plyrs(p).aiTier
+        aiTierVal := plyrs(p).aiTier
+        IF aiTierVal < 1 OR aiTierVal > 3 THEN
+          aiTierVal := 2
+          plyrs(p).aiTier := 2
+        ENDIF
+        tInt := aiTierVal
         RUN initAIProf(tInt, prof)
         RUN aiSell(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
         IF ordCnt > 0 THEN
@@ -142,7 +148,12 @@ FOR p := 1 TO iPCnt
     ELSE
 
       ! AI buy phase.
-      tInt := plyrs(p).aiTier
+      aiTierVal := plyrs(p).aiTier
+      IF aiTierVal < 1 OR aiTierVal > 3 THEN
+        aiTierVal := 2
+        plyrs(p).aiTier := 2
+      ENDIF
+      tInt := aiTierVal
       RUN initAIProf(tInt, prof)
       prof.useMargin := FALSE
       ! Line exceeds 79 chars; RUN statement cannot be split.
@@ -239,6 +250,7 @@ DIM s       : INTEGER
 DIM b       : INTEGER
 DIM yldPct  : INTEGER
 DIM divVal  : INTEGER
+DIM hasSell : BOOLEAN
 DIM qty     : INTEGER
 DIM valid   : BOOLEAN
 DIM key     : INTEGER
@@ -288,8 +300,10 @@ PRINT "  Margin: $"; pStr
 PRINT
 
 PRINT "STOCKS:"
+hasSell := FALSE
 FOR s := 1 TO 9
   IF plyr.stckShrs(s) > 0 THEN
+    hasSell := TRUE
     RUN fmtMoney(mkt.stckPrice(s), pStr)
     yldPct := divRate(s)
     divVal := (mkt.stckPrice(s) * divRate(s)) / 100
@@ -312,10 +326,20 @@ PRINT
 PRINT "BONDS:"
 FOR b := 1 TO 3
   IF plyr.bondUnts(b) > 0 THEN
+    hasSell := TRUE
     PRINT " "; b; " $"; bDen(b); "  ";
     PRINT plyr.bondUnts(b); " unit(s)"
   ENDIF
 NEXT b
+
+IF NOT hasSell THEN
+  PRINT
+  PRINT "Nothing to sell this turn."
+  RUN waitKey
+  ordCnt := 0
+  action := 2
+  END
+ENDIF
 
 PRINT
 PRINT "1=Enter sales  2=Pass turn"

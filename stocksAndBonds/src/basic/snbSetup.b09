@@ -57,6 +57,9 @@ REPEAT
     FOR i := 1 TO setupCnt
       plyrs(i).plyrName := setupNam(i)
       plyrs(i).plyrType := setupTyp(i) \ ! INTEGER->BYTE; 1-2 safe
+      IF setupTyp(i) = 2 THEN
+        plyrs(i).aiTier := 2  \ ! default computer difficulty = Medium
+      ENDIF
     NEXT i
     RUN initMkt(mkt)
     RUN shuffleDeck(deckOrd)
