@@ -48,9 +48,9 @@ PROCEDURE waitKey
 (* PROCEDURE: waitKey                                 *)
 (* PURPOSE:   Display continue prompt, block on key. *)
 (* PARAMS:    None                                    *)
-(* EFFECTS:   Prints prompt to stdout. Reads one     *)
-(*            character from path 0. Discards input. *)
-(*            Prints newline after keypress.         *)
+(* EFFECTS:   Prints prompt to stdout. Polls INKEY   *)
+(*            until one character is available, then *)
+(*            discards it. Prints newline after key. *)
 (* ================================================== *)
 DIM k:STRING[1]
 
@@ -58,7 +58,9 @@ ON ERROR GOTO 900
 
 PRINT
 PRINT "Press any key to continue...";
-GET #0, k
+REPEAT
+  RUN INKEY(k)
+UNTIL k <> ""
 PRINT
 END
 
@@ -131,8 +133,8 @@ PROCEDURE getMenuKey
 (* PARAMS:    minKey - lowest valid choice (INTEGER) *)
 (*            maxKey - highest valid choice (INTEGER)*)
 (*            choice - receives validated value      *)
-(* EFFECTS:   Reads path 0 raw. Invalid keys are    *)
-(*            silently discarded (no echo).          *)
+(* EFFECTS:   Polls INKEY until a valid digit key is *)
+(*            pressed. Invalid keys are discarded.   *)
 (* NOTE:      minKey/maxKey are INTEGER per          *)
 (*            bestPractices; callers pass literals.  *)
 (* ================================================== *)
@@ -147,11 +149,15 @@ k    := ""
 kVal := 0
 
 REPEAT
-  GET #0, k
-  IF k >= "1" AND k <= "9" THEN \ ! guard: digits only, skip VAL on other input
-    kVal := VAL(k)
+  RUN INKEY(k)
+  IF k <> "" THEN
+    IF k >= "1" AND k <= "9" THEN \ ! guard: digits only, skip VAL on other input
+      kVal := VAL(k)
+    ELSE
+      kVal := 0 \ ! non-digit: force fail, loop continues silently
+    ENDIF
   ELSE
-    kVal := 0 \ ! non-digit: force fail, loop continues silently
+    kVal := 0
   ENDIF
 UNTIL kVal >= minKey AND kVal <= maxKey
 
