@@ -91,14 +91,16 @@ END
 PROCEDURE fmtMoney
 (* ================================================== *)
 (* PROCEDURE: fmtMoney                                *)
-(* PURPOSE:   Right-justify an INTEGER into a 7-char *)
+(* PURPOSE:   Right-justify an INTEGER into a compact *)
 (*            field, returned in result (STRING[8]). *)
 (* PARAMS:    amt    - value to format (INTEGER)      *)
 (*            result - receives formatted string      *)
-(* EFFECTS:   result is always exactly 7 characters. *)
+(* EFFECTS:   result is padded to a minimum width of *)
+(*            4 chars for positive values, wider     *)
+(*            when needed by the number itself.       *)
 (*            Negative values include leading minus.  *)
-(* LIMITS:    Field width 7 holds -32767 to 32767.   *)
-(*            -32768 produces 8 chars and overflows. *)
+(* LIMITS:    -32768 still produces 8 chars and      *)
+(*            overflows STRING[8].                   *)
 (* ================================================== *)
 PARAM amt:INTEGER
 PARAM result:STRING[8]
@@ -106,13 +108,21 @@ PARAM result:STRING[8]
 DIM raw:STRING[8]
 DIM sLen:INTEGER
 DIM padLen:INTEGER
+DIM minWid:INTEGER
 DIM p:INTEGER
 
 ON ERROR GOTO 900
 
 raw := TRIM$(STR$(amt)) \ ! digit string, no trailing spaces
 sLen := LEN(raw)
-padLen := 7 - sLen
+minWid := 4
+IF amt < 0 THEN
+  minWid := 5
+ENDIF
+padLen := minWid - sLen
+IF padLen < 0 THEN
+  padLen := 0
+ENDIF
 
 result := ""
 FOR p := 1 TO padLen

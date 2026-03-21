@@ -240,6 +240,7 @@ DIM divVal  : INTEGER
 DIM qty     : INTEGER
 DIM valid   : BOOLEAN
 DIM key     : INTEGER
+DIM nSep    : STRING[1]
 DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
 DIM numOk   : BOOLEAN
@@ -290,10 +291,11 @@ FOR s := 1 TO 9
     RUN fmtMoney(mkt.stckPrice(s), pStr)
     yldPct := divRate(s)
     divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-    PRINT " "; s; " "; sNam(s); "  ";
+    nSep := ""
     IF LEN(sNam(s)) = 10 THEN
-      PRINT " ";
+      nSep := " "
     ENDIF
+    PRINT " "; s; " "; sNam(s); nSep; "  ";
     PRINT plyr.stckShrs(s); " shr @ $"; pStr;
     PRINT " "; yldPct; "% -> $"; divVal;
     IF plyr.mgnHeld(s) THEN
@@ -343,10 +345,11 @@ LOOP
       RUN fmtMoney(mkt.stckPrice(s), pStr)
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-      PRINT sNam(s); " ("; plyr.stckShrs(s);
+      nSep := ""
       IF LEN(sNam(s)) = 10 THEN
-        PRINT " ";
+        nSep := " "
       ENDIF
+      PRINT sNam(s); nSep; " ("; plyr.stckShrs(s);
       PRINT " avail @ $"; pStr; " "; yldPct; "% -> $"; divVal; ")"
       valid := FALSE
       WHILE NOT valid DO
@@ -524,6 +527,7 @@ DIM repayAmt : INTEGER
 DIM maxRpy   : INTEGER
 DIM yldPct   : INTEGER
 DIM divVal   : INTEGER
+DIM nSep     : STRING[1]
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
 DIM valid    : BOOLEAN
@@ -592,10 +596,11 @@ LOOP
       RUN fmtMoney(mkt.stckPrice(s), pStr)
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-      PRINT " "; s; " "; sNam(s); "  $"; pStr
+      nSep := ""
       IF LEN(sNam(s)) = 10 THEN
-        PRINT " ";
+        nSep := " "
       ENDIF
+      PRINT " "; s; " "; sNam(s); nSep; "  $"; pStr
       PRINT " "; yldPct; "% -> $"; divVal
     ENDIF
   NEXT s
@@ -674,10 +679,11 @@ LOOP
         RUN fmtMoney(mkt.stckPrice(s), pStr)
         yldPct := divRate(s)
         divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-        PRINT sNam(s); " @ $"; pStr
+        nSep := ""
         IF LEN(sNam(s)) = 10 THEN
-          PRINT " ";
+          nSep := " "
         ENDIF
+        PRINT sNam(s); nSep; " @ $"; pStr
         PRINT " "; yldPct; "% -> $"; divVal
         RUN fmtMoney(simCash, pStr)
         PRINT "  (cash avail: $"; pStr; ")"
