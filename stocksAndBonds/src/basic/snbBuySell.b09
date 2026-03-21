@@ -292,7 +292,7 @@ FOR s := 1 TO 9
     yldPct := divRate(s)
     divVal := (mkt.stckPrice(s) * divRate(s)) / 100
     nSep := ""
-    IF LEN(sNam(s)) = 10 THEN
+    IF LEN(sNam(s)) = 11 THEN
       nSep := " "
     ENDIF
     PRINT " "; s; " "; sNam(s); nSep; "  ";
@@ -346,7 +346,7 @@ LOOP
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
       nSep := ""
-      IF LEN(sNam(s)) = 10 THEN
+      IF LEN(sNam(s)) = 11 THEN
         nSep := " "
       ENDIF
       PRINT sNam(s); nSep; " ("; plyr.stckShrs(s);
@@ -597,10 +597,10 @@ LOOP
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
       nSep := ""
-      IF LEN(sNam(s)) = 10 THEN
+      IF LEN(sNam(s)) = 11 THEN
         nSep := " "
       ENDIF
-      PRINT " "; s; " "; sNam(s); nSep; "  $"; pStr
+      PRINT " "; s; " "; sNam(s); nSep; "  $"; pStr;
       PRINT " "; yldPct; "% -> $"; divVal
     ENDIF
   NEXT s
@@ -680,10 +680,10 @@ LOOP
         yldPct := divRate(s)
         divVal := (mkt.stckPrice(s) * divRate(s)) / 100
         nSep := ""
-        IF LEN(sNam(s)) = 10 THEN
+        IF LEN(sNam(s)) = 11 THEN
           nSep := " "
         ENDIF
-        PRINT sNam(s); nSep; " @ $"; pStr
+        PRINT sNam(s); nSep; " @ $"; pStr;
         PRINT " "; yldPct; "% -> $"; divVal
         RUN fmtMoney(simCash, pStr)
         PRINT "  (cash avail: $"; pStr; ")"
