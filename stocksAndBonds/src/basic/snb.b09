@@ -34,6 +34,9 @@ PROCEDURE SNB
 (*                                                   *)
 (*            On GS_DONE from any child: exits year  *)
 (*            loop and forks egChild immediately.    *)
+(*            On coordinator/child failure: prints   *)
+(*            diagnostics and exits without egChild  *)
+(*            so the failure text stays visible.     *)
 (*            Safety nets: iCYr >= iMaxYr (after     *)
 (*            Year 10 completes) and last-player-    *)
 (*            standing also exit the loop.           *)
@@ -54,6 +57,7 @@ DIM bankrCnt   : INTEGER  \ ! count of bankrupt players
 DIM activePlrs : INTEGER  \ ! plyrCount - bankrCnt
 DIM modNam     : STRING[20]
 DIM gameOver   : BOOLEAN
+DIM runEndGame : BOOLEAN
 DIM ok         : BOOLEAN
 DIM i          : INTEGER
 
@@ -124,6 +128,7 @@ iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 ! divChild always runs first and increments currYear before any
 ! other work, so mktChild and trdChild see the correct year.
 gameOver := FALSE
+runEndGame := FALSE
 
 LOOP
 
@@ -220,6 +225,7 @@ LOOP
     ! iMaxYr=10). The EXITIF at the top uses the same condition.
     IF iCYr >= iMaxYr THEN
       gameOver := TRUE
+      runEndGame := TRUE
     ENDIF
 
     ! Safety net 2: only one (or zero) active players remain.
@@ -236,12 +242,18 @@ LOOP
       activePlrs := iPlyrCnt - bankrCnt
       IF activePlrs <= 1 THEN
         gameOver := TRUE
+        runEndGame := TRUE
       ENDIF
     ENDIF
 
   ENDIF
 
 ENDLOOP
+
+IF NOT runEndGame THEN
+  PRINT "SNB: coordinator stopped before end-game phase"
+  END
+ENDIF
 
 ! Ensure egChild module and snbSaveLoad are in the OS module
 ! directory. snbSaveLoad provides loadGame to egChild.
@@ -285,6 +297,7 @@ END
     iCYr := hdr.currYear   \ ! stage BYTE; updated by divChild
     IF iGSt = 3 THEN        \ ! GS_DONE: game over
       gameOver := TRUE
+      runEndGame := TRUE
     ENDIF
     RETURN
 
