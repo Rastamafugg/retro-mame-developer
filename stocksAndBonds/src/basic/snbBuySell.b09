@@ -22,8 +22,9 @@ PROCEDURE trdChild
 (*                                                              *)
 (*             After the buy phase, counts active players and   *)
 (*             writes hdr.gameStage:                            *)
-(*               3 = GS_DONE when currYear >= maxYears OR       *)
-(*                   activePlrs <= 1                            *)
+(*               3 = GS_DONE when currYear >= maxYears          *)
+(*               3 = GS_DONE when only one active player        *)
+(*                   remains in a multiplayer game              *)
 (*               2 = GS_YEAR otherwise                          *)
 (*                                                              *)
 (*             Called by the SNB coordinator via forkPhase.     *)
@@ -184,11 +185,13 @@ FOR p := 1 TO iPCnt
   ENDIF
 NEXT p
 
-IF iCYr >= iMaxYr OR activePlrs <= 1 THEN
+IF iCYr >= iMaxYr THEN
+  hdr.gameStage := 3  \ ! GS_DONE
+ELSE IF iPCnt > 1 AND activePlrs <= 1 THEN
   hdr.gameStage := 3  \ ! GS_DONE
 ELSE
   hdr.gameStage := 2  \ ! GS_YEAR
-ENDIF
+ENDIF \ENDIF
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 END

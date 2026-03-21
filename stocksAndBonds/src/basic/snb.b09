@@ -38,8 +38,8 @@ PROCEDURE SNB
 (*            diagnostics and exits without egChild  *)
 (*            so the failure text stays visible.     *)
 (*            Safety nets: iCYr >= iMaxYr (after     *)
-(*            Year 10 completes) and last-player-    *)
-(*            standing also exit the loop.           *)
+(*            Year 10 completes) and lone-survivor   *)
+(*            exit in multiplayer games.             *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -181,7 +181,8 @@ LOOP
   ! ---- Phase 3: trdChild (all years) ----------------------
   ! Sell phase (skipped internally in Year 1) then buy phase.
   ! Writes GS_DONE (3) when game ends (Year 10 complete or
-  ! only one active player remaining). Otherwise GS_YEAR (2).
+  ! lone survivor remains in a multiplayer game). Otherwise
+  ! GS_YEAR (2).
   IF NOT gameOver THEN
     modNam := "snbSaveLoad"
     RUN ensureModule(modNam, TRUE, ok)
@@ -228,7 +229,8 @@ LOOP
       runEndGame := TRUE
     ENDIF
 
-    ! Safety net 2: only one (or zero) active players remain.
+    ! Safety net 2: only one (or zero) active players remain
+    ! in a multiplayer game.
     IF NOT gameOver THEN
       iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
       iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
@@ -240,7 +242,7 @@ LOOP
         iBnkr := iBnkr / 2
       NEXT i
       activePlrs := iPlyrCnt - bankrCnt
-      IF activePlrs <= 1 THEN
+      IF iPlyrCnt > 1 AND activePlrs <= 1 THEN
         gameOver := TRUE
         runEndGame := TRUE
       ENDIF
