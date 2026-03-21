@@ -108,12 +108,12 @@ ENDIF
 PRINT
 RUN waitKey
 
-PRINT "Block 7: scrBuy + applyBuys + initAIProf"
+PRINT "Block 7: scrBuy + dummyBuys + initAIProf"
 PRINT "  Enter the same human buy inputs that triggered the live error."
 RUN forkPhase("aiPrbHum", exitStat)
 PRINT "  exitStat = "; exitStat; " (expected 0)"
 IF exitStat = 0 THEN
-  PRINT "  PASS [7]: interactive human buy path did not corrupt child"
+  PRINT "  PASS [7]: interactive human buy path reached dummy call"
 ELSE
   PRINT "  FAIL [7]: interactive human buy path failure"
   failCnt := failCnt + 1
@@ -600,10 +600,10 @@ IF mgnRpy > 0 THEN
 ENDIF
 
 IF ordCnt > 0 THEN
-  stepTxt := "before applyBuys"
-  PRINT "aiPrbHum: calling applyBuys"
-  RUN applyBuys(plyr, mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
-  PRINT "aiPrbHum: applyBuys returned cash="; plyr.cashBal
+  stepTxt := "before dbgBuys"
+  PRINT "aiPrbHum: calling dbgBuys"
+  RUN dbgBuys(plyr, mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+  PRINT "aiPrbHum: dbgBuys returned cash="; plyr.cashBal
 ENDIF
 
 stepTxt := "before initAIProf"
@@ -616,6 +616,43 @@ RUN waitKey
 END
 
 900 PRINT "aiPrbHum error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE dbgBuys
+(* ============================================================ *)
+(* PROCEDURE : dbgBuys                                          *)
+(* PURPOSE   : Dummy probe with the same PARAM signature as     *)
+(*             applyBuys. Used to test whether the failure is   *)
+(*             in the RUN frame/arguments rather than inside    *)
+(*             snbTrade.applyBuys.                              *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM plyr         : PlyrRec
+PARAM mkt          : MktState
+PARAM ordType(12)  : INTEGER
+PARAM ordId(12)    : INTEGER
+PARAM ordQty(12)   : INTEGER
+PARAM ordPurch(12) : INTEGER
+PARAM ordCnt       : INTEGER
+DIM i : INTEGER
+
+ON ERROR GOTO 900
+
+PRINT "dbgBuys: entered"
+PRINT "  plyr="; plyr.plyrName
+PRINT "  cash="; plyr.cashBal; " margin="; plyr.marginTot
+PRINT "  ordCnt="; ordCnt
+FOR i := 1 TO ordCnt
+  PRINT "  ord"; i; ": t="; ordType(i); " id="; ordId(i);
+  PRINT " q="; ordQty(i); " p="; ordPurch(i)
+NEXT i
+RUN waitKey
+END
+
+900 PRINT "dbgBuys error ("; ERR; ")"
 RUN waitKey
 END
 
