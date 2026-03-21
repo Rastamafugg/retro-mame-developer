@@ -235,6 +235,8 @@ DIM bDen(3) : INTEGER
 DIM i       : INTEGER
 DIM s       : INTEGER
 DIM b       : INTEGER
+DIM yldPct  : INTEGER
+DIM divVal  : INTEGER
 DIM qty     : INTEGER
 DIM valid   : BOOLEAN
 DIM key     : INTEGER
@@ -242,6 +244,7 @@ DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
 DIM numOk   : BOOLEAN
 DIM totProc : INTEGER
+DIM divRate(9): INTEGER
 
 ON ERROR GOTO 900
 
@@ -255,6 +258,16 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
+divRate(1) := 1
+divRate(2) := 0
+divRate(3) := 4
+divRate(4) := 7
+divRate(5) := 0
+divRate(6) := 0
+divRate(7) := 2
+divRate(8) := 6
+divRate(9) := 3
 
 ! Bond par values (= denomination for this game)
 bDen(1) := 1000
@@ -275,8 +288,14 @@ PRINT "STOCKS:"
 FOR s := 1 TO 9
   IF plyr.stckShrs(s) > 0 THEN
     RUN fmtMoney(mkt.stckPrice(s), pStr)
+    yldPct := divRate(s)
+    divVal := (mkt.stckPrice(s) * divRate(s)) / 100
     PRINT " "; s; " "; sNam(s); "  ";
+    IF LEN(sNam(s)) = 10 THEN
+      PRINT " ";
+    ENDIF
     PRINT plyr.stckShrs(s); " shr @ $"; pStr;
+    PRINT " "; yldPct; "% -> $"; divVal;
     IF plyr.mgnHeld(s) THEN
       PRINT "  [MGN]"
     ELSE
@@ -322,8 +341,13 @@ LOOP
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
       RUN fmtMoney(mkt.stckPrice(s), pStr)
+      yldPct := divRate(s)
+      divVal := (mkt.stckPrice(s) * divRate(s)) / 100
       PRINT sNam(s); " ("; plyr.stckShrs(s);
-      PRINT " avail @ $"; pStr; ")"
+      IF LEN(sNam(s)) = 10 THEN
+        PRINT " ";
+      ENDIF
+      PRINT " avail @ $"; pStr; " "; yldPct; "% -> $"; divVal; ")"
       valid := FALSE
       WHILE NOT valid DO
         INPUT "  Sell qty (0/Enter=skip, mult of 10): ", qIn
@@ -498,12 +522,15 @@ DIM purch    : INTEGER
 DIM cashCost : INTEGER
 DIM repayAmt : INTEGER
 DIM maxRpy   : INTEGER
+DIM yldPct   : INTEGER
+DIM divVal   : INTEGER
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
 DIM minCash  : INTEGER
+DIM divRate(9): INTEGER
 
 ON ERROR GOTO 900
 
@@ -516,6 +543,16 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
+divRate(1) := 1
+divRate(2) := 0
+divRate(3) := 4
+divRate(4) := 7
+divRate(5) := 0
+divRate(6) := 0
+divRate(7) := 2
+divRate(8) := 6
+divRate(9) := 3
 
 bPar(1) := 1000
 bPar(2) := 5000
@@ -553,7 +590,13 @@ LOOP
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
       RUN fmtMoney(mkt.stckPrice(s), pStr)
+      yldPct := divRate(s)
+      divVal := (mkt.stckPrice(s) * divRate(s)) / 100
       PRINT " "; s; " "; sNam(s); "  $"; pStr
+      IF LEN(sNam(s)) = 10 THEN
+        PRINT " ";
+      ENDIF
+      PRINT " "; yldPct; "% -> $"; divVal
     ENDIF
   NEXT s
 
@@ -629,7 +672,13 @@ LOOP
       ENDIF
       IF simCash >= minCash THEN
         RUN fmtMoney(mkt.stckPrice(s), pStr)
+        yldPct := divRate(s)
+        divVal := (mkt.stckPrice(s) * divRate(s)) / 100
         PRINT sNam(s); " @ $"; pStr
+        IF LEN(sNam(s)) = 10 THEN
+          PRINT " ";
+        ENDIF
+        PRINT " "; yldPct; "% -> $"; divVal
         RUN fmtMoney(simCash, pStr)
         PRINT "  (cash avail: $"; pStr; ")"
 

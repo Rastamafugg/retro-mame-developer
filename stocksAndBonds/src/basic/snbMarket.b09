@@ -573,8 +573,8 @@ PROCEDURE applyMktYear
 (*                         on split                             *)
 (*             mkt       - market state; stckPrice and          *)
 (*                         divSuspnd updated in place           *)
-(*             prcBefCrd - price after mkt table, before card   *)
-(*                         delta; for S13 display               *)
+(*             prcBefCrd - prior-year price before this year's  *)
+(*                         market/card changes; for S13 display *)
 (*             mktDlta   - market table delta per stock         *)
 (*             crdDlta   - card delta per stock (0 if none)     *)
 (*             splitOcc  - TRUE per stock if split triggered    *)
@@ -631,11 +631,9 @@ FOR s := 1 TO 9
   NEXT e
   crdDlta(s) := cDelta
 
-  ! Price before card delta: used by S13 for display only.
-  prcBefCrd(s) := mkt.stckPrice(s) + delta
-
   ! Resolve price, split, and dividend suspension flags.
   curPrc := mkt.stckPrice(s)
+  prcBefCrd(s) := curPrc
   RUN resolvePrice(curPrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
 
   ! Record display flags for S13/S14/S15.
@@ -923,7 +921,7 @@ FOR s := 1 TO 9
     ENDIF
   ENDIF
 
-  PRINT USING "'  ',S12<,X1,I4>,X2,I4>,X2,I4>,X2,I4>,X1,S4<", sName, prcBefCrd(s), mktDlta(s), crdDlta(s), newPrc(s), flg
+  PRINT USING "'  ',S12<,X3,I4>,X2,I4>,X2,I4>,X2,I4>,X1,S4<", sName, prcBefCrd(s), mktDlta(s), crdDlta(s), newPrc(s), flg
 NEXT s
 
 PRINT
