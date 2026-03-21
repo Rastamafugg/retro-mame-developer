@@ -10,6 +10,9 @@ PROCEDURE TSTAIPRB
 (*             Block 1: initAIProf only                         *)
 (*             Block 2: scrAITurn only                          *)
 (*             Block 3: initAIProf + scrAITurn sequence         *)
+(*             Block 4: initAIProf + aiSell + scrAITurn         *)
+(*             Block 5: initAIProf + aiBuy + scrAITurn          *)
+(*             Block 6: applyBuys + initAIProf                  *)
 (* ============================================================ *)
 DIM exitStat : INTEGER
 DIM failCnt  : INTEGER
@@ -63,6 +66,42 @@ IF exitStat = 0 THEN
   PRINT "  PASS [3]: combined child path callable"
 ELSE
   PRINT "  FAIL [3]: combined child failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 4: initAIProf + aiSell + scrAITurn"
+RUN forkPhase("aiPrbSel", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [4]: aiSell sequence callable"
+ELSE
+  PRINT "  FAIL [4]: aiSell sequence failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 5: initAIProf + aiBuy + scrAITurn"
+RUN forkPhase("aiPrbBuy", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [5]: aiBuy sequence callable"
+ELSE
+  PRINT "  FAIL [5]: aiBuy sequence failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 6: applyBuys + initAIProf"
+RUN forkPhase("aiPrbApl", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [6]: pre-AI buy path did not corrupt child"
+ELSE
+  PRINT "  FAIL [6]: pre-AI buy path failure"
   failCnt := failCnt + 1
 ENDIF
 PRINT
@@ -250,6 +289,235 @@ RUN waitKey
 END
 
 900 PRINT "aiPrbAll error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbSel
+(* ============================================================ *)
+(* PROCEDURE : aiPrbSel                                         *)
+(* PURPOSE   : Child probe for initAIProf, aiSell, and         *)
+(*             scrAITurn in sequence.                           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM plyr       : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM decAct(12) : BYTE
+DIM ordCnt     : INTEGER
+DIM tNum       : INTEGER
+DIM i          : INTEGER
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbSel: child start"
+plyr.plyrName   := "AI SELL"
+plyr.plyrType   := 2
+plyr.cashBal    := 0
+plyr.marginTot  := 0
+plyr.obligation := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+plyr.aiTier     := 2
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+plyr.stckShrs(1) := 10
+mkt.stckPrice(1) := 0
+
+stepTxt := "before initAIProf"
+tNum := 2
+PRINT "aiPrbSel: calling initAIProf"
+RUN initAIProf(tNum, prof)
+PRINT "aiPrbSel: initAIProf returned"
+
+stepTxt := "before aiSell"
+PRINT "aiPrbSel: calling aiSell"
+RUN aiSell(2, plyr, mkt, prof, ordTyp, ordId, ordQty, ordCnt)
+PRINT "aiPrbSel: aiSell returned ordCnt="; ordCnt
+
+FOR i := 1 TO ordCnt
+  decAct(i) := 1
+NEXT i
+stepTxt := "before scrAITurn"
+PRINT "aiPrbSel: calling scrAITurn"
+RUN scrAITurn(plyr.plyrName, 1, decAct, ordTyp, ordId, ordQty, ordCnt)
+stepTxt := "after scrAITurn"
+PRINT "aiPrbSel: scrAITurn returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbSel error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbBuy
+(* ============================================================ *)
+(* PROCEDURE : aiPrbBuy                                         *)
+(* PURPOSE   : Child probe for initAIProf, aiBuy, and          *)
+(*             scrAITurn in sequence.                           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM plyr       : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordPur(12) : INTEGER
+DIM decAct(12) : BYTE
+DIM ordCnt     : INTEGER
+DIM decCnt     : INTEGER
+DIM mgnRpy     : INTEGER
+DIM tNum       : INTEGER
+DIM i          : INTEGER
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbBuy: child start"
+plyr.plyrName   := "AI BUY"
+plyr.plyrType   := 2
+plyr.cashBal    := 1000
+plyr.marginTot  := 0
+plyr.obligation := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+plyr.aiTier     := 2
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+
+stepTxt := "before initAIProf"
+tNum := 2
+PRINT "aiPrbBuy: calling initAIProf"
+RUN initAIProf(tNum, prof)
+prof.useMargin := FALSE
+PRINT "aiPrbBuy: initAIProf returned"
+
+stepTxt := "before aiBuy"
+PRINT "aiPrbBuy: calling aiBuy"
+RUN aiBuy(1, plyr, mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
+PRINT "aiPrbBuy: aiBuy returned ordCnt="; ordCnt; " repay="; mgnRpy
+
+FOR i := 1 TO ordCnt
+  decAct(i) := 2
+NEXT i
+decCnt := ordCnt
+IF mgnRpy > 0 THEN
+  IF decCnt < 12 THEN
+    decCnt := decCnt + 1
+    decAct(decCnt) := 3
+    ordTyp(decCnt) := 0
+    ordId(decCnt)  := 0
+    ordQty(decCnt) := mgnRpy
+  ENDIF
+ENDIF
+stepTxt := "before scrAITurn"
+PRINT "aiPrbBuy: calling scrAITurn"
+RUN scrAITurn(plyr.plyrName, 2, decAct, ordTyp, ordId, ordQty, decCnt)
+stepTxt := "after scrAITurn"
+PRINT "aiPrbBuy: scrAITurn returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbBuy error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbApl
+(* ============================================================ *)
+(* PROCEDURE : aiPrbApl                                         *)
+(* PURPOSE   : Child probe for a minimal applyBuys path        *)
+(*             followed by initAIProf.                          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM plyr       : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordPur(12) : INTEGER
+DIM ordCnt     : INTEGER
+DIM tNum       : INTEGER
+DIM i          : INTEGER
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbApl: child start"
+plyr.plyrName   := "HUMAN"
+plyr.plyrType   := 1
+plyr.cashBal    := 2000
+plyr.marginTot  := 0
+plyr.obligation := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+plyr.aiTier     := 0
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+FOR i := 1 TO 12
+  ordTyp(i) := 0
+  ordId(i)  := 0
+  ordQty(i) := 0
+  ordPur(i) := 0
+NEXT i
+ordCnt := 1
+ordTyp(1) := 2
+ordId(1)  := 1
+ordQty(1) := 1
+ordPur(1) := 1
+
+stepTxt := "before applyBuys"
+PRINT "aiPrbApl: calling applyBuys"
+RUN applyBuys(plyr, mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+PRINT "aiPrbApl: applyBuys returned cash="; plyr.cashBal
+
+stepTxt := "before initAIProf"
+tNum := 2
+PRINT "aiPrbApl: calling initAIProf"
+RUN initAIProf(tNum, prof)
+stepTxt := "after initAIProf"
+PRINT "aiPrbApl: initAIProf returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbApl error ("; ERR; ") step="; stepTxt
 RUN waitKey
 END
 
