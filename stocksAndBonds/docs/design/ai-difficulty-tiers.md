@@ -2,6 +2,10 @@
 
 ---
 
+Status: Current  
+Authority: AI parameterization  
+Depends on: `specification.md`, `ai-player-logic.md`
+
 ## 1. Overview
 
 This document defines three computer player difficulty tiers: Easy, Medium,
@@ -114,7 +118,7 @@ TYPE AIProfile
 Easy AI plays passively and conservatively. It commits too much capital
 to its first good candidate (70% concentration cap), treats all stocks
 equally regardless of yield, buys bonds even when better stock
-opportunities exist, and does not adapt its strategy as Year 10
+opportunities exist, and does not adapt its strategy as the final scoring year
 approaches. It will not go bankrupt under normal play, but it will
 consistently underperform due to poor capital allocation.
 
@@ -159,8 +163,8 @@ Key advantages:
   call threshold ($55 minimum), and only up to 30% of portfolio value.
 - Repays margin aggressively (75% of available cash when the burden
   threshold is crossed).
-- Begins proactive margin clearance in Year 8, avoiding forced
-  liquidation at unfavorable prices in Year 10.
+- Begins proactive margin clearance in Year 8, reducing the risk of forced
+  liquidation before end-of-game wealth is computed in the final year.
 - Activates endgame mode in Year 7.
 
 ---
@@ -188,8 +192,9 @@ Rationale per override:
 - `zeroDivEligible = FALSE`: Zero-dividend stocks provide no income and
   their price volatility is a liability with few years left. Hard AI
   exits speculative positions.
-- `repayFraction = 90`: Outstanding margin in Year 9 is a risk. Hard AI
-  clears it rapidly from Year 7 onward to enter Year 10 debt-free.
+- `repayFraction = 90`: Outstanding margin late in the game is a risk. Hard AI
+  clears it rapidly from Year 7 onward to reach the final scoring step
+  debt-free.
 - `bondIdleCash = 5000`: Hard AI maintains the standard bond threshold
   in endgame rather than tightening further. Bond income in Years 7–9
   (three remaining dividend years) still contributes meaningfully.

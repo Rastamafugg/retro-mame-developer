@@ -2,6 +2,10 @@
 
 ---
 
+Status: Current  
+Authority: AI behavior  
+Depends on: `specification.md`, `ai-difficulty-tiers.md`, `ui-screen-flow.md`
+
 ## 1. Scope and Constraints
 
 This document specifies the decision logic for computer-controlled players
@@ -36,8 +40,9 @@ All AI decisions must comply with the same rules that govern human players:
 
 - Share quantities must be positive multiples of 10 (spec Section 10–11)
 - No margin purchases until at least one prior cash purchase (spec Section 9.1)
-- No margin purchases in Year 10 (spec Section 9.1)
-- All margin must be cleared before Year 10 buy phase (spec Section 9.1)
+- No margin purchases in the final year (spec Section 9.1)
+- All margin must be cleared before end-of-game wealth is computed in the
+  final year (spec Section 9.1)
 - Cannot sell more shares than owned (spec Section 11.1)
 - Cannot sell more bond units than held (spec Section 11.2)
 - Cash balance cannot go below zero from a voluntary purchase
@@ -206,13 +211,18 @@ is negative after all stock sell decisions have been applied.
 
 ### 4.4 Proactive Margin Clearance (Sell Phase)
 
-Runs after Sections 4.1–4.3. Sells held assets in ascending yield-score order until `marginTotal` is covered. Stocks are liquidated before bonds. Bond denomination order is ascending (smallest first) to preserve larger income sources. If total assets are insufficient, the Year 10 forced clearance (S23) handles the residual — no special case is needed here.
+Runs after Sections 4.1–4.3. Sells held assets in ascending yield-score order
+until `marginTotal` is covered. Stocks are liquidated before bonds. Bond
+denomination order is ascending (smallest first) to preserve larger income
+sources. If total assets are insufficient, the final-year forced clearance
+(S23) handles the residual — no special case is needed here.
 
 Score for clearance ordering reuses the buy yield formula from Section 5.3. Stocks with suspended dividends score -1 (sell first); zero-dividend stocks score 0 (sell second); yielding stocks score by dividend/price ratio (sell last, weakest first). Tie-break is ascending `stockId` per Section 5.3 convention.
 
 Lot rounding in partial sells rounds UP to the nearest 10 to ensure proceeds meet or exceed the remaining `needed` amount. `MIN` clamps the result to shares actually owned.
 
-`marginClearYear`: Easy=9, Medium=9, Hard=8. This logic is enforced again at the Year 10 boundary (screen S23).
+`marginClearYear`: Easy=9, Medium=9, Hard=8. This logic is enforced again in
+the final year before end-of-game wealth is computed (screen S23).
 
 ```
 IF marginTotal > 0 AND currentYear >= aiProfile.marginClearYear THEN
@@ -264,7 +274,7 @@ IF marginTotal > 0 AND currentYear >= aiProfile.marginClearYear THEN
     NEXT j
 
     ! If needed > 0 after both passes, total asset value is less than
-    ! marginTotal. Residual is handled by Year 10 forced clearance (S23).
+    ! marginTotal. Residual is handled by final-year forced clearance (S23).
 ENDIF
 ```
 

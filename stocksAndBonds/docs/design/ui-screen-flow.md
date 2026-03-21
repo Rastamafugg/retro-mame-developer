@@ -1,5 +1,10 @@
 # Stocks and Bonds — UI Screen Flow
 
+Status: Current  
+Authority: UI screens and navigation  
+Depends on: `specification.md`, `save-load-design.md`  
+Supersedes: Conflicting UI assumptions in `project-timeline.md`
+
 ---
 
 ## 1. Overview
@@ -24,7 +29,7 @@ are not renumbered.
 | S2  | New Game Setup                    | S1 NEW_GAME                                       |
 | S7  | Setup Confirmation                | S2 completion                                     |
 | S8  | Year Header                       | S7 CONFIRM; load game completion; year advance    |
-| S9  | Dividend and Interest Summary     | Year loop Step 1 (skipped Year 1 and Year 10)     |
+| S9  | Dividend and Interest Summary     | Year loop Step 1 (skipped Year 1 only)            |
 | S10 | Margin Interest Notice            | Year loop Step 2                                  |
 | S11 | Situation Card Display            | Year loop Step 3                                  |
 | S12 | Dice Roll Display                 | Year loop Step 5                                  |
@@ -38,11 +43,12 @@ are not renumbered.
 | S20 | Margin Call Alert                 | Step 9/10 when currentPrice <= MarginCallPrice    |
 | S21 | Forced Liquidation                | S10 negative cash; S20 margin call                |
 | S22 | Bankruptcy Declaration            | S21 unresolvable obligation                       |
-| S23 | Margin Clearance Required         | Entry to Year 10 when marginTotal > 0             |
-| S24 | Final Market Board                | Year 10 Step 8 completion                         |
+| S23 | Margin Clearance Required         | Final year when marginTotal > 0                   |
+| S24 | Final Market Board                | Final-year Step 8 completion                      |
 | S25 | Final Wealth Summary              | S24                                               |
 | S26 | Winner Declaration                | S25                                               |
 | S27 | Post-Game Menu                    | S26                                               |
+| S28 | Lone Survivor Decision            | Multiplayer game reaches one non-bankrupt player  |
 | --  | Load Game                         | S1 LOAD_GAME; S27 LOAD_GAME                       |
 | --  | Save Game                         | Player-initiated from any major screen            |
 
@@ -115,7 +121,7 @@ OUT: action : ENUM{CONTINUE}
 
 ### S9 — Dividend and Interest Summary
 
-Skipped when `currentYear = 1` or `currentYear = TotalYears`.
+Skipped when `currentYear = 1`.
 
 ```
 IN:  currentYear              : INTEGER
@@ -278,7 +284,7 @@ IN:  currentYear         : INTEGER
      cashBalance         : INTEGER
      marginTotal         : INTEGER
      marginEligible      : BOOLEAN   (had prior cash purchase)
-     marginAllowedYear   : BOOLEAN   (FALSE in Year 10)
+     marginAllowedYear   : BOOLEAN   (FALSE in final year)
      stockPrices[]       : ARRAY of {stockId: INTEGER,
                                      stockName: STRING,
                                      currentPrice: INTEGER}
@@ -396,7 +402,8 @@ Control returns to the year loop at the next active player.
 
 ### S23 — Margin Clearance Required
 
-Entered once per player at the boundary of Year 10 if `marginTotal > 0`.
+Entered once per player during the final year if `marginTotal > 0` and margin
+must be cleared before end-of-game wealth is computed.
 
 ```
 IN:  playerName  : STRING
@@ -412,8 +419,8 @@ OUT: repayActions[] : ARRAY of {
      }
 ```
 
-Loop re-enters S23 until `marginTotal = 0`. Player cannot proceed to Year 10
-buy phase until cleared. Bankruptcy rules still apply here.
+Loop re-enters S23 until `marginTotal = 0`. No new margin purchases are allowed
+in the final year. Bankruptcy rules still apply here.
 
 ---
 
@@ -426,7 +433,7 @@ OUT: action : ENUM{CONTINUE}
 ```
 
 No dividends or interest are displayed. Prices reflect post-resolution values
-after Year 10 Steps 6–8.
+after final-year Steps 6–8.
 
 ---
 
@@ -475,6 +482,20 @@ OUT: action : ENUM{NEW_GAME, LOAD_GAME, QUIT}
 
 ---
 
+### S28 â€” Lone Survivor Decision
+
+Used only in multiplayer games. Single-player games never route here.
+
+```
+IN:  playerName     : STRING
+     currentYear    : INTEGER
+     totalYears     : INTEGER
+
+OUT: action : ENUM{ACCEPT_WIN, CONTINUE_PLAY}
+```
+
+---
+
 ### Save Game (Global)
 
 Available as a player-initiated action from S8, S16, S17, and S21.
@@ -514,7 +535,7 @@ flowchart TD
 
     subgraph YEAR_LOOP [Annual Year Loop]
 
-        STEP1{Year 1 or 10?}
+        STEP1{Year 1?}
         STEP1 -->|No| S9[S9: Dividend and\nInterest Summary]
         STEP1 -->|Yes| S10
         S9 --> S10[S10: Margin Interest Notice]
@@ -543,7 +564,7 @@ flowchart TD
             MC1 -->|No| NEXT_SELL
         end
 
-        BUY_PHASE --> MC2{Year 10 margin\noutstanding?}
+        BUY_PHASE --> MC2{Final-year margin\noutstanding?}
         MC2 -->|Yes| S23[S23: Margin Clearance\nRequired]
         MC2 -->|No| BUY_LOOP
         S23 --> BUY_LOOP
@@ -571,8 +592,12 @@ flowchart TD
 
     SAVE([Save Game]) -.->|Available from\nS8 S16 S17 S21| SAVE
 
-    YEAR_END{Year 10 done?}
-    YEAR_END -->|No| S8
+    YEAR_END{Game complete?}
+    YEAR_END -->|No| SURVCHK{Multi-player lone\nsurvivor?}
+    SURVCHK -->|Yes| S28[S28: Lone Survivor\nDecision]
+    S28 -->|Accept win| S24
+    S28 -->|Continue| S8
+    SURVCHK -->|No| S8
     YEAR_END -->|Yes| S24
 
     S24[S24: Final Market Board]
@@ -599,8 +624,8 @@ updated and not consistent for reload.
 
 When S22 is reached, the player is flagged `isBankrupt = TRUE` and removed from
 the active player list. The year loop skips bankrupt players in all subsequent
-sell and buy phases. A game with only one non-bankrupt player remaining ends
-immediately; that player is declared the winner without completing the year.
+sell and buy phases. If this leaves one non-bankrupt player in a multiplayer
+game, route to S28 for the project-defined lone-survivor decision.
 
 ### Year 1 Exceptions
 
@@ -609,14 +634,21 @@ immediately; that player is declared the winner without completing the year.
 - The sell phase (S16/S19) is skipped entirely.
 - `SELL_GATE` routes directly to the buy phase.
 
-### Year 10 Exceptions
+### Final-Year Exceptions
 
-- S9 (dividends and interest) is skipped.
-- S10 (margin interest) is skipped.
+- S9 (dividends and interest) still runs.
+- S10 (margin interest) still runs.
 - Margin purchases are prohibited in S17 and S19.
-- S23 (margin clearance) is enforced before buy phase for any player
-  with `marginTotal > 0`.
+- S23 (margin clearance) is enforced before final wealth is computed for any
+  player with `marginTotal > 0`.
 - After Step 11, engine computes final wealth and routes to S24.
+
+### Lone Survivor Rule
+
+- In a multiplayer game, if only one non-bankrupt player remains, route to S28.
+- If the player chooses `ACCEPT_WIN`, route directly to S24.
+- If the player chooses `CONTINUE_PLAY`, continue normal year progression.
+- Single-player games do not route to S28.
 
 ### Computer Players
 

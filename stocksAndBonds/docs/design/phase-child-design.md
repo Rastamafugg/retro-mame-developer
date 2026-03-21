@@ -1,8 +1,15 @@
 # SNB Phase-Child Architecture Design (Revised)
 
+Status: Current  
+Authority: Runtime architecture  
+Depends on: `specification.md`, `save-load-design.md`  
+Supersedes: `forkio-plan.md` for current implementation details, and the
+runtime loading model in `module-phase-transition.md`
+
 **Replaces:** `snbYearLoop.b09` (disposed of entirely).
-**Margin rules:** Deferred. No mgnChild, no GS_MGN, no snbMargin/snbMgnScr
-in pre-fork ensures.
+**Architecture note:** The current implementation uses file-based state handoff
+through `SNBSTATE`. Earlier same-process and pipe-based designs are retained
+only as historical references.
 
 ---
 
@@ -48,10 +55,12 @@ read this value directly.
 - **Responsibility:**
   - Increments `currYear` immediately (all years)
   - Displays S8 (scrYearHdr) every year
-  - Applies dividends and bond interest in Years 2-9 only
-    (spec Section 6: skipped in Year 1 and Year 10)
-  - Displays S9 (scrDivInt) per non-bankrupt player (Years 2-9 only)
-  - Year 1 and Year 10: increment and year header only; no financial work
+  - Applies dividends and bond interest in Years 2 through `maxYears`
+    (skipped only in Year 1)
+  - Applies annual margin charges in Years 2 through `maxYears`
+  - Displays S9 (scrDivInt) per non-bankrupt player in Years 2 through
+    `maxYears`
+  - Year 1: increment and year header only; no financial posting
 
 ### 3.3 mktChild
 - **Module:** `snbMarket.b09`
@@ -62,7 +71,7 @@ read this value directly.
   - Generates dice rolls (doRolls), displays S12 (scrDice)
   - Resolves prices (applyMktYear), displays S13 (scrMktBoard)
   - Displays S14 (scrSplit) and S15 (scrDivFlag) per stock as needed
-  - Applies Card 1 dividend bonus (Years 2-9 only)
+  - Applies Card 1 dividend bonus according to the gameplay specification
   - Runs every year
 
 ### 3.4 tradeChild
@@ -73,9 +82,15 @@ read this value directly.
 - **Responsibility:** Steps 9-10 per spec.
   - Sell phase: skipped internally when `currYear = 1`
   - Buy phase: runs every year
-  - After buy phase: counts active (non-bankrupt) players.
-    If `currYear >= maxYears` OR `activePlrs <= 1`: writes GS_DONE.
-    Otherwise: writes GS_YEAR.
+  - Enforces no new margin purchases in the final year
+  - Ensures all margin is cleared before end-of-game wealth calculation in the
+    final year
+  - In multiplayer games, if only one non-bankrupt player remains, presents
+    the lone-survivor choice defined in the spec
+  - After buy phase and any survivor decision:
+    - If game accepted as won, writes `GS_DONE`
+    - Else if `currYear >= maxYears`, writes `GS_DONE`
+    - Else writes `GS_YEAR`
 
 ### 3.5 egChild
 - **Module:** `snbEndGame.b09`
@@ -95,12 +110,14 @@ LOOP
   fork mktChild   -> GOSUB 100
   fork tradeChild -> GOSUB 100
 
-  safety nets: iCYr >= iMaxYr, activePlrs <= 1
+  safety nets: iCYr >= iMaxYr
 ENDLOOP
 ```
 
 `GOSUB 100` updates `iCYr` from `hdr.currYear` on every call, so
 after `divChild` exits the coordinator always has the current year.
+Lone-survivor state is not an unconditional forced exit; it is resolved by the
+trade phase according to the gameplay spec.
 
 ---
 

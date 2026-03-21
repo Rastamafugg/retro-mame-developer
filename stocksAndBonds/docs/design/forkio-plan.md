@@ -9,6 +9,15 @@ implemented.
 
 ## Section 1 — Architecture Overview
 
+Status: Historical  
+Authority: Historical architecture transition record  
+Depends on: None  
+Superseded by: `phase-child-design.md`
+
+This file is retained for rationale and transition history. When it conflicts
+with `phase-child-design.md`, `save-load-design.md`, or `specification.md`, the
+canonical documents win.
+
 The SNB coordinator (`SNB.b09`) runs as the persistent parent process for
 the entire game session. It forks a child process for each major phase.
 Each child reads `SNBSTATE` at startup, runs its phase logic, writes the

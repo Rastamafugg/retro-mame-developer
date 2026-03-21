@@ -4,6 +4,15 @@
 
 ## 1. Principles
 
+Status: Historical  
+Authority: Historical planning artifact  
+Depends on: None  
+Superseded by: `specification.md`, `phase-child-design.md`,
+`save-load-design.md`, and `ui-screen-flow.md`
+
+This file is retained as planning history only. It is not authoritative for
+current rules behavior, save semantics, or runtime architecture.
+
 ### Incremental delivery
 
 Each task produces a runnable, testable artifact before the next task

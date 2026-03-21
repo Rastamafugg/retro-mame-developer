@@ -1,5 +1,41 @@
 # Stocks and Bonds — Game Engine Specification
 
+Status: Current  
+Authority: Gameplay and rules behavior  
+Depends on: `stock-and-bonds-rules.md`  
+Supersedes: Conflicting gameplay statements in `project-timeline.md`,
+`forkio-plan.md`, and `module-phase-transition.md`
+
+---
+
+## 0. Project Interpretations
+
+This document is the canonical source for project behavior when the original
+Avalon Hill rules are ambiguous or when the project intentionally extends the
+base game.
+
+### 0.1 Base game and extensions
+
+- The original game is a fixed 10-year game.
+- This project keeps 10 years as the default and rules-faithful mode.
+- The engine may support a configurable `maxYears` as a project extension.
+  Any extension must preserve the 10-year rules behavior when `maxYears = 10`.
+
+### 0.2 Locked interpretations of ambiguous rules
+
+- Year 10 is treated like Years 2-9 for dividends, bond interest, and annual
+  margin charges.
+- No new margin purchases are permitted in Year 10.
+- All outstanding margin must be cleared before the end of Year 10.
+- In the optional per-security rolling mode, if a 2 or 12 is rolled, all stock
+  prices for that year are recalculated from that single roll value.
+- If multiple players tie for highest wealth, all tied players share the win.
+- In multiplayer games, if only one non-bankrupt player remains, that player is
+  prompted to either accept the win immediately or continue play through the
+  configured final year.
+- In a single-player game, play continues through the configured final year
+  unless the player goes bankrupt.
+
 ---
 
 ## 1. Constants
@@ -191,10 +227,10 @@ stock's price delta in the table for that market type.
 
 ## 6. Annual Year Loop
 
-For each year in 1..10, execute the following phases in order:
+For each year in `1..maxYears`, execute the following phases in order:
 
 ```
-1.  ApplyDividendsAndInterest   (skip in Year 10)
+1.  ApplyDividendsAndInterest   (skip in Year 1 only)
 2.  ApplyMarginInterest
 3.  DrawSituationCard
 4.  DetermineMarketType         (Bull or Bear from card)
@@ -204,7 +240,7 @@ For each year in 1..10, execute the following phases in order:
 8.  ResolvePerStockThresholds   (clamp, dividend flag, splits)
 9.  SellPhase
 10. BuyPhase
-11. CheckBankruptcy
+11. CheckBankruptcyAndSurvivorState
 ```
 
 First year (Year 1) differences:
@@ -212,10 +248,12 @@ First year (Year 1) differences:
 - Steps 1 & 2 (dividends and interest) are skipped.
 - Step 9 (sell phase) is skipped.
 
-Final year (Year 10) differences:
+Final year (`year = maxYears`) differences:
 
-- Steps 1 & 2 (dividends and interest) are skipped.
+- Step 1 and Step 2 still execute.
 - No new margin purchases may be made (Step 10 restricted).
+- All outstanding margin must be cleared before the end-of-game wealth
+  calculation.
 - After Step 11: compute final wealth for all players.
 
 ---
@@ -249,7 +287,7 @@ if currentPrice >= StockSplitThreshold:
 ### 8.1 Stock Dividends
 
 ```
-if NOT dividendsSuspended AND year > 1 AND year < TotalYears:
+if NOT dividendsSuspended AND year > 1:
     dividend = dividendPerShare * sharesOwned
     cashBalance += dividend
 
@@ -263,7 +301,7 @@ Bonus dividends from cards are applied regardless of `dividendsSuspended`
 ### 8.2 Bond Interest
 
 ```
-if year < TotalYears:
+if year > 1:
     for each bondHolding:
         cashBalance += fixedInterestPerUnit * bondUnits
 ```
@@ -276,7 +314,7 @@ if year < TotalYears:
 
 - A player may not use margin until they have made at least one cash
   purchase in a prior year.
-- No margin purchases are permitted in Year 10.
+- No margin purchases are permitted in the final year.
 
 ### 9.2 Margin Purchase
 
@@ -327,7 +365,8 @@ cashBalance  -= amountPaid
 marginTotal  -= amountPaid
 ```
 
-All outstanding margin must be cleared before Year 10 begins.
+All outstanding margin must be cleared before end-of-game wealth is computed in
+the final year. No new margin purchases may be made during that year.
 
 ---
 
@@ -387,7 +426,7 @@ must be repaid immediately from the sale proceeds.
 
 ---
 
-## 12. Bankruptcy
+## 12. Bankruptcy and Survivor State
 
 A player is eliminated when either condition below is true and cannot
 be resolved through asset liquidation:
@@ -407,11 +446,23 @@ once all remaining holdings are sold, if cashBalance still < 0:
     player removed from game
 ```
 
+If a multiplayer game reaches a state where only one non-bankrupt player
+remains:
+
+```
+prompt remaining player:
+    ACCEPT_WIN_NOW or CONTINUE_PLAY
+```
+
+If the remaining player accepts the win, the game ends immediately.
+If the remaining player continues, the game proceeds through the configured
+final year. Single-player games do not use this prompt.
+
 ---
 
-## 13. End of Game (Year 10)
+## 13. End of Game (Final Year)
 
-After final prices are posted (no dividends or interest paid):
+After final prices are posted for the configured final year:
 
 ```
 totalWealth =
@@ -420,7 +471,8 @@ totalWealth =
     + sum(bondUnits[j]   * parValue[j]       for each bond j)
 ```
 
-Player with highest `totalWealth` wins. Ties share the win.
+Player with highest `totalWealth` wins. If two or more players tie for highest
+wealth, all tied players share the win.
 
 ---
 
@@ -442,7 +494,8 @@ When rolling per security:
 
 ```
 if roll == 2 OR roll == 12:
-    override all stock prices using the calculator value for that roll
+    discard all prior per-security results for that year
+    override all stock prices using the market-table value for that roll
 ```
 
 This rule applies only if the per-security rolling variant (C) is in use.

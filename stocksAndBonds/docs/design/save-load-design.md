@@ -1,5 +1,10 @@
 # Stocks and Bonds — Save/Load Data Structure
 
+Status: Current  
+Authority: Save format and resume semantics  
+Depends on: `specification.md`, `phase-child-design.md`  
+Supersedes: Conflicting save/load assumptions in `project-timeline.md`
+
 ---
 
 ## 1. Overview
@@ -19,11 +24,15 @@ The save file format serves two purposes:
    sessions using named files (see Section 3).
 2. **Internal phase handoff**: `SNBSTATE` is the sole IPC channel between
    the SNB coordinator process and each forked phase child. It uses the
-   identical file format. See `forkio-plan.md` for coordinator design.
+   identical file format. See `phase-child-design.md` for the current
+   coordinator design.
 
 The shuffled deck is trimmed on first write. Only the first `maxYears`
 entries of the 36-element deck are written to disk. Entries beyond
 `maxYears` are never drawn during play and are not persisted.
+
+`maxYears = 10` is the default, rules-faithful game length. Other values are a
+project extension and must not change the rules behavior when `maxYears = 10`.
 
 ---
 
@@ -98,6 +107,10 @@ When `savedPhase = 0`, the deck position is derived from `currYear`. Steps
 then executes steps 1–8 normally: card `deckOrd(currYear)` is drawn, dice
 are rolled, and prices are updated. The player sees the full market
 resolution sequence (S11–S15) as if the year is beginning fresh.
+
+The final year is not treated specially for save format purposes. If
+`currYear = maxYears`, the resumed year still performs dividend posting,
+bond interest, and margin charge handling before market resolution.
 
 ### SELL_PHASE and BUY_PHASE resume behavior
 

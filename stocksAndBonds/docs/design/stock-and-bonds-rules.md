@@ -1,3 +1,16 @@
+# Stocks and Bonds - Original Avalon Hill Rules
+
+Status: Current  
+Authority: Source rules transcription  
+Depends on: None  
+Supersedes: None
+
+This file preserves the original Avalon Hill rules text as reference source.
+Project interpretations of ambiguous rules and any project extensions are
+defined in `specification.md`.
+
+---
+
 # TERMS
 
 SECURITY—A stock or bond.

@@ -8,6 +8,14 @@ measurement. Module sizes populated by Step 1 hardware pilot.
 
 ## 1. Entry Procedures
 
+Status: Historical  
+Authority: Historical module-loading design and memory measurements  
+Depends on: None  
+Superseded by: `phase-child-design.md` for runtime architecture
+
+This file is retained for code division notes and measured module-size data.
+Its same-process load/unload model is no longer the current implementation.
+
 Each packed module file is named after the first procedure in its PACK list.
 All such entry procedures must carry the `snb` prefix for consistent file
 grouping. The table below records every entry procedure for each module.
