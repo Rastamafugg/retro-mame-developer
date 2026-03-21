@@ -754,4 +754,5 @@ ENDIF
 END
 
 900 PRINT "aiBuy error ("; ERR; ")"
+RUN waitKey
 END

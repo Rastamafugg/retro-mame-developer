@@ -144,6 +144,7 @@ FOR p := 1 TO iPCnt
       ! AI buy phase.
       tInt := plyrs(p).aiTier
       RUN initAIProf(tInt, prof)
+      prof.useMargin := FALSE
       ! Line exceeds 79 chars; RUN statement cannot be split.
       RUN aiBuy(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
       IF mgnRpy > 0 THEN
@@ -194,6 +195,7 @@ RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 END
 
 900 PRINT "trdChild error ("; ERR; ")"
+RUN waitKey
 END
 
 PROCEDURE scrSell

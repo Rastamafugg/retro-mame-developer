@@ -829,7 +829,7 @@ IF rollMode = 3 THEN
   RESTORE 100
   FOR r := 1 TO rollCnt
     READ sName
-    PRINT USING "'    ',S12<,X2,I3>,X2,I3>,X2,I3>", sName, dieOne(r), dieTwo(r), rollTot(r)
+    PRINT USING "'    ',S12<,X4,I3>,X2,I3>,X2,I3>", sName, dieOne(r), dieTwo(r), rollTot(r)
   NEXT r
 ELSE
   ! Mode A or B: single roll
