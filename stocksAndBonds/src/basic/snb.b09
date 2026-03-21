@@ -5,18 +5,38 @@ PROCEDURE SNB
 (*            Loads snbUtil as permanent resident.   *)
 (*            Deletes stale SNBSTATE if present.     *)
 (*            Forks pgChild (pre-game setup).        *)
-(*            Loops: forks ylChild (one year each    *)
-(*              iteration) until GS_DONE or safety   *)
-(*              net fires (year exceeded or last      *)
-(*              player standing).                    *)
+(*            Year loop: forks three phase children  *)
+(*            per year in sequence:                  *)
+(*              divChild   - year increment; dividend *)
+(*                           and bond interest        *)
+(*                           (Years 2-9 only for the *)
+(*                           financial work; all      *)
+(*                           years for increment)     *)
+(*              mktChild   - market resolution        *)
+(*              tradeChild - sell and buy phases      *)
 (*            Forks egChild (end-game screens).      *)
-(*            Before each fork: ensures the child    *)
-(*            module and snbSaveLoad are resident in  *)
-(*            the OS module directory via             *)
-(*            ensureModule(forChild=TRUE).            *)
-(*            pgChild writes SNBSTATE on normal exit.*)
-(*            On quit (no SNBSTATE written), readHdr  *)
-(*            returns loadOK=FALSE and SNB exits.    *)
+(*            Before each fork: ensures required     *)
+(*            modules are in the OS module directory  *)
+(*            via ensureModule(forChild=TRUE).        *)
+(*                                                   *)
+(*            currYear convention:                   *)
+(*              pgChild writes currYear=0.           *)
+(*              divChild increments at start of run, *)
+(*              before doing any other work. So after *)
+(*              divChild, currYear=N means Year N is  *)
+(*              being processed by mktChild and       *)
+(*              tradeChild.                          *)
+(*                                                   *)
+(*            gameStage values written by children:  *)
+(*              1 = GS_PREGM : pre-game complete     *)
+(*              2 = GS_YEAR  : phase complete, ok    *)
+(*              3 = GS_DONE  : game over             *)
+(*                                                   *)
+(*            On GS_DONE from any child: exits year  *)
+(*            loop and forks egChild immediately.    *)
+(*            Safety nets: iCYr >= iMaxYr (after     *)
+(*            Year 10 completes) and last-player-    *)
+(*            standing also exit the loop.           *)
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -33,6 +53,7 @@ DIM iBnkr      : INTEGER  \ ! staged hdr.bnkrFlgs for bit scan
 DIM bankrCnt   : INTEGER  \ ! count of bankrupt players
 DIM activePlrs : INTEGER  \ ! plyrCount - bankrCnt
 DIM modNam     : STRING[20]
+DIM gameOver   : BOOLEAN
 DIM ok         : BOOLEAN
 DIM i          : INTEGER
 
@@ -68,8 +89,9 @@ IF NOT ok THEN
   END
 ENDIF
 
-! Fork pre-game child: runs setup screens, writes SNBSTATE.
-! On user quit pgChild exits cleanly but writes no SNBSTATE;
+! Fork pre-game child: runs setup screens, writes SNBSTATE
+! with currYear=0 (pre-game state; divChild will increment to
+! 1 on first run). On user quit pgChild writes nothing;
 ! readHdr returns loadOK=FALSE and SNB exits below.
 RUN forkPhase("pgChild", exitStat)
 IF exitStat <> 0 THEN
@@ -92,64 +114,144 @@ IF iGSt <> 1 THEN
   END
 ENDIF
 
-! Ensure ylChild module and snbSaveLoad are in the OS module
-! directory. snbSaveLoad provides loadGame and saveGame to
-! ylChild.
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbSaveLoad for ylChild"
-  END
-ENDIF
-modNam := "snbYearLoop"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbYearLoop (ylChild)"
-  END
-ENDIF
+! Read initial values from header.
+! iCYr=0 after pgChild; divChild will increment to 1 on first run.
+iCYr   := hdr.currYear  \ ! stage BYTE; 0 from pgChild
+iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 
 ! ---- Coordinator year loop ----------------------------------
-! Each iteration forks ylChild to run one game year.
-! ylChild writes GS_DONE (3) when the final year completes.
-! Safety net catches: year count exceeded, or last player left.
+! Each iteration covers one complete game year via three children.
+! divChild always runs first and increments currYear before any
+! other work, so mktChild and tradeChild see the correct year.
+gameOver := FALSE
+
 LOOP
 
-  RUN forkPhase("ylChild", exitStat)
-  IF exitStat <> 0 THEN
-    PRINT "SNB: ylChild failed exitStat="; exitStat
-    END
-  ENDIF
-
-  RUN readHdr(hdr, loadOK)
-  IF NOT loadOK THEN
-    PRINT "SNB: readHdr failed after ylChild"
-    END
-  ENDIF
-
-  ! Exit loop if ylChild wrote GS_DONE.
-  iGSt := hdr.gameStage  \ ! stage BYTE
-  EXITIF iGSt = 3 THEN
+  EXITIF iCYr >= iMaxYr OR gameOver THEN
   ENDEXIT
 
-  ! Safety net: exit if year count exceeded.
-  iCYr   := hdr.currYear  \ ! stage BYTE
-  iMaxYr := hdr.maxYears  \ ! stage BYTE
-  EXITIF iCYr > iMaxYr THEN
-  ENDEXIT
+  ! ---- Phase 1: divChild (all years) ----------------------
+  ! Increments currYear at start of run. Applies dividends and
+  ! bond interest only in Years 2-9 (Years 1 and 10 increment
+  ! only, per spec Section 6). Always writes GS_YEAR (2).
+  modNam := "snbSaveLoad"
+  RUN ensureModule(modNam, TRUE, ok)
+  IF NOT ok THEN
+    PRINT "SNB: failed to ensure snbSaveLoad (divChild)"
+    gameOver := TRUE
+  ENDIF
+  modNam := "snbMktEng"
+  RUN ensureModule(modNam, TRUE, ok)
+  IF NOT ok THEN
+    PRINT "SNB: failed to ensure snbMktEng (divChild)"
+    gameOver := TRUE
+  ENDIF
+  modNam := "snbMktScr"
+  RUN ensureModule(modNam, TRUE, ok)
+  IF NOT ok THEN
+    PRINT "SNB: failed to ensure snbMktScr (divChild)"
+    gameOver := TRUE
+  ENDIF
+  IF NOT gameOver THEN
+    RUN forkPhase("divChild", exitStat)
+    GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
+  ENDIF
 
-  ! Safety net: exit if only one (or zero) players remain.
-  iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
-  iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
-  bankrCnt := 0
-  FOR i := 1 TO 6
-    IF LAND(iBnkr, 1) = 1 THEN
-      bankrCnt := bankrCnt + 1
+  ! ---- Phase 2: mktChild (all years) ----------------------
+  ! Draws card, generates rolls, resolves all stock prices.
+  ! Displays S11-S15. Always writes GS_YEAR (2).
+  IF NOT gameOver THEN
+    modNam := "snbSaveLoad"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbSaveLoad (mktChild)"
+      gameOver := TRUE
     ENDIF
-    iBnkr := iBnkr / 2
-  NEXT i
-  activePlrs := iPlyrCnt - bankrCnt
-  EXITIF activePlrs <= 1 THEN
-  ENDEXIT
+    modNam := "snbMktEng"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbMktEng (mktChild)"
+      gameOver := TRUE
+    ENDIF
+    modNam := "snbMktScr"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbMktScr (mktChild)"
+      gameOver := TRUE
+    ENDIF
+    IF NOT gameOver THEN
+      RUN forkPhase("mktChild", exitStat)
+      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
+    ENDIF
+  ENDIF
+
+  ! ---- Phase 3: tradeChild (all years) --------------------
+  ! Sell phase (skipped internally in Year 1) then buy phase.
+  ! Writes GS_DONE (3) when game ends (Year 10 complete or
+  ! only one active player remaining). Otherwise GS_YEAR (2).
+  IF NOT gameOver THEN
+    modNam := "snbSaveLoad"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbSaveLoad (tradeChild)"
+      gameOver := TRUE
+    ENDIF
+    modNam := "snbBuySell"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbBuySell (tradeChild)"
+      gameOver := TRUE
+    ENDIF
+    modNam := "snbTrade"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbTrade (tradeChild)"
+      gameOver := TRUE
+    ENDIF
+    modNam := "snbAI"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbAI (tradeChild)"
+      gameOver := TRUE
+    ENDIF
+    IF NOT gameOver THEN
+      RUN forkPhase("tradeChild", exitStat)
+      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
+    ENDIF
+  ENDIF
+
+  ! ---- Year-end safety nets -------------------------------
+  ! iCYr is updated by GOSUB 100 after each child fork, so it
+  ! reflects the currYear written by divChild (the active year).
+  ! Primary exit: tradeChild writes GS_DONE; GOSUB 100 sets
+  ! gameOver=TRUE. These nets catch failure to write GS_DONE.
+  IF NOT gameOver THEN
+
+    ! Safety net 1: all years processed.
+    ! Uses >= so it fires after Year 10 completes (iCYr=10,
+    ! iMaxYr=10). The EXITIF at the top uses the same condition.
+    IF iCYr >= iMaxYr THEN
+      gameOver := TRUE
+    ENDIF
+
+    ! Safety net 2: only one (or zero) active players remain.
+    IF NOT gameOver THEN
+      iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
+      iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
+      bankrCnt := 0
+      FOR i := 1 TO 6
+        IF LAND(iBnkr, 1) = 1 THEN
+          bankrCnt := bankrCnt + 1
+        ENDIF
+        iBnkr := iBnkr / 2
+      NEXT i
+      activePlrs := iPlyrCnt - bankrCnt
+      IF activePlrs <= 1 THEN
+        gameOver := TRUE
+      ENDIF
+    ENDIF
+
+  ENDIF
 
 ENDLOOP
 
@@ -175,6 +277,28 @@ IF exitStat <> 0 THEN
   PRINT "SNB: egChild failed exitStat="; exitStat
 ENDIF
 END
+
+! ---- GOSUB 100: post-fork check ---------------------------
+! Called immediately after every RUN forkPhase(...).
+! Checks exitStat; calls readHdr; sets gameOver on GS_DONE.
+! Updates iCYr and iGSt from hdr for caller inspection.
+100 IF exitStat <> 0 THEN
+      PRINT "SNB: child failed exitStat="; exitStat
+      gameOver := TRUE
+      RETURN
+    ENDIF
+    RUN readHdr(hdr, loadOK)
+    IF NOT loadOK THEN
+      PRINT "SNB: readHdr failed after fork"
+      gameOver := TRUE
+      RETURN
+    ENDIF
+    iGSt := hdr.gameStage  \ ! stage BYTE
+    iCYr := hdr.currYear   \ ! stage BYTE; updated by divChild
+    IF iGSt = 3 THEN        \ ! GS_DONE: game over
+      gameOver := TRUE
+    ENDIF
+    RETURN
 
 900 PRINT "SNB error ("; ERR; ")"
 END
@@ -444,14 +568,14 @@ TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modNam   : STRING[20]
 PARAM forChild : BOOLEAN
 PARAM ok       : BOOLEAN
-DIM regs      : Register
-DIM namBuf(22): BYTE    \ ! MSB-terminated name buffer
-DIM linkCode  : BYTE    \ ! F$Link ($00) or F$NMLink ($21)
-DIM loadCode  : BYTE    \ ! F$Load ($01) or F$NMLoad ($22)
-DIM nameLen   : INTEGER
-DIM iCC       : INTEGER \ ! staged regs.cc for LAND
-DIM errB      : INTEGER \ ! staged regs.b error code
-DIM i         : INTEGER
+DIM regs       : Register
+DIM namBuf(22) : BYTE    \ ! MSB-terminated name buffer
+DIM linkCode   : BYTE    \ ! F$Link ($00) or F$NMLink ($21)
+DIM loadCode   : BYTE    \ ! F$Load ($01) or F$NMLoad ($22)
+DIM nameLen    : INTEGER
+DIM iCC        : INTEGER \ ! staged regs.cc for LAND
+DIM errB       : INTEGER \ ! staged regs.b error code
+DIM i          : INTEGER
 
 ON ERROR GOTO 900
 
@@ -479,7 +603,8 @@ FOR i := 1 TO nameLen - 1
 NEXT i
 namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
 
-! Link call: check residency. Carry clear = already resident.
+! Link call: check residency. Carry clear = already resident;
+! module stays linked (no undo needed — residency is desired).
 regs.a := 0
 regs.x := ADDR(namBuf)
 RUN SysCall(linkCode, regs)
@@ -490,19 +615,21 @@ IF LAND(iCC, 1) = 0 THEN
   END
 ENDIF
 
-! Load call: module not found; load from execution directory.
-regs.a := 0
-regs.x := ADDR(namBuf)
-RUN SysCall(loadCode, regs)
-iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
-IF LAND(iCC, 1) <> 0 THEN
-  errB := regs.b  \ ! stage BYTE -> INTEGER
-  PRINT "ensureModule: load failed: "; modNam; " err: "; errB
-  END
-ENDIF
+IF NOT ok THEN
+  ! Load call: module not found; load from execution directory.
+  regs.a := 0
+  regs.x := ADDR(namBuf)
+  RUN SysCall(loadCode, regs)
+  iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+  IF LAND(iCC, 1) <> 0 THEN
+    errB := regs.b  \ ! stage BYTE -> INTEGER
+    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+    END
+  ENDIF
 
-ok := TRUE
-PRINT "ensureModule: loaded: "; modNam
+  ok := TRUE
+  PRINT "ensureModule: loaded: "; modNam
+ENDIF
 END
 
 900 PRINT "ensureModule error ("; ERR; ")"
