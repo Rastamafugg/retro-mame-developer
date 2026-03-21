@@ -1,0 +1,344 @@
+PROCEDURE TSTDIVCHLD
+(* ================================================== *)
+(* PROCEDURE: TSTDIVCHLD                              *)
+(* PURPOSE:   C1 verification. Tests divChild:        *)
+(*              Block 1: Year 1 — increment only;     *)
+(*                currYear 0->1, cashBal unchanged    *)
+(*              Block 2: Year 5 — dividends applied;  *)
+(*                currYear 4->5, cashBal correct      *)
+(*              Block 3: Year 10 — increment only;    *)
+(*                currYear 9->10, cashBal unchanged   *)
+(*            Calls divChild via RUN (no fork).       *)
+(*            Prints TSTDIVCHLD: PASS if all correct. *)
+(*                                                   *)
+(* PRE:       snbSaveLoad, snbMktEng, snbMktScr must *)
+(*            all be packed and resident before run.  *)
+(*            RUN snbSaveLoad                         *)
+(*            RUN snbMktEng                           *)
+(*            RUN snbMktScr   (contains divChild)    *)
+(* ================================================== *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM loadOK     : BOOLEAN
+DIM failCnt    : INTEGER
+DIM iCYr       : INTEGER  \ ! stages hdr.currYear BYTE
+DIM iGSt       : INTEGER  \ ! stages hdr.gameStage BYTE
+DIM i          : INTEGER
+DIM modNam     : STRING[20]
+DIM ok         : BOOLEAN
+
+ON ERROR GOTO 900
+
+failCnt := 0
+
+! Load snbUtil as permanent resident for SNTSTDIVCHLDB's lifetime.
+modNam := "snbUtil"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTDIVCHLD: failed to load snbUtil"
+  END
+ENDIF
+
+! Load snbSaveLoad as permanent resident for SNTSTDIVCHLDB's lifetime.
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTDIVCHLD: failed to load snbSaveLoad"
+  END
+ENDIF
+
+! Load snbDividend as permanent resident for SNTSTDIVCHLDB's lifetime.
+modNam := "snbDividend"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTDIVCHLD: failed to load snbDividend"
+  END
+ENDIF
+
+PRINT "=== TSTDIVCHLD: C1 divChild TEST ==="
+PRINT
+
+! ============================================================
+! Helper: populate a minimal valid SaveHdr.
+! ============================================================
+hdr.magic       := $53
+hdr.fmtVersion  := 1
+hdr.maxYears    := 10
+hdr.plyrCount   := 1
+hdr.rollMode    := 1
+hdr.savedPhase  := 0
+hdr.savedPlyr   := 0
+hdr.gameStage   := 1  \ ! GS_PREGM; divChild will overwrite
+
+! Zero all player state; selectively set per block.
+plyrs(1).plyrName   := "TEST"
+plyrs(1).plyrType   := 1
+plyrs(1).isBankrupt := FALSE
+plyrs(1).cashBal    := 5000
+plyrs(1).marginTot  := 0
+plyrs(1).obligation := 0
+plyrs(1).hadCashPur := FALSE
+plyrs(1).aiTier     := 0
+FOR i := 1 TO 9
+  plyrs(1).stckShrs(i) := 0
+  plyrs(1).mgnHeld(i)  := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyrs(1).bondUnts(i) := 0
+NEXT i
+
+! Zero market state; all prices 100, no suspensions.
+FOR i := 1 TO 9
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+
+! ==========================================================
+! Block 1: Year 1 — increment only; no dividend work.
+! Write currYear=0; divChild must increment to 1.
+! Player cashBal must be unchanged.
+! ==========================================================
+PRINT "Block 1: Year 1 (increment only; no dividends)"
+
+hdr.currYear         := 0  \ ! pre-game state from pgChild
+plyrs(1).cashBal     := 5000
+plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks — would pay $700 if applied
+plyrs(1).bondUnts(2) := 1    \ ! medium bond — would pay $250 if applied
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+RUN divChild
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+
+iCYr := hdr.currYear   \ ! stage BYTE
+iGSt := hdr.gameStage  \ ! stage BYTE
+
+PRINT "  currYear = "; iCYr; " (expected 1)"
+PRINT "  gameStage = "; iGSt; " (expected 2)"
+PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 5000)"
+
+IF loadOK AND iCYr = 1 AND iGSt = 2 AND plyrs(1).cashBal = 5000 THEN
+  PRINT "  PASS [1]: Year 1 increment only; cashBal unchanged"
+ELSE
+  PRINT "  FAIL [1]: Year 1 mismatch"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+
+RUN waitKey
+
+! ==========================================================
+! Block 2: Year 5 — dividends applied.
+! Player 1: 100 shares Shady Brooks ($7/share), 1 medium bond.
+!   Expected dividend: 100 * 7 = $700
+!   Expected bond interest: $250
+!   Expected cashBal: 5000 + 700 + 250 = 5950
+! Write currYear=4; divChild must increment to 5.
+! ==========================================================
+PRINT "Block 2: Year 5 (dividends and interest applied)"
+
+hdr.currYear         := 4
+plyrs(1).cashBal     := 5000
+plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks: $7/share dividend
+plyrs(1).bondUnts(2) := 1    \ ! medium bond: $250 interest
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+RUN divChild
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+
+iCYr := hdr.currYear   \ ! stage BYTE
+iGSt := hdr.gameStage  \ ! stage BYTE
+
+PRINT "  currYear = "; iCYr; " (expected 5)"
+PRINT "  gameStage = "; iGSt; " (expected 2)"
+PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 5950)"
+
+IF loadOK AND iCYr = 5 AND iGSt = 2 AND plyrs(1).cashBal = 5950 THEN
+  PRINT "  PASS [2]: Year 5 dividends and interest correct"
+ELSE
+  PRINT "  FAIL [2]: Year 5 mismatch"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+
+RUN waitKey
+
+! ==========================================================
+! Block 3: Year 10 — increment only; no dividend work.
+! Write currYear=9; divChild must increment to 10.
+! Player has holdings that would generate income if applied.
+! cashBal must be unchanged.
+! ==========================================================
+PRINT "Block 3: Year 10 (increment only; no dividends)"
+
+hdr.currYear         := 9
+plyrs(1).cashBal     := 7500
+plyrs(1).stckShrs(4) := 50   \ ! Shady Brooks — would pay $350 if applied
+plyrs(1).bondUnts(1) := 2    \ ! small bonds — would pay $100 if applied
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+RUN divChild
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+
+iCYr := hdr.currYear   \ ! stage BYTE
+iGSt := hdr.gameStage  \ ! stage BYTE
+
+PRINT "  currYear = "; iCYr; " (expected 10)"
+PRINT "  gameStage = "; iGSt; " (expected 2)"
+PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7500)"
+
+IF loadOK AND iCYr = 10 AND iGSt = 2 AND plyrs(1).cashBal = 7500 THEN
+  PRINT "  PASS [3]: Year 10 increment only; cashBal unchanged"
+ELSE
+  PRINT "  FAIL [3]: Year 10 mismatch"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+
+! Cleanup SNBSTATE written by this test.
+ON ERROR GOTO 800
+DELETE "SNBSTATE"
+800 ON ERROR GOTO 900
+
+RUN waitKey
+
+! ==========================================================
+! Summary
+! ==========================================================
+PRINT "=== TSTDIVCHLD SUMMARY ==="
+PRINT "Failures: "; failCnt
+IF failCnt = 0 THEN
+  PRINT "TSTDIVCHLD: PASS"
+ELSE
+  PRINT "TSTDIVCHLD: FAIL"
+ENDIF
+END
+
+900 PRINT "TSTDIVCHLD error ("; ERR; ")"
+PRINT "TSTDIVCHLD: FAIL"
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Pause between test blocks.             *)
+(* NOTE:      Local copy; do not pack with snbUtil.  *)
+(* ================================================== *)
+DIM k : STRING[1]
+ON ERROR GOTO 900
+PRINT "Press any key to continue...";
+GET #0, k
+PRINT
+END
+900 PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE ensureModule
+(* ============================================================ *)
+(* PROCEDURE : ensureModule                                     *)
+(* PURPOSE   : Ensure a named module is resident, using one of *)
+(*             two strategies selected by the forChild flag.   *)
+(*                                                             *)
+(*             forChild = FALSE — current-process load:        *)
+(*               Uses F$Link ($00) to check residency, then    *)
+(*               F$Load ($01) if not found. Loads the module   *)
+(*               into the current process workspace.           *)
+(*                                                             *)
+(*             forChild = TRUE — child-process load:           *)
+(*               Uses F$NMLink ($21) to check residency, then  *)
+(*               F$NMLoad ($22) if not found. Loads the module *)
+(*               into the OS module directory so forked child  *)
+(*               processes can link to it by name.             *)
+(*                                                             *)
+(*             In both cases: if the link call succeeds (carry *)
+(*             clear), the module is already resident and no   *)
+(*             load is required. If the link call fails (carry *)
+(*             set), the appropriate load call is made.        *)
+(*             The two variants differ only in call codes.     *)
+(*                                                             *)
+(*             Both variants use an MSB-terminated BYTE buffer  *)
+(*             built from modNam, matching the pattern         *)
+(*             confirmed in tForkParent.b09 hardware tests.    *)
+(*                                                             *)
+(* PARAMS    : modNam   - module name to ensure resident       *)
+(*             forChild - FALSE=current process (F$Link/Load)  *)
+(*                        TRUE=child process (F$NMLink/NMLoad) *)
+(*             ok       - TRUE if now resident; FALSE on fail  *)
+(* SIDE EFX  : Prints status and error messages to terminal.   *)
+(* NOTE      : Requires SysCall machine-lang module resident.  *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam   : STRING[20]
+PARAM forChild : BOOLEAN
+PARAM ok       : BOOLEAN
+DIM regs       : Register
+DIM namBuf(22) : BYTE    \ ! MSB-terminated name buffer
+DIM linkCode   : BYTE    \ ! F$Link ($00) or F$NMLink ($21)
+DIM loadCode   : BYTE    \ ! F$Load ($01) or F$NMLoad ($22)
+DIM nameLen    : INTEGER
+DIM iCC        : INTEGER \ ! staged regs.cc for LAND
+DIM errB       : INTEGER \ ! staged regs.b error code
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+! Select call codes based on target (current process vs child).
+IF forChild THEN
+  linkCode := $21  \ ! F$NMLink
+  loadCode := $22  \ ! F$NMLoad
+ELSE
+  linkCode := $00  \ ! F$Link
+  loadCode := $01  \ ! F$Load
+ENDIF
+
+! Build MSB-terminated name buffer for both call variants.
+! All characters except the last are plain ASCII; the last
+! character has bit 7 set to signal end-of-name to the OS.
+nameLen := LEN(modNam)
+IF nameLen = 0 THEN
+  PRINT "ensureModule: empty module name"
+  END
+ENDIF
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+! Link call: check residency. Carry clear = already resident;
+! module stays linked (no undo needed — residency is desired).
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(linkCode, regs)
+iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+IF LAND(iCC, 1) = 0 THEN
+  PRINT "ensureModule: "; modNam; " already resident"
+  ok := TRUE
+  END
+ENDIF
+
+IF NOT ok THEN
+  ! Load call: module not found; load from execution directory.
+  regs.a := 0
+  regs.x := ADDR(namBuf)
+  RUN SysCall(loadCode, regs)
+  iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+  IF LAND(iCC, 1) <> 0 THEN
+    errB := regs.b  \ ! stage BYTE -> INTEGER
+    PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+    END
+  ENDIF
+
+  ok := TRUE
+  PRINT "ensureModule: loaded: "; modNam
+ENDIF
+END
+
+900 PRINT "ensureModule error ("; ERR; ")"

@@ -1,0 +1,1036 @@
+PROCEDURE snbMarket
+(* ================================================== *)
+(* PROCEDURE: snbMarket                               *)
+(* PURPOSE:   README entry for snbMarket module.      *)
+(*            Lists all procedures in this module.   *)
+(* PARAMS:    None                                    *)
+(* ================================================== *)
+PRINT "snbMarket"
+PRINT "  mktChild"
+PRINT "  getMktDelta"
+PRINT "  getCard"
+PRINT "  resolvePrice"
+PRINT "  applyMktYear"
+PRINT "  drawCard"
+PRINT "  doRolls"
+PRINT "  scrCard"
+PRINT "  scrDice"
+PRINT "  scrMktBoard"
+PRINT "  scrSplit"
+PRINT "  scrDivFlag"
+END
+
+PROCEDURE mktChild
+(* ============================================================ *)
+(* PROCEDURE : mktChild                                         *)
+(* PURPOSE   : Market resolution phase child. Runs every year. *)
+(*             Draws the situation card, generates dice rolls,  *)
+(*             resolves all stock prices, applies Card 1        *)
+(*             dividend bonus (Years 2-9), and displays         *)
+(*             S11-S15. Always writes gameStage=GS_YEAR (2).   *)
+(*             Called by the SNB coordinator via forkPhase.    *)
+(* PARAMS    : None (child process; no PARAM handoff)          *)
+(* SIDE EFX  : Reads and writes SNBSTATE. Modifies             *)
+(*             mkt.stckPrice, mkt.divSuspnd, and               *)
+(*             plyrs(p).stckShrs (on splits) via applyMktYear. *)
+(*             Modifies plyrs(p).cashBal for Card 1 bonus.     *)
+(* NOTE      : snbSaveLoad must be pre-loaded by coordinator.  *)
+(*             snbUtil is permanently resident.                *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM crd        : CardRec
+DIM loadOK     : BOOLEAN
+DIM iCYr       : INTEGER  \ ! staged hdr.currYear BYTE
+DIM iMaxYr     : INTEGER  \ ! staged hdr.maxYears BYTE
+DIM iPCnt      : INTEGER  \ ! staged hdr.plyrCount BYTE
+DIM iRMode     : INTEGER  \ ! staged hdr.rollMode BYTE
+DIM iDkPos     : INTEGER  \ ! staged deck position within deckOrd
+DIM cardId     : INTEGER  \ ! drawn card ID (1..36)
+DIM rolls(9)   : INTEGER  \ ! INTEGER copy of rTot for applyMktYear
+DIM dOne(9)    : BYTE     \ ! die 1 per stock slot
+DIM dTwo(9)    : BYTE     \ ! die 2 per stock slot
+DIM rTot(9)    : BYTE     \ ! roll total per stock slot
+DIM rCnt       : BYTE     \ ! populated slot count from doRolls
+DIM oAct       : BOOLEAN  \ ! TRUE if Mode C 2/12 override fired
+DIM prcBef(9)  : INTEGER  \ ! price after mkt table, before card delta
+DIM mktDlt(9)  : INTEGER  \ ! market table delta per stock
+DIM crdDlt(9)  : INTEGER  \ ! card delta per stock
+DIM spOcc(9)   : BOOLEAN  \ ! TRUE if split triggered this stock
+DIM dvSusp(9)  : BOOLEAN  \ ! TRUE if dividends newly suspended
+DIM dvRnst(9)  : BOOLEAN  \ ! TRUE if dividends reinstated
+DIM flavTxt    : STRING[160] \ ! flavour text (stub; empty for now)
+DIM sNam       : STRING[12]  \ ! stock name for split/divflag display
+DIM pNames(6)  : STRING[20]  \ ! player names for scrSplit
+DIM shrBf(6)   : INTEGER     \ ! shares before split per player
+DIM shrAf(6)   : INTEGER     \ ! shares after split per player
+DIM evTyp      : INTEGER     \ ! 1=suspended 2=reinstated
+DIM oDPrc      : INTEGER     \ ! pre-split price for scrSplit display
+DIM actByt     : BYTE     \ ! action return from screens (discarded)
+DIM tInt       : INTEGER  \ ! reused loop counter / staging variable
+DIM p          : INTEGER
+DIM s          : INTEGER
+
+ON ERROR GOTO 900
+
+! Load full game state from coordinator IPC file.
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "mktChild: loadGame failed"
+  END
+ENDIF
+
+iCYr   := hdr.currYear   \ ! stage BYTE
+iMaxYr := hdr.maxYears   \ ! stage BYTE
+iPCnt  := hdr.plyrCount  \ ! stage BYTE
+iRMode := hdr.rollMode   \ ! stage BYTE
+
+! Draw and decode the situation card for this year.
+! deckOrd is indexed by deckPos; drawCard advances it and
+! reshuffles when exhausted. Use currYear as deck position
+! proxy: each year consumes one card in sequence.
+iDkPos := iCYr  \ ! deck position = current year (1..10)
+RUN drawCard(deckOrd, iDkPos, cardId)
+RUN getCard(cardId, crd)
+
+! Display S11 situation card (flavour text stub for now).
+flavTxt := ""
+RUN scrCard(cardId, crd, flavTxt, actByt)
+
+! Generate dice rolls per active roll mode.
+RUN doRolls(iRMode, iCYr, dOne, dTwo, rTot, rCnt, oAct)
+
+! Copy BYTE roll totals to INTEGER array for applyMktYear.
+FOR s := 1 TO 9
+  rolls(s) := rTot(s)
+NEXT s
+
+! Display S12 dice roll results.
+RUN scrDice(hdr.rollMode, rCnt, dOne, dTwo, rTot, actByt)
+
+! Resolve all stock prices for this year.
+! Line exceeds 79 chars; RUN statement cannot be split.
+RUN applyMktYear(cardId, rolls, iPCnt, plyrs, mkt, prcBef, mktDlt, crdDlt, spOcc, dvSusp, dvRnst)
+
+! Display S13 market results board.
+! Line exceeds 79 chars; RUN statement cannot be split.
+RUN scrMktBoard(prcBef, mktDlt, crdDlt, mkt.stckPrice, spOcc, dvSusp, dvRnst, actByt)
+
+! Display S14/S15 per stock where a notable event occurred.
+FOR s := 1 TO 9
+  IF spOcc(s) THEN
+    ! Build player share arrays for scrSplit.
+    ! applyMktYear already doubled stckShrs(s) on split;
+    ! shrBf = current / 2 restores the pre-split count.
+    FOR p := 1 TO iPCnt
+      pNames(p) := plyrs(p).plyrName
+      shrAf(p)  := plyrs(p).stckShrs(s)
+      shrBf(p)  := plyrs(p).stckShrs(s) / 2
+    NEXT p
+    ! Pre-split price = post-split price * 2.
+    oDPrc := mkt.stckPrice(s) * 2
+    ! Read stock name at position s from DATA 720.
+    RESTORE 720
+    FOR tInt := 1 TO s
+      READ sNam
+    NEXT tInt
+    ! Line exceeds 79 chars; RUN statement cannot be split.
+    RUN scrSplit(sNam, oDPrc, mkt.stckPrice(s), iPCnt, pNames, shrBf, shrAf, actByt)
+  ENDIF
+  IF dvSusp(s) OR dvRnst(s) THEN
+    ! Read stock name at position s from DATA 720.
+    RESTORE 720
+    FOR tInt := 1 TO s
+      READ sNam
+    NEXT tInt
+    IF dvSusp(s) THEN
+      evTyp := 1  \ ! SUSPENDED
+    ELSE
+      evTyp := 2  \ ! REINSTATED
+    ENDIF
+    RUN scrDivFlag(sNam, evTyp, mkt.stckPrice(s), 50, actByt)
+  ENDIF
+NEXT s
+
+! Apply Card 1 dividend bonus in Years 2-9 only.
+! crd.divBonus > 0 only for Card 1 (spec Section 4.3).
+IF crd.divBonus > 0 AND iCYr > 1 AND iCYr < iMaxYr THEN
+  FOR p := 1 TO iPCnt
+    IF NOT plyrs(p).isBankrupt THEN
+      FOR s := 1 TO 9
+        IF plyrs(p).stckShrs(s) > 0 THEN
+          plyrs(p).cashBal := plyrs(p).cashBal + (plyrs(p).stckShrs(s) * crd.divBonus)
+        ENDIF
+      NEXT s
+    ENDIF
+  NEXT p
+ENDIF
+
+! Always write GS_YEAR (2); mktChild never terminates the game.
+hdr.gameStage := 2  \ ! GS_YEAR
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+! Stock names 1..9 for split and dividend flag screens.
+720 DATA "Growth Corp","Metro Props","Pioneer Mut"
+721 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+722 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 PRINT "mktChild error ("; ERR; ")"
+END
+
+PROCEDURE doRolls
+(* ============================================================ *)
+(* PROCEDURE : doRolls                                          *)
+(* PURPOSE   : Generate 2d6 roll results for one game year     *)
+(*             according to the active market roll mode.        *)
+(*             Populates dieOne, dieTwo, and rollTot arrays     *)
+(*             for consumption by scrDice and applyMktYear.     *)
+(*             All 9 slots are always populated on return;      *)
+(*             applyMktYear uses rolls(s) per stock.            *)
+(*                                                             *)
+(*             Mode A (rollMode=1), any year:                  *)
+(*               Roll once. Copy result to all 9 slots.        *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Year 1 only:               *)
+(*               Roll each of 9 stocks independently.          *)
+(*               No 2/12 override check.                       *)
+(*               rollCnt=9. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode B (rollMode=2), Years 2-10:                *)
+(*               Same as Mode A — single roll, all 9 slots.   *)
+(*               rollCnt=1. ovrdActive=FALSE.                  *)
+(*                                                             *)
+(*             Mode C (rollMode=3), any year:                  *)
+(*               Roll stocks 1-9 in sequence. If any roll      *)
+(*               totals 2 or 12, fill all 9 slots with that    *)
+(*               triggering roll, set ovrdActive=TRUE, stop.   *)
+(*               rollCnt=9 always.                             *)
+(*                                                             *)
+(* PARAMS    : rollMode   - 1=A 2=B 3=C (INTEGER)             *)
+(*             currYear   - current game year 1..10 (INTEGER)  *)
+(*             dieOne(9)  - OUT: first die per stock slot 1..9 *)
+(*             dieTwo(9)  - OUT: second die per stock slot 1..9*)
+(*             rollTot(9) - OUT: total per stock slot 1..9     *)
+(*             rollCnt    - OUT: populated slot count          *)
+(*             ovrdActive - OUT: TRUE if Mode C 2/12 fired     *)
+(* SIDE EFX  : Advances the RND sequence.                     *)
+(* ============================================================ *)
+PARAM rollMode   : INTEGER
+PARAM currYear   : INTEGER
+PARAM dieOne(9)  : BYTE
+PARAM dieTwo(9)  : BYTE
+PARAM rollTot(9) : BYTE
+PARAM rollCnt    : BYTE
+PARAM ovrdActive : BOOLEAN
+DIM d1  : INTEGER
+DIM d2  : INTEGER
+DIM tot : INTEGER
+DIM s   : INTEGER
+DIM f   : INTEGER
+
+ON ERROR GOTO 900
+
+IF rollMode = 1 THEN
+
+  ! Mode A: single roll, copy to all 9 slots.
+  d1  := INT(RND(6)) + 1
+  d2  := INT(RND(6)) + 1
+  tot := d1 + d2
+  FOR s := 1 TO 9
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+  NEXT s
+  rollCnt    := 1
+  ovrdActive := FALSE
+
+ELSE IF rollMode = 2 THEN
+
+  IF currYear = 1 THEN
+
+    ! Mode B Year 1: independent per-stock rolls, no override.
+    FOR s := 1 TO 9
+      d1         := INT(RND(6)) + 1
+      d2         := INT(RND(6)) + 1
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := d1 + d2
+    NEXT s
+    rollCnt    := 9
+    ovrdActive := FALSE
+
+  ELSE
+
+    ! Mode B Years 2-10: same as Mode A.
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    FOR s := 1 TO 9
+      dieOne(s)  := d1
+      dieTwo(s)  := d2
+      rollTot(s) := tot
+    NEXT s
+    rollCnt    := 1
+    ovrdActive := FALSE
+
+  ENDIF
+
+ELSE
+
+  ! Mode C: per-stock rolls with 2/12 override.
+  s          := 1
+  ovrdActive := FALSE
+  LOOP
+    EXITIF s > 9 OR ovrdActive THEN
+    ENDEXIT
+    d1  := INT(RND(6)) + 1
+    d2  := INT(RND(6)) + 1
+    tot := d1 + d2
+    dieOne(s)  := d1
+    dieTwo(s)  := d2
+    rollTot(s) := tot
+    IF tot = 2 OR tot = 12 THEN
+      ! Override: backfill all 9 slots with this roll.
+      FOR f := 1 TO 9
+        dieOne(f)  := d1
+        dieTwo(f)  := d2
+        rollTot(f) := tot
+      NEXT f
+      ovrdActive := TRUE
+    ENDIF
+    s := s + 1
+  ENDLOOP
+  rollCnt := 9
+
+ENDIF \ENDIF
+
+END
+
+900 PRINT "doRolls error ("; ERR; ")"
+END
+
+PROCEDURE getMktDelta
+(* ============================================================ *)
+(* PROCEDURE : getMktDelta                                      *)
+(* PURPOSE   : Return stock price delta from the Bull or Bear   *)
+(*             market table for a given stock, market type,     *)
+(*             and 2d6 roll result.                             *)
+(* PARAMS    : stockId - stock index 1..9                       *)
+(*             mktType - market type: 1=Bull, 2=Bear            *)
+(*             roll    - 2d6 result 2..12                       *)
+(*             delta   - receives the price change (INTEGER)    *)
+(* SIDE EFX  : Repositions the internal DATA pointer via        *)
+(*             RESTORE. Caller must not depend on DATA pointer   *)
+(*             state after this call.                           *)
+(* ============================================================ *)
+PARAM stockId : INTEGER
+PARAM mktType : INTEGER
+PARAM roll    : INTEGER
+PARAM delta   : INTEGER
+DIM skipCnt : INTEGER
+DIM i       : INTEGER
+DIM tmp     : INTEGER
+
+ON ERROR GOTO 900
+
+! Offset into the flat table: (stockId-1)*11 columns per stock
+! plus (roll-2) for 0-based roll index within that row.
+skipCnt := ((stockId - 1) * 11) + (roll - 2)
+
+IF mktType = 1 THEN
+  RESTORE 100 \ ! Bull table
+ELSE
+  RESTORE 200 \ ! Bear table
+ENDIF
+
+FOR i := 1 TO skipCnt
+  READ tmp
+NEXT i
+READ delta
+END
+
+! ---- Bull market table (spec Section 5.1) -------------------
+! Stock order: Growth Corp, Metro Props, Pioneer Mutual,
+!   Shady Brooks, Stryker Drilling, Tri-City Transport,
+!   United Auto, Uranium Enterprises, Valley Power
+! Rolls:          2    3    4    5    6    7    8    9   10   11   12
+100 DATA  -2,  26,  18,  23,  20,  17,  19,  11,  13,  14,  24
+DATA -10,  16,  23,  28,  15,  21,  24,  18,  31,  -8,  24
+DATA  -7,  25,  11,  -2,  15,  13,  17,  14,   1,  19,  23
+DATA  -9,   8,  12,  11,   7,  -2,   9,  11,  14,  -1,  20
+DATA  -2, -14,  46,  56, -20,  37,  -5,  67, -11,  -9,  51
+DATA  -9,  21,  18,  19,  15,  23,  26,  15,  18,  25,  27
+DATA  -7,  14,  -5,  30,  13,  23,  13,  22,  18, -10,  38
+DATA -16,  -4,  34,  29, -10,  19,  -7,  18, -14,  13,  33
+DATA  -4,  17,  15,  14,  12,  14,  15,  13,  10,  19,  18
+
+! ---- Bear market table (spec Section 5.2) -------------------
+! Same stock order as Bull table above.
+! Rolls:          2    3    4    5    6    7    8    9   10   11   12
+200 DATA  12,   7,   9,   7,   8,   6,   5,  -2,  11,  -5,  -8
+DATA  14,  -6,  10,   8,   6,   4,   7,   6,  11,  13, -10
+DATA  13,  10,   7,   5,   4,   3,  -1,  -3,  -5,  -8, -10
+DATA  10, -10,  -5,  -6,  -4,   3,  -3,  -8,  -7,   6, -15
+DATA  10,  30, -20, -40,  40, -15,  45, -20,  30,  25, -20
+DATA  20,   6,  12,   3,   8,   5,   6,   7,  10,   4, -20
+DATA  21, -19,  21,  16,   4,   8, -10,  10, -11,  18, -23
+DATA  25,  22,  18, -14, -12,  -8,  10,  14, -18, -22, -25
+DATA   8,  -2,   7,   4,   3,   5,   4,   6,  -4,  -4,  -7
+
+900 PRINT "getMktDelta error ("; ERR; ")"
+END
+
+PROCEDURE getCard
+(* ============================================================ *)
+(* PROCEDURE : getCard                                          *)
+(* PURPOSE   : Populate a CardRec from the encoded card table   *)
+(*             for a given card ID (1..36).                     *)
+(* PARAMS    : cardId - card number 1..36                       *)
+(*             card   - receives all card fields (by ref)       *)
+(* SIDE EFX  : Repositions the internal DATA pointer via        *)
+(*             RESTORE. Caller must not depend on DATA pointer  *)
+(*             state after this call.                           *)
+(* NOTE      : CardRec TYPE must be declared in every procedure *)
+(*             that calls getCard or passes a CardRec param.    *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM cardId : INTEGER
+PARAM card   : CardRec
+DIM skipCnt : INTEGER
+DIM i       : INTEGER
+DIM tmp     : INTEGER
+
+ON ERROR GOTO 900
+
+! Each card occupies 11 fixed-width slots:
+!   crdType, efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
+! Unused effect slots are encoded as 0,0.
+skipCnt := (cardId - 1) * 11
+RESTORE 100
+
+FOR i := 1 TO skipCnt
+  READ tmp
+NEXT i
+
+READ card.crdType
+READ card.efxCnt
+READ card.efxStk(1), card.efxDlt(1)
+READ card.efxStk(2), card.efxDlt(2)
+READ card.efxStk(3), card.efxDlt(3)
+READ card.efxStk(4), card.efxDlt(4)
+READ card.divBonus
+END
+
+! ---- Situation card table (spec Section 4.3) ----------------
+! Stock IDs: 1=Growth Corp  2=Metro Props  3=Pioneer Mutual
+!            4=Shady Brooks 5=Stryker      6=Tri-City Transport
+!            7=United Auto  8=Uranium Ent  9=Valley Power
+! crdType: 1=Bull  2=Bear
+! crdType,efxCnt, stk1,dlt1, stk2,dlt2, stk3,dlt3, stk4,dlt4, divBonus
+100 DATA 2, 1,  1,  10,  0,   0,  0,   0,  0,   0,  2
+DATA     1, 1,  1,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  1,   8,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  1,  -8,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  1, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  2,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  2, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  4,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  4,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  5,  17,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  5, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  5, -10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  6,  15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  6,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  6, -25,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  7,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7,  -5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  7, -15,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  8,  10,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  8, -25,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 1,  9,   5,  0,   0,  0,   0,  0,   0,  0
+DATA     2, 1,  9, -14,  0,   0,  0,   0,  0,   0,  0
+DATA     1, 2,  3,   3,  9,   4,  0,   0,  0,   0,  0
+DATA     1, 4,  1,   8,  2,   5,  3,   5,  7,   7,  0
+DATA     1, 3,  3,  -8,  5,   8,  8,   5,  0,   0,  0
+DATA     2, 3,  1,  -8,  2,  -5,  7,  -7,  0,   0,  0
+
+900 PRINT "getCard error ("; ERR; ")"
+END
+
+PROCEDURE resolvePrice
+(* ============================================================ *)
+(* PROCEDURE : resolvePrice                                     *)
+(* PURPOSE   : Resolve the new price and share count for one   *)
+(*             stock after market table and card deltas are     *)
+(*             applied (spec Section 7).                        *)
+(*             Execution order per spec:                        *)
+(*               1. Sum deltas.                                 *)
+(*               2. Clamp at 0 (BankruptcyPrice).              *)
+(*               3. Set divSuspndNow (DividendCutoff = 50).    *)
+(*               4. Apply split if >= 150 (round price up).    *)
+(* PARAMS    : curPrice   - stock price before this year        *)
+(*             mktDelta   - market table delta for this roll    *)
+(*             cardDelta  - situation card delta (0 if none)    *)
+(*             sharesOwnd - shares held by this player          *)
+(*             newPrice   - resolved price after all steps      *)
+(*             newShares  - shares after possible split         *)
+(*             splitOccrd - TRUE if a 2-for-1 split triggered  *)
+(*             divSuspNow - TRUE if dividends suspended at      *)
+(*                          newPrice                           *)
+(*             divSuspPrv - TRUE if dividends were suspended at *)
+(*                          curPrice; for transition detection  *)
+(* SIDE EFX  : None. All outputs are via PARAM.                *)
+(* ============================================================ *)
+PARAM curPrice   : INTEGER
+PARAM mktDelta   : INTEGER
+PARAM cardDelta  : INTEGER
+PARAM sharesOwnd : INTEGER
+PARAM newPrice   : INTEGER
+PARAM newShares  : INTEGER
+PARAM splitOccrd : BOOLEAN
+PARAM divSuspNow : BOOLEAN
+PARAM divSuspPrv : BOOLEAN
+DIM rawPrice : INTEGER
+
+ON ERROR GOTO 900
+
+! Step 1: sum deltas.
+rawPrice := curPrice + mktDelta + cardDelta
+
+! Step 2: clamp at BankruptcyPrice (0).
+IF rawPrice < 0 THEN
+  rawPrice := 0
+ENDIF
+
+! Derive previous suspension state from entry price.
+divSuspPrv := (curPrice < 50)
+
+! Step 3: set dividend suspension from clamped pre-split price.
+divSuspNow := (rawPrice < 50)
+
+! Step 4: apply split or pass through.
+IF rawPrice >= 150 THEN
+  ! Round halved price up: (rawPrice + 1) / 2 handles odd prices.
+  newPrice   := (rawPrice + 1) / 2
+  newShares  := sharesOwnd * 2
+  splitOccrd := TRUE
+ELSE
+  newPrice   := rawPrice
+  newShares  := sharesOwnd
+  splitOccrd := FALSE
+ENDIF
+
+END
+
+900 PRINT "resolvePrice error ("; ERR; ")"
+END
+
+PROCEDURE applyMktYear
+(* ============================================================ *)
+(* PROCEDURE : applyMktYear                                     *)
+(* PURPOSE   : Apply full market price resolution for all 9    *)
+(*             stocks for one year (spec Sections 5-7).        *)
+(*             For each stock: looks up market table delta,    *)
+(*             looks up card delta, resolves price/split/flags, *)
+(*             updates mkt, and doubles stckShrs on split.     *)
+(*             Populates per-stock output arrays for S13-S15.  *)
+(* PARAMS    : cardId    - drawn card number (1..36)            *)
+(*             rolls     - per-stock 2d6 result (2..12);        *)
+(*                         all 9 slots populated by caller.    *)
+(*             plyrCnt   - number of active players (1..6)      *)
+(*             plyrs     - player records; stckShrs modified    *)
+(*                         on split                             *)
+(*             mkt       - market state; stckPrice and          *)
+(*                         divSuspnd updated in place           *)
+(*             prcBefCrd - price after mkt table, before card   *)
+(*                         delta; for S13 display               *)
+(*             mktDlta   - market table delta per stock         *)
+(*             crdDlta   - card delta per stock (0 if none)     *)
+(*             splitOcc  - TRUE per stock if split triggered    *)
+(*             divSuspd  - TRUE per stock if newly suspended    *)
+(*             divRnstd  - TRUE per stock if reinstated         *)
+(* SIDE EFX  : Repositions DATA pointer (via getMktDelta and   *)
+(*             getCard). Card divBonus NOT applied here.        *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM cardId       : INTEGER
+PARAM rolls(9)     : INTEGER
+PARAM plyrCnt      : INTEGER
+PARAM plyrs(6)     : PlyrRec
+PARAM mkt          : MktState
+PARAM prcBefCrd(9) : INTEGER
+PARAM mktDlta(9)   : INTEGER
+PARAM crdDlta(9)   : INTEGER
+PARAM splitOcc(9)  : BOOLEAN
+PARAM divSuspd(9)  : BOOLEAN
+PARAM divRnstd(9)  : BOOLEAN
+DIM card   : CardRec
+DIM s      : INTEGER
+DIM p      : INTEGER
+DIM e      : INTEGER
+DIM curPrc : INTEGER
+DIM delta  : INTEGER
+DIM cDelta : INTEGER
+DIM tmpPrc : INTEGER
+DIM tmpShr : INTEGER
+DIM splt   : BOOLEAN
+DIM dNow   : BOOLEAN
+DIM dPrv   : BOOLEAN
+
+ON ERROR GOTO 900
+
+RUN getCard(cardId, card)
+
+FOR s := 1 TO 9
+
+  ! Market table delta for this stock using its assigned roll.
+  RUN getMktDelta(s, card.crdType, rolls(s), delta)
+  mktDlta(s) := delta
+
+  ! Card delta: scan effects for this stock; default 0.
+  cDelta := 0
+  FOR e := 1 TO card.efxCnt
+    IF card.efxStk(e) = s THEN
+      cDelta := card.efxDlt(e)
+    ENDIF
+  NEXT e
+  crdDlta(s) := cDelta
+
+  ! Price before card delta: used by S13 for display only.
+  prcBefCrd(s) := mkt.stckPrice(s) + delta
+
+  ! Resolve price, split, and dividend suspension flags.
+  curPrc := mkt.stckPrice(s)
+  RUN resolvePrice(curPrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
+
+  ! Record display flags for S13/S14/S15.
+  splitOcc(s) := splt
+  IF NOT dPrv AND dNow THEN
+    divSuspd(s) := TRUE
+  ELSE
+    divSuspd(s) := FALSE
+  ENDIF
+  IF dPrv AND NOT dNow THEN
+    divRnstd(s) := TRUE
+  ELSE
+    divRnstd(s) := FALSE
+  ENDIF
+
+  ! Update market state in place.
+  mkt.stckPrice(s) := tmpPrc
+  mkt.divSuspnd(s) := dNow
+
+  ! On split: double all players' shares for this stock.
+  IF splt THEN
+    FOR p := 1 TO plyrCnt
+      plyrs(p).stckShrs(s) := plyrs(p).stckShrs(s) * 2
+    NEXT p
+  ENDIF
+
+NEXT s
+
+END
+
+900 PRINT "applyMktYear error ("; ERR; ")"
+END
+
+PROCEDURE drawCard
+(* ============================================================ *)
+(* PROCEDURE : drawCard                                         *)
+(* PURPOSE   : Return the card ID at the current deck position  *)
+(*             and advance the position. If the deck is         *)
+(*             exhausted after this draw, reshuffle and reset   *)
+(*             deckPos to 1 so the next draw starts fresh.      *)
+(* PARAMS    : deckOrd(36) - shuffled deck order (modified on  *)
+(*                           reshuffle)                         *)
+(*             deckPos     - current draw position (1..36);     *)
+(*                           incremented on return; reset to 1  *)
+(*                           after position 36                  *)
+(*             cardId      - receives card ID 1..36 for this    *)
+(*                           draw                               *)
+(* SIDE EFX  : Modifies deckPos. On reshuffle: modifies        *)
+(*             deckOrd and advances RND sequence.               *)
+(* ============================================================ *)
+PARAM deckOrd(36) : BYTE
+PARAM deckPos     : BYTE
+PARAM cardId      : INTEGER
+
+ON ERROR GOTO 900
+
+cardId  := deckOrd(deckPos)
+deckPos := deckPos + 1
+IF deckPos > 36 THEN
+  RUN shuffleDeck(deckOrd)
+  deckPos := 1
+ENDIF
+END
+
+900 PRINT "drawCard error ("; ERR; ")"
+END
+
+PROCEDURE scrCard
+(* ============================================================ *)
+(* PROCEDURE : scrCard                                          *)
+(* PURPOSE   : Display the situation card screen (S11). Shows  *)
+(*             card number, Bull/Bear type, flavour text, each  *)
+(*             affected stock and its price delta, and a        *)
+(*             dividend bonus notice when applicable.           *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : crdNum  - card number (1..36) for display       *)
+(*             card    - populated CardRec from getCard        *)
+(*             flavTxt - flavour text string for this card     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* NOTE      : Flavour text longer than ~76 chars will wrap    *)
+(*             at the terminal width.                          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE CardRec = crdType:INTEGER;efxCnt:INTEGER;efxStk(4):INTEGER;efxDlt(4):INTEGER;divBonus:INTEGER
+PARAM crdNum  : INTEGER
+PARAM card    : CardRec
+PARAM flavTxt : STRING[160]
+PARAM action  : BYTE
+DIM sName : STRING[12]
+DIM sign  : STRING[1]
+DIM e     : INTEGER
+DIM s     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  SITUATION CARD #"; crdNum
+PRINT
+IF card.crdType = 1 THEN
+  PRINT "  BULL MARKET"
+ELSE
+  PRINT "  BEAR MARKET"
+ENDIF
+PRINT
+PRINT "  "; flavTxt
+PRINT
+PRINT "  STOCKS AFFECTED:"
+FOR e := 1 TO card.efxCnt
+  RESTORE 100
+  FOR s := 1 TO card.efxStk(e)
+    READ sName
+  NEXT s
+  IF card.efxDlt(e) >= 0 THEN
+    sign := "+"
+  ELSE
+    sign := ""
+  ENDIF
+  PRINT "    "; sName; TAB(20); sign; card.efxDlt(e)
+NEXT e
+IF card.divBonus > 0 THEN
+  PRINT
+  PRINT "  DIVIDEND BONUS: $"; card.divBonus; " per share"
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for effect display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 PRINT "scrCard error ("; ERR; ")"
+END
+
+PROCEDURE scrDice
+(* ============================================================ *)
+(* PROCEDURE : scrDice                                          *)
+(* PURPOSE   : Display the dice roll screen (S12).             *)
+(*             Mode A or B (rollMode 1 or 2): one roll applies *)
+(*             to all stocks; displays die 1, die 2, total.    *)
+(*             Mode C (rollMode 3): one roll per stock;         *)
+(*             displays a row per stock with both dice and the  *)
+(*             total. Blocks until any key is pressed.          *)
+(* PARAMS    : rollMode - 1=A (single) 2=B (single) 3=C (per  *)
+(*                        stock)                                *)
+(*             rollCnt  - number of populated roll slots        *)
+(*                        (1 for mode A/B, 9 for mode C)       *)
+(*             dieOne   - first die value per roll slot (1..6) *)
+(*             dieTwo   - second die value per roll slot (1..6)*)
+(*             rollTot  - sum per roll slot (2..12)             *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used)         *)
+(*             when rollMode = 3.                               *)
+(* ============================================================ *)
+PARAM rollMode   : BYTE
+PARAM rollCnt    : BYTE
+PARAM dieOne(9)  : BYTE
+PARAM dieTwo(9)  : BYTE
+PARAM rollTot(9) : BYTE
+PARAM action     : BYTE
+DIM sName : STRING[12]
+DIM r     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  DICE ROLL"
+PRINT
+
+IF rollMode = 1 THEN
+  PRINT "  ROLL MODE A"
+ELSE
+  IF rollMode = 2 THEN
+    PRINT "  ROLL MODE B"
+  ELSE
+    PRINT "  ROLL MODE C  (per stock)"
+  ENDIF
+ENDIF
+
+PRINT
+
+IF rollMode = 3 THEN
+  ! Mode C: one row per stock
+  PRINT "    STOCK            D1   D2  TOT"
+  PRINT "    ----------------------------------"
+  RESTORE 100
+  FOR r := 1 TO rollCnt
+    READ sName
+    PRINT USING "'    ',S12<,X2,I3>,X2,I3>,X2,I3>", sName, dieOne(r), dieTwo(r), rollTot(r)
+  NEXT r
+ELSE
+  ! Mode A or B: single roll
+  PRINT "  Die 1:  "; dieOne(1)
+  PRINT "  Die 2:  "; dieTwo(1)
+  PRINT "  Total:  "; rollTot(1)
+ENDIF
+
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 for mode C display (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 PRINT "scrDice error ("; ERR; ")"
+END
+
+PROCEDURE scrMktBoard
+(* ============================================================ *)
+(* PROCEDURE : scrMktBoard                                      *)
+(* PURPOSE   : Display the market results board (S13). Shows   *)
+(*             one row per stock: price before card delta,      *)
+(*             market table delta, card delta, resolved price,  *)
+(*             and a status flag where applicable.             *)
+(*             Flag column (priority order):                    *)
+(*               BKRT  price resolved to 0 (bankruptcy floor)  *)
+(*               SPLT  2-for-1 split triggered this year        *)
+(*               SUSP  dividends newly suspended this year      *)
+(*               RSTD  dividends reinstated this year           *)
+(*               (blank) no notable event                       *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : prcBefCrd - price after mkt table, before card  *)
+(*                         delta; per stock 1..9               *)
+(*             mktDlta   - market table delta per stock 1..9   *)
+(*             crdDlta   - card delta per stock 1..9           *)
+(*             newPrc    - resolved price per stock 1..9        *)
+(*             splitOcc  - TRUE if split triggered per stock   *)
+(*             divSuspd  - TRUE if dividends newly suspended   *)
+(*             divRnstd  - TRUE if dividends reinstated        *)
+(*             action    - returns 1 (CONTINUE) on exit        *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(*             Repositions DATA pointer (RESTORE used).        *)
+(* ============================================================ *)
+PARAM prcBefCrd(9) : INTEGER
+PARAM mktDlta(9)   : INTEGER
+PARAM crdDlta(9)   : INTEGER
+PARAM newPrc(9)    : INTEGER
+PARAM splitOcc(9)  : BOOLEAN
+PARAM divSuspd(9)  : BOOLEAN
+PARAM divRnstd(9)  : BOOLEAN
+PARAM action       : BYTE
+DIM sName : STRING[12]
+DIM flg   : STRING[4]
+DIM s     : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  MARKET RESULTS BOARD"
+PRINT
+PRINT "  STOCK          PREV   MKT   CRD   NEW NOTE"
+PRINT "  ------------   ----  ----  ----  ---- ----"
+
+RESTORE 100
+FOR s := 1 TO 9
+  READ sName
+
+  ! Derive status flag; BKRT takes priority over all others.
+  IF newPrc(s) = 0 THEN
+    flg := "BKRT"
+  ELSE
+    IF splitOcc(s) THEN
+      flg := "SPLT"
+    ELSE
+      IF divSuspd(s) THEN
+        flg := "SUSP"
+      ELSE
+        IF divRnstd(s) THEN
+          flg := "RSTD"
+        ELSE
+          flg := "    "
+        ENDIF
+      ENDIF
+    ENDIF
+  ENDIF
+
+  PRINT USING "'  ',S12<,X1,I4>,X2,I4>,X2,I4>,X2,I4>,X1,S4<", sName, prcBefCrd(s), mktDlta(s), crdDlta(s), newPrc(s), flg
+NEXT s
+
+PRINT
+RUN waitKey
+action := 1
+END
+
+! Stock names 1..9 (spec Section 2.1)
+100 DATA "Growth Corp","Metro Props","Pioneer Mut"
+101 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
+102 DATA "United Auto","Uranium Ent","Valley Power"
+
+900 PRINT "scrMktBoard error ("; ERR; ")"
+END
+
+PROCEDURE scrSplit
+(* ============================================================ *)
+(* PROCEDURE : scrSplit                                         *)
+(* PURPOSE   : Display the stock split notification (S14) for  *)
+(*             one split event. Shows the stock name, old and  *)
+(*             new price, and one row per player who held       *)
+(*             shares before the split (shrBef > 0). Players   *)
+(*             with zero shares before the split are skipped.  *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName  - stock name for display               *)
+(*             oldPrc   - price before split                    *)
+(*             newPrc   - price after split                     *)
+(*             plyrCnt  - number of active players (1..6)      *)
+(*             plyrName - player name per slot (1..plyrCnt)    *)
+(*             shrBef   - shares held before split per player  *)
+(*             shrAft   - shares held after split per player   *)
+(*             action   - returns 1 (CONTINUE) on exit         *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName     : STRING[12]
+PARAM oldPrc      : INTEGER
+PARAM newPrc      : INTEGER
+PARAM plyrCnt     : INTEGER
+PARAM plyrName(6) : STRING[20]
+PARAM shrBef(6)   : INTEGER
+PARAM shrAft(6)   : INTEGER
+PARAM action      : BYTE
+DIM p : INTEGER
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+PRINT "  STOCK SPLIT  2 FOR 1"
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Old price:  $',I4>", oldPrc
+PRINT USING "'  New price:  $',I4>", newPrc
+PRINT
+PRINT "  PLAYER               BEFORE   AFTER"
+PRINT "  -------------------  ------  ------"
+FOR p := 1 TO plyrCnt
+  IF shrBef(p) > 0 THEN
+    PRINT USING "'  ',S20<,I6>,X2,I6>", plyrName(p), shrBef(p), shrAft(p)
+  ENDIF
+NEXT p
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 PRINT "scrSplit error ("; ERR; ")"
+END
+
+PROCEDURE scrDivFlag
+(* ============================================================ *)
+(* PROCEDURE : scrDivFlag                                       *)
+(* PURPOSE   : Display the dividend suspension or reinstatement*)
+(*             notice (S15) for one threshold-crossing event.  *)
+(*             Shows event type (SUSPENDED / REINSTATED), stock *)
+(*             name, resolved price, and dividend cutoff price. *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : stkName - stock name for display                *)
+(*             evtType - 1 = SUSPENDED   2 = REINSTATED        *)
+(*             newPrc  - resolved stock price this year        *)
+(*             cutPrc  - dividend cutoff price (always 50)     *)
+(*             action  - returns 1 (CONTINUE) on exit          *)
+(* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
+(* ============================================================ *)
+PARAM stkName : STRING[12]
+PARAM evtType : INTEGER
+PARAM newPrc  : INTEGER
+PARAM cutPrc  : INTEGER
+PARAM action  : BYTE
+
+ON ERROR GOTO 900
+
+RUN clrScr
+PRINT
+IF evtType = 1 THEN
+  PRINT "  DIVIDEND SUSPENDED"
+ELSE
+  PRINT "  DIVIDEND REINSTATED"
+ENDIF
+PRINT
+PRINT "  "; stkName
+PRINT
+PRINT USING "'  Current price:  $',I4>", newPrc
+PRINT USING "'  Cutoff price:   $',I4>", cutPrc
+PRINT
+IF evtType = 1 THEN
+  PRINT "  Dividends suspended until price recovers."
+ELSE
+  PRINT "  Dividends reinstated."
+ENDIF
+PRINT
+RUN waitKey
+action := 1
+END
+
+900 PRINT "scrDivFlag error ("; ERR; ")"
+END
