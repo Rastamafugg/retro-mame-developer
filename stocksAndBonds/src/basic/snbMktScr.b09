@@ -6,14 +6,157 @@ PROCEDURE snbMktScr
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbMktScr"
+PRINT "  mktChild"
 PRINT "  scrYearHdr"
 PRINT "  scrDivInt"
-PRINT "  scrMgnInt"
 PRINT "  scrCard"
 PRINT "  scrDice"
 PRINT "  scrMktBoard"
-PRINT "  scrSplit"
 PRINT "  scrDivFlag"
+PRINT "  scrSplit"
+END
+
+PROCEDURE mktChild
+(* ============================================================ *)
+(* PROCEDURE : mktChild                                         *)
+(* PURPOSE   : Dividend and interest phase child. Runs every   *)
+(*             year. Increments currYear at the very start,    *)
+(*             before any other work, so mktChild and           *)
+(*             tradeChild see the correct year number.          *)
+(*             Applies dividends and bond interest (applyDivInt)*)
+(*             and displays S9 (scrDivInt) per non-bankrupt    *)
+(*             player in Years 2-9 only. Years 1 and 10:       *)
+(*             increment only; no financial work per spec       *)
+(*             Section 6.                                       *)
+(*             Always writes gameStage=GS_YEAR (2).            *)
+(*             Called by the SNB coordinator via forkPhase.    *)
+(* PARAMS    : None (child process; no PARAM handoff)          *)
+(* SIDE EFX  : Reads and writes SNBSTATE. Modifies             *)
+(*             plyrs(p).cashBal for all active players in       *)
+(*             Years 2-9 via applyDivInt.                      *)
+(* NOTE      : snbSaveLoad, snbMktEng must be pre-loaded by   *)
+(*             coordinator. snbUtil is permanently resident.   *)
+(*             DATA lines 700 and 710 must not conflict with   *)
+(*             any other DATA lines in this procedure.          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM loadOK     : BOOLEAN
+DIM iCYr       : INTEGER  \ ! staged hdr.currYear BYTE for arithmetic
+DIM iPCnt      : INTEGER  \ ! staged hdr.plyrCount BYTE for FOR bound
+DIM cashBef(6) : INTEGER  \ ! cashBal snapshot per player before apply
+DIM divRcvd(9) : INTEGER  \ ! per-stock dividend received for display
+DIM bndInt(3)  : INTEGER  \ ! per-bond interest received for display
+DIM divRate(9) : INTEGER  \ ! dividend per share (spec Section 2.1)
+DIM bndRate(3) : INTEGER  \ ! annual interest per bond unit (spec 2.2)
+DIM totRcvd    : INTEGER  \ ! total div+int received this year
+DIM pNam       : STRING[20] \ ! staged plyrName for scrDivInt call
+DIM actByt     : BYTE     \ ! action return from scrDivInt (discarded)
+DIM p          : INTEGER
+DIM s          : INTEGER
+DIM b          : INTEGER
+
+ON ERROR GOTO 900
+
+! Load full game state from coordinator IPC file.
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "mktChild: loadGame failed"
+  END
+ENDIF
+
+! Increment currYear before any other work.
+! iCYr receives the NEW year number; hdr.currYear is updated
+! so all downstream children and the coordinator read correctly.
+iCYr := hdr.currYear   \ ! stage BYTE -> INTEGER
+iCYr := iCYr + 1
+hdr.currYear := iCYr   \ ! assign back; 1-10 fits safely in BYTE
+
+iPCnt := hdr.plyrCount  \ ! stage BYTE -> INTEGER for FOR bounds
+
+! Apply dividends and bond interest in Years 2-9 only.
+! Year 1 and Year 10: increment above is the only work.
+IF iCYr > 1 AND iCYr < 10 THEN
+
+  ! Capture cash balances before bulk apply for per-player display.
+  FOR p := 1 TO iPCnt
+    cashBef(p) := plyrs(p).cashBal
+  NEXT p
+
+  ! Load per-stock dividend rates for display computation.
+  ! applyDivInt loads its own copy via its internal DATA.
+  RESTORE 700
+  FOR s := 1 TO 9
+    READ divRate(s)
+  NEXT s
+
+  ! Load per-bond interest rates for display computation.
+  RESTORE 710
+  FOR b := 1 TO 3
+    READ bndRate(b)
+  NEXT b
+
+  ! Apply dividends and bond interest to all active players.
+  RUN applyDivInt(iCYr, iPCnt, plyrs, mkt)
+
+  ! Display S9 dividend and interest summary per active player.
+  FOR p := 1 TO iPCnt
+    IF NOT plyrs(p).isBankrupt THEN
+      totRcvd := 0
+
+      ! Compute per-stock dividend amounts for display.
+      ! Mirrors applyDivInt logic exactly.
+      FOR s := 1 TO 9
+        divRcvd(s) := 0
+        IF NOT mkt.divSuspnd(s) THEN
+          IF divRate(s) > 0 THEN
+            IF plyrs(p).stckShrs(s) > 0 THEN
+              divRcvd(s) := divRate(s) * plyrs(p).stckShrs(s)
+              totRcvd    := totRcvd + divRcvd(s)
+            ENDIF
+          ENDIF
+        ENDIF
+      NEXT s
+
+      ! Compute per-bond interest amounts for display.
+      FOR b := 1 TO 3
+        bndInt(b) := 0
+        IF plyrs(p).bondUnts(b) > 0 THEN
+          bndInt(b) := bndRate(b) * plyrs(p).bondUnts(b)
+          totRcvd   := totRcvd + bndInt(b)
+        ENDIF
+      NEXT b
+
+      pNam := plyrs(p).plyrName  \ ! stage STRING[20] for scrDivInt
+      ! Line exceeds 79 chars; RUN statement cannot be split.
+      RUN scrDivInt(iCYr, pNam, cashBef(p), divRcvd, bndInt, totRcvd, plyrs(p).cashBal, actByt)
+    ENDIF
+  NEXT p
+
+ENDIF  \ ! iCYr > 1 AND iCYr < 10
+
+! Always write GS_YEAR (2); mktChild never terminates the game.
+hdr.gameStage := 2  \ ! GS_YEAR
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+! Dividend per share for stocks 1..9 (spec Section 2.1)
+! GrwCorp Metro Pioneer Shady Stryker TriCity UAuto Uranium ValleyP
+700 DATA 1, 0, 4, 7, 0, 0, 2, 6, 3
+
+! Annual interest per bond unit for bonds 1..3 (spec Section 2.2)
+! Small($1000)=$50  Medium($5000)=$250  Large($10000)=$500
+710 DATA 50, 250, 500
+
+900 PRINT "mktChild error ("; ERR; ")"
 END
 
 PROCEDURE scrYearHdr
