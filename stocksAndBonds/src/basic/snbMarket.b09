@@ -777,13 +777,13 @@ PROCEDURE scrDice
 (* ============================================================ *)
 (* PROCEDURE : scrDice                                          *)
 (* PURPOSE   : Display the dice roll screen (S12).             *)
-(*             Mode A or B (rollMode 1 or 2): one roll applies *)
-(*             to all stocks; displays die 1, die 2, total.    *)
-(*             Mode C (rollMode 3): one roll per stock;         *)
+(*             Mode A: one roll applies to all stocks;         *)
+(*             displays die 1, die 2, total.                   *)
+(*             Mode B Year 1 and Mode C: one roll per stock;   *)
 (*             displays a row per stock with both dice and the  *)
-(*             total. Blocks until any key is pressed.          *)
-(* PARAMS    : rollMode - 1=A (single) 2=B (single) 3=C (per  *)
-(*                        stock)                                *)
+(*             total. Mode B Years 2-10 displays like Mode A.  *)
+(*             Blocks until any key is pressed.                *)
+(* PARAMS    : rollMode - 1=A 2=B 3=C                          *)
 (*             rollCnt  - number of populated roll slots        *)
 (*                        (1 for mode A/B, 9 for mode C)       *)
 (*             dieOne   - first die value per roll slot (1..6) *)
@@ -822,8 +822,8 @@ ENDIF
 
 PRINT
 
-IF rollMode = 3 THEN
-  ! Mode C: one row per stock
+IF rollCnt = 9 THEN
+  ! Per-stock display: Mode B Year 1 or Mode C.
   PRINT "    STOCK            D1   D2  TOT"
   PRINT "    ----------------------------------"
   RESTORE 100
@@ -832,7 +832,7 @@ IF rollMode = 3 THEN
     PRINT USING "'    ',S12<,X4,I3>,X2,I3>,X2,I3>", sName, dieOne(r), dieTwo(r), rollTot(r)
   NEXT r
 ELSE
-  ! Mode A or B: single roll
+  ! Single-roll display: Mode A or Mode B Years 2-10.
   PRINT "  Die 1:  "; dieOne(1)
   PRINT "  Die 2:  "; dieTwo(1)
   PRINT "  Total:  "; rollTot(1)
