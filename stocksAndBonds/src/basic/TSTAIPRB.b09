@@ -317,6 +317,7 @@ TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:IN
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
 DIM plyr       : PlyrRec
 DIM mkt        : MktState
 DIM prof       : AIProfile
@@ -561,6 +562,11 @@ DIM usrAct     : INTEGER
 DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM stepTxt    : STRING[24]
+DIM hdrAddr    : INTEGER
+DIM linkOK     : BOOLEAN
+DIM mods(10)   : ModuleHeader
+DIM modCnt     : BYTE
+DIM mIdx       : INTEGER
 
 ON ERROR GOTO 900
 
@@ -604,6 +610,32 @@ IF ordCnt > 0 THEN
   PRINT "aiPrbHum: calling dbgBuys"
   RUN dbgBuys(plyr, mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
   PRINT "aiPrbHum: dbgBuys returned cash="; plyr.cashBal
+ENDIF
+
+stepTxt := "before snbAI inspect"
+PRINT "aiPrbHum: linking snbAI"
+RUN linkModuleHdr("snbAI", hdrAddr, linkOK)
+IF linkOK THEN
+  PRINT "aiPrbHum: snbAI hdrAddr="; hdrAddr
+  RUN moduleParser(hdrAddr, 10, mods, modCnt)
+  FOR mIdx := 1 TO modCnt
+    PRINT "aiPrbHum: snbAI proc "; mIdx; " = "; mods(mIdx).moduleName
+  NEXT mIdx
+ELSE
+  PRINT "aiPrbHum: snbAI link failed"
+ENDIF
+
+stepTxt := "before snbTrade inspect"
+PRINT "aiPrbHum: linking snbTrade"
+RUN linkModuleHdr("snbTrade", hdrAddr, linkOK)
+IF linkOK THEN
+  PRINT "aiPrbHum: snbTrade hdrAddr="; hdrAddr
+  RUN moduleParser(hdrAddr, 10, mods, modCnt)
+  FOR mIdx := 1 TO modCnt
+    PRINT "aiPrbHum: snbTrade proc "; mIdx; " = "; mods(mIdx).moduleName
+  NEXT mIdx
+ELSE
+  PRINT "aiPrbHum: snbTrade link failed"
 ENDIF
 
 stepTxt := "before initAIProf"
@@ -654,6 +686,125 @@ END
 
 900 PRINT "dbgBuys error ("; ERR; ")"
 RUN waitKey
+END
+
+PROCEDURE linkModuleHdr
+(* ============================================================ *)
+(* PROCEDURE : linkModuleHdr                                    *)
+(* PURPOSE   : F$Link a module by name and return the header    *)
+(*             address from U.                                  *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam  : STRING[20]
+PARAM hdrAddr : INTEGER
+PARAM ok      : BOOLEAN
+DIM regs      : Register
+DIM namBuf(22): BYTE
+DIM nameLen   : INTEGER
+DIM i         : INTEGER
+DIM iCC       : INTEGER
+
+ON ERROR GOTO 900
+
+ok      := FALSE
+hdrAddr := 0
+nameLen := LEN(modNam)
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall($00, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  hdrAddr := regs.u
+  ok      := TRUE
+ENDIF
+END
+
+900 PRINT "linkModuleHdr error ("; ERR; ")"
+END
+
+PROCEDURE moduleParser
+(* ============================================================ *)
+(* PROCEDURE : moduleParser                                     *)
+(* PURPOSE   : Walk a merged module in memory and collect the   *)
+(*             module/procedure names from each header.         *)
+(* ============================================================ *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+PARAM modFileAddr : INTEGER
+PARAM maxMods     : INTEGER
+PARAM modules(10) : ModuleHeader
+PARAM modCount    : BYTE
+DIM modAddr       : INTEGER
+DIM syncValid     : BOOLEAN
+DIM eofReached    : BOOLEAN
+DIM tempHdr       : ModuleHeader
+
+ON ERROR GOTO 900
+
+modCount   := 0
+modAddr    := modFileAddr
+eofReached := FALSE
+
+REPEAT
+  syncValid := (PEEK(modAddr) = $87) AND (PEEK(modAddr + 1) = $CD)
+  IF NOT syncValid THEN
+    eofReached := TRUE
+  ELSE
+    IF modCount < maxMods THEN
+      RUN extractModuleHeader(modAddr, tempHdr)
+      modCount := modCount + 1
+      modules(modCount) := tempHdr
+      modAddr := modAddr + tempHdr.moduleSize
+    ELSE
+      eofReached := TRUE
+    ENDIF
+  ENDIF
+UNTIL eofReached
+END
+
+900 PRINT "moduleParser error ("; ERR; ")"
+END
+
+PROCEDURE extractModuleHeader
+(* ============================================================ *)
+(* PROCEDURE : extractModuleHeader                              *)
+(* PURPOSE   : Extract one in-memory module header and its      *)
+(*             module name.                                     *)
+(* ============================================================ *)
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
+PARAM headerAddr : INTEGER
+PARAM modHdr     : ModuleHeader
+DIM modNameAddr  : INTEGER
+DIM nameChar     : BYTE
+DIM nameIdx      : BYTE
+
+ON ERROR GOTO 900
+
+modHdr.syncByte1 := PEEK(headerAddr)
+modHdr.syncByte2 := PEEK(headerAddr + 1)
+modHdr.moduleSize := (PEEK(headerAddr + 2) * 256) + PEEK(headerAddr + 3)
+modHdr.nameOffset := (PEEK(headerAddr + 4) * 256) + PEEK(headerAddr + 5)
+modHdr.typeLanguage := PEEK(headerAddr + 6)
+modHdr.attributes := PEEK(headerAddr + 7)
+modHdr.headerCheck := PEEK(headerAddr + 8)
+modHdr.execOffset := (PEEK(headerAddr + 9) * 256) + PEEK(headerAddr + 10)
+modHdr.permStorageSize := (PEEK(headerAddr + 11) * 256) + PEEK(headerAddr + 12)
+
+modNameAddr := headerAddr + modHdr.nameOffset
+modHdr.moduleName := ""
+nameIdx := 0
+REPEAT
+  nameChar := PEEK(modNameAddr + nameIdx)
+  modHdr.moduleName := modHdr.moduleName + CHR$(LAND(nameChar, $7F))
+  nameIdx := nameIdx + 1
+UNTIL (nameChar >= 128) OR (nameIdx >= 31)
+END
+
+900 PRINT "extractModuleHeader error ("; ERR; ")"
 END
 
 PROCEDURE forkPhase
