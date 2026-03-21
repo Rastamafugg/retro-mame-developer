@@ -140,16 +140,10 @@ LOOP
     PRINT "SNB: failed to ensure snbSaveLoad (divChild)"
     gameOver := TRUE
   ENDIF
-  modNam := "snbMktEng"
+  modNam := "snbDividend"
   RUN ensureModule(modNam, TRUE, ok)
   IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbMktEng (divChild)"
-    gameOver := TRUE
-  ENDIF
-  modNam := "snbMktScr"
-  RUN ensureModule(modNam, TRUE, ok)
-  IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbMktScr (divChild)"
+    PRINT "SNB: failed to ensure snbDividend (divChild)"
     gameOver := TRUE
   ENDIF
   IF NOT gameOver THEN
@@ -167,16 +161,10 @@ LOOP
       PRINT "SNB: failed to ensure snbSaveLoad (mktChild)"
       gameOver := TRUE
     ENDIF
-    modNam := "snbMktEng"
+    modNam := "snbMarket"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbMktEng (mktChild)"
-      gameOver := TRUE
-    ENDIF
-    modNam := "snbMktScr"
-    RUN ensureModule(modNam, TRUE, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbMktScr (mktChild)"
+      PRINT "SNB: failed to ensure snbMarket (mktChild)"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
