@@ -1,17 +1,17 @@
 PROCEDURE TSTMKTCHLD
 (* ================================================== *)
 (* PROCEDURE: TSTMKTCHLD                              *)
-(* PURPOSE:   C2 verification. Tests mktChild:        *)
-(*              Block 1: Year 1 Card 1 bonus skipped  *)
-(*              Block 2: Year 5 Card 1 bonus applied  *)
-(*              Block 3: Forced split doubles shares  *)
-(*              Block 4: Year 10 Card 1 bonus skipped *)
-(*            Calls mktChild via RUN (no fork).       *)
-(*            Prints TSTMKTCHLD: PASS if all correct. *)
+(* PURPOSE:   C2 verification using the same parent/  *)
+(*            child runtime shape as SNB. The parent  *)
+(*            writes SNBSTATE, ensures child modules  *)
+(*            with forChild=TRUE, forks mktChild via  *)
+(*            RunB/F$Fork, waits, then reloads state  *)
+(*            from SNBSTATE to verify results.        *)
 (*                                                    *)
-(* PRE:       SysCall resident. This test ensures     *)
-(*            snbUtil, snbSaveLoad, and snbMarket     *)
-(*            are loaded before execution.            *)
+(*            Block 1: Year 1 Card 1 bonus skipped    *)
+(*            Block 2: Year 5 Card 1 bonus applied    *)
+(*            Block 3: Forced split doubles shares    *)
+(*            Block 4: Year 10 Card 1 bonus skipped   *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
@@ -24,6 +24,7 @@ DIM plyrs(6)   : PlyrRec
 DIM mkt        : MktState
 DIM loadOK     : BOOLEAN
 DIM failCnt    : INTEGER
+DIM exitStat   : INTEGER
 DIM iCYr       : INTEGER  \ ! stages hdr.currYear BYTE
 DIM iGSt       : INTEGER  \ ! stages hdr.gameStage BYTE
 DIM blkOK      : BOOLEAN
@@ -37,7 +38,7 @@ ON ERROR GOTO 900
 
 failCnt := 0
 
-! Load snbUtil as permanent resident for TSTMKTCHLD lifetime.
+! Parent process: snbUtil for waitKey, snbSaveLoad for save/load.
 modNam := "snbUtil"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
@@ -45,7 +46,6 @@ IF NOT ok THEN
   END
 ENDIF
 
-! Load snbSaveLoad as permanent resident for TSTMKTCHLD lifetime.
 modNam := "snbSaveLoad"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
@@ -53,20 +53,10 @@ IF NOT ok THEN
   END
 ENDIF
 
-! Load snbMarket as permanent resident for TSTMKTCHLD lifetime.
-modNam := "snbMarket"
-RUN ensureModule(modNam, FALSE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to load snbMarket"
-  END
-ENDIF
-
-PRINT "=== TSTMKTCHLD: C2 mktChild TEST ==="
+PRINT "=== TSTMKTCHLD: C2 mktChild FORK TEST ==="
 PRINT
 
-! ==========================================================
-! Helper: populate stable base state for each block.
-! ==========================================================
+! Base state shared by all blocks.
 hdr.magic       := $53
 hdr.fmtVersion  := 1
 hdr.maxYears    := 10
@@ -74,7 +64,7 @@ hdr.plyrCount   := 1
 hdr.rollMode    := 1
 hdr.savedPhase  := 0
 hdr.savedPlyr   := 0
-hdr.gameStage   := 1  \ ! caller value; mktChild overwrites
+hdr.gameStage   := 1
 hdr.bnkrFlgs    := 0
 
 FOR i := 1 TO 36
@@ -115,33 +105,53 @@ NEXT i
 PRINT "Block 1: Year 1 (Card 1 bonus skipped)"
 
 hdr.currYear         := 1
-deckOrd(1)           := 1   \ ! Card 1 has divBonus = 2
+hdr.gameStage        := 1
+deckOrd(1)           := 1
 plyrs(1).cashBal     := 5000
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0
   plyrs(1).mgnHeld(i)  := FALSE
+  mkt.stckPrice(i)     := 40
+  mkt.divSuspnd(i)     := FALSE
 NEXT i
 FOR b := 1 TO 3
   plyrs(1).bondUnts(b) := 0
 NEXT b
-plyrs(1).stckShrs(1) := 30  \ ! would pay $60 if bonus applied
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 40    \ ! prevents any split this block
-  mkt.divSuspnd(i) := FALSE
-NEXT i
+plyrs(1).stckShrs(1) := 30
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN mktChild
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 1)"
+  END
+ENDIF
+modNam := "snbMarket"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 1)"
+  END
+ENDIF
+RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
 iGSt := hdr.gameStage
 
+PRINT "  exitStat = "; exitStat; " (expected 0)"
 PRINT "  currYear = "; iCYr; " (expected 1)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
 PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 5000)"
 
-IF loadOK AND iCYr = 1 AND iGSt = 2 AND plyrs(1).cashBal = 5000 THEN
+blkOK := FALSE
+IF loadOK THEN
+  IF exitStat = 0 AND iCYr = 1 AND iGSt = 2 THEN
+    IF plyrs(1).cashBal = 5000 THEN
+      blkOK := TRUE
+    ENDIF
+  ENDIF
+ENDIF
+IF blkOK THEN
   PRINT "  PASS [1]: Year 1 skipped Card 1 bonus"
 ELSE
   PRINT "  FAIL [1]: Year 1 mismatch"
@@ -153,34 +163,45 @@ RUN waitKey
 
 ! ==========================================================
 ! Block 2: Year 5. Card 1 drawn, dividend bonus must be
-! applied in Years 2-9.
-! Expected: 30 shares * $2 bonus = $60.
+! applied in Years 2-9. Expected bonus: 30 * 2 = 60.
 ! ==========================================================
 PRINT "Block 2: Year 5 (Card 1 bonus applied)"
 
 hdr.currYear         := 5
+hdr.gameStage        := 1
 deckOrd(5)           := 1
 plyrs(1).cashBal     := 5000
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0
   plyrs(1).mgnHeld(i)  := FALSE
+  mkt.stckPrice(i)     := 40
+  mkt.divSuspnd(i)     := FALSE
 NEXT i
 FOR b := 1 TO 3
   plyrs(1).bondUnts(b) := 0
 NEXT b
 plyrs(1).stckShrs(1) := 30
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 40
-  mkt.divSuspnd(i) := FALSE
-NEXT i
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN mktChild
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 2)"
+  END
+ENDIF
+modNam := "snbMarket"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 2)"
+  END
+ENDIF
+RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
 iGSt := hdr.gameStage
 
+PRINT "  exitStat = "; exitStat; " (expected 0)"
 PRINT "  currYear = "; iCYr; " (expected 5)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
 PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 5060)"
@@ -188,7 +209,7 @@ PRINT "  shares(1) = "; plyrs(1).stckShrs(1); " (expected 30)"
 
 blkOK := FALSE
 IF loadOK THEN
-  IF iCYr = 5 AND iGSt = 2 THEN
+  IF exitStat = 0 AND iCYr = 5 AND iGSt = 2 THEN
     IF plyrs(1).cashBal = 5060 AND plyrs(1).stckShrs(1) = 30 THEN
       blkOK := TRUE
     ENDIF
@@ -207,34 +228,46 @@ RUN waitKey
 ! ==========================================================
 ! Block 3: Year 5 forced split. Card 13 gives stock 5 a
 ! guaranteed split from starting price 153 for any bull roll.
-! Expected: shares double; cash unchanged (no Card 1 bonus).
+! Expected: shares double; cash unchanged.
 ! ==========================================================
 PRINT "Block 3: Year 5 (forced split doubles shares)"
 
 hdr.currYear         := 5
-deckOrd(5)           := 13  \ ! Bull card, stock 5 +17
+hdr.gameStage        := 1
+deckOrd(5)           := 13
 plyrs(1).cashBal     := 7000
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0
   plyrs(1).mgnHeld(i)  := FALSE
+  mkt.stckPrice(i)     := 100
+  mkt.divSuspnd(i)     := FALSE
 NEXT i
 FOR b := 1 TO 3
   plyrs(1).bondUnts(b) := 0
 NEXT b
 plyrs(1).stckShrs(5) := 10
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 100
-  mkt.divSuspnd(i) := FALSE
-NEXT i
-mkt.stckPrice(5) := 153
+mkt.stckPrice(5)     := 153
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN mktChild
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 3)"
+  END
+ENDIF
+modNam := "snbMarket"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 3)"
+  END
+ENDIF
+RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
 iGSt := hdr.gameStage
 
+PRINT "  exitStat = "; exitStat; " (expected 0)"
 PRINT "  currYear = "; iCYr; " (expected 5)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
 PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7000)"
@@ -242,7 +275,7 @@ PRINT "  shares(5) = "; plyrs(1).stckShrs(5); " (expected 20)"
 
 blkOK := FALSE
 IF loadOK THEN
-  IF iCYr = 5 AND iGSt = 2 THEN
+  IF exitStat = 0 AND iCYr = 5 AND iGSt = 2 THEN
     IF plyrs(1).cashBal = 7000 AND plyrs(1).stckShrs(5) = 20 THEN
       blkOK := TRUE
     ENDIF
@@ -265,33 +298,53 @@ RUN waitKey
 PRINT "Block 4: Year 10 (Card 1 bonus skipped)"
 
 hdr.currYear         := 10
+hdr.gameStage        := 1
 deckOrd(10)          := 1
 plyrs(1).cashBal     := 7500
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0
   plyrs(1).mgnHeld(i)  := FALSE
+  mkt.stckPrice(i)     := 40
+  mkt.divSuspnd(i)     := FALSE
 NEXT i
 FOR b := 1 TO 3
   plyrs(1).bondUnts(b) := 0
 NEXT b
-plyrs(1).stckShrs(1) := 25  \ ! would pay $50 if bonus applied
-FOR i := 1 TO 9
-  mkt.stckPrice(i) := 40
-  mkt.divSuspnd(i) := FALSE
-NEXT i
+plyrs(1).stckShrs(1) := 25
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN mktChild
+modNam := "snbSaveLoad"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 4)"
+  END
+ENDIF
+modNam := "snbMarket"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbMarket (block 4)"
+  END
+ENDIF
+RUN forkPhase("mktChild", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
 iGSt := hdr.gameStage
 
+PRINT "  exitStat = "; exitStat; " (expected 0)"
 PRINT "  currYear = "; iCYr; " (expected 10)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
 PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7500)"
 
-IF loadOK AND iCYr = 10 AND iGSt = 2 AND plyrs(1).cashBal = 7500 THEN
+blkOK := FALSE
+IF loadOK THEN
+  IF exitStat = 0 AND iCYr = 10 AND iGSt = 2 THEN
+    IF plyrs(1).cashBal = 7500 THEN
+      blkOK := TRUE
+    ENDIF
+  ENDIF
+ENDIF
+IF blkOK THEN
   PRINT "  PASS [4]: Year 10 skipped Card 1 bonus"
 ELSE
   PRINT "  FAIL [4]: Year 10 mismatch"
@@ -299,16 +352,12 @@ ELSE
 ENDIF
 PRINT
 
-! Cleanup SNBSTATE written by this test.
 ON ERROR GOTO 800
 DELETE "SNBSTATE"
 800 ON ERROR GOTO 900
 
 RUN waitKey
 
-! ==========================================================
-! Summary
-! ==========================================================
 PRINT "=== TSTMKTCHLD SUMMARY ==="
 PRINT "Failures: "; failCnt
 IF failCnt = 0 THEN
@@ -322,84 +371,127 @@ END
 PRINT "TSTMKTCHLD: FAIL"
 END
 
-PROCEDURE waitKey
-(* ================================================== *)
-(* PROCEDURE: waitKey                                 *)
-(* PURPOSE:   Pause between test blocks.             *)
-(* NOTE:      Local copy; do not pack with snbUtil.  *)
-(* ================================================== *)
-DIM k : STRING[1]
+PROCEDURE forkPhase
+(* ============================================================ *)
+(* PROCEDURE : forkPhase                                        *)
+(* PURPOSE   : Fork a phase child process via the same RunB /   *)
+(*             F$Fork / F$Wait flow used by SNB.                *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM childName : STRING[20]
+PARAM exitStat  : INTEGER
+DIM regs        : Register
+DIM callCode    : BYTE
+DIM runbBuf(6)  : BYTE
+DIM paramBuf(24): BYTE
+DIM iCC         : INTEGER
+DIM iErr        : INTEGER
+DIM iChildIO    : INTEGER
+DIM iChildPID   : INTEGER
+DIM iStatus     : INTEGER
+DIM nameLen     : INTEGER
+DIM i           : INTEGER
+
 ON ERROR GOTO 900
-PRINT "Press any key to continue...";
-GET #0, k
-PRINT
+
+exitStat := 0
+
+runbBuf(1) := ASC("R")
+runbBuf(2) := ASC("u")
+runbBuf(3) := ASC("n")
+runbBuf(4) := LOR(ASC("B"), $80)
+
+nameLen := LEN(childName)
+FOR i := 1 TO 24
+  paramBuf(i) := 0
+NEXT i
+FOR i := 1 TO nameLen
+  paramBuf(i) := ASC(MID$(childName, i, 1))
+NEXT i
+paramBuf(nameLen + 1) := $0D
+
+callCode := $03
+regs.a   := 0
+regs.b   := 4
+regs.x   := ADDR(runbBuf)
+regs.y   := nameLen + 1
+regs.u   := ADDR(paramBuf)
+RUN SysCall(callCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 1 THEN
+  iErr     := regs.b
+  exitStat := iErr
+  PRINT "forkPhase: F$Fork failed err="; iErr; " child="; childName
+  END
+ENDIF
+iChildIO := regs.a
+PRINT "forkPhase: forked "; childName; " childIO="; iChildIO
+
+LOOP
+  callCode := $04
+  regs.cc  := 0
+  regs.a   := 0
+  regs.b   := 0
+  regs.dp  := 0
+  regs.x   := 0
+  regs.y   := 0
+  regs.u   := 0
+  RUN SysCall(callCode, regs)
+  iCC := regs.cc
+  EXITIF LAND(iCC, 1) = 1 THEN
+  ENDEXIT
+  iChildPID := regs.a
+  EXITIF iChildPID <> 0 THEN
+  ENDEXIT
+ENDLOOP
+
+IF LAND(iCC, 1) = 1 THEN
+  iErr     := regs.b
+  exitStat := iErr
+  PRINT "forkPhase: F$Wait failed err="; iErr
+  END
+ENDIF
+
+iStatus  := regs.b
+exitStat := iStatus
+PRINT "forkPhase: "; childName; " exited PID="; iChildPID; " status="; iStatus
 END
-900 PRINT "waitKey error ("; ERR; ")"
+
+900 PRINT "forkPhase error ("; ERR; ")"
+    exitStat := ERR
 END
 
 PROCEDURE ensureModule
 (* ============================================================ *)
 (* PROCEDURE : ensureModule                                     *)
-(* PURPOSE   : Ensure a named module is resident, using one of *)
-(*             two strategies selected by the forChild flag.   *)
-(*                                                             *)
-(*             forChild = FALSE - current-process load:         *)
-(*               Uses F$Link ($00) to check residency, then    *)
-(*               F$Load ($01) if not found. Loads the module   *)
-(*               into the current process workspace.           *)
-(*                                                             *)
-(*             forChild = TRUE - child-process load:            *)
-(*               Uses F$NMLink ($21) to check residency, then  *)
-(*               F$NMLoad ($22) if not found. Loads the module *)
-(*               into the OS module directory so forked child  *)
-(*               processes can link to it by name.             *)
-(*                                                             *)
-(*             In both cases: if the link call succeeds (carry *)
-(*             clear), the module is already resident and no   *)
-(*             load is required. If the link call fails (carry *)
-(*             set), the appropriate load call is made.        *)
-(*             The two variants differ only in call codes.     *)
-(*                                                             *)
-(*             Both variants use an MSB-terminated BYTE buffer  *)
-(*             built from modNam, matching the pattern         *)
-(*             confirmed in tForkParent.b09 hardware tests.    *)
-(*                                                             *)
-(* PARAMS    : modNam   - module name to ensure resident       *)
-(*             forChild - FALSE=current process (F$Link/Load)  *)
-(*                        TRUE=child process (F$NMLink/NMLoad) *)
-(*             ok       - TRUE if now resident; FALSE on fail  *)
-(* SIDE EFX  : Prints status and error messages to terminal.   *)
-(* NOTE      : Requires SysCall machine-lang module resident.  *)
+(* PURPOSE   : Ensure a named module is resident using the same *)
+(*             logic as SNB.                                    *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modNam   : STRING[20]
 PARAM forChild : BOOLEAN
 PARAM ok       : BOOLEAN
 DIM regs       : Register
-DIM namBuf(22) : BYTE    \ ! MSB-terminated name buffer
-DIM linkCode   : BYTE    \ ! F$Link ($00) or F$NMLink ($21)
-DIM loadCode   : BYTE    \ ! F$Load ($01) or F$NMLoad ($22)
+DIM namBuf(22) : BYTE
+DIM linkCode   : BYTE
+DIM loadCode   : BYTE
 DIM nameLen    : INTEGER
-DIM iCC        : INTEGER \ ! staged regs.cc for LAND
-DIM errB       : INTEGER \ ! staged regs.b error code
+DIM iCC        : INTEGER
+DIM errB       : INTEGER
 DIM i          : INTEGER
 
 ON ERROR GOTO 900
 
 ok := FALSE
 
-! Select call codes based on target (current process vs child).
 IF forChild THEN
-  linkCode := $21  \ ! F$NMLink
-  loadCode := $22  \ ! F$NMLoad
+  linkCode := $21
+  loadCode := $22
 ELSE
-  linkCode := $00  \ ! F$Link
-  loadCode := $01  \ ! F$Load
+  linkCode := $00
+  loadCode := $01
 ENDIF
 
-! Build MSB-terminated name buffer for both call variants.
-! All characters except the last are plain ASCII; the last
-! character has bit 7 set to signal end-of-name to the OS.
 nameLen := LEN(modNam)
 IF nameLen = 0 THEN
   PRINT "ensureModule: empty module name"
@@ -410,12 +502,10 @@ FOR i := 1 TO nameLen - 1
 NEXT i
 namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
 
-! Link call: check residency. Carry clear = already resident;
-! module stays linked (no undo needed - residency is desired).
 regs.a := 0
 regs.x := ADDR(namBuf)
 RUN SysCall(linkCode, regs)
-iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+iCC := regs.cc
 IF LAND(iCC, 1) = 0 THEN
   PRINT "ensureModule: "; modNam; " already resident"
   ok := TRUE
@@ -423,17 +513,15 @@ IF LAND(iCC, 1) = 0 THEN
 ENDIF
 
 IF NOT ok THEN
-  ! Load call: module not found; load from execution directory.
   regs.a := 0
   regs.x := ADDR(namBuf)
   RUN SysCall(loadCode, regs)
-  iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
+  iCC := regs.cc
   IF LAND(iCC, 1) <> 0 THEN
-    errB := regs.b  \ ! stage BYTE -> INTEGER
+    errB := regs.b
     PRINT "ensureModule: load failed: "; modNam; " err: "; errB
     END
   ENDIF
-
   ok := TRUE
   PRINT "ensureModule: loaded: "; modNam
 ENDIF
