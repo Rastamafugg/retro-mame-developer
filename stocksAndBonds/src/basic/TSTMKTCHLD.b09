@@ -120,6 +120,12 @@ NEXT b
 plyrs(1).stckShrs(1) := 30
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+modNam := "snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 1)"
+  END
+ENDIF
 modNam := "snbSaveLoad"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
@@ -183,6 +189,12 @@ NEXT b
 plyrs(1).stckShrs(1) := 30
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+modNam := "snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 2)"
+  END
+ENDIF
 modNam := "snbSaveLoad"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
@@ -250,6 +262,12 @@ plyrs(1).stckShrs(5) := 10
 mkt.stckPrice(5)     := 205
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+modNam := "snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 3)"
+  END
+ENDIF
 modNam := "snbSaveLoad"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
@@ -314,6 +332,12 @@ NEXT b
 plyrs(1).stckShrs(1) := 25
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+modNam := "snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 4)"
+  END
+ENDIF
 modNam := "snbSaveLoad"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
