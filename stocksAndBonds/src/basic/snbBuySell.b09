@@ -6,8 +6,194 @@ PROCEDURE snbBuySell
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 PRINT "snbBuySell"
+PRINT "  trdChild"
 PRINT "  scrSell"
 PRINT "  scrBuy"
+END
+
+PROCEDURE trdChild
+(* ============================================================ *)
+(* PROCEDURE : trdChild                                         *)
+(* PURPOSE   : Trade phase child. Loads SNBSTATE, runs the sell *)
+(*             phase (skipped internally in Year 1), then runs  *)
+(*             the buy phase for every non-bankrupt player.     *)
+(*             AI turns use initAIProf/aiSell/aiBuy and         *)
+(*             scrAITurn; human turns use scrSell/scrBuy.       *)
+(*                                                              *)
+(*             After the buy phase, counts active players and   *)
+(*             writes hdr.gameStage:                            *)
+(*               3 = GS_DONE when currYear >= maxYears OR       *)
+(*                   activePlrs <= 1                            *)
+(*               2 = GS_YEAR otherwise                          *)
+(*                                                              *)
+(*             Called by the SNB coordinator via forkPhase.     *)
+(* PARAMS    : None (child process; no PARAM handoff)           *)
+(* SIDE EFX  : Reads and writes SNBSTATE. Modifies player       *)
+(*             cash, margin, holdings, and hadCashPur via       *)
+(*             applySells/applyBuys.                            *)
+(* NOTE      : snbSaveLoad, snbBuySell, snbTrade, and snbAI     *)
+(*             must be pre-loaded by the coordinator.           *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM loadOK     : BOOLEAN
+DIM iCYr       : INTEGER  \ ! staged hdr.currYear BYTE
+DIM iMaxYr     : INTEGER  \ ! staged hdr.maxYears BYTE
+DIM iPCnt      : INTEGER  \ ! staged hdr.plyrCount BYTE
+DIM activePlrs : INTEGER
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordPur(12) : INTEGER
+DIM decAct(12) : BYTE
+DIM ordCnt     : INTEGER
+DIM decCnt     : INTEGER
+DIM mgnRpy     : INTEGER
+DIM pNam       : STRING[20]
+DIM mgnElig    : BOOLEAN
+DIM mgnYrOk    : BOOLEAN
+DIM actByt     : BYTE
+DIM tInt       : INTEGER
+DIM p          : INTEGER
+
+ON ERROR GOTO 900
+
+! Load full game state from coordinator IPC file.
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "trdChild: loadGame failed"
+  END
+ENDIF
+
+iCYr   := hdr.currYear   \ ! stage BYTE
+iMaxYr := hdr.maxYears   \ ! stage BYTE
+iPCnt  := hdr.plyrCount  \ ! stage BYTE
+
+! Sell phase is skipped entirely in Year 1.
+IF iCYr > 1 THEN
+  FOR p := 1 TO iPCnt
+    IF NOT plyrs(p).isBankrupt THEN
+      pNam   := plyrs(p).plyrName
+      ordCnt := 0
+
+      IF plyrs(p).plyrType = 1 THEN
+
+        ! Human sell phase.
+        RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actByt)
+        IF ordCnt > 0 THEN
+          RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+        ENDIF
+
+      ELSE
+
+        ! AI sell phase.
+        tInt := plyrs(p).aiTier
+        RUN initAIProf(tInt, prof)
+        RUN aiSell(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
+        IF ordCnt > 0 THEN
+          RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+        ENDIF
+        FOR tInt := 1 TO ordCnt
+          decAct(tInt) := 1  \ ! SELL
+        NEXT tInt
+        actByt := 1
+        RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
+
+      ENDIF
+    ENDIF
+  NEXT p
+ENDIF
+
+! Buy phase runs every year. New margin purchases are blocked
+! in the final year only.
+mgnYrOk := TRUE
+IF iCYr >= iMaxYr THEN
+  mgnYrOk := FALSE
+ENDIF
+
+FOR p := 1 TO iPCnt
+  IF NOT plyrs(p).isBankrupt THEN
+    pNam    := plyrs(p).plyrName
+    ordCnt  := 0
+    mgnRpy  := 0
+    mgnElig := plyrs(p).hadCashPur
+
+    IF plyrs(p).plyrType = 1 THEN
+
+      ! Human buy phase.
+      ! Line exceeds 79 chars; RUN statement cannot be split.
+      RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+      IF mgnRpy > 0 THEN
+        plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
+        plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
+      ENDIF
+      IF ordCnt > 0 THEN
+        RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+      ENDIF
+
+    ELSE
+
+      ! AI buy phase.
+      tInt := plyrs(p).aiTier
+      RUN initAIProf(tInt, prof)
+      ! Line exceeds 79 chars; RUN statement cannot be split.
+      RUN aiBuy(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
+      IF mgnRpy > 0 THEN
+        plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
+        plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
+      ENDIF
+      IF ordCnt > 0 THEN
+        RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+      ENDIF
+
+      FOR tInt := 1 TO ordCnt
+        decAct(tInt) := 2  \ ! BUY
+      NEXT tInt
+      decCnt := ordCnt
+      IF mgnRpy > 0 THEN
+        IF decCnt < 12 THEN
+          decCnt         := decCnt + 1
+          decAct(decCnt) := 3  \ ! REPAY
+          ordTyp(decCnt) := 0
+          ordId(decCnt)  := 0
+          ordQty(decCnt) := mgnRpy
+        ENDIF
+      ENDIF
+      actByt := 2
+      RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, decCnt)
+
+    ENDIF
+  ENDIF
+NEXT p
+
+! Determine whether the game has ended.
+activePlrs := 0
+FOR p := 1 TO iPCnt
+  IF NOT plyrs(p).isBankrupt THEN
+    activePlrs := activePlrs + 1
+  ENDIF
+NEXT p
+
+IF iCYr >= iMaxYr OR activePlrs <= 1 THEN
+  hdr.gameStage := 3  \ ! GS_DONE
+ELSE
+  hdr.gameStage := 2  \ ! GS_YEAR
+ENDIF
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+900 PRINT "trdChild error ("; ERR; ")"
 END
 
 PROCEDURE scrSell
@@ -34,7 +220,7 @@ PROCEDURE scrSell
 (* SIDE EFX  : Clears screen. Uses INPUT for order quantities. *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM currYear    : INTEGER
 PARAM plyr        : PlyrRec
@@ -284,7 +470,7 @@ PROCEDURE scrBuy
 (*             selected. Uses INPUT for order quantities.      *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE PlyrRec = plyrName:STRING[20];plyrType,aiTier:BYTE;cashBal,marginTot:INTEGER;isBankrupt,hadCashPur:BOOLEAN;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM currYear      : INTEGER
 PARAM plyr          : PlyrRec

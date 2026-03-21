@@ -13,7 +13,7 @@ PROCEDURE SNB
 (*                           financial work; all      *)
 (*                           years for increment)     *)
 (*              mktChild   - market resolution        *)
-(*              tradeChild - sell and buy phases      *)
+(*              trdChild   - sell and buy phases      *)
 (*            Forks egChild (end-game screens).      *)
 (*            Before each fork: ensures required     *)
 (*            modules are in the OS module directory  *)
@@ -25,7 +25,7 @@ PROCEDURE SNB
 (*              before doing any other work. So after *)
 (*              divChild, currYear=N means Year N is  *)
 (*              being processed by mktChild and       *)
-(*              tradeChild.                          *)
+(*              trdChild.                            *)
 (*                                                   *)
 (*            gameStage values written by children:  *)
 (*              1 = GS_PREGM : pre-game complete     *)
@@ -122,7 +122,7 @@ iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 ! ---- Coordinator year loop ----------------------------------
 ! Each iteration covers one complete game year via three children.
 ! divChild always runs first and increments currYear before any
-! other work, so mktChild and tradeChild see the correct year.
+! other work, so mktChild and trdChild see the correct year.
 gameOver := FALSE
 
 LOOP
@@ -185,7 +185,7 @@ LOOP
     ENDIF
   ENDIF
 
-  ! ---- Phase 3: tradeChild (all years) --------------------
+  ! ---- Phase 3: trdChild (all years) ----------------------
   ! Sell phase (skipped internally in Year 1) then buy phase.
   ! Writes GS_DONE (3) when game ends (Year 10 complete or
   ! only one active player remaining). Otherwise GS_YEAR (2).
@@ -193,29 +193,29 @@ LOOP
     modNam := "snbSaveLoad"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbSaveLoad (tradeChild)"
+      PRINT "SNB: failed to ensure snbSaveLoad (trdChild)"
       gameOver := TRUE
     ENDIF
     modNam := "snbBuySell"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbBuySell (tradeChild)"
+      PRINT "SNB: failed to ensure snbBuySell (trdChild)"
       gameOver := TRUE
     ENDIF
     modNam := "snbTrade"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbTrade (tradeChild)"
+      PRINT "SNB: failed to ensure snbTrade (trdChild)"
       gameOver := TRUE
     ENDIF
     modNam := "snbAI"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbAI (tradeChild)"
+      PRINT "SNB: failed to ensure snbAI (trdChild)"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
-      RUN forkPhase("tradeChild", exitStat)
+      RUN forkPhase("trdChild", exitStat)
       GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
     ENDIF
   ENDIF
@@ -223,7 +223,7 @@ LOOP
   ! ---- Year-end safety nets -------------------------------
   ! iCYr is updated by GOSUB 100 after each child fork, so it
   ! reflects the currYear written by divChild (the active year).
-  ! Primary exit: tradeChild writes GS_DONE; GOSUB 100 sets
+  ! Primary exit: trdChild writes GS_DONE; GOSUB 100 sets
   ! gameOver=TRUE. These nets catch failure to write GS_DONE.
   IF NOT gameOver THEN
 
