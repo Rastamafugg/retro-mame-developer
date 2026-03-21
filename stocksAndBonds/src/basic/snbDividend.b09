@@ -21,15 +21,15 @@ PROCEDURE divChild
 (*             tradeChild see the correct year number.          *)
 (*             Applies dividends and bond interest (applyDivInt)*)
 (*             and displays S9 (scrDivInt) per non-bankrupt    *)
-(*             player in Years 2-9 only. Years 1 and 10:       *)
-(*             increment only; no financial work per spec       *)
-(*             Section 6.                                       *)
+(*             player in Years 2-10. Year 1 increments only;   *)
+(*             financial work starts in Year 2 and continues    *)
+(*             through Year 10.                                 *)
 (*             Always writes gameStage=GS_YEAR (2).            *)
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Reads and writes SNBSTATE. Modifies             *)
 (*             plyrs(p).cashBal for all active players in       *)
-(*             Years 2-9 via applyDivInt.                      *)
+(*             Years 2-10 via applyDivInt.                     *)
 (* NOTE      : snbSaveLoad, snbMktEng must be pre-loaded by   *)
 (*             coordinator. snbUtil is permanently resident.   *)
 (*             DATA lines 700 and 710 must not conflict with   *)
@@ -77,9 +77,9 @@ hdr.currYear := iCYr   \ ! assign back; 1-10 fits safely in BYTE
 
 iPCnt := hdr.plyrCount  \ ! stage BYTE -> INTEGER for FOR bounds
 
-! Apply dividends and bond interest in Years 2-9 only.
-! Year 1 and Year 10: increment above is the only work.
-IF iCYr > 1 AND iCYr < 10 THEN
+! Apply dividends and bond interest in Years 2-10.
+! Year 1: increment above is the only work.
+IF iCYr > 1 THEN
 
   ! Capture cash balances before bulk apply for per-player display.
   FOR p := 1 TO iPCnt
@@ -136,7 +136,7 @@ IF iCYr > 1 AND iCYr < 10 THEN
     ENDIF
   NEXT p
 
-ENDIF  \ ! iCYr > 1 AND iCYr < 10
+ENDIF  \ ! iCYr > 1
 
 ! Always write GS_YEAR (2); divChild never terminates the game.
 hdr.gameStage := 2  \ ! GS_YEAR
@@ -161,7 +161,7 @@ PROCEDURE applyDivInt
 (* PURPOSE   : Apply stock dividends and bond interest to all  *)
 (*             active players for one year (spec Section 8).   *)
 (*             Skips suspended-dividend stocks. Skips bankrupt  *)
-(*             players. No-ops for Year 1 and Year 10.         *)
+(*             players. No-ops for Year 1 only.                *)
 (* PARAMS    : currYear - current game year (1..10)            *)
 (*             plyrCnt  - number of active players (1..6)      *)
 (*             plyrs    - player record array (modified)        *)
@@ -186,9 +186,9 @@ DIM b          : INTEGER
 
 ON ERROR GOTO 900
 
-! Guard: caller should not invoke in Year 1 or 10 per spec
-! Section 6, but procedure is safe if called anyway.
-IF currYear = 1 OR currYear = 10 THEN
+! Guard: caller should not invoke in Year 1, but procedure is
+! safe if called anyway.
+IF currYear = 1 THEN
   END
 ENDIF
 
@@ -307,9 +307,9 @@ PROCEDURE scrDivInt
 (*             Blocks on keypress via waitKey.                 *)
 (*                                                             *)
 (*             CALLER RESPONSIBILITY: must not be called in    *)
-(*             Year 1 or Year 10; those years have no          *)
-(*             dividends or bond interest.                     *)
-(* PARAMS    : currYear - current game year (2..9)             *)
+(*             Year 1; financial payouts begin in Year 2 and   *)
+(*             continue through Year 10.                       *)
+(* PARAMS    : currYear - current game year (2..10)            *)
 (*             plyrName - player name for display              *)
 (*             cashBef  - cash balance before dividends        *)
 (*             divRcvd  - dividends received per stock (1..9)  *)

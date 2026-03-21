@@ -6,8 +6,8 @@ PROCEDURE TSTDIVCHLD
 (*                currYear 0->1, cashBal unchanged    *)
 (*              Block 2: Year 5 — dividends applied;  *)
 (*                currYear 4->5, cashBal correct      *)
-(*              Block 3: Year 10 — increment only;    *)
-(*                currYear 9->10, cashBal unchanged   *)
+(*              Block 3: Year 10 — dividends applied; *)
+(*                currYear 9->10, cashBal correct     *)
 (*            Calls divChild via RUN (no fork).       *)
 (*            Prints TSTDIVCHLD: PASS if all correct. *)
 (*                                                   *)
@@ -170,12 +170,14 @@ PRINT
 RUN waitKey
 
 ! ==========================================================
-! Block 3: Year 10 — increment only; no dividend work.
+! Block 3: Year 10 — dividends and interest applied.
+! Player 1: 50 shares Shady Brooks ($7/share), 2 small bonds.
+!   Expected dividend: 50 * 7 = $350
+!   Expected bond interest: 2 * 50 = $100
+!   Expected cashBal: 7500 + 350 + 100 = 7950
 ! Write currYear=9; divChild must increment to 10.
-! Player has holdings that would generate income if applied.
-! cashBal must be unchanged.
 ! ==========================================================
-PRINT "Block 3: Year 10 (increment only; no dividends)"
+PRINT "Block 3: Year 10 (dividends and interest applied)"
 
 hdr.currYear         := 9
 plyrs(1).cashBal     := 7500
@@ -191,10 +193,10 @@ iGSt := hdr.gameStage  \ ! stage BYTE
 
 PRINT "  currYear = "; iCYr; " (expected 10)"
 PRINT "  gameStage = "; iGSt; " (expected 2)"
-PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7500)"
+PRINT "  cashBal = "; plyrs(1).cashBal; " (expected 7950)"
 
-IF loadOK AND iCYr = 10 AND iGSt = 2 AND plyrs(1).cashBal = 7500 THEN
-  PRINT "  PASS [3]: Year 10 increment only; cashBal unchanged"
+IF loadOK AND iCYr = 10 AND iGSt = 2 AND plyrs(1).cashBal = 7950 THEN
+  PRINT "  PASS [3]: Year 10 dividends and interest correct"
 ELSE
   PRINT "  FAIL [3]: Year 10 mismatch"
   failCnt := failCnt + 1

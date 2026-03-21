@@ -209,7 +209,7 @@ PROCEDURE doRolls
 (*               rollCnt=9. ovrdActive=FALSE.                  *)
 (*                                                             *)
 (*             Mode B (rollMode=2), Years 2-10:                *)
-(*               Same as Mode A — single roll, all 9 slots.   *)
+(*               Same as Mode A - single roll, all 9 slots.   *)
 (*               rollCnt=1. ovrdActive=FALSE.                  *)
 (*                                                             *)
 (*             Mode C (rollMode=3), any year:                  *)
