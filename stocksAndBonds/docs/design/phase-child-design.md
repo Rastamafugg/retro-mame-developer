@@ -42,31 +42,35 @@ read this value directly.
 - **Responsibility:** Setup screens. Writes nothing on quit.
 
 ### 3.2 divChild
-- **Module:** `snbMktScr.b09`
-- **Pre-fork deps:** snbSaveLoad, snbMktEng, snbMktScr
+- **Module:** `snbDividend.b09`
+- **Pre-fork deps:** snbSaveLoad, snbDividend
 - **Writes:** `currYear=N` (incremented), `gameStage=GS_YEAR (2)`
 - **Responsibility:**
   - Increments `currYear` immediately (all years)
-  - Applies dividends and bond interest in Years 2–9 only
+  - Displays S8 (scrYearHdr) every year
+  - Applies dividends and bond interest in Years 2-9 only
     (spec Section 6: skipped in Year 1 and Year 10)
-  - Displays S9 per non-bankrupt player (Years 2–9 only)
-  - Year 1 and Year 10: increment only; no other work
+  - Displays S9 (scrDivInt) per non-bankrupt player (Years 2-9 only)
+  - Year 1 and Year 10: increment and year header only; no financial work
 
 ### 3.3 mktChild
-- **Module:** `snbMktScr.b09`
-- **Pre-fork deps:** snbSaveLoad, snbMktEng, snbMktScr
+- **Module:** `snbMarket.b09`
+- **Pre-fork deps:** snbSaveLoad, snbMarket
 - **Writes:** `gameStage=GS_YEAR (2)`
-- **Responsibility:** Steps 3–8 per spec.
-  Draws card, generates rolls, resolves prices, displays S11–S15.
-  Card 1 dividend bonus applied here (Years 2–9 only).
-  Runs every year.
+- **Responsibility:** Steps 3-8 per spec.
+  - Draws card (drawCard / getCard), displays S11 (scrCard)
+  - Generates dice rolls (doRolls), displays S12 (scrDice)
+  - Resolves prices (applyMktYear), displays S13 (scrMktBoard)
+  - Displays S14 (scrSplit) and S15 (scrDivFlag) per stock as needed
+  - Applies Card 1 dividend bonus (Years 2-9 only)
+  - Runs every year
 
 ### 3.4 tradeChild
 - **Module:** `snbBuySell.b09`
 - **Pre-fork deps:** snbSaveLoad, snbBuySell, snbTrade, snbAI
 - **Writes:** `gameStage=GS_DONE (3)` when game ends; `GS_YEAR (2)`
   otherwise.
-- **Responsibility:** Steps 9–10 per spec.
+- **Responsibility:** Steps 9-10 per spec.
   - Sell phase: skipped internally when `currYear = 1`
   - Buy phase: runs every year
   - After buy phase: counts active (non-bankrupt) players.
@@ -77,7 +81,7 @@ read this value directly.
 - **Module:** `snbEndGame.b09`
 - **Pre-fork deps:** snbSaveLoad, snbEndGame
 - **Responsibility:** Existing procedure. Loads SNBSTATE, runs
-  S24–S27, exits.
+  S24-S27, exits.
 
 ---
 
@@ -87,9 +91,9 @@ read this value directly.
 LOOP
   EXITIF iCYr >= iMaxYr OR gameOver
 
-  fork divChild   → GOSUB 100 (updates iCYr, iGSt, gameOver)
-  fork mktChild   → GOSUB 100
-  fork tradeChild → GOSUB 100
+  fork divChild   -> GOSUB 100 (updates iCYr, iGSt, gameOver)
+  fork mktChild   -> GOSUB 100
+  fork tradeChild -> GOSUB 100
 
   safety nets: iCYr >= iMaxYr, activePlrs <= 1
 ENDLOOP
@@ -100,27 +104,37 @@ after `divChild` exits the coordinator always has the current year.
 
 ---
 
-## 5. Implementation Sequence
+## 5. Module Inventory
+
+| Module | Procedures | Role |
+|--------|-----------|------|
+| `snbSetup.b09` | snbSetup, initPlayer, initMkt, scrStart, scrSetup, scrConfirm, pgChild | Pre-game setup and pgChild entry |
+| `snbDividend.b09` | snbDividend, divChild, applyDivInt, scrYearHdr, scrDivInt | Year increment; dividends and bond interest |
+| `snbMarket.b09` | snbMarket, mktChild, getMktDelta, getCard, resolvePrice, applyMktYear, drawCard, doRolls, scrCard, scrDice, scrMktBoard, scrSplit, scrDivFlag | Market resolution |
+| `snbBuySell.b09` | snbBuySell, tradeChild, scrSell, scrBuy | Sell and buy phases |
+| `snbTrade.b09` | snbTrade, scrMgnRepay, scrAITurn, applySells, applyBuys | Trade execution engines |
+| `snbAI.b09` | snbAI, initAIProf, aiSell, aiBuy | Computer player logic |
+| `snbEndGame.b09` | snbEndGame, egChild, scrFinalMkt, scrWealth, scrWinner, scrPostGame | End-game screens |
+| `snbSaveLoad.b09` | snbSaveLoad, saveGame, loadGame, guardSave | Save/load; SNBSTATE IPC |
+| `snbUtil.b09` | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck | Utilities; permanent resident |
+| `SNB.b09` | SNB, ensureModule, chkStale, readHdr, forkPhase | Coordinator |
+
+**Retired modules (remove from /dd/cmds):**
+- `snbMktEng` — procedures redistributed to snbDividend and snbMarket
+- `snbMktScr` — procedures redistributed to snbDividend and snbMarket
+- `snbYearLoop` — replaced by phase child architecture
+
+---
+
+## 6. Implementation Sequence
 
 | Step | Deliverable | Test |
 |------|-------------|------|
 | C0 | pgChild currYear=0 fix | Re-run TSTCOORDLP |
-| C1 | divChild in snbMktScr.b09 | TSTDIVCHLD |
-| C2 | mktChild in snbMktScr.b09 | TSTMKTCHLD |
+| C1 | divChild in snbDividend.b09 | TSTDIVCHLD |
+| C2 | mktChild in snbMarket.b09 | TSTMKTCHLD |
 | C3 | tradeChild in snbBuySell.b09 | TSTTRCHLD |
 | C4 | Full integration | TSTFULLGM |
-
----
-
-## 6. Module Disposition
-
-| Module | Status |
-|--------|--------|
-| `snbYearLoop.b09` | Retired — remove from cmds |
-| `snbMktScr.b09` | Add divChild, mktChild |
-| `snbBuySell.b09` | Add tradeChild |
-| `snbEndGame.b09` | egChild already present |
-| `snbSetup.b09` | pgChild: change currYear=1 to currYear=0 |
 
 ---
 
