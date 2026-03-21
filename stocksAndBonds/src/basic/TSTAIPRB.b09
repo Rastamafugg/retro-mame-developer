@@ -13,6 +13,7 @@ PROCEDURE TSTAIPRB
 (*             Block 4: initAIProf + aiSell + scrAITurn         *)
 (*             Block 5: initAIProf + aiBuy + scrAITurn          *)
 (*             Block 6: applyBuys + initAIProf                  *)
+(*             Block 7: scrBuy + applyBuys + initAIProf         *)
 (* ============================================================ *)
 DIM exitStat : INTEGER
 DIM failCnt  : INTEGER
@@ -102,6 +103,19 @@ IF exitStat = 0 THEN
   PRINT "  PASS [6]: pre-AI buy path did not corrupt child"
 ELSE
   PRINT "  FAIL [6]: pre-AI buy path failure"
+  failCnt := failCnt + 1
+ENDIF
+PRINT
+RUN waitKey
+
+PRINT "Block 7: scrBuy + applyBuys + initAIProf"
+PRINT "  Enter the same human buy inputs that triggered the live error."
+RUN forkPhase("aiPrbHum", exitStat)
+PRINT "  exitStat = "; exitStat; " (expected 0)"
+IF exitStat = 0 THEN
+  PRINT "  PASS [7]: interactive human buy path did not corrupt child"
+ELSE
+  PRINT "  FAIL [7]: interactive human buy path failure"
   failCnt := failCnt + 1
 ENDIF
 PRINT
@@ -518,6 +532,90 @@ RUN waitKey
 END
 
 900 PRINT "aiPrbApl error ("; ERR; ") step="; stepTxt
+RUN waitKey
+END
+
+PROCEDURE aiPrbHum
+(* ============================================================ *)
+(* PROCEDURE : aiPrbHum                                         *)
+(* PURPOSE   : Child probe for the interactive human buy path  *)
+(*             followed by initAIProf.                          *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM plyr       : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM ordPur(12) : INTEGER
+DIM ordCnt     : INTEGER
+DIM mgnRpy     : INTEGER
+DIM tNum       : INTEGER
+DIM i          : INTEGER
+DIM actByt     : BYTE
+DIM mgnElig    : BOOLEAN
+DIM mgnYrOk    : BOOLEAN
+DIM stepTxt    : STRING[24]
+
+ON ERROR GOTO 900
+
+PRINT "aiPrbHum: child start"
+plyr.plyrName   := "HUMAN"
+plyr.plyrType   := 1
+plyr.cashBal    := 2000
+plyr.marginTot  := 0
+plyr.obligation := 0
+plyr.isBankrupt := FALSE
+plyr.hadCashPur := FALSE
+plyr.aiTier     := 0
+FOR i := 1 TO 9
+  plyr.stckShrs(i) := 0
+  plyr.mgnHeld(i)  := FALSE
+  mkt.stckPrice(i) := 100
+  mkt.divSuspnd(i) := FALSE
+NEXT i
+FOR i := 1 TO 3
+  plyr.bondUnts(i) := 0
+NEXT i
+ordCnt  := 0
+mgnRpy  := 0
+actByt  := 0
+mgnElig := FALSE
+mgnYrOk := FALSE
+
+stepTxt := "before scrBuy"
+PRINT "aiPrbHum: calling scrBuy"
+RUN scrBuy(1, plyr, mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+PRINT "aiPrbHum: scrBuy returned ordCnt="; ordCnt; " repay="; mgnRpy
+
+IF mgnRpy > 0 THEN
+  plyr.cashBal   := plyr.cashBal - mgnRpy
+  plyr.marginTot := plyr.marginTot - mgnRpy
+  PRINT "aiPrbHum: repayment applied"
+ENDIF
+
+IF ordCnt > 0 THEN
+  stepTxt := "before applyBuys"
+  PRINT "aiPrbHum: calling applyBuys"
+  RUN applyBuys(plyr, mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+  PRINT "aiPrbHum: applyBuys returned cash="; plyr.cashBal
+ENDIF
+
+stepTxt := "before initAIProf"
+tNum := 2
+PRINT "aiPrbHum: calling initAIProf"
+RUN initAIProf(tNum, prof)
+stepTxt := "after initAIProf"
+PRINT "aiPrbHum: initAIProf returned"
+RUN waitKey
+END
+
+900 PRINT "aiPrbHum error ("; ERR; ") step="; stepTxt
 RUN waitKey
 END
 
