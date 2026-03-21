@@ -29,7 +29,7 @@ DIM iStatus   : INTEGER \ ! staged regs.b from F$Wait
 DIM failCnt   : INTEGER \ ! running failure count
 DIM pipeOpen  : BOOLEAN \ ! TRUE while pipePath is open
 
-! Critical section staging — no PRINT between I$Dup stdout
+! Critical section staging - no PRINT between I$Dup stdout
 ! and final I$Dup restore. Capture results; print after restore.
 DIM ccDup1    : INTEGER \ ! carry from I$Dup stdout
 DIM eDup1     : INTEGER
@@ -241,7 +241,7 @@ pipeOpen := TRUE
 PRINT "PASS [5]: /pipe opened path="; iPath
 
 ! ==============================================================
-! CRITICAL SECTION BEGIN — no PRINT or I/O from here through
+! CRITICAL SECTION BEGIN - no PRINT or I/O from here through
 ! the final I$Dup restore. All results staged to INTEGER vars.
 ! ==============================================================
 
@@ -299,7 +299,7 @@ RUN SysCall(callCode, regs)
 ccCls2   := regs.cc
 
 ! ==============================================================
-! CRITICAL SECTION END — stdout restored; PRINT safe.
+! CRITICAL SECTION END - stdout restored; PRINT safe.
 ! ==============================================================
 
 iSave := savedOut

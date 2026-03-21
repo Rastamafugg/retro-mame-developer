@@ -89,7 +89,7 @@ PROCEDURE TSTBYTEINT
 
   ! -------------------------------------------------------
   ! Section C: BYTE variable assigned to INTEGER variable
-  ! Unsigned BYTE 255 — does INTEGER see 255 or -1?
+  ! Unsigned BYTE 255 - does INTEGER see 255 or -1?
   ! -------------------------------------------------------
   PRINT "=== C: BYTE -> INTEGER promotion ==="
 
@@ -167,7 +167,7 @@ PROCEDURE TSTBYTEINT
   RUN waitKey
 
   ! -------------------------------------------------------
-  ! Section F: LAND staging — BYTE vs INTEGER intermediates
+  ! Section F: LAND staging - BYTE vs INTEGER intermediates
   ! Critical for checksum and masking logic
   ! -------------------------------------------------------
   PRINT "=== F: LAND staging ==="
@@ -200,7 +200,7 @@ PROCEDURE TSTBYTEINT
   ! Section G: BYTE PARAM passing
   ! Per manual: no BYTE constants exist; literals are
   ! INTEGER. Called proc expecting BYTE uses high-order
-  ! byte of the 2-byte INTEGER — typically zero.
+  ! byte of the 2-byte INTEGER - typically zero.
   ! -------------------------------------------------------
   PRINT "=== G: BYTE PARAM passing ==="
 

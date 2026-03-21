@@ -2,11 +2,11 @@ PROCEDURE TSTDIVCHLD
 (* ================================================== *)
 (* PROCEDURE: TSTDIVCHLD                              *)
 (* PURPOSE:   C1 verification. Tests divChild:        *)
-(*              Block 1: Year 1 — increment only;     *)
+(*              Block 1: Year 1 - increment only;     *)
 (*                currYear 0->1, cashBal unchanged    *)
-(*              Block 2: Year 5 — dividends applied;  *)
+(*              Block 2: Year 5 - dividends applied;  *)
 (*                currYear 4->5, cashBal correct      *)
-(*              Block 3: Year 10 — dividends applied; *)
+(*              Block 3: Year 10 - dividends applied; *)
 (*                currYear 9->10, cashBal correct     *)
 (*            Calls divChild via RUN (no fork).       *)
 (*            Prints TSTDIVCHLD: PASS if all correct. *)
@@ -101,7 +101,7 @@ FOR i := 1 TO 9
 NEXT i
 
 ! ==========================================================
-! Block 1: Year 1 — increment only; no dividend work.
+! Block 1: Year 1 - increment only; no dividend work.
 ! Write currYear=0; divChild must increment to 1.
 ! Player cashBal must be unchanged.
 ! ==========================================================
@@ -109,8 +109,8 @@ PRINT "Block 1: Year 1 (increment only; no dividends)"
 
 hdr.currYear         := 0  \ ! pre-game state from pgChild
 plyrs(1).cashBal     := 5000
-plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks — would pay $700 if applied
-plyrs(1).bondUnts(2) := 1    \ ! medium bond — would pay $250 if applied
+plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks - would pay $700 if applied
+plyrs(1).bondUnts(2) := 1    \ ! medium bond - would pay $250 if applied
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 RUN divChild
@@ -134,7 +134,7 @@ PRINT
 RUN waitKey
 
 ! ==========================================================
-! Block 2: Year 5 — dividends applied.
+! Block 2: Year 5 - dividends applied.
 ! Player 1: 100 shares Shady Brooks ($7/share), 1 medium bond.
 !   Expected dividend: 100 * 7 = $700
 !   Expected bond interest: $250
@@ -170,7 +170,7 @@ PRINT
 RUN waitKey
 
 ! ==========================================================
-! Block 3: Year 10 — dividends and interest applied.
+! Block 3: Year 10 - dividends and interest applied.
 ! Player 1: 50 shares Shady Brooks ($7/share), 2 small bonds.
 !   Expected dividend: 50 * 7 = $350
 !   Expected bond interest: 2 * 50 = $100
@@ -181,8 +181,8 @@ PRINT "Block 3: Year 10 (dividends and interest applied)"
 
 hdr.currYear         := 9
 plyrs(1).cashBal     := 7500
-plyrs(1).stckShrs(4) := 50   \ ! Shady Brooks — would pay $350 if applied
-plyrs(1).bondUnts(1) := 2    \ ! small bonds — would pay $100 if applied
+plyrs(1).stckShrs(4) := 50   \ ! Shady Brooks - would pay $350 if applied
+plyrs(1).bondUnts(1) := 2    \ ! small bonds - would pay $100 if applied
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 RUN divChild
@@ -247,12 +247,12 @@ PROCEDURE ensureModule
 (* PURPOSE   : Ensure a named module is resident, using one of *)
 (*             two strategies selected by the forChild flag.   *)
 (*                                                             *)
-(*             forChild = FALSE — current-process load:        *)
+(*             forChild = FALSE - current-process load:        *)
 (*               Uses F$Link ($00) to check residency, then    *)
 (*               F$Load ($01) if not found. Loads the module   *)
 (*               into the current process workspace.           *)
 (*                                                             *)
-(*             forChild = TRUE — child-process load:           *)
+(*             forChild = TRUE - child-process load:           *)
 (*               Uses F$NMLink ($21) to check residency, then  *)
 (*               F$NMLoad ($22) if not found. Loads the module *)
 (*               into the OS module directory so forked child  *)
@@ -315,7 +315,7 @@ NEXT i
 namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
 
 ! Link call: check residency. Carry clear = already resident;
-! module stays linked (no undo needed — residency is desired).
+! module stays linked (no undo needed - residency is desired).
 regs.a := 0
 regs.x := ADDR(namBuf)
 RUN SysCall(linkCode, regs)

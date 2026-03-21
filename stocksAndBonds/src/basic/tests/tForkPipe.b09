@@ -11,7 +11,7 @@ PROCEDURE TSTFKFORK
 (*             No path slot manipulation is performed.           *)
 (* PARAMS    : None                                             *)
 (* NOTE      : RunB parameter format requires parentheses:      *)
-(*             "procname (intval)\r" — matching the RUN         *)
+(*             "procname (intval)\r" - matching the RUN         *)
 (*             statement convention per tForkParent.b09.        *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER

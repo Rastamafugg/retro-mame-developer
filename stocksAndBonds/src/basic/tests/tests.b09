@@ -560,7 +560,7 @@ plyrs(1).isBankrupt  := TRUE
 RUN applyDivInt(2, 1, plyrs, mkt)
 GOSUB 400
 
-! ---- Test 5: suspended dividend — bond interest only --------
+! ---- Test 5: suspended dividend - bond interest only --------
 ! Shady Brooks suspended; only medium bond interest applies.
 ! Expected: 5000 + 250 = 5250.
 RUN initPlayer(plyrs(1))
@@ -575,7 +575,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 \ ! Test 1: 100 Shady + 1 med bond, Year 2 → 5950
+100 \ ! Test 1: 100 Shady + 1 med bond, Year 2 -> 5950
     IF plyrs(1).cashBal = 5950 THEN
       PRINT "Test 1 PASS  Year2 100xShady+1med bond cashBal=5950"
       passed := passed + 1
@@ -585,7 +585,7 @@ END
     ENDIF
     RETURN
 
-200 \ ! Test 2: Year 1 guard → cashBal unchanged
+200 \ ! Test 2: Year 1 guard -> cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 2 PASS  Year1 guard cashBal unchanged=5000"
       passed := passed + 1
@@ -595,7 +595,7 @@ END
     ENDIF
     RETURN
 
-300 \ ! Test 3: Year 10 guard → cashBal unchanged
+300 \ ! Test 3: Year 10 guard -> cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 3 PASS  Year10 guard cashBal unchanged=5000"
       passed := passed + 1
@@ -605,7 +605,7 @@ END
     ENDIF
     RETURN
 
-400 \ ! Test 4: bankrupt player → cashBal unchanged
+400 \ ! Test 4: bankrupt player -> cashBal unchanged
     IF plyrs(1).cashBal = 5000 THEN
       PRINT "Test 4 PASS  bankrupt player skipped cashBal=5000"
       passed := passed + 1
@@ -615,7 +615,7 @@ END
     ENDIF
     RETURN
 
-500 \ ! Test 5: Shady suspended → bond interest only → 5250
+500 \ ! Test 5: Shady suspended -> bond interest only -> 5250
     IF plyrs(1).cashBal = 5250 THEN
       PRINT "Test 5 PASS  suspended div bond-only cashBal=5250"
       passed := passed + 1
@@ -696,7 +696,7 @@ plyrs(1).isBankrupt := TRUE
 RUN applyMgnInt(2, 1, plyrs, forceLiq)
 GOSUB 400
 
-! ---- Test 5: zero-margin player — no charge, no forceLiq ----
+! ---- Test 5: zero-margin player - no charge, no forceLiq ----
 ! marginTot=0; cashBal unchanged, forceLiq stays FALSE.
 FOR p := 1 TO 6
   RUN initPlayer(plyrs(p))
@@ -736,7 +736,7 @@ END
     ENDIF
     RETURN
 
-200 \ ! Test 2: Year 1 guard — cashBal=80, forceLiq=FALSE
+200 \ ! Test 2: Year 1 guard - cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 2 PASS  Year1 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -749,7 +749,7 @@ END
     ENDIF
     RETURN
 
-300 \ ! Test 3: Year 10 guard — cashBal=80, forceLiq=FALSE
+300 \ ! Test 3: Year 10 guard - cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 3 PASS  Year10 guard cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -762,7 +762,7 @@ END
     ENDIF
     RETURN
 
-400 \ ! Test 4: bankrupt — cashBal=80, forceLiq=FALSE
+400 \ ! Test 4: bankrupt - cashBal=80, forceLiq=FALSE
     IF plyrs(1).cashBal = 80 AND NOT forceLiq(1) THEN
       PRINT "Test 4 PASS  bankrupt skipped cashBal=80 forceLiq=FALSE"
       passed := passed + 1
@@ -775,7 +775,7 @@ END
     ENDIF
     RETURN
 
-500 \ ! Test 5: zero margin — cashBal=5000, forceLiq=FALSE
+500 \ ! Test 5: zero margin - cashBal=5000, forceLiq=FALSE
     IF plyrs(1).cashBal = 5000 AND NOT forceLiq(1) THEN
       PRINT "Test 5 PASS  zero margin cashBal=5000 forceLiq=FALSE"
       passed := passed + 1
@@ -809,10 +809,10 @@ PROCEDURE TSTRSLVPRC
 (* PROCEDURE : TSTRSLVPRC                                       *)
 (* PURPOSE   : Confirmation tests for resolvePrice (Task 3.3). *)
 (*             Four tests per spec Section 7:                   *)
-(*               A — split triggered, rounding verified         *)
-(*               B — bankruptcy floor clamp                     *)
-(*               C — dividend suspension boundary               *)
-(*               D — dividend reinstatement                     *)
+(*               A - split triggered, rounding verified         *)
+(*               B - bankruptcy floor clamp                     *)
+(*               C - dividend suspension boundary               *)
+(*               D - dividend reinstatement                     *)
 (* PARAMS    : none                                             *)
 (* ============================================================ *)
 DIM newPrice   : INTEGER
@@ -840,7 +840,7 @@ GOSUB 100
 
 ! ---- Test B: bankruptcy floor clamp ------------------------
 ! curPrice=5, mktDelta=-10, cardDelta=0, sharesOwnd=50.
-! rawPrice = -5 → clamped to 0.
+! rawPrice = -5 -> clamped to 0.
 ! divSuspPrv = TRUE (5 < 50).
 ! divSuspNow = TRUE (0 < 50).
 ! splitOccrd = FALSE.
@@ -869,7 +869,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 \ ! Test A: split at 155 → price=78, shares=200, splitOccrd=TRUE
+100 \ ! Test A: split at 155 -> price=78, shares=200, splitOccrd=TRUE
     ok := TRUE
     IF newPrice <> 78 THEN
       PRINT "Test A FAIL  newPrice: exp=78 got="; newPrice
@@ -899,7 +899,7 @@ END
     ENDIF
     RETURN
 
-200 \ ! Test B: clamp -5→0, divSuspNow=TRUE, divSuspPrv=TRUE
+200 \ ! Test B: clamp -5->0, divSuspNow=TRUE, divSuspPrv=TRUE
     ok := TRUE
     IF newPrice <> 0 THEN
       PRINT "Test B FAIL  newPrice: exp=0 got="; newPrice
@@ -929,7 +929,7 @@ END
     ENDIF
     RETURN
 
-300 \ ! Test C: 55→45, divSuspPrv=FALSE, divSuspNow=TRUE
+300 \ ! Test C: 55->45, divSuspPrv=FALSE, divSuspNow=TRUE
     ok := TRUE
     IF newPrice <> 45 THEN
       PRINT "Test C FAIL  newPrice: exp=45 got="; newPrice
@@ -955,7 +955,7 @@ END
     ENDIF
     RETURN
 
-400 \ ! Test D: 45→55, divSuspPrv=TRUE, divSuspNow=FALSE
+400 \ ! Test D: 45->55, divSuspPrv=TRUE, divSuspNow=FALSE
     ok := TRUE
     IF newPrice <> 55 THEN
       PRINT "Test D FAIL  newPrice: exp=55 got="; newPrice
@@ -989,9 +989,9 @@ PROCEDURE TSTMKTYR
 (* PROCEDURE : TSTMKTYR                                          *)
 (* PURPOSE   : Confirmation test for Task 3.4a.                *)
 (*             Verifies applyMktYear uses rolls(s) per stock.  *)
-(*             Test A: uniform rolls — result matches prior     *)
+(*             Test A: uniform rolls - result matches prior     *)
 (*               Task 3.4 scalar expectation.                  *)
-(*             Test B: mixed rolls — stock 2 receives roll=4;  *)
+(*             Test B: mixed rolls - stock 2 receives roll=4;  *)
 (*               all others roll=7. Verify mktDlta(2) differs  *)
 (*               from mktDlta(1), proving per-stock dispatch.  *)
 (*                                                             *)
@@ -2352,9 +2352,9 @@ PROCEDURE TSTYRHDR
 (* PROCEDURE : TSTYRHDR                                         *)
 (* PURPOSE   : Confirmation tests for scrYearHdr (Task 8.1).   *)
 (*             Three visual test cases per spec 8.1:           *)
-(*               Test 1 — Year 1: no-dividends + no-sell shown *)
-(*               Test 2 — Year 5: no notices shown             *)
-(*               Test 3 — Year 10: no-dividends + no-margin    *)
+(*               Test 1 - Year 1: no-dividends + no-sell shown *)
+(*               Test 2 - Year 5: no notices shown             *)
+(*               Test 3 - Year 10: no-dividends + no-margin    *)
 (*             Visual output verified manually by tester.      *)
 (*             Machine check: action = 1 (CONTINUE) each call. *)
 (* PARAMS    : none                                             *)
@@ -2372,7 +2372,7 @@ failed := 0
 PRINT "=== TSTYRHDR ==="
 PRINT
 
-! ---- Test 1: Year 1 — no-dividends and no-sell notices ------
+! ---- Test 1: Year 1 - no-dividends and no-sell notices ------
 PRINT "Test 1: Year 1 of 10."
 PRINT "Expect: no-dividends notice, no-sell notice."
 PRINT "Expect: no-margin notice absent."
@@ -2381,7 +2381,7 @@ RUN waitKey
 RUN scrYearHdr(1, 10, 1, TRUE, FALSE, TRUE, action)
 GOSUB 100
 
-! ---- Test 2: Year 5 — no notices ----------------------------
+! ---- Test 2: Year 5 - no notices ----------------------------
 PRINT "Test 2: Year 5 of 10."
 PRINT "Expect: no rule notices displayed."
 PRINT "Press any key to launch screen."
@@ -2389,7 +2389,7 @@ RUN waitKey
 RUN scrYearHdr(5, 10, 1, FALSE, FALSE, FALSE, action)
 GOSUB 200
 
-! ---- Test 3: Year 10 — no-dividends and no-margin notices ---
+! ---- Test 3: Year 10 - no-dividends and no-margin notices ---
 PRINT "Test 3: Year 10 of 10."
 PRINT "Expect: no-dividends notice, no-margin notice."
 PRINT "Expect: no-sell notice absent."
@@ -2443,12 +2443,12 @@ PROCEDURE TSTDVINT
 (* PROCEDURE : TSTDVINT                                         *)
 (* PURPOSE   : Confirmation tests for scrDivInt (Task 8.2).    *)
 (*             Two visual test cases per spec 8.2:             *)
-(*               Test 1 — spec confirmation case:              *)
+(*               Test 1 - spec confirmation case:              *)
 (*                 Shady Brooks 100 shares = $700,             *)
 (*                 1 medium bond = $250,                       *)
 (*                 cashBef=5000, totRcvd=950, cashAft=5950.    *)
 (*                 Verify all figures render correctly.        *)
-(*               Test 2 — all-zero case:                       *)
+(*               Test 2 - all-zero case:                       *)
 (*                 All divRcvd=0, all bndInt=0.                *)
 (*                 Verify "(none)" shown in both sections.     *)
 (*             Visual output verified manually by tester.      *)
@@ -2546,12 +2546,12 @@ PROCEDURE TSTCRDSCR
 (* PROCEDURE : TSTCRDSCR                                        *)
 (* PURPOSE   : Confirmation tests for scrCard (Task 8.3).      *)
 (*             Three visual test cases per spec 8.3:           *)
-(*               Test 1 — Card 1 (Bear, Growth Corp +10,       *)
+(*               Test 1 - Card 1 (Bear, Growth Corp +10,       *)
 (*                         divBonus=$2): verify market type,   *)
 (*                         flavour text, delta, bonus line.    *)
-(*               Test 2 — Card 34 (Bull, 4 stocks): verify all *)
+(*               Test 2 - Card 34 (Bull, 4 stocks): verify all *)
 (*                         four stocks and positive deltas.    *)
-(*               Test 3 — Card 36 (Bear, 3 stocks): verify     *)
+(*               Test 3 - Card 36 (Bear, 3 stocks): verify     *)
 (*                         negative deltas render with sign.   *)
 (*             Visual output verified manually by tester.      *)
 (*             Machine check: action = 1 (CONTINUE) each call. *)
@@ -2575,7 +2575,7 @@ failed := 0
 PRINT "=== TSTCRDSCR ==="
 PRINT
 
-! ---- Test 1: Card 1 — Bear, Growth Corp +10, divBonus=2 -----
+! ---- Test 1: Card 1 - Bear, Growth Corp +10, divBonus=2 -----
 PRINT "Test 1: Card 1 (Bear, Growth Corp +10, divBonus=2)."
 PRINT "Expect: SITUATION CARD #1"
 PRINT "Expect: BEAR MARKET"
@@ -2589,7 +2589,7 @@ flavTxt := "Extra year-end dividend of $2 per share declared by the Board of Dir
 RUN scrCard(1, card, flavTxt, action)
 GOSUB 100
 
-! ---- Test 2: Card 34 — Bull, 4 stocks -----------------------
+! ---- Test 2: Card 34 - Bull, 4 stocks -----------------------
 PRINT "Test 2: Card 34 (Bull, 4 stocks)."
 PRINT "Expect: SITUATION CARD #34"
 PRINT "Expect: BULL MARKET"
@@ -2606,7 +2606,7 @@ flavTxt := "General market rise over the last two months."
 RUN scrCard(34, card, flavTxt, action)
 GOSUB 200
 
-! ---- Test 3: Card 36 — Bear, 3 stocks, negative deltas ------
+! ---- Test 3: Card 36 - Bear, 3 stocks, negative deltas ------
 PRINT "Test 3: Card 36 (Bear, 3 stocks, negative deltas)."
 PRINT "Expect: SITUATION CARD #36"
 PRINT "Expect: BEAR MARKET"
@@ -2667,13 +2667,13 @@ PROCEDURE TSTDICE
 (* PROCEDURE : TSTDICE                                          *)
 (* PURPOSE   : Confirmation tests for scrDice (Task 8.4).      *)
 (*             Three visual test cases:                        *)
-(*               Test 1 — Mode A: single roll die1=3 die2=4   *)
+(*               Test 1 - Mode A: single roll die1=3 die2=4   *)
 (*                         total=7. Verify "ROLL MODE A" label  *)
 (*                         and three die/total lines.           *)
-(*               Test 2 — Mode B: single roll die1=5 die2=5   *)
+(*               Test 2 - Mode B: single roll die1=5 die2=5   *)
 (*                         total=10. Verify "ROLL MODE B" label *)
 (*                         and distinct values from Test 1.    *)
-(*               Test 3 — Mode C: 9 rolls (one per stock).     *)
+(*               Test 3 - Mode C: 9 rolls (one per stock).     *)
 (*                         Verify "ROLL MODE C" label and all   *)
 (*                         9 stock rows with correct totals.   *)
 (*             Visual output verified manually by tester.      *)
@@ -2694,7 +2694,7 @@ ON ERROR GOTO 900
 passed := 0
 failed := 0
 
-! ---- Test 1: Mode A — single roll, total=7 ------------------
+! ---- Test 1: Mode A - single roll, total=7 ------------------
 PRINT "Test 1: Mode A. Single roll, die1=3, die2=4, total=7."
 PRINT "Expect: ROLL MODE A"
 PRINT "Expect: Die 1:  3"
@@ -2715,7 +2715,7 @@ rollTot(1) := 7
 RUN scrDice(1, 1, dieOne, dieTwo, rollTot, action)
 GOSUB 100
 
-! ---- Test 2: Mode B — single roll, total=10 -----------------
+! ---- Test 2: Mode B - single roll, total=10 -----------------
 PRINT "Test 2: Mode B. Single roll, die1=5, die2=5, total=10."
 PRINT "Expect: ROLL MODE B"
 PRINT "Expect: Die 1:  5"
@@ -2736,7 +2736,7 @@ rollTot(1) := 10
 RUN scrDice(2, 1, dieOne, dieTwo, rollTot, action)
 GOSUB 200
 
-! ---- Test 3: Mode C — 9 rolls, one per stock ----------------
+! ---- Test 3: Mode C - 9 rolls, one per stock ----------------
 PRINT "Test 3: Mode C. 9 per-stock rolls."
 PRINT "Expect: ROLL MODE C  (per stock)"
 PRINT "Expect: 9 rows, one per stock."
@@ -2863,8 +2863,8 @@ FOR s := 1 TO 9
 NEXT s
 
 ! ---- Stock 2 (Metro Props): suspended ----------------------
-! Original price ~100, mktDlta=-60 → prcBefCrd=40, newPrc=40.
-! 40 < DividendCutoff(50) → divSuspd=TRUE.
+! Original price ~100, mktDlta=-60 -> prcBefCrd=40, newPrc=40.
+! 40 < DividendCutoff(50) -> divSuspd=TRUE.
 prcBefCrd(2) := 40
 mktDlta(2)   := -60
 crdDlta(2)   := 0
@@ -2872,7 +2872,7 @@ newPrc(2)    := 40
 divSuspd(2)  := TRUE
 
 ! ---- Stock 3 (Pioneer Mut): bankruptcy floor ---------------
-! Original ~10, mktDlta=-15 → prcBefCrd=-5 (unclamped).
+! Original ~10, mktDlta=-15 -> prcBefCrd=-5 (unclamped).
 ! newPrc clamped to 0. Flag = BKRT (overrides all others).
 prcBefCrd(3) := -5
 mktDlta(3)   := -15
@@ -2881,8 +2881,8 @@ newPrc(3)    := 0
 divSuspd(3)  := TRUE
 
 ! ---- Stock 5 (Stryker Drlg): split ------------------------
-! Original 100, mktDlta=+73 → prcBefCrd=173.
-! resolvePrice: 173 >= 150 → split to (173+1)/2=87.
+! Original 100, mktDlta=+73 -> prcBefCrd=173.
+! resolvePrice: 173 >= 150 -> split to (173+1)/2=87.
 prcBefCrd(5) := 173
 mktDlta(5)   := 73
 crdDlta(5)   := 0
@@ -2890,8 +2890,8 @@ newPrc(5)    := 87
 splitOcc(5)  := TRUE
 
 ! ---- Stock 8 (Uranium Ent): reinstated --------------------
-! Original price ~40 (was suspended), mktDlta=+20 → prcBefCrd=60.
-! 60 >= DividendCutoff(50) → reinstated.
+! Original price ~40 (was suspended), mktDlta=+20 -> prcBefCrd=60.
+! 60 >= DividendCutoff(50) -> reinstated.
 prcBefCrd(8) := 60
 mktDlta(8)   := 20
 crdDlta(8)   := 0
@@ -3003,7 +3003,7 @@ GOSUB 100
 
 ! ---- Test 2: scrDivFlag - SUSPENDED -------------------------
 ! Metro Props, newPrc=45, cutPrc=50.
-! 45 < 50 → newly suspended this year.
+! 45 < 50 -> newly suspended this year.
 PRINT "Test 2: scrDivFlag SUSPENDED - Metro Props."
 PRINT "Expect: DIVIDEND SUSPENDED"
 PRINT "Expect: Metro Props"
@@ -3018,7 +3018,7 @@ GOSUB 200
 
 ! ---- Test 3: scrDivFlag - REINSTATED ------------------------
 ! Uranium Ent, newPrc=55, cutPrc=50.
-! 55 >= 50 → reinstated after prior suspension.
+! 55 >= 50 -> reinstated after prior suspension.
 PRINT "Test 3: scrDivFlag REINSTATED - Uranium Ent."
 PRINT "Expect: DIVIDEND REINSTATED"
 PRINT "Expect: Uranium Ent"
@@ -3227,21 +3227,21 @@ PROCEDURE TSTASLL
 (* PROCEDURE : TSTASLL                                         *)
 (* PURPOSE   : Confirmation tests for applySells (Task 9.2).   *)
 (*             Four machine-checked tests:                     *)
-(*               Test 1 — cash stock + bond sell               *)
+(*               Test 1 - cash stock + bond sell               *)
 (*                 50 Growth Corp @ $120 + 1 med bond          *)
 (*                 exp cashBal=16000, stckShrs(1)=50,          *)
 (*                     bondUnts(2)=0                           *)
-(*               Test 2 — full margin sell, proceeds>marginTot *)
+(*               Test 2 - full margin sell, proceeds>marginTot *)
 (*                 100 Stryker @ $80, marginTot=5000           *)
 (*                 proceeds=8000, repay=5000                   *)
 (*                 exp cashBal=8000, marginTot=0,              *)
 (*                     stckShrs(5)=0, mgnHeld(5)=FALSE         *)
-(*               Test 3 — partial margin sell, proceeds<marginTot*)
+(*               Test 3 - partial margin sell, proceeds<marginTot*)
 (*                 50 Stryker @ $80, marginTot=8000            *)
 (*                 proceeds=4000, repay=4000                   *)
 (*                 exp cashBal=5000 (unchanged), marginTot=4000*)
 (*                     stckShrs(5)=50, mgnHeld(5)=TRUE         *)
-(*               Test 4 — ordCnt=0 (pass turn)                 *)
+(*               Test 4 - ordCnt=0 (pass turn)                 *)
 (*                 exp all fields unchanged                    *)
 (* PARAMS    : none                                             *)
 (* SIDE EFX  : None. No screen output from applySells.         *)
@@ -3347,7 +3347,7 @@ ordCnt := 1
 RUN applySells(plyr, mkt, ordType, ordId, ordQty, ordCnt)
 GOSUB 300
 
-! ---- Test 4: ordCnt=0, pass turn — no changes ---------------
+! ---- Test 4: ordCnt=0, pass turn - no changes ---------------
 ! Expected: cashBal=5000, marginTot=0, all shares/bonds zero
 
 RUN initPlayer(plyr)
@@ -3466,7 +3466,7 @@ RETURN
     PRINT
 RETURN
 
-400 \ ! Test 4: pass turn — no changes
+400 \ ! Test 4: pass turn - no changes
     GOSUB 500
     IF plyr.cashBal = 5000 THEN
       PRINT "Test 4 PASS  cashBal=5000 (unchanged)"
@@ -3504,7 +3504,7 @@ PROCEDURE TSTABUY
 (* PURPOSE   : Confirmation test for applyBuys (Task 9.3).     *)
 (*             Four scenarios; 13 assertions.                  *)
 (*                                                             *)
-(*   Scenario A — Cash stock buy (ordPurch=1)                  *)
+(*   Scenario A - Cash stock buy (ordPurch=1)                  *)
 (*     20 shares Growth Corp @ $100. cost=2000.                *)
 (*     cashBal:    5000 -> 3000                                 *)
 (*     stckShrs(3): 0   -> 20                                  *)
@@ -3512,7 +3512,7 @@ PROCEDURE TSTABUY
 (*     marginTot:  0    unchanged                               *)
 (*     mgnHeld(3): FALSE unchanged                             *)
 (*                                                             *)
-(*   Scenario B — Margin stock buy (ordPurch=2)                *)
+(*   Scenario B - Margin stock buy (ordPurch=2)                *)
 (*     20 shares Growth Corp @ $100. cost=2000.                *)
 (*     cashPay=1000 (50%), mgnPay=1000 (50%).                  *)
 (*     cashBal:    5000 -> 4000                                 *)
@@ -3521,12 +3521,12 @@ PROCEDURE TSTABUY
 (*     stckShrs(1): 0   -> 20                                  *)
 (*     hadCashPur: FALSE unchanged (margin does not qualify)   *)
 (*                                                             *)
-(*   Scenario C — Bond buy                                     *)
+(*   Scenario C - Bond buy                                     *)
 (*     1 medium bond, par=5000.                                *)
 (*     cashBal:    5000 -> 0                                   *)
 (*     bondUnts(2): 0   -> 1                                   *)
 (*                                                             *)
-(*   Scenario D — No-op (ordCnt=0)                            *)
+(*   Scenario D - No-op (ordCnt=0)                            *)
 (*     No orders. All fields unchanged.                        *)
 (*     cashBal:    5000 unchanged                              *)
 (*                                                             *)
@@ -3551,7 +3551,7 @@ ON ERROR GOTO 900
 fails := 0
 
 ! ============================================================
-! Scenario A — Cash stock buy
+! Scenario A - Cash stock buy
 ! ordType=1, ordId=3 (Pioneer Mut), ordQty=20, ordPurch=1
 ! stckPrice(3)=100 (initMkt default)
 ! cost = 20 * 100 = 2000
@@ -3614,7 +3614,7 @@ ELSE
 ENDIF
 
 ! ============================================================
-! Scenario B — Margin stock buy
+! Scenario B - Margin stock buy
 ! ordType=1, ordId=1 (Growth Corp), ordQty=20, ordPurch=2
 ! stckPrice(1)=100 (initMkt default)
 ! cost=2000; cashPay=1000; mgnPay=1000
@@ -3677,7 +3677,7 @@ ELSE
 ENDIF
 
 ! ============================================================
-! Scenario C — Bond buy
+! Scenario C - Bond buy
 ! ordType=2, ordId=2 (medium; par=5000), ordQty=1, ordPurch=1
 ! Expected: cashBal=0, bondUnts(2)=1
 ! ============================================================
@@ -3716,7 +3716,7 @@ ELSE
 ENDIF
 
 ! ============================================================
-! Scenario D — No-op: ordCnt=0
+! Scenario D - No-op: ordCnt=0
 ! initPlayer sets cashBal=5000. Nothing should change.
 ! Expected: cashBal=5000 (spot check)
 ! ============================================================
@@ -3763,14 +3763,14 @@ PROCEDURE TSTBUY
 (*             follows the sequence and then confirms the      *)
 (*             machine-checked assertions match.               *)
 (*                                                             *)
-(*             Subtest 1 — margin ineligible, cash purchases   *)
+(*             Subtest 1 - margin ineligible, cash purchases   *)
 (*               Setup: cashBal=3000, mgnElig=FALSE            *)
 (*               Input sequence:                               *)
 (*                 Menu: 1 (Enter orders)                      *)
 (*                 Growth Corp qty: 20  purch type: N/A (cash) *)
 (*                 Verify rejection of qty=20 if cost rejected,*)
 (*                 confirm qty accepted (cost=$2000)           *)
-(*                 Growth Corp qty: 20 again → reject          *)
+(*                 Growth Corp qty: 20 again -> reject          *)
 (*                   (simCash=1000 < 2000)                     *)
 (*                 Growth Corp qty: 0 (skip)                   *)
 (*                 [Stocks 2-9: Enter/skip]                    *)
@@ -3781,12 +3781,12 @@ PROCEDURE TSTBUY
 (*                 ord2 bond 1 qty 1, mgnRepay=0, action=1,   *)
 (*                 simCash after=0                            *)
 (*                                                             *)
-(*             Subtest 2 — pass turn                           *)
+(*             Subtest 2 - pass turn                           *)
 (*               Setup: cashBal=5000, mgnElig=FALSE            *)
 (*               Input sequence: Menu: 2 (Pass)                *)
 (*               Checks: ordCnt=0, action=2, mgnRepay=0        *)
 (*                                                             *)
-(*             Subtest 3 — margin eligible, one margin buy     *)
+(*             Subtest 3 - margin eligible, one margin buy     *)
 (*               Setup: cashBal=4000, marginTot=1000,          *)
 (*                 mgnElig=TRUE, mgnYrOk=TRUE                  *)
 (*               Input sequence:                               *)
@@ -3799,7 +3799,7 @@ PROCEDURE TSTBUY
 (*               Checks: ordCnt=1, ord1 stock 1 qty 20        *)
 (*                 ordPurch=2 (MARGIN), mgnRepay=0, action=1   *)
 (*                                                             *)
-(*             Subtest 4 — margin repayment then buy           *)
+(*             Subtest 4 - margin repayment then buy           *)
 (*               Setup: cashBal=5000, marginTot=2000,          *)
 (*                 mgnElig=TRUE, mgnYrOk=TRUE                  *)
 (*               Input sequence:                               *)
@@ -4100,7 +4100,7 @@ PROCEDURE TSTMGNRPY
 (*             and expected outcome. Assertions are machine-   *)
 (*             checked on the returned amtToRpy value.         *)
 (*                                                             *)
-(*             Subtest 1 — rejection then acceptance           *)
+(*             Subtest 1 - rejection then acceptance           *)
 (*               Setup: marginTot=2000, cashBal=800            *)
 (*                 maxRpy=800 (MIN(2000,800))                  *)
 (*               Input sequence:                               *)
@@ -4110,28 +4110,28 @@ PROCEDURE TSTMGNRPY
 (*                 implied cashBal=300, marginTot=1500          *)
 (*                 (caller applies; scrMgnRepay does not)       *)
 (*                                                             *)
-(*             Subtest 2 — zero entry accepted                 *)
+(*             Subtest 2 - zero entry accepted                 *)
 (*               Setup: marginTot=1500, cashBal=3000           *)
 (*                 maxRpy=1500                                 *)
 (*               Input sequence:                               *)
 (*                 Enter 0    [expect accepted]                *)
 (*               Checks: amtToRpy=0                            *)
 (*                                                             *)
-(*             Subtest 3 — bare Enter treated as 0             *)
+(*             Subtest 3 - bare Enter treated as 0             *)
 (*               Setup: marginTot=500, cashBal=1000            *)
 (*                 maxRpy=500                                  *)
 (*               Input sequence:                               *)
 (*                 Press Enter with no input                   *)
 (*               Checks: amtToRpy=0                            *)
 (*                                                             *)
-(*             Subtest 4 — exact max accepted                  *)
+(*             Subtest 4 - exact max accepted                  *)
 (*               Setup: marginTot=1000, cashBal=2000           *)
 (*                 maxRpy=1000                                 *)
 (*               Input sequence:                               *)
 (*                 Enter 1000 [expect accepted: = maxRpy]      *)
 (*               Checks: amtToRpy=1000                         *)
 (*                                                             *)
-(*             Subtest 5 — non-numeric rejection then accept   *)
+(*             Subtest 5 - non-numeric rejection then accept   *)
 (*               Setup: marginTot=500, cashBal=1000            *)
 (*                 maxRpy=500                                  *)
 (*               Input sequence:                               *)
@@ -4285,7 +4285,7 @@ PROCEDURE TSTAITURN
 (*               - Input arrays are unmodified after the call  *)
 (*               - Procedure returns without error             *)
 (*                                                             *)
-(*             Subtest 1 — spec confirmation case              *)
+(*             Subtest 1 - spec confirmation case              *)
 (*               Sell 50 Stryker, buy 20 Pioneer Mut,          *)
 (*               repay $500 margin. Phase=BUY.                 *)
 (*               Expected display (tester verifies):           *)
@@ -4296,18 +4296,18 @@ PROCEDURE TSTAITURN
 (*                 REPAY $500 margin                           *)
 (*               Machine checks: decAct/Id/Type/Qty unchanged  *)
 (*                                                             *)
-(*             Subtest 2 — all PASS (no action this phase)     *)
+(*             Subtest 2 - all PASS (no action this phase)     *)
 (*               decCnt=3, all entries decAct=4 (PASS).        *)
 (*               Expected display:                             *)
 (*                 (no action this phase)                      *)
 (*                                                             *)
-(*             Subtest 3 — SELL phase, bond sell only          *)
+(*             Subtest 3 - SELL phase, bond sell only          *)
 (*               Sell 1 medium bond. Phase=SELL.               *)
 (*               Expected display:                             *)
 (*                 COMPUTER TURN  SELL PHASE                   *)
 (*                 SELL  1  $5000 bond                         *)
 (*                                                             *)
-(*             Subtest 4 — decCnt=0 (empty decision set)       *)
+(*             Subtest 4 - decCnt=0 (empty decision set)       *)
 (*               Expected display:                             *)
 (*                 (no action this phase)                      *)
 (* PARAMS    : none                                            *)
@@ -4390,7 +4390,7 @@ PRINT
 PRINT "Results: "; passed; " passed, "; failed; " failed."
 END
 
-100 \ ! Subtest 1: machine checks — arrays unmodified
+100 \ ! Subtest 1: machine checks - arrays unmodified
     PRINT "--- Subtest 1 machine checks ---"
     IF decAct(1) = 1 AND decType(1) = 1 AND decId(1) = 5 THEN
       IF decQty(1) = 50 THEN
@@ -4428,7 +4428,7 @@ END
     PRINT
 RETURN
 
-200 \ ! Subtest 2: machine checks — arrays unmodified
+200 \ ! Subtest 2: machine checks - arrays unmodified
     PRINT "--- Subtest 2 machine checks ---"
     IF decAct(1) = 4 AND decAct(2) = 4 AND decAct(3) = 4 THEN
       PRINT "PASS  all decAct=4 (PASS) unmodified"
@@ -4447,7 +4447,7 @@ RETURN
     PRINT
 RETURN
 
-300 \ ! Subtest 3: machine checks — arrays unmodified
+300 \ ! Subtest 3: machine checks - arrays unmodified
     PRINT "--- Subtest 3 machine checks ---"
     IF decAct(1) = 1 AND decType(1) = 2 AND decId(1) = 2 THEN
       IF decQty(1) = 1 THEN
@@ -4506,7 +4506,7 @@ PROCEDURE TSTMGNCALL
 (*               - All input params unmodified after call      *)
 (*               - Procedure returns without runtime error     *)
 (*                                                             *)
-(*             Subtest 1 — spec confirmation case              *)
+(*             Subtest 1 - spec confirmation case              *)
 (*               Stryker at $22, callPrice=$25, amtDue=$3000.  *)
 (*               Expected display (tester verifies):           *)
 (*                 *** MARGIN CALL ***                         *)
@@ -4518,7 +4518,7 @@ PROCEDURE TSTMGNCALL
 (*                 [liquidation message]                       *)
 (*               Machine checks: all params unmodified         *)
 (*                                                             *)
-(*             Subtest 2 — different stock, higher obligation  *)
+(*             Subtest 2 - different stock, higher obligation  *)
 (*               Shady Brooks at $20, callPrice=$25,           *)
 (*               amtDue=$7500.                                 *)
 (*               Expected display (tester verifies):           *)
@@ -4664,33 +4664,33 @@ PROCEDURE TSTFORCELIQ
 (*             and scrForceLiq (visual), Task 10.2.            *)
 (*                                                             *)
 (*   Machine tests (applyLiqOrdr):                             *)
-(*   Test 1 — spec case, two sequential rounds                 *)
+(*   Test 1 - spec case, two sequential rounds                 *)
 (*     Obligation=3000. Holds: 50 Metro@$50, 1 small bond.     *)
 (*     cashBal=5000, marginTot=0.                              *)
-(*     Round 1: sell 50 Metro→prcd=2500, cashBal=7500,         *)
+(*     Round 1: sell 50 Metro->prcd=2500, cashBal=7500,         *)
 (*              oblgRem=500.                                   *)
-(*     Round 2: sell 1 small bond→prcd=1000, cashBal=8500,     *)
+(*     Round 2: sell 1 small bond->prcd=1000, cashBal=8500,     *)
 (*              oblgRem=0.                                     *)
 (*     Assert: cashBal=8500, oblgRem=0, stckShrs(2)=0,        *)
 (*             bondUnts(1)=0.                                  *)
 (*                                                             *)
-(*   Test 2 — margin stock sell                                *)
+(*   Test 2 - margin stock sell                                *)
 (*     100 Stryker@$80, mgnHeld=TRUE, marginTot=5000,          *)
 (*     cashBal=0, oblgRem=8000.                                *)
 (*     Sell 100: prcd=8000, repay=MIN(5000,8000)=5000.         *)
 (*     After: marginTot=0, cashBal=3000, stckShrs(5)=0,        *)
 (*            mgnHeld(5)=FALSE, oblgRem=0.                     *)
 (*                                                             *)
-(*   Test 3 — oblgRem clamped at 0                             *)
+(*   Test 3 - oblgRem clamped at 0                             *)
 (*     cashBal=0, oblgRem=500, bondUnts(3)=1 ($10000 bond).    *)
-(*     Sell 1: prcd=10000. oblgRem→0 (not -9500).              *)
+(*     Sell 1: prcd=10000. oblgRem->0 (not -9500).              *)
 (*     cashBal=10000.                                          *)
 (*                                                             *)
-(*   Test 4 — ordCnt=0 no-op                                   *)
+(*   Test 4 - ordCnt=0 no-op                                   *)
 (*     No fields modified.                                     *)
 (*                                                             *)
 (*   Visual test (scrForceLiq):                                *)
-(*   Subtest 5 — interactive display check                     *)
+(*   Subtest 5 - interactive display check                     *)
 (*     Obligation=2500, holds 100 Growth Corp@$30 (margin),   *)
 (*     50 Shady Brooks@$60, 1 medium bond.                     *)
 (*     Tester verifies display, exercises order entry,         *)
@@ -4959,7 +4959,7 @@ RETURN
       passed := passed + 1
     ELSE
       PRINT "FAIL  Subtest5 action exp=1 got="; action
-      PRINT "      (2=DECLARE_BANKRUPTCY — was that intended?)"
+      PRINT "      (2=DECLARE_BANKRUPTCY - was that intended?)"
       failed := failed + 1
     ENDIF
     PRINT
@@ -4995,7 +4995,7 @@ PROCEDURE TSTBANKRUPT
 (*     - plyr.isBankrupt is TRUE after call                    *)
 (*     - All other plyr fields unmodified                      *)
 (*                                                             *)
-(*   Subtest 1 — MARGIN_INTEREST reason, Year 5               *)
+(*   Subtest 1 - MARGIN_INTEREST reason, Year 5               *)
 (*     finalCash=-500, reason=1, currYear=5.                   *)
 (*     Expected display (tester verifies):                     *)
 (*       *** BANKRUPTCY ***                                    *)
@@ -5005,7 +5005,7 @@ PROCEDURE TSTBANKRUPT
 (*       Final cash : $-500                                    *)
 (*       ALICE has been eliminated from the game.              *)
 (*                                                             *)
-(*   Subtest 2 — MARGIN_CALL reason, Year 3                   *)
+(*   Subtest 2 - MARGIN_CALL reason, Year 3                   *)
 (*     finalCash=-200, reason=2, currYear=3.                   *)
 (*     Expected display (tester verifies):                     *)
 (*       Reason  : Margin call                                 *)
@@ -5176,36 +5176,36 @@ PROCEDURE TSTMGNCLR
 (*   requiring interactive input. scrMgnClr is also called     *)
 (*   directly in Subtest 5 for visual and action verification. *)
 (*                                                             *)
-(*   Test 1 — Cash stock sell + partial cash repayment         *)
+(*   Test 1 - Cash stock sell + partial cash repayment         *)
 (*     Valley Power 50 shrs @$50, cashBal=1000, marginTot=4000 *)
 (*     mgnHeld=FALSE. Sell 50 VP, repay=1500.                  *)
-(*     applyLiqOrdr: prcd=2500, cashBal→3500, marginTot=4000   *)
+(*     applyLiqOrdr: prcd=2500, cashBal->3500, marginTot=4000   *)
 (*     actualRpy=MIN(1500,4000,3500)=1500.                     *)
 (*     Expected: cashBal=2000, marginTot=2500, stckShrs(9)=0.  *)
 (*                                                             *)
-(*   Test 2 — Pure cash repayment, no sells                    *)
+(*   Test 2 - Pure cash repayment, no sells                    *)
 (*     cashBal=5000, marginTot=4000, no assets.                *)
 (*     ordCnt=0, repay=4000.                                   *)
 (*     Expected: cashBal=1000, marginTot=0.                    *)
 (*                                                             *)
-(*   Test 3 — mgnHeld sell clears marginTot; cash repay        *)
+(*   Test 3 - mgnHeld sell clears marginTot; cash repay        *)
 (*             clamped to 0                                     *)
 (*     Stryker 50 @$60, mgnHeld=TRUE, marginTot=2000,          *)
 (*     cashBal=500, repay=500.                                  *)
 (*     applyLiqOrdr: prcd=3000, repay_inner=2000,              *)
-(*       marginTot→0, cashBal→1500.                            *)
+(*       marginTot->0, cashBal->1500.                            *)
 (*     actualRpy=MIN(500,0,1500)=0 (marginTot=0 clamps it).    *)
 (*     Expected: cashBal=1500, marginTot=0.                    *)
 (*                                                             *)
-(*   Test 4 — Partial mgnHeld sell; cash repayment covers rest *)
+(*   Test 4 - Partial mgnHeld sell; cash repayment covers rest *)
 (*     Sell 30 of 50 Stryker @$60, mgnHeld=TRUE,               *)
 (*     marginTot=2000, cashBal=200, repay=500.                  *)
 (*     applyLiqOrdr: prcd=1800, repay_inner=1800,              *)
-(*       marginTot→200, cashBal→200.                           *)
+(*       marginTot->200, cashBal->200.                           *)
 (*     actualRpy=MIN(500,200,200)=200.                         *)
 (*     Expected: cashBal=0, marginTot=0.                       *)
 (*                                                             *)
-(*   Subtest 5 — Visual: scrMgnClr direct call                 *)
+(*   Subtest 5 - Visual: scrMgnClr direct call                 *)
 (*     marginTot=3000, cashBal=500, 100 Metro Props @$50,      *)
 (*     1 medium bond.                                          *)
 (*     Tester enters orders and/or repayment, submits.         *)
@@ -5440,7 +5440,7 @@ RETURN
       passed := passed + 1
     ELSE
       PRINT "FAIL  Subtest5 action exp=1 got="; action
-      PRINT "      (2=DECLARE_BANKRUPTCY — was that intended?)"
+      PRINT "      (2=DECLARE_BANKRUPTCY - was that intended?)"
       failed := failed + 1
     ENDIF
     PRINT
@@ -5498,7 +5498,7 @@ PROCEDURE TSTEND
 (*             Tests scrFinalMkt, scrWealth, scrWinner,        *)
 (*             scrPostGame per project-timeline.md spec.       *)
 (*                                                             *)
-(*   Test A — Normal game end (Player 1 wins):                 *)
+(*   Test A - Normal game end (Player 1 wins):                 *)
 (*     P1: cashBal=3000, 100 Valley Power @95, 1 large bond.  *)
 (*         totalWealth = 3000 + 9500 + 10000 = 22500.         *)
 (*     P2: cashBal=8000, 50 Shady Brooks @140, 0 bonds.       *)
@@ -5507,12 +5507,12 @@ PROCEDURE TSTEND
 (*     Verify: srtOrd(1)=1 (P1 listed first in scrWealth).    *)
 (*     Verify: scrWinner names ALICE.                          *)
 (*                                                             *)
-(*   Test B — Tie scenario:                                    *)
+(*   Test B - Tie scenario:                                    *)
 (*     Adjust P2 cashBal to 15500.                            *)
 (*     P2 totalWealth = 15500 + 7000 = 22500 = P1 total.      *)
 (*     Verify: both ALICE and BOB named in scrWinner.          *)
 (*                                                             *)
-(*   Test C — Post-game menu:                                  *)
+(*   Test C - Post-game menu:                                  *)
 (*     Verify 1=New Game / 2=Load Game / 3=Quit routes.       *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -5573,7 +5573,7 @@ NEXT i
 mkt.stckPrice(9) := 95  \ ! Valley Power final price
 mkt.stckPrice(4) := 140 \ ! Shady Brooks final price
 
-! === Test A — Normal game end (P1 wins) =====================
+! === Test A - Normal game end (P1 wins) =====================
 PRINT "=== TSTEND Phase 11 Task 11.1 ==="
 PRINT
 PRINT "Test A: P1 wins."
@@ -5595,7 +5595,7 @@ RUN waitKey
 
 RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
 
-! === Test B — Tie scenario ==================================
+! === Test B - Tie scenario ==================================
 PRINT "=== Test B: Tie ==="
 PRINT "  Setting plyrs(2).cashBal := 15500"
 PRINT "  P2 totalWealth = 15500 + 7000 = 22500 = P1 total"
@@ -5613,7 +5613,7 @@ RUN waitKey
 
 RUN scrWinner(plyrs, plyrCount, wlth, srtOrd)
 
-! === Test C — Post-game menu ================================
+! === Test C - Post-game menu ================================
 PRINT "=== Test C: Post-game menu ==="
 PRINT "  Press 1, 2, or 3. Verify action returned."
 PRINT
@@ -5644,30 +5644,30 @@ PROCEDURE TSTAISELL
 (*             Machine-checks all confirmation cases from      *)
 (*             project-timeline.md Phase 12 Task 12.1.         *)
 (*                                                             *)
-(* Test A — Combined rules scenario (currYear=5, no margin)    *)
+(* Test A - Combined rules scenario (currYear=5, no margin)    *)
 (*   stock 1: price=45, divSuspnd=TRUE, shrs=20                *)
-(*            → Rule 4, SELL 20                                *)
+(*            -> Rule 4, SELL 20                                *)
 (*   stock 2: price=0, shrs=50                                 *)
-(*            → Rule 1, SELL 50                                *)
+(*            -> Rule 1, SELL 50                                *)
 (*   stock 3: price=110, divSuspnd=FALSE, shrs=30              *)
-(*            → Rule 5, PASS                                   *)
+(*            -> Rule 5, PASS                                   *)
 (*   stock 4: price=155, shrs=100                              *)
-(*            → Rule 3, SELL 50 (50% of 100)                  *)
+(*            -> Rule 3, SELL 50 (50% of 100)                  *)
 (*   stock 5: price=20, mgnHeld=TRUE, shrs=100                 *)
-(*            → Rule 2, SELL 100                               *)
-(*   cashBal=5000 (positive) → no bond sell.                  *)
+(*            -> Rule 2, SELL 100                               *)
+(*   cashBal=5000 (positive) -> no bond sell.                  *)
 (*   Verify: ordCnt=4, orders in ascending stockId order.      *)
 (*   Stock 3 absent from order array.                          *)
 (*                                                             *)
-(* Test B — Bond emergency (currYear=5)                        *)
+(* Test B - Bond emergency (currYear=5)                        *)
 (*   cashBal=-100, 1 small bond held, no stocks.               *)
 (*   Verify: ordCnt=1, ordType(1)=2, ordId(1)=1, ordQty(1)=1  *)
 (*                                                             *)
-(* Test C — Bond pass when cashBal >= 0                        *)
+(* Test C - Bond pass when cashBal >= 0                        *)
 (*   cashBal=5000, 1 small bond held, no stocks.               *)
 (*   Verify: ordCnt=0 (no bond sell).                          *)
 (*                                                             *)
-(* Test D — Margin clearance (currYear=9)                      *)
+(* Test D - Margin clearance (currYear=9)                      *)
 (*   marginTot=2000, stock 2 (Metro, div=0) 30@$100,           *)
 (*   stock 4 (Shady, div=7) 50@$100. No other holdings.        *)
 (*   clrSco(Metro)=0, clrSco(Shady)=70.                       *)
@@ -5677,14 +5677,14 @@ PROCEDURE TSTAISELL
 (*     needed = 2000-2000 = 0. Shady skipped.                  *)
 (*   Verify: ordCnt=1, ordType(1)=1, ordId(1)=2, ordQty(1)=20 *)
 (*                                                             *)
-(* Test E — Margin clearance below marginClrYr (currYear=5)    *)
+(* Test E - Margin clearance below marginClrYr (currYear=5)    *)
 (*   Same state as Test D but currYear=5 < 9.                  *)
 (*   Verify: ordCnt=0 (clearance block skipped).               *)
 (*                                                             *)
-(* Test F — Rule 3 overflow guard                              *)
+(* Test F - Rule 3 overflow guard                              *)
 (*   stock 4: price=155, shrs=800.                             *)
-(*   Old formula: 800*50=40000 → overflows → no order.         *)
-(*   Fixed formula: (800/10)*50/10=400 → SELL 400.             *)
+(*   Old formula: 800*50=40000 -> overflows -> no order.         *)
+(*   Fixed formula: (800/10)*50/10=400 -> SELL 400.             *)
 (*   Verify: ordCnt=1, ordType(1)=1, ordId(1)=4, ordQty(1)=400 *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -5709,7 +5709,7 @@ PRINT "=== TSTAISELL  Phase 12 Task 12.1 ==="
 PRINT
 
 ! ============================================================
-! Test A — Combined stock rules, no bond sell
+! Test A - Combined stock rules, no bond sell
 ! ============================================================
 PRINT "--- Test A: Combined stock rules ---"
 
@@ -5725,12 +5725,12 @@ mkt.divSuspnd(1)  := TRUE
 plyr.stckShrs(2)  := 50
 mkt.stckPrice(2)  := 0
 
-! stock 3: Rule 5 (price=110, divSuspnd=FALSE) — should NOT appear
+! stock 3: Rule 5 (price=110, divSuspnd=FALSE) - should NOT appear
 plyr.stckShrs(3)  := 30
 mkt.stckPrice(3)  := 110
 mkt.divSuspnd(3)  := FALSE
 
-! stock 4: Rule 3 (price=155 >= 150, shares=100 → sell 50)
+! stock 4: Rule 3 (price=155 >= 150, shares=100 -> sell 50)
 plyr.stckShrs(4)  := 100
 mkt.stckPrice(4)  := 155
 
@@ -5763,7 +5763,7 @@ PRINT
 RUN waitKey
 
 ! ============================================================
-! Test B — Bond emergency: cashBal=-100
+! Test B - Bond emergency: cashBal=-100
 ! ============================================================
 PRINT "--- Test B: Bond emergency cashBal=-100 ---"
 
@@ -5794,7 +5794,7 @@ PRINT
 RUN waitKey
 
 ! ============================================================
-! Test C — Bond pass: cashBal >= 0
+! Test C - Bond pass: cashBal >= 0
 ! ============================================================
 PRINT "--- Test C: Bond pass cashBal=5000 ---"
 
@@ -5817,7 +5817,7 @@ PRINT
 RUN waitKey
 
 ! ============================================================
-! Test D — Margin clearance active (currYear=9)
+! Test D - Margin clearance active (currYear=9)
 ! stock 2 Metro (div=0, score=0), stock 4 Shady (div=7, score=70)
 ! needed=2000; partial sell 20 Metro covers exactly.
 ! ============================================================
@@ -5854,7 +5854,7 @@ PRINT
 RUN waitKey
 
 ! ============================================================
-! Test E — Margin clearance blocked (currYear=5 < 9)
+! Test E - Margin clearance blocked (currYear=5 < 9)
 ! Same holdings as Test D; clearance block must not fire.
 ! ============================================================
 PRINT "--- Test E: Margin clearance blocked Year 5 ---"
@@ -5882,9 +5882,9 @@ PRINT
 RUN waitKey
 
 ! ============================================================
-! Test F — Rule 3 integer overflow guard (stckShrs=800)
-! Old: 800*50=40000 overflows → signed wrap → sellLots<10 → no order.
-! Fixed: (800/10)*50/10=400 → ordQty=400.
+! Test F - Rule 3 integer overflow guard (stckShrs=800)
+! Old: 800*50=40000 overflows -> signed wrap -> sellLots<10 -> no order.
+! Fixed: (800/10)*50/10=400 -> ordQty=400.
 ! stckShrs=800 is reachable after two splits from 200 shares.
 ! ============================================================
 PRINT "--- Test F: Rule 3 overflow guard shrs=800 ---"
@@ -5987,33 +5987,33 @@ PROCEDURE TSTAIBUY
 (*             Machine-checks all confirmation cases from      *)
 (*             project-timeline.md Phase 12 Task 12.2.         *)
 (*                                                             *)
-(* Test A — Margin repayment trigger                           *)
+(* Test A - Margin repayment trigger                           *)
 (*   marginTot=2000, cashBal=500. All stocks bankrupt (p=0).   *)
-(*   annlChrg=100. burdenThr=50. 100>50 → repay.              *)
+(*   annlChrg=100. burdenThr=50. 100>50 -> repay.              *)
 (*   repayAmt=500*50/100=250. mgnRepay=250. simCash=250.       *)
-(*   No stocks eligible; simCash<5000 → no bond.               *)
+(*   No stocks eligible; simCash<5000 -> no bond.               *)
 (*   Verify: mgnRepay=250, ordCnt=0.                           *)
 (*                                                             *)
-(* Test B — Scoring: Shady Brooks outranks Growth Corp         *)
+(* Test B - Scoring: Shady Brooks outranks Growth Corp         *)
 (*   cashBal=10000, stocks 1 (div=1) and 4 (div=7) at $100.   *)
 (*   All other stocks at p=0 (bankrupt).                       *)
-(*   Shady score=70 > Growth score=10 → Shady first.          *)
+(*   Shady score=70 > Growth score=10 -> Shady first.          *)
 (*   Verify: ordId(1)=4 (Shady), ordId(2)=1 (Growth).         *)
 (*                                                             *)
-(* Test C — Concentration cap                                  *)
+(* Test C - Concentration cap                                  *)
 (*   cashBal=5000, only stock 4 (Shady) at $100.               *)
 (*   maxCash=5000*40/100=2000. maxLots=2000/100=20 lots.       *)
 (*   Verify: ordCnt=1, ordQty(1)=20.                           *)
 (*                                                             *)
-(* Test D — Bond fallback                                      *)
+(* Test D - Bond fallback                                      *)
 (*   cashBal=5000, all stocks bankrupt. stocksBought=FALSE.    *)
-(*   5000>=5000 → eligible. 5000>=10000 FALSE.                 *)
-(*   5000>=5000 → BUY 1 medium bond.                           *)
+(*   5000>=5000 -> eligible. 5000>=10000 FALSE.                 *)
+(*   5000>=5000 -> BUY 1 medium bond.                           *)
 (*   Verify: ordCnt=1, ordType(1)=2, ordId(1)=2, ordQty(1)=1. *)
 (*                                                             *)
-(* Test E — Bond skip when stocks were bought                  *)
+(* Test E - Bond skip when stocks were bought                  *)
 (*   cashBal=5000, stock 4 at $100. Buys 20 Shady.             *)
-(*   stocksBought=TRUE → bond block skipped.                   *)
+(*   stocksBought=TRUE -> bond block skipped.                   *)
 (*   Verify: ordCnt=1, no bond order (ordType(1)=1).           *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -6040,7 +6040,7 @@ PRINT "=== TSTAIBUY  Phase 12 Task 12.2 ==="
 PRINT
 
 ! ============================================================
-! Test A — Margin repayment trigger
+! Test A - Margin repayment trigger
 ! ============================================================
 PRINT "--- Test A: Margin repayment trigger ---"
 
@@ -6075,7 +6075,7 @@ ENDIF
 PRINT
 
 ! ============================================================
-! Test B — Scoring: Shady Brooks (div=7) outranks Growth (div=1)
+! Test B - Scoring: Shady Brooks (div=7) outranks Growth (div=1)
 ! ============================================================
 PRINT "--- Test B: Scoring order Shady > Growth ---"
 
@@ -6097,7 +6097,7 @@ GOSUB 100
 PRINT
 
 ! ============================================================
-! Test C — Concentration cap: 40% of 5000 = 2000 → 20 lots
+! Test C - Concentration cap: 40% of 5000 = 2000 -> 20 lots
 ! ============================================================
 PRINT "--- Test C: Concentration cap 40% ---"
 
@@ -6117,7 +6117,7 @@ GOSUB 200
 PRINT
 
 ! ============================================================
-! Test D — Bond fallback: no stocks, cashBal=5000 → medium bond
+! Test D - Bond fallback: no stocks, cashBal=5000 -> medium bond
 ! ============================================================
 PRINT "--- Test D: Bond fallback cashBal=5000 ---"
 
@@ -6136,7 +6136,7 @@ GOSUB 300
 PRINT
 
 ! ============================================================
-! Test E — Bond skip: stocks bought → bondPriority=FALSE skips
+! Test E - Bond skip: stocks bought -> bondPriority=FALSE skips
 ! ============================================================
 PRINT "--- Test E: Bond skip when stocks bought ---"
 
@@ -6146,7 +6146,7 @@ plyr.cashBal := 5000
 FOR s := 1 TO 9
   mkt.stckPrice(s) := 0
 NEXT s
-mkt.stckPrice(4) := 100 \ ! Shady; buys 20 shares → stocksBought=TRUE
+mkt.stckPrice(4) := 100 \ ! Shady; buys 20 shares -> stocksBought=TRUE
 
 ! Line exceeds 79 chars; RUN parameter list cannot be split.
 RUN aiBuy(5, plyr, mkt, ordType, ordId, ordQty, ordPurch, ordCnt, mgnRepay)
@@ -6366,9 +6366,9 @@ RUN waitKey
 
 ! ============================================================
 ! Block 2: Rule 4 distress sell.
-! Scenario A: Easy/Medium — stock 2 at $48, suspended → SELL.
-! Scenario B: Hard        — stock 2 at $55, suspended → SELL.
-! Scenario C: Hard        — stock 2 at $65, suspended → PASS.
+! Scenario A: Easy/Medium - stock 2 at $48, suspended -> SELL.
+! Scenario B: Hard        - stock 2 at $55, suspended -> SELL.
+! Scenario C: Hard        - stock 2 at $65, suspended -> PASS.
 ! ============================================================
 
 PRINT "Block 2: Rule 4 Distress Sell by Tier"
@@ -6395,7 +6395,7 @@ FOR i := 1 TO 9
 NEXT i
 mkt.divSuspnd(2) := TRUE
 
-! --- Scenario A: Easy, $48 suspended (distSlPrc=50 → SELL) ---
+! --- Scenario A: Easy, $48 suspended (distSlPrc=50 -> SELL) ---
 mkt.stckPrice(2) := 48
 RUN initAIProf(1, prof)
 RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
@@ -6407,7 +6407,7 @@ ELSE
   fail := fail + 1
 ENDIF
 
-! --- Scenario A: Medium, $48 suspended (distSlPrc=50 → SELL) ---
+! --- Scenario A: Medium, $48 suspended (distSlPrc=50 -> SELL) ---
 RUN initAIProf(2, prof)
 RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
 IF oCnt = 1 AND oId(1) = 2 AND oQty(1) = 50 THEN
@@ -6418,7 +6418,7 @@ ELSE
   fail := fail + 1
 ENDIF
 
-! --- Scenario B: Hard, $55 suspended (distSlPrc=60 → SELL) ---
+! --- Scenario B: Hard, $55 suspended (distSlPrc=60 -> SELL) ---
 mkt.stckPrice(2) := 55
 RUN initAIProf(3, prof)
 RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
@@ -6430,7 +6430,7 @@ ELSE
   fail := fail + 1
 ENDIF
 
-! --- Scenario C: Hard, $65 suspended (distSlPrc=60 → PASS) ---
+! --- Scenario C: Hard, $65 suspended (distSlPrc=60 -> PASS) ---
 mkt.stckPrice(2) := 65
 RUN aiSell(1, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
 IF oCnt = 0 THEN
@@ -6447,10 +6447,10 @@ RUN waitKey
 ! ============================================================
 ! Block 3: Concentration cap (buy phase).
 ! Setup: only stock 4 (Shady Brooks, divPer=7) at $100 eligible.
-! All others at $0 (bankrupt → ineligible). cashBal=5000.
-! Easy  (concenCap=70): maxCash=3500, lots=35→30 → BUY 30.
-! Medium(concenCap=40): maxCash=2000, lots=20→20 → BUY 20.
-! Hard  (concenCap=25): maxCash=1250, lots=12→10 → BUY 10.
+! All others at $0 (bankrupt -> ineligible). cashBal=5000.
+! Easy  (concenCap=70): maxCash=3500, lots=35->30 -> BUY 30.
+! Medium(concenCap=40): maxCash=2000, lots=20->20 -> BUY 20.
+! Hard  (concenCap=25): maxCash=1250, lots=12->10 -> BUY 10.
 ! ============================================================
 
 PRINT "Block 3: Concentration Cap (aiBuy) by Tier"
@@ -6549,7 +6549,7 @@ PRINT "=== TST132: Endgame Override Verification ==="
 PRINT ""
 
 ! ============================================================
-! Block 1: Hard Rule 3 split sell — Year 6 vs Year 7.
+! Block 1: Hard Rule 3 split sell - Year 6 vs Year 7.
 ! Setup: stock 1 at $150, 100 shares.
 ! Year 6 (base spltSlPct=30): expected SELL 30.
 ! Year 7 (endgame spltSlPcE=70): expected SELL 70.
@@ -6615,10 +6615,10 @@ PRINT "Block 1: "; pass; " pass, "; fail; " fail"
 RUN waitKey
 
 ! ============================================================
-! Block 2: Hard repayFracW — Year 6 vs Year 7.
+! Block 2: Hard repayFracW - Year 6 vs Year 7.
 ! Setup: cashBal=500, marginTot=2000. All stocks at $0.
 ! annlChrg = 2000/20 = 100.
-! burdenThr = 500/100*5 = 25. 100 > 25 → repay triggered.
+! burdenThr = 500/100*5 = 25. 100 > 25 -> repay triggered.
 ! Year 6 (repayFrac=75): repayAmt = 500/100*75 = 375.
 ! Year 7 (repayFrcE=90): repayAmt = 500/100*90 = 450.
 ! ============================================================
@@ -6669,11 +6669,11 @@ PRINT "Block 2: "; pass; " pass, "; fail; " fail"
 RUN waitKey
 
 ! ============================================================
-! Block 3: Easy Year 7 — no endgame override.
-! endgameYr=0 for Easy → override block never entered.
+! Block 3: Easy Year 7 - no endgame override.
+! endgameYr=0 for Easy -> override block never entered.
 ! Rule 3 split sell should be 20% at both Year 1 and Year 7.
 ! Setup: stock 1 at $150, 100 shares.
-! Year 1: SELL 20. Year 7: SELL 20 (identical — no override).
+! Year 1: SELL 20. Year 7: SELL 20 (identical - no override).
 ! ============================================================
 
 PRINT "Block 3: Easy Year 7 no override"
@@ -6717,7 +6717,7 @@ ELSE
   fail := fail + 1
 ENDIF
 
-! Easy Year 7: endgameYr=0 → no override; must also give SELL 20.
+! Easy Year 7: endgameYr=0 -> no override; must also give SELL 20.
 RUN aiSell(7, plyr, mkt, prof, oTyp, oId, oQty, oCnt)
 IF oCnt = 1 AND oId(1) = 1 AND oQty(1) = expQty THEN
   PRINT "  Easy Yr7 splitSell: PASS (SELL 20, no override)"
@@ -6748,21 +6748,21 @@ PROCEDURE TSTMGNINT
 (*             Three visual test cases; examiner verifies      *)
 (*             screen content against expected output.         *)
 (*                                                             *)
-(*   Test 1 — Normal (no forced liquidation):                  *)
+(*   Test 1 - Normal (no forced liquidation):                  *)
 (*     mgnTot=2000, mgnChg=100, cashBef=500, cashAft=400.      *)
 (*     Expect: charge and both balances displayed.             *)
 (*             NO forced liquidation notice.                   *)
 (*                                                             *)
-(*   Test 2 — Forced liquidation triggered:                    *)
+(*   Test 2 - Forced liquidation triggered:                    *)
 (*     mgnTot=2000, mgnChg=200, cashBef=150, cashAft=-50.      *)
 (*     Expect: charge and both balances displayed.             *)
 (*             FORCED LIQUIDATION warning visible.             *)
 (*                                                             *)
-(*   Test 3 — Year guard (Year 1):                             *)
+(*   Test 3 - Year guard (Year 1):                             *)
 (*     Expect: screen clears immediately, no content shown,    *)
 (*             procedure returns without blocking on waitKey.  *)
 (*                                                             *)
-(*   Test 4 — Year guard (Year 10):                            *)
+(*   Test 4 - Year guard (Year 10):                            *)
 (*     Expect: same as Test 3.                                 *)
 (* ============================================================ *)
 DIM act : INTEGER
@@ -6820,19 +6820,19 @@ PROCEDURE TSTROLLS
 (*             Tests invariants that hold regardless of RND     *)
 (*             outcome. Cannot force specific die values.       *)
 (*                                                             *)
-(*   Test A — Mode A, Year 5:                                  *)
+(*   Test A - Mode A, Year 5:                                  *)
 (*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
 (*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test B — Mode B, Year 1:                                  *)
+(*   Test B - Mode B, Year 1:                                  *)
 (*     rollCnt=9, ovrdActive=FALSE.                            *)
 (*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test C — Mode B, Year 5:                                  *)
+(*   Test C - Mode B, Year 5:                                  *)
 (*     rollCnt=1, ovrdActive=FALSE. All 9 slots identical.     *)
 (*     All dieOne/dieTwo in 1-6. rollTot = dieOne+dieTwo.     *)
 (*                                                             *)
-(*   Test D — Mode C (run 20 times):                           *)
+(*   Test D - Mode C (run 20 times):                           *)
 (*     Each call: rollCnt=9. All dieOne/dieTwo in 1-6.        *)
 (*     rollTot = dieOne+dieTwo per slot.                       *)
 (*     If ovrdActive: all 9 rollTot slots equal.               *)
@@ -7407,7 +7407,7 @@ PROCEDURE TSTMEMOPS
 (* PROCEDURE: TSTMEMOPS                               *)
 (* PURPOSE:   Tests memEnsure and memRelease using   *)
 (*            real game modules.                     *)
-(*            Block 1: Baseline — modules not loaded *)
+(*            Block 1: Baseline - modules not loaded *)
 (*            Block 2: Load snbSaveLoad via memEnsure*)
 (*            Block 3: Release snbSaveLoad           *)
 (*            Block 4: Second load/release cycle     *)
@@ -7444,7 +7444,7 @@ PRINT "=== TSTMEMOPS ==="
 PRINT
 
 ! =====================================================
-! Block 1: Baseline — modules not loaded
+! Block 1: Baseline - modules not loaded
 ! =====================================================
 PRINT "-- Block 1: Baseline --"
 

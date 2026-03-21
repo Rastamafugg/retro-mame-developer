@@ -55,7 +55,7 @@ libBuf(7)   := ASC("r")
 libBuf(8)   := ASC("o")
 libBuf(9)   := ASC("c")
 libBuf(10)  := LOR(ASC("1"), $80) \ ! hi-bit terminates name
-! runbBuf: "RunB" — RunB interpreter name for F$Fork.
+! runbBuf: "RunB" - RunB interpreter name for F$Fork.
 runbBuf(1)  := ASC("R")
 runbBuf(2)  := ASC("u")
 runbBuf(3)  := ASC("n")

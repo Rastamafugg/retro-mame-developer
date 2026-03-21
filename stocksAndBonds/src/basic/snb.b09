@@ -344,7 +344,7 @@ DELETE "SNBSTATE"
 wasStale := TRUE
 END
 
-100 ! SNBSTATE not found — no stale file.
+100 ! SNBSTATE not found - no stale file.
     IF pathOpen THEN
       CLOSE #path
     ENDIF
@@ -536,12 +536,12 @@ PROCEDURE ensureModule
 (* PURPOSE   : Ensure a named module is resident, using one of *)
 (*             two strategies selected by the forChild flag.   *)
 (*                                                             *)
-(*             forChild = FALSE — current-process load:        *)
+(*             forChild = FALSE - current-process load:        *)
 (*               Uses F$Link ($00) to check residency, then    *)
 (*               F$Load ($01) if not found. Loads the module   *)
 (*               into the current process workspace.           *)
 (*                                                             *)
-(*             forChild = TRUE — child-process load:           *)
+(*             forChild = TRUE - child-process load:           *)
 (*               Uses F$NMLink ($21) to check residency, then  *)
 (*               F$NMLoad ($22) if not found. Loads the module *)
 (*               into the OS module directory so forked child  *)
@@ -604,7 +604,7 @@ NEXT i
 namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
 
 ! Link call: check residency. Carry clear = already resident;
-! module stays linked (no undo needed — residency is desired).
+! module stays linked (no undo needed - residency is desired).
 regs.a := 0
 regs.x := ADDR(namBuf)
 RUN SysCall(linkCode, regs)

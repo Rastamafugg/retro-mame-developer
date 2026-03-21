@@ -24,7 +24,7 @@ PROCEDURE scrForceLiq
 (*             Zero qty / bare Enter = skip asset this round.  *)
 (*             Stock qty: mult of 10, <=stckShrs. Bond qty:    *)
 (*             positive integer <=bondUnts. Zero is valid.     *)
-(*             Uses getNumIn for all INPUT→INTEGER conversion.  *)
+(*             Uses getNumIn for all INPUT->INTEGER conversion.  *)
 (*             Bankrupt stocks (stckShrs>0 implies price>0;    *)
 (*             spec 9.4 zeroes shares at $0 price).            *)
 (*             Does NOT modify plyr or oblgRem; caller handles *)
@@ -243,7 +243,7 @@ LOOP
   EXITIF key = 1 THEN
   ENDEXIT
 
-  ! key=2: revise — loop back to top.
+  ! key=2: revise - loop back to top.
 
 ENDLOOP
 
@@ -277,7 +277,7 @@ PROCEDURE scrMgnClr
 (*             bankruptcy if unable to clear the obligation.    *)
 (*             Returns action=1 on SUBMIT, action=2 on          *)
 (*             DECLARE_BANKRUPTCY (caller sets isBankrupt).    *)
-(*             Uses getNumIn for all INPUT→INTEGER conversion.  *)
+(*             Uses getNumIn for all INPUT->INTEGER conversion.  *)
 (* PARAMS    : plyr   - player record (modified)               *)
 (*             mkt    - market state (read-only)                *)
 (*             action - OUT: 1=SUBMIT 2=DECLARE_BANKRUPTCY      *)
@@ -340,7 +340,7 @@ LOOP
   NEXT i
 
   RUN clrScr
-  PRINT "*** YEAR 10 — MARGIN CLEARANCE REQUIRED ***"
+  PRINT "*** YEAR 10 - MARGIN CLEARANCE REQUIRED ***"
   PRINT "Player: "; plyr.plyrName
   PRINT
   RUN fmtMoney(plyr.marginTot, pStr)
@@ -384,7 +384,7 @@ LOOP
       RUN fmtMoney(mkt.stckPrice(s), pStr)
       PRINT sNam(s); "  "; plyr.stckShrs(s); " shrs @ $"; pStr
       IF plyr.mgnHeld(s) THEN
-        PRINT "  [margin-held — proceeds clear margin first]"
+        PRINT "  [margin-held - proceeds clear margin first]"
       ENDIF
 
       valid := FALSE
@@ -530,7 +530,7 @@ LOOP
   EXITIF key = 1 THEN
   ENDEXIT
 
-  ! key=2: revise — loop back to top.
+  ! key=2: revise - loop back to top.
 
 ENDLOOP
 

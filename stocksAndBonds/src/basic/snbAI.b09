@@ -166,13 +166,13 @@ DIM simCash     : INTEGER \ ! simulated cashBal for bond emergency check
 ON ERROR GOTO 900
 
 ! --- AIProfile field loading (ai-player-logic.md Sec 3) --------
-splitSellPW := prof.spltSlPct   \ ! BYTE field → INTEGER working var
-distSellPW  := prof.distSlPrc   \ ! BYTE field → INTEGER working var
-marginClrYr := prof.mgnClrYear  \ ! BYTE field → INTEGER working var
-! --- Endgame override (endgameYr=0 for Easy/Medium → skip) ----
+splitSellPW := prof.spltSlPct   \ ! BYTE field -> INTEGER working var
+distSellPW  := prof.distSlPrc   \ ! BYTE field -> INTEGER working var
+marginClrYr := prof.mgnClrYear  \ ! BYTE field -> INTEGER working var
+! --- Endgame override (endgameYr=0 for Easy/Medium -> skip) ----
 IF prof.endgameYr > 0 THEN
   IF currYear >= prof.endgameYr THEN
-    splitSellPW := prof.spltSlPcE  \ ! endgame override: BYTE → INTEGER
+    splitSellPW := prof.spltSlPcE  \ ! endgame override: BYTE -> INTEGER
   ENDIF
 ENDIF
 
@@ -204,18 +204,18 @@ NEXT i
 ! ============================================================
 ! Section 4.1: Stock sell rules. Ascending stockId order.
 ! Rules are IF/ELSE IF; first match governs each stock.
-!   Rule 1: price = 0                     → SELL all
-!   Rule 2: price <= 25, mgnHeld          → SELL all
-!   Rule 3: price >= 150                  → SELL splitSellPW%
-!   Rule 4: divSuspnd AND price<=distSellPW → SELL all
-!   Rule 5: default                       → PASS
+!   Rule 1: price = 0                     -> SELL all
+!   Rule 2: price <= 25, mgnHeld          -> SELL all
+!   Rule 3: price >= 150                  -> SELL splitSellPW%
+!   Rule 4: divSuspnd AND price<=distSellPW -> SELL all
+!   Rule 5: default                       -> PASS
 ! ============================================================
 
 FOR s := 1 TO 9
   IF plyr.stckShrs(s) > 0 THEN
 
     IF mkt.stckPrice(s) = 0 THEN
-      ! Rule 1 — Bankrupt; explicitly clear the position.
+      ! Rule 1 - Bankrupt; explicitly clear the position.
       IF ordCnt < 12 THEN
         ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
@@ -225,7 +225,7 @@ FOR s := 1 TO 9
       ENDIF
 
     ELSE IF mkt.stckPrice(s) <= 25 AND plyr.mgnHeld(s) THEN
-      ! Rule 2 — Margin call imminent (MarginCallPrice = 25).
+      ! Rule 2 - Margin call imminent (MarginCallPrice = 25).
       IF ordCnt < 12 THEN
         ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
@@ -235,7 +235,7 @@ FOR s := 1 TO 9
       ENDIF
 
     ELSE IF mkt.stckPrice(s) >= 150 THEN
-      ! Rule 3 — Split threshold (StockSplitThreshold = 150).
+      ! Rule 3 - Split threshold (StockSplitThreshold = 150).
       ! sellLots = floor(shares * splitSellPW% / 10) * 10
       sellLots := (plyr.stckShrs(s) / 10) * splitSellPW / 10
       sellLots := (sellLots / 10) * 10
@@ -248,7 +248,7 @@ FOR s := 1 TO 9
       ENDIF
 
     ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellPW THEN
-      ! Rule 4 — Distressed suspended-dividend stock.
+      ! Rule 4 - Distressed suspended-dividend stock.
       IF ordCnt < 12 THEN
         ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
@@ -338,7 +338,7 @@ IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
 
   needed := plyr.marginTot
 
-  ! Pass 1 — sell stocks, weakest first, until needed <= 0.
+  ! Pass 1 - sell stocks, weakest first, until needed <= 0.
   FOR i := 1 TO holdCnt
     IF needed > 0 THEN
       s     := clrIdx(i)
@@ -378,7 +378,7 @@ IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
     ENDIF
   NEXT i
 
-  ! Pass 2 — supplement with bonds if still needed > 0.
+  ! Pass 2 - supplement with bonds if still needed > 0.
   ! Sell smallest denomination first; one unit at a time.
   FOR b := 1 TO 3
     LOOP
@@ -461,8 +461,8 @@ DIM zeroDivElgW  : BOOLEAN \ ! zeroDivEligible (endgame override ok)
 ! Non-overridden AIProfile fields loaded to working vars.
 DIM useYldScrW   : BOOLEAN \ ! useYieldScoring
 DIM useMarginW   : BOOLEAN \ ! useMargin
-DIM mgnBufW      : INTEGER \ ! marginBuffer: BYTE → INTEGER staging
-DIM mgnMaxExpW   : INTEGER \ ! marginMaxExposure: BYTE → INTEGER staging
+DIM mgnBufW      : INTEGER \ ! marginBuffer: BYTE -> INTEGER staging
+DIM mgnMaxExpW   : INTEGER \ ! marginMaxExposure: BYTE -> INTEGER staging
 ! Margin pass state.
 DIM margAllwd    : BOOLEAN \ ! margin eligibility flag (Step 2)
 DIM cashPassLt(9): INTEGER \ ! lots bought in cash pass (Step 4a)
@@ -494,19 +494,19 @@ DIM tmp          : INTEGER
 ON ERROR GOTO 900
 
 ! --- AIProfile field loading (ai-player-logic.md Sec 3) --------
-concentCapW  := prof.concenCap   \ ! BYTE field → INTEGER working var
-mgnRsvPctW   := prof.mgnResvPct  \ ! BYTE field → INTEGER working var
-repayFracW   := prof.repayFrac   \ ! BYTE field → INTEGER working var
-bondIdlCshW  := prof.bondIdlCsh  \ ! INTEGER field → INTEGER
+concentCapW  := prof.concenCap   \ ! BYTE field -> INTEGER working var
+mgnRsvPctW   := prof.mgnResvPct  \ ! BYTE field -> INTEGER working var
+repayFracW   := prof.repayFrac   \ ! BYTE field -> INTEGER working var
+bondIdlCshW  := prof.bondIdlCsh  \ ! INTEGER field -> INTEGER
 zeroDivElgW  := prof.zeroDivEl
 useYldScrW   := prof.useYldScr
 useMarginW   := prof.useMargin
-mgnBufW      := prof.mgnBuffer   \ ! BYTE field → INTEGER working var
-mgnMaxExpW   := prof.mgnMaxExpo  \ ! BYTE field → INTEGER working var
-! --- Endgame override (endgameYr=0 for Easy/Medium → skip) ----
+mgnBufW      := prof.mgnBuffer   \ ! BYTE field -> INTEGER working var
+mgnMaxExpW   := prof.mgnMaxExpo  \ ! BYTE field -> INTEGER working var
+! --- Endgame override (endgameYr=0 for Easy/Medium -> skip) ----
 IF prof.endgameYr > 0 THEN
   IF currYear >= prof.endgameYr THEN
-    repayFracW  := prof.repayFrcE   \ ! endgame override: BYTE → INTEGER
+    repayFracW  := prof.repayFrcE   \ ! endgame override: BYTE -> INTEGER
     bondIdlCshW := prof.bndIdlCsE   \ ! endgame override: INTEGER
     zeroDivElgW := FALSE            \ ! Hard endgame: exclude zero-div
   ENDIF
@@ -533,7 +533,7 @@ ordCnt   := 0
 mgnRepay := 0
 
 ! ============================================================
-! Step 1 — Voluntary margin repayment check.
+! Step 1 - Voluntary margin repayment check.
 ! MarginInterestRate = 5% (spec Section 1 constant).
 ! annlChrg  = marginTot * 5 / 100  (= marginTot / 20).
 ! burdenThr = cashBal * mgnRsvPctW / 100.
@@ -557,10 +557,10 @@ IF plyr.marginTot > 0 AND plyr.cashBal > 0 THEN
 ENDIF
 
 ! ============================================================
-! Step 2 — Margin eligibility.
+! Step 2 - Margin eligibility.
 ! Hard: useMarginW=TRUE. Requires: prior cash purchase AND
 ! not Year 10 AND currYear < mgnClrYear.
-! Easy/Medium: useMarginW=FALSE → margAllwd always FALSE.
+! Easy/Medium: useMarginW=FALSE -> margAllwd always FALSE.
 ! ============================================================
 
 margAllwd := FALSE
@@ -575,14 +575,14 @@ IF useMarginW THEN
 ENDIF
 
 ! ============================================================
-! Step 3 — Stock candidate scoring.
+! Step 3 - Stock candidate scoring.
 ! BankruptcyPrice=0; MarginCallPrice=25.
-!   bankrupt or at call threshold   → score = -1
-!   dividend suspended              → score = -1
-!   zero-dividend, ineligible       → score = -1
-!   zero-dividend, eligible         → score = 0
-!   yielding, useYldScrW=TRUE       → divPer*1000 / price
-!   yielding, useYldScrW=FALSE      → score = 0 (Easy: flat)
+!   bankrupt or at call threshold   -> score = -1
+!   dividend suspended              -> score = -1
+!   zero-dividend, ineligible       -> score = -1
+!   zero-dividend, eligible         -> score = 0
+!   yielding, useYldScrW=TRUE       -> divPer*1000 / price
+!   yielding, useYldScrW=FALSE      -> score = 0 (Easy: flat)
 ! Candidates (score >= 0) stored in srtIdx/srtSco.
 ! ============================================================
 
@@ -637,7 +637,7 @@ FOR i := 1 TO candCnt - 1
 NEXT i
 
 ! ============================================================
-! Step 4a — Cash stock purchase allocation.
+! Step 4a - Cash stock purchase allocation.
 ! cashPassLt(s) records lots purchased here for Step 4b
 ! headroom calculation.
 ! ============================================================
@@ -667,7 +667,7 @@ FOR i := 1 TO candCnt
 NEXT i
 
 ! ============================================================
-! Step 4b — Margin stock purchase allocation.
+! Step 4b - Margin stock purchase allocation.
 ! Hard tier only (margAllwd=TRUE); skipped for Easy/Medium.
 ! Per spec Section 5.5, all four checks must pass:
 !   priceOK    : price >= MarginCallPrice(25) + mgnBufW
@@ -720,7 +720,7 @@ IF margAllwd THEN
 ENDIF
 
 ! ============================================================
-! Step 5 — Bond purchase.
+! Step 5 - Bond purchase.
 ! Buy if simCash >= bondIdlCshW AND (bondPriory OR no stocks).
 ! bondPriory=TRUE for Easy: buys bonds even when stocks bought.
 ! Medium/Hard (bondPriory=FALSE): only when no stocks bought.
