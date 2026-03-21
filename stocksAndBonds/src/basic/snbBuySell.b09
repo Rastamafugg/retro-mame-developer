@@ -104,17 +104,22 @@ IF iCYr > 1 THEN
           aiTierVal := 2
           plyrs(p).aiTier := 2
         ENDIF
+        PRINT "trdChild: AI sell start p="; p; " tier="; aiTierVal
         tInt := aiTierVal
         RUN initAIProf(tInt, prof)
+        PRINT "trdChild: AI sell profile ok p="; p
         RUN aiSell(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
+        PRINT "trdChild: AI sell orders ok p="; p; " ordCnt="; ordCnt
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+          PRINT "trdChild: AI sell apply ok p="; p
         ENDIF
         FOR tInt := 1 TO ordCnt
           decAct(tInt) := 1  \ ! SELL
         NEXT tInt
         actByt := 1
         RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
+        PRINT "trdChild: AI sell summary ok p="; p
 
       ENDIF
     ENDIF
@@ -153,17 +158,23 @@ FOR p := 1 TO iPCnt
         aiTierVal := 2
         plyrs(p).aiTier := 2
       ENDIF
+      PRINT "trdChild: AI buy start p="; p; " tier="; aiTierVal
       tInt := aiTierVal
       RUN initAIProf(tInt, prof)
+      PRINT "trdChild: AI buy profile ok p="; p
       prof.useMargin := FALSE
+      PRINT "trdChild: AI buy margin disabled p="; p
       ! Line exceeds 79 chars; RUN statement cannot be split.
       RUN aiBuy(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
+      PRINT "trdChild: AI buy orders ok p="; p; " ordCnt="; ordCnt; " repay="; mgnRpy
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
         plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
+        PRINT "trdChild: AI buy repay applied p="; p
       ENDIF
       IF ordCnt > 0 THEN
         RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
+        PRINT "trdChild: AI buy apply ok p="; p
       ENDIF
 
       FOR tInt := 1 TO ordCnt
@@ -181,6 +192,7 @@ FOR p := 1 TO iPCnt
       ENDIF
       actByt := 2
       RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, decCnt)
+      PRINT "trdChild: AI buy summary ok p="; p
 
     ENDIF
   ENDIF
