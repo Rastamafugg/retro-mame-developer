@@ -557,7 +557,7 @@ DIM ordCnt     : INTEGER
 DIM mgnRpy     : INTEGER
 DIM tNum       : INTEGER
 DIM i          : INTEGER
-DIM actByt     : BYTE
+DIM usrAct     : INTEGER
 DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM stepTxt    : STRING[24]
@@ -584,13 +584,13 @@ FOR i := 1 TO 3
 NEXT i
 ordCnt  := 0
 mgnRpy  := 0
-actByt  := 0
+usrAct  := 0
 mgnElig := FALSE
 mgnYrOk := FALSE
 
 stepTxt := "before scrBuy"
 PRINT "aiPrbHum: calling scrBuy"
-RUN scrBuy(1, plyr, mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+RUN scrBuy(1, plyr, mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, usrAct)
 PRINT "aiPrbHum: scrBuy returned ordCnt="; ordCnt; " repay="; mgnRpy
 
 IF mgnRpy > 0 THEN

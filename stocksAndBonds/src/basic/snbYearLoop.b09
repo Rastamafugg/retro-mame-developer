@@ -400,7 +400,7 @@ LOOP
         IF plyrs(p).plyrType = 1 THEN
 
           ! ---- Human sell phase ----------------------------
-          RUN scrSell(cYear, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actByt)
+          RUN scrSell(cYear, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actInt)
           IF ordCnt > 0 THEN
             RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
           ENDIF
@@ -495,7 +495,7 @@ LOOP
       IF plyrs(p).plyrType = 1 THEN
 
         ! ---- Human buy phase --------------------------------
-        RUN scrBuy(cYear, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+        RUN scrBuy(cYear, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actInt)
         IF mgnRpy > 0 THEN
           plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
           plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy

@@ -64,6 +64,7 @@ DIM pNam       : STRING[20]
 DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM actByt     : BYTE
+DIM usrAct     : INTEGER
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
 DIM p          : INTEGER
@@ -92,7 +93,7 @@ IF iCYr > 1 THEN
 
         ! Human sell phase.
         PRINT "trdChild: human sell start p="; p
-        RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, actByt)
+        RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, usrAct)
         PRINT "trdChild: human sell returned p="; p; " ordCnt="; ordCnt
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
@@ -145,7 +146,7 @@ FOR p := 1 TO iPCnt
       ! Human buy phase.
       PRINT "trdChild: human buy start p="; p
       ! Line exceeds 79 chars; RUN statement cannot be split.
-      RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, actByt)
+      RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, usrAct)
       PRINT "trdChild: human buy returned p="; p; " ordCnt="; ordCnt; " repay="; mgnRpy
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
@@ -261,7 +262,7 @@ PARAM ordType(12) : INTEGER
 PARAM ordId(12)   : INTEGER
 PARAM ordQty(12)  : INTEGER
 PARAM ordCnt      : INTEGER
-PARAM action      : BYTE
+PARAM action      : INTEGER
 DIM sNam(9) : STRING[14]
 DIM bDen(3) : INTEGER
 DIM i       : INTEGER
@@ -555,7 +556,7 @@ PARAM ordQty(12)    : INTEGER
 PARAM ordPurch(12)  : INTEGER
 PARAM ordCnt        : INTEGER
 PARAM mgnRepay      : INTEGER
-PARAM action        : BYTE
+PARAM action        : INTEGER
 DIM sNam(9)  : STRING[14]
 DIM bPar(3)  : INTEGER
 DIM simCash  : INTEGER
