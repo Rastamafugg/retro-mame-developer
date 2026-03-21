@@ -65,10 +65,10 @@ REPEAT
     hdr.maxYears   := 10
     hdr.plyrCount  := setupCnt  \ ! INTEGER->BYTE; 1-6 safe
     hdr.rollMode   := setupMode \ ! INTEGER->BYTE; 1-3 safe
-    hdr.currYear   := 1
+    hdr.currYear   := 0
     hdr.savedPhase := 0
     hdr.savedPlyr  := 1
-    hdr.gameStage  := 0
+    hdr.gameStage  := 1 \ ! GS_PREGM
     hdr.bnkrFlgs   := 0
     hdr.checksum   := 0
     menuAct := 1
@@ -342,8 +342,6 @@ PROCEDURE pgChild
 (*             from scrStart), writes nothing and ENDs;         *)
 (*             coordinator detects this via readHdr returning   *)
 (*             loadOK=FALSE (file not found).                  *)
-(*             Sets hdr.gameStage := GS_PREGM (1) before       *)
-(*             saving; snbSetup leaves gameStage = 0.          *)
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Writes SNBSTATE on normal exit via saveGame.    *)
@@ -373,10 +371,6 @@ RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
 IF menuAct = 3 THEN
   END
 ENDIF
-
-! Set gameStage to GS_PREGM before saving.
-! snbSetup leaves hdr.gameStage = 0; coordinator expects 1.
-hdr.gameStage := 1  \ ! GS_PREGM
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 END
