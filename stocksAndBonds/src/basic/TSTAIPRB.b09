@@ -390,6 +390,7 @@ TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:IN
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+TYPE ModuleHeader = syncByte1,syncByte2:BYTE;moduleSize:INTEGER;nameOffset:INTEGER;typeLanguage,attributes:BYTE;headerCheck:BYTE;execOffset:INTEGER;permStorageSize:INTEGER;moduleName:STRING[31]
 DIM plyr       : PlyrRec
 DIM mkt        : MktState
 DIM prof       : AIProfile
