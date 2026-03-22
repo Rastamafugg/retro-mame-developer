@@ -63,13 +63,16 @@ DIM modNam     : STRING[20]
 DIM gameOver   : BOOLEAN
 DIM runEndGame : BOOLEAN
 DIM ok         : BOOLEAN
+DIM debugLog   : BOOLEAN
 DIM i          : INTEGER
 
 ON ERROR GOTO 900
 
+debugLog := FALSE
+
 ! Load snbUtil as permanent resident for SNB's lifetime.
 modNam := "snbUtil"
-RUN ensureModule(modNam, FALSE, ok)
+RUN ensureModule(modNam, FALSE, debugLog, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to load snbUtil"
   END
@@ -78,20 +81,22 @@ ENDIF
 ! Check for stale SNBSTATE from a previous crashed session.
 RUN chkStale(wasStale)
 IF wasStale THEN
-  PRINT "SNB: stale SNBSTATE deleted"
+  IF debugLog THEN
+    PRINT "SNB: stale SNBSTATE deleted"
+  ENDIF
 ENDIF
 
 ! Ensure snbUtil and pgChild module are in the OS module
 ! directory before forking. forChild=TRUE uses F$NMLink /
 ! F$NMLoad.
 modNam := "snbUtil"
-RUN ensureModule(modNam, TRUE, ok)
+RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to ensure snbUtil for pgChild"
   END
 ENDIF
 modNam := "snbSetup"
-RUN ensureModule(modNam, TRUE, ok)
+RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to ensure snbSetup (pgChild)"
   END
@@ -101,7 +106,7 @@ ENDIF
 ! with currYear=0 (pre-game state; snbDividend will increment to
 ! 1 on first run). On user quit pgChild writes nothing;
 ! readHdr returns loadOK=FALSE and SNB exits below.
-RUN forkPhase("pgChild", exitStat)
+RUN forkPhase("pgChild", debugLog, exitStat)
 IF exitStat <> 0 THEN
   PRINT "SNB: pgChild failed exitStat="; exitStat
   END
@@ -145,19 +150,19 @@ LOOP
   ! bond interest only in Years 2-9 (Years 1 and 10 increment
   ! only, per spec Section 6). Always writes GS_YEAR (2).
   modNam := "snbUtil"
-  RUN ensureModule(modNam, TRUE, ok)
+  RUN ensureModule(modNam, TRUE, debugLog, ok)
   IF NOT ok THEN
     PRINT "SNB: failed to ensure snbUtil (snbDividend)"
     gameOver := TRUE
   ENDIF
   modNam := "snbDividend"
-  RUN ensureModule(modNam, TRUE, ok)
+  RUN ensureModule(modNam, TRUE, debugLog, ok)
   IF NOT ok THEN
     PRINT "SNB: failed to ensure snbDividend"
     gameOver := TRUE
   ENDIF
   IF NOT gameOver THEN
-    RUN forkPhase("snbDividend", exitStat)
+    RUN forkPhase("snbDividend", debugLog, exitStat)
     GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
   ENDIF
 
@@ -166,19 +171,19 @@ LOOP
   ! Displays S11-S15. Always writes GS_YEAR (2).
   IF NOT gameOver THEN
     modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbUtil (snbMarket)"
       gameOver := TRUE
     ENDIF
     modNam := "snbMarket"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbMarket"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
-      RUN forkPhase("snbMarket", exitStat)
+      RUN forkPhase("snbMarket", debugLog, exitStat)
       GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
     ENDIF
   ENDIF
@@ -188,19 +193,19 @@ LOOP
   ! writes GS_YEAR (2).
   IF NOT gameOver THEN
     modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbUtil (snbSell)"
       gameOver := TRUE
     ENDIF
     modNam := "snbSell"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbSell"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
-      RUN forkPhase("snbSell", exitStat)
+      RUN forkPhase("snbSell", debugLog, exitStat)
       GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
     ENDIF
   ENDIF
@@ -211,19 +216,19 @@ LOOP
   ! Otherwise GS_YEAR (2).
   IF NOT gameOver THEN
     modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbUtil (snbBuy)"
       gameOver := TRUE
     ENDIF
     modNam := "snbBuy"
-    RUN ensureModule(modNam, TRUE, ok)
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
       PRINT "SNB: failed to ensure snbBuy"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
-      RUN forkPhase("snbBuy", exitStat)
+      RUN forkPhase("snbBuy", debugLog, exitStat)
       GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
     ENDIF
   ENDIF
@@ -274,13 +279,13 @@ ENDIF
 ! Ensure snbUtil and snbEndGame module are in the OS module
 ! directory before forking.
 modNam := "snbUtil"
-RUN ensureModule(modNam, TRUE, ok)
+RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to ensure snbUtil for snbEndGame"
   END
 ENDIF
 modNam := "snbEndGame"
-RUN ensureModule(modNam, TRUE, ok)
+RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
   PRINT "SNB: failed to ensure snbEndGame"
   END
@@ -288,7 +293,7 @@ ENDIF
 
 ! Fork end-game child: loads SNBSTATE, computes wealth,
 ! displays winner.
-RUN forkPhase("snbEndGame", exitStat)
+RUN forkPhase("snbEndGame", debugLog, exitStat)
 IF exitStat <> 0 THEN
   PRINT "SNB: snbEndGame failed exitStat="; exitStat
 ENDIF
@@ -456,6 +461,7 @@ PROCEDURE forkPhase
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM childName : STRING[20]
+PARAM debugLog  : BOOLEAN
 PARAM exitStat  : INTEGER
 DIM regs        : Register
 DIM callCode    : BYTE
@@ -508,7 +514,9 @@ IF LAND(iCC, 1) = 1 THEN
   END
 ENDIF
 iChildIO := regs.a          \ ! stage child I/O number
-PRINT "forkPhase: forked "; childName; " childIO="; iChildIO
+IF debugLog THEN
+  PRINT "forkPhase: forked "; childName; " childIO="; iChildIO
+ENDIF
 
 ! --- F$Wait --------------------------------------------------
 ! Loop discards signal-delivery returns (iChildPID = 0);
@@ -540,7 +548,9 @@ ENDIF
 
 iStatus  := regs.b          \ ! stage child exit status
 exitStat := iStatus
-PRINT "forkPhase: "; childName; " exited PID="; iChildPID; " status="; iStatus
+IF debugLog THEN
+  PRINT "forkPhase: "; childName; " exited PID="; iChildPID; " status="; iStatus
+ENDIF
 END
 
 900 PRINT "forkPhase error ("; ERR; ")"
@@ -584,6 +594,7 @@ PROCEDURE ensureModule
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modNam   : STRING[20]
 PARAM forChild : BOOLEAN
+PARAM debugLog : BOOLEAN
 PARAM ok       : BOOLEAN
 DIM regs       : Register
 DIM namBuf(22) : BYTE    \ ! MSB-terminated name buffer
@@ -627,7 +638,9 @@ regs.x := ADDR(namBuf)
 RUN SysCall(linkCode, regs)
 iCC := regs.cc  \ ! stage BYTE -> INTEGER for LAND
 IF LAND(iCC, 1) = 0 THEN
-  PRINT "ensureModule: "; modNam; " already resident"
+  IF debugLog THEN
+    PRINT "ensureModule: "; modNam; " already resident"
+  ENDIF
   ok := TRUE
   END
 ENDIF
@@ -645,7 +658,9 @@ IF NOT ok THEN
   ENDIF
 
   ok := TRUE
-  PRINT "ensureModule: loaded: "; modNam
+  IF debugLog THEN
+    PRINT "ensureModule: loaded: "; modNam
+  ENDIF
 ENDIF
 END
 
