@@ -157,18 +157,24 @@ ELSE
 ENDIF
 END
 
-100 modNam := "snbUtil"
+100 PRINT "  block1: sub100 start"
+    modNam := "snbUtil"
+    PRINT "  block1: before ensure snbUtil"
     RUN ensureModule(modNam, TRUE, ok)
+    PRINT "  block1: after ensure snbUtil"
     IF NOT ok THEN
       PRINT "TSTTRDSP: failed to ensure snbUtil"
       END
     ENDIF
     modNam := "snbSell"
+    PRINT "  block1: before ensure snbSell"
     RUN ensureModule(modNam, TRUE, ok)
+    PRINT "  block1: after ensure snbSell"
     IF NOT ok THEN
       PRINT "TSTTRDSP: failed to ensure snbSell"
       END
     ENDIF
+    PRINT "  block1: sub100 return"
     RETURN
 
 200 modNam := "snbUtil"
