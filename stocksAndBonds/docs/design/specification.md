@@ -254,7 +254,10 @@ Final year (`year = maxYears`) differences:
 - No new margin purchases may be made (Step 10 restricted).
 - All outstanding margin must be cleared before the end-of-game wealth
   calculation.
-- After Step 11: compute final wealth for all players.
+- After Step 11: perform one closing market draw using a new Situation Card
+  and dice roll(s), resolved the same way as a normal market step, to post
+  final prices.
+- After that closing-price draw: compute final wealth for all players.
 
 ---
 
@@ -462,7 +465,8 @@ final year. Single-player games do not use this prompt.
 
 ## 13. End of Game (Final Year)
 
-After final prices are posted for the configured final year:
+After the configured final year ends, one closing-price draw is resolved and
+those closing prices are posted:
 
 ```
 totalWealth =

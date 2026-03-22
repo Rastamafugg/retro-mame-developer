@@ -3,8 +3,8 @@ PROCEDURE TSTFKPGSER
 (* PROCEDURE : TSTFKPGSER                                       *)
 (* PURPOSE   : S3 pre-game serialization test. Ensures          *)
 (*             snbUtil, snbSaveLoad, snbSetup (which contains   *)
-(*             pgChild and serPG) are resident. Opens /pipe,    *)
-(*             redirects child stdout to pipe, forks pgChild    *)
+(*             snbSetup and setup) are resident. Opens /pipe,   *)
+(*             redirects child stdout to pipe, forks snbSetup   *)
 (*             via RunB, waits, reads 179-byte ForkPG payload   *)
 (*             from pipe, and spot-checks known-constant fields. *)
 (*             No deserialization or reconstruction in this step.*)
@@ -49,9 +49,9 @@ DIM pthBuf(8)   : BYTE  \ ! "/pipe" + CR
 DIM utilBuf(10) : BYTE  \ ! "snbUtil" hi-bit terminated
 DIM slBuf(14)   : BYTE  \ ! "snbSaveLoad" hi-bit terminated
 DIM setupBuf(12): BYTE  \ ! "snbSetup" hi-bit terminated
-DIM cldBuf(10)  : BYTE  \ ! "pgChild" hi-bit terminated
+DIM cldBuf(11)  : BYTE  \ ! "snbSetup" hi-bit terminated
 DIM runbBuf(6)  : BYTE  \ ! "RunB" hi-bit terminated
-DIM paramBuf(12): BYTE  \ ! "pgChild" + CR (8 bytes)
+DIM paramBuf(12): BYTE  \ ! "snbSetup" + CR
 DIM rdBuf(180)  : BYTE  \ ! read buffer; payload at indices 1..179
 DIM iSave       : INTEGER \ ! staged savedOut for display
 DIM i           : INTEGER \ ! loop index
@@ -105,27 +105,29 @@ setupBuf(6) := ASC("t")
 setupBuf(7) := ASC("u")
 setupBuf(8) := LOR(ASC("p"), $80)
 
-cldBuf(1) := ASC("p")
-cldBuf(2) := ASC("g")
-cldBuf(3) := ASC("C")
-cldBuf(4) := ASC("h")
-cldBuf(5) := ASC("i")
-cldBuf(6) := ASC("l")
-cldBuf(7) := LOR(ASC("d"), $80)
+cldBuf(1) := ASC("s")
+cldBuf(2) := ASC("n")
+cldBuf(3) := ASC("b")
+cldBuf(4) := ASC("S")
+cldBuf(5) := ASC("e")
+cldBuf(6) := ASC("t")
+cldBuf(7) := ASC("u")
+cldBuf(8) := LOR(ASC("p"), $80)
 
 runbBuf(1) := ASC("R")
 runbBuf(2) := ASC("u")
 runbBuf(3) := ASC("n")
 runbBuf(4) := LOR(ASC("B"), $80)
 
-paramBuf(1) := ASC("p")
-paramBuf(2) := ASC("g")
-paramBuf(3) := ASC("C")
-paramBuf(4) := ASC("h")
-paramBuf(5) := ASC("i")
-paramBuf(6) := ASC("l")
-paramBuf(7) := ASC("d")
-paramBuf(8) := $0D         \ ! CR terminates RunB argument
+paramBuf(1) := ASC("s")
+paramBuf(2) := ASC("n")
+paramBuf(3) := ASC("b")
+paramBuf(4) := ASC("S")
+paramBuf(5) := ASC("e")
+paramBuf(6) := ASC("t")
+paramBuf(7) := ASC("u")
+paramBuf(8) := ASC("p")
+paramBuf(9) := $0D         \ ! CR terminates RunB argument
 
 PRINT "TSTFKPGSER: S3 pre-game serialization test"
 
@@ -179,8 +181,8 @@ ELSE
   PRINT "PASS [2]: snbSaveLoad already resident"
 ENDIF
 
-! --- Block 3: Ensure snbSetup resident (includes pgChild, ---
-! serPG, initPlayer, initMkt, scrStart, scrSetup, scrConfirm).
+! --- Block 3: Ensure snbSetup resident (includes snbSetup, ---
+! setup, initPlayer, initMkt, scrStart, scrSetup, scrConfirm).
 PRINT "TSTFKPGSER: [3] checking snbSetup"
 callCode := $21
 regs.a   := 0
@@ -205,8 +207,8 @@ ELSE
   PRINT "PASS [3]: snbSetup already resident"
 ENDIF
 
-! --- Block 4: Confirm pgChild linkable -----------------------
-PRINT "TSTFKPGSER: [4] confirm pgChild linkable"
+! --- Block 4: Confirm snbSetup linkable ----------------------
+PRINT "TSTFKPGSER: [4] confirm snbSetup linkable"
 callCode := $21
 regs.a   := 0
 regs.x   := ADDR(cldBuf)
@@ -214,11 +216,11 @@ RUN SysCall(callCode, regs)
 iCC := regs.cc
 IF LAND(iCC, 1) = 1 THEN
   iErr := regs.b
-  PRINT "FAIL [4]: pgChild not in module dir err="; iErr
+  PRINT "FAIL [4]: snbSetup not in module dir err="; iErr
   failCnt := failCnt + 1
   GOTO 800
 ENDIF
-PRINT "PASS [4]: pgChild linkable"
+PRINT "PASS [4]: snbSetup linkable"
 
 RUN waitKey
 
@@ -267,12 +269,12 @@ RUN SysCall(callCode, regs)
 ccDup2   := regs.cc
 eDup2    := regs.b
 
-! --- Step D: F$Fork RunB / pgChild ---------------------------
+! --- Step D: F$Fork RunB / snbSetup --------------------------
 callCode := $03
 regs.a   := 0               \ ! any language/type
 regs.b   := 4               \ ! 4 data pages for child
 regs.x   := ADDR(runbBuf)
-regs.y   := 8               \ ! "pgChild" + CR
+regs.y   := 9               \ ! "snbSetup" + CR
 regs.u   := ADDR(paramBuf)
 RUN SysCall(callCode, regs)
 ccFork   := regs.cc

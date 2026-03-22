@@ -1,100 +1,37 @@
 PROCEDURE snbSetup
 (* ================================================== *)
 (* PROCEDURE: snbSetup                                *)
-(* PURPOSE:   Pre-game orchestrator (PH-01 to PH-03) *)
-(*            Loops S1 until a confirmed selection.  *)
-(*            menuAct=1: new game; out params set.   *)
-(*            menuAct=2: load ok; out params set.    *)
-(*            menuAct=3: quit; out params undefined. *)
-(*            On load failure, loops back to S1.     *)
-(* PARAMS:    menuAct   - 1=NewGame 2=Load 3=Quit    *)
-(*            hdr       - game header (out)           *)
-(*            deckOrd   - shuffled deck order (out)  *)
-(*            plyrs     - player records (out)        *)
-(*            mkt       - market state (out)          *)
-(* SIDE EFX  : Clears screen. Modifies out params.  *)
+(* PURPOSE:   Pre-game child process entry point.    *)
+(*            Allocates local game state, runs the   *)
+(*            full setup flow via setup, then writes *)
+(*            SNBSTATE via saveGame if the user did  *)
+(*            not quit. If menuAct = 3, writes       *)
+(*            nothing and ENDs.                      *)
+(* PARAMS:    None                                    *)
+(* SIDE EFX  : Writes SNBSTATE on normal exit.       *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM menuAct     : INTEGER
-PARAM hdr         : SaveHdr
-PARAM deckOrd(36) : BYTE
-PARAM plyrs(6)    : PlyrRec
-PARAM mkt         : MktState
-DIM action       : INTEGER
-DIM cfmAct       : INTEGER
-DIM setupCnt     : INTEGER
-DIM setupMode    : INTEGER
-DIM setupTyp(6)  : INTEGER
-DIM setupTier(6) : INTEGER
-DIM setupNam(6)  : STRING[20]
-DIM savPath      : STRING[20]
-DIM loadOK       : BOOLEAN
-DIM done         : BOOLEAN
-DIM i            : INTEGER
+DIM menuAct    : INTEGER
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
 
 ON ERROR GOTO 900
 
-done    := FALSE
 menuAct := 0
 
-REPEAT
-  RUN scrStart(action)
-  IF action = 3 THEN
-    menuAct := 3
-    done    := TRUE
-  ELSE IF action = 1 THEN
-    cfmAct := 0
-    REPEAT
-      RUN scrSetup(setupCnt, setupTyp, setupNam, setupTier, setupMode)
-      RUN scrConfirm(setupCnt, setupTyp, setupNam, setupTier, setupMode, cfmAct)
-    UNTIL cfmAct = 1
-    FOR i := 1 TO 6
-      RUN initPlayer(plyrs(i))
-    NEXT i
-    FOR i := 1 TO setupCnt
-      plyrs(i).plyrName := setupNam(i)
-      plyrs(i).plyrType := setupTyp(i) \ ! INTEGER->BYTE; 1-2 safe
-      IF setupTyp(i) = 2 THEN
-        IF setupTier(i) < 1 OR setupTier(i) > 3 THEN
-          plyrs(i).aiTier := 2  \ ! Invalid tier falls back to Medium
-        ELSE
-          plyrs(i).aiTier := setupTier(i) \ ! INTEGER->BYTE; 1-3 safe
-        ENDIF
-      ELSE
-        plyrs(i).aiTier := 0
-      ENDIF
-    NEXT i
-    RUN initMkt(mkt)
-    RUN shuffleDeck(deckOrd)
-    hdr.magic      := $53
-    hdr.fmtVersion := 1
-    hdr.maxYears   := 10
-    hdr.plyrCount  := setupCnt  \ ! INTEGER->BYTE; 1-6 safe
-    hdr.rollMode   := setupMode \ ! INTEGER->BYTE; 1-3 safe
-    hdr.currYear   := 0
-    hdr.savedPhase := 0
-    hdr.savedPlyr  := 1
-    hdr.gameStage  := 1 \ ! GS_PREGM
-    hdr.bnkrFlgs   := 0
-    hdr.checksum   := 0
-    menuAct := 1
-    done    := TRUE
-  ELSE
-    savPath := "SNBGAME"
-    RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
-    IF loadOK THEN
-      menuAct := 2
-      done    := TRUE
-    ELSE
-      PRINT "Load failed. Press any key to return to menu."
-      RUN waitKey
-    ENDIF
-  ENDIF \ENDIF
-UNTIL done
+RUN setup(menuAct, hdr, deckOrd, plyrs, mkt)
+
+IF menuAct = 3 THEN
+  END
+ENDIF
+
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 END
 
 900 PRINT "snbSetup error ("; ERR; ")"
@@ -359,47 +296,105 @@ END
 900 PRINT "scrConfirm error ("; ERR; ")"
 END
 
-PROCEDURE pgChild
+PROCEDURE setup
 (* ============================================================ *)
-(* PROCEDURE : pgChild                                          *)
-(* PURPOSE   : Pre-game child process entry point. Allocates   *)
-(*             local game state, runs the full setup flow via   *)
-(*             snbSetup, then writes SNBSTATE via saveGame if  *)
-(*             the user did not quit. If menuAct = 3 (quit     *)
-(*             from scrStart), writes nothing and ENDs;         *)
-(*             coordinator detects this via readHdr returning   *)
-(*             loadOK=FALSE (file not found).                  *)
-(*             Called by the SNB coordinator via forkPhase.    *)
-(* PARAMS    : None (child process; no PARAM handoff)          *)
-(* SIDE EFX  : Writes SNBSTATE on normal exit via saveGame.    *)
-(*             Writes nothing on quit.                         *)
-(* NOTE      : snbUtil must be pre-loaded by coordinator.      *)
+(* PROCEDURE : setup                                            *)
+(* PURPOSE   : Pre-game orchestrator (PH-01 to PH-03).         *)
+(*             Loops S1 until a confirmed selection.           *)
+(*             menuAct=1: new game; out params set.            *)
+(*             menuAct=2: load ok; out params set.             *)
+(*             menuAct=3: quit; out params undefined.          *)
+(*             On load failure, loops back to S1.              *)
+(* PARAMS    : menuAct   - 1=NewGame 2=Load 3=Quit             *)
+(*             hdr       - game header (out)                   *)
+(*             deckOrd   - shuffled deck order (out)           *)
+(*             plyrs     - player records (out)                *)
+(*             mkt       - market state (out)                  *)
+(* SIDE EFX  : Clears screen. Modifies out params.             *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-DIM menuAct    : INTEGER
-DIM hdr        : SaveHdr
-DIM deckOrd(36): BYTE
-DIM plyrs(6)   : PlyrRec
-DIM mkt        : MktState
+PARAM menuAct     : INTEGER
+PARAM hdr         : SaveHdr
+PARAM deckOrd(36) : BYTE
+PARAM plyrs(6)    : PlyrRec
+PARAM mkt         : MktState
+DIM action       : INTEGER
+DIM cfmAct       : INTEGER
+DIM setupCnt     : INTEGER
+DIM setupMode    : INTEGER
+DIM setupTyp(6)  : INTEGER
+DIM setupTier(6) : INTEGER
+DIM setupNam(6)  : STRING[20]
+DIM savPath      : STRING[20]
+DIM loadOK       : BOOLEAN
+DIM done         : BOOLEAN
+DIM i            : INTEGER
 
 ON ERROR GOTO 900
 
 menuAct := 0
 
-RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
+done    := FALSE
 
-! If user quit from scrStart, write nothing.
-! Coordinator detects absence of SNBSTATE via readHdr loadOK=FALSE.
-IF menuAct = 3 THEN
-  END
-ENDIF
-
-RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+REPEAT
+  RUN scrStart(action)
+  IF action = 3 THEN
+    menuAct := 3
+    done    := TRUE
+  ELSE IF action = 1 THEN
+    cfmAct := 0
+    REPEAT
+      RUN scrSetup(setupCnt, setupTyp, setupNam, setupTier, setupMode)
+      RUN scrConfirm(setupCnt, setupTyp, setupNam, setupTier, setupMode, cfmAct)
+    UNTIL cfmAct = 1
+    FOR i := 1 TO 6
+      RUN initPlayer(plyrs(i))
+    NEXT i
+    FOR i := 1 TO setupCnt
+      plyrs(i).plyrName := setupNam(i)
+      plyrs(i).plyrType := setupTyp(i) \ ! INTEGER->BYTE; 1-2 safe
+      IF setupTyp(i) = 2 THEN
+        IF setupTier(i) < 1 OR setupTier(i) > 3 THEN
+          plyrs(i).aiTier := 2  \ ! Invalid tier falls back to Medium
+        ELSE
+          plyrs(i).aiTier := setupTier(i) \ ! INTEGER->BYTE; 1-3 safe
+        ENDIF
+      ELSE
+        plyrs(i).aiTier := 0
+      ENDIF
+    NEXT i
+    RUN initMkt(mkt)
+    RUN shuffleDeck(deckOrd)
+    hdr.magic      := $53
+    hdr.fmtVersion := 1
+    hdr.maxYears   := 10
+    hdr.plyrCount  := setupCnt  \ ! INTEGER->BYTE; 1-6 safe
+    hdr.rollMode   := setupMode \ ! INTEGER->BYTE; 1-3 safe
+    hdr.currYear   := 0
+    hdr.savedPhase := 0
+    hdr.savedPlyr  := 1
+    hdr.gameStage  := 1 \ ! GS_PREGM
+    hdr.bnkrFlgs   := 0
+    hdr.checksum   := 0
+    menuAct := 1
+    done    := TRUE
+  ELSE
+    savPath := "SNBGAME"
+    RUN loadGame(savPath, hdr, deckOrd, plyrs, mkt, loadOK)
+    IF loadOK THEN
+      menuAct := 2
+      done    := TRUE
+    ELSE
+      PRINT "Load failed. Press any key to return to menu."
+      RUN waitKey
+    ENDIF
+  ENDIF \ENDIF
+UNTIL done
 END
 
-900 PRINT "pgChild error ("; ERR; ")"
+900 PRINT "setup error ("; ERR; ")"
 END

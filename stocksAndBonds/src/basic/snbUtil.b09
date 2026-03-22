@@ -258,8 +258,8 @@ PROCEDURE saveGame
 (*             Computes bnkrFlgs from plyrs.isBankrupt and      *)
 (*             checksum from all 10 non-checksum header fields  *)
 (*             before writing. Overwrites existing file if      *)
-(*             present. Writes only hdr.maxYears deck entries   *)
-(*             (trimmed deck).                                  *)
+(*             present. Writes only hdr.maxYears + 1 deck       *)
+(*             entries (trimmed deck).                          *)
 (*                                                             *)
 (*             CALLER MUST SET before calling:                  *)
 (*               hdr.magic, hdr.fmtVersion, hdr.maxYears,       *)
@@ -283,7 +283,7 @@ PROCEDURE saveGame
 (* PARAMS    : savePath  - target filename (max 20 chars)       *)
 (*             hdr       - SaveHdr; bnkrFlgs+checksum set here  *)
 (*             deckOrd   - shuffled deck array (36 BYTE);       *)
-(*                         only indices 1..maxYears written     *)
+(*                         only indices 1..maxYears+1 written   *)
 (*             plyrs     - all 6 player records                  *)
 (*             mkt       - current market state                  *)
 (* SIDE EFX  : Creates or replaces savePath on disk.           *)
@@ -305,6 +305,7 @@ DIM iFlgs     : INTEGER  \ ! stages hdr.bnkrFlgs BYTE for LOR
 DIM shft      : INTEGER  \ ! bit mask; doubles each player iteration
 DIM chkSum    : INTEGER  \ ! checksum accumulator
 DIM iMaxYr    : INTEGER  \ ! stages hdr.maxYears BYTE for FOR bound
+DIM iDeckCnt  : INTEGER  \ ! count of deck entries to persist
 DIM iPlyrCnt  : INTEGER  \ ! stages hdr.plyrCount BYTE for FOR bound
 DIM i         : INTEGER
 
@@ -347,10 +348,15 @@ pathOpen := TRUE
 
 PUT #path, hdr
 
-! Write only the first maxYears deck entries (trimmed deck).
-! Full array is 36 elements; only 1..maxYears were in play.
+! Write only the first maxYears+1 deck entries (trimmed deck).
+! Entries 1..maxYears cover annual draws; maxYears+1 covers the
+! closing-price draw after the final year.
 iMaxYr := hdr.maxYears \ ! stage BYTE to INTEGER for FOR bound
-FOR i := 1 TO iMaxYr
+iDeckCnt := iMaxYr + 1
+IF iDeckCnt > 36 THEN
+  iDeckCnt := 36
+ENDIF
+FOR i := 1 TO iDeckCnt
   PUT #path, deckOrd(i)
 NEXT i
 
@@ -376,13 +382,13 @@ PROCEDURE loadGame
 (*             and checksum before applying state. Returns      *)
 (*             loadOK=FALSE on any validation failure.          *)
 (*             Deck section is variable-length: reads exactly   *)
-(*             hdr.maxYears entries from the file.             *)
+(*             hdr.maxYears + 1 entries from the file.         *)
 (*                                                             *)
 (* PARAMS    : savePath  - source filename (max 20 chars)       *)
 (*             hdr       - receives SaveHdr on success          *)
 (*             deckOrd   - receives deck order; only indices    *)
-(*                         1..maxYears populated from disk;    *)
-(*                         indices above maxYears unchanged     *)
+(*                         1..maxYears+1 populated from disk;  *)
+(*                         indices above that remain unchanged  *)
 (*             plyrs     - receives all 6 player records        *)
 (*             mkt       - receives market state                *)
 (*             loadOK    - TRUE on success, FALSE on any error  *)
@@ -403,6 +409,7 @@ DIM path      : BYTE
 DIM pathOpen  : BOOLEAN
 DIM chkExp    : INTEGER  \ ! expected checksum accumulator
 DIM iMaxYr    : INTEGER  \ ! stages hdr.maxYears BYTE for FOR bound
+DIM iDeckCnt  : INTEGER  \ ! count of deck entries to read
 DIM i         : INTEGER
 
 ON ERROR GOTO 900
@@ -443,10 +450,14 @@ IF chkExp <> hdr.checksum THEN
 ENDIF
 
 ! --- Step 2: Read trimmed deck section -----------------------
-! Only hdr.maxYears entries were written; read exactly that many.
-! Indices above maxYears in the live deckOrd array are unchanged.
+! Only hdr.maxYears+1 entries were written; read exactly that many.
+! Indices above that range in the live deckOrd array are unchanged.
 iMaxYr := hdr.maxYears \ ! stage BYTE to INTEGER for FOR bound
-FOR i := 1 TO iMaxYr
+iDeckCnt := iMaxYr + 1
+IF iDeckCnt > 36 THEN
+  iDeckCnt := 36
+ENDIF
+FOR i := 1 TO iDeckCnt
   GET #path, deckOrd(i)
 NEXT i
 

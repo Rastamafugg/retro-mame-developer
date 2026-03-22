@@ -98,7 +98,7 @@ NEXT i
 ! ==========================================================
 PRINT "Block 1: Year 1 (increment only; no dividends)"
 
-hdr.currYear         := 0  \ ! pre-game state from pgChild
+hdr.currYear         := 0  \ ! pre-game state from snbSetup
 plyrs(1).cashBal     := 5000
 FOR i := 1 TO 9
   plyrs(1).stckShrs(i) := 0

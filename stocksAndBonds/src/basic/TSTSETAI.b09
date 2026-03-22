@@ -2,7 +2,7 @@ PROCEDURE TSTSETAI
 (* ================================================== *)
 (* PROCEDURE: TSTSETAI                                *)
 (* PURPOSE:   Manual setup-path harness for AI tier   *)
-(*            selection. Runs real snbSetup, then     *)
+(*            selection. Runs real setup, then        *)
 (*            verifies the returned player records     *)
 (*            match a fixed test script.              *)
 (*                                                    *)
@@ -61,7 +61,7 @@ IF NOT ok THEN
 ENDIF
 
 menuAct := 0
-RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
+RUN setup(menuAct, hdr, deckOrd, plyrs, mkt)
 
 PRINT
 PRINT "Returned values:"
@@ -113,7 +113,7 @@ END
 PROCEDURE waitKey
 (* ================================================== *)
 (* PROCEDURE: waitKey                                 *)
-(* PURPOSE:   Pause before launching snbSetup.        *)
+(* PURPOSE:   Pause before launching setup.           *)
 (* NOTE:      Local copy; do not pack with snbUtil.   *)
 (* ================================================== *)
 DIM k : STRING[1]

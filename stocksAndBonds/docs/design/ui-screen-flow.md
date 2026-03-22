@@ -44,7 +44,7 @@ are not renumbered.
 | S21 | Forced Liquidation                | S10 negative cash; S20 margin call                |
 | S22 | Bankruptcy Declaration            | S21 unresolvable obligation                       |
 | S23 | Margin Clearance Required         | Final year when marginTotal > 0                   |
-| S24 | Final Market Board                | Final-year Step 8 completion                      |
+| S24 | Final Market Board                | Closing-price draw completion after final year   |
 | S25 | Final Wealth Summary              | S24                                               |
 | S26 | Winner Declaration                | S25                                               |
 | S27 | Post-Game Menu                    | S26                                               |
@@ -432,8 +432,8 @@ IN:  stocks[] : ARRAY of {stockName: STRING, finalPrice: INTEGER}
 OUT: action : ENUM{CONTINUE}
 ```
 
-No dividends or interest are displayed. Prices reflect post-resolution values
-after final-year Steps 6–8.
+No dividends or interest are displayed. Prices reflect the separate closing
+market draw resolved after the final year's buy phase.
 
 ---
 
@@ -641,7 +641,8 @@ game, route to S28 for the project-defined lone-survivor decision.
 - Margin purchases are prohibited in S17 and S19.
 - S23 (margin clearance) is enforced before final wealth is computed for any
   player with `marginTotal > 0`.
-- After Step 11, engine computes final wealth and routes to S24.
+- After Step 11, engine performs one closing market draw, then routes to S24
+  with those closing prices before computing final wealth.
 
 ### Lone Survivor Rule
 

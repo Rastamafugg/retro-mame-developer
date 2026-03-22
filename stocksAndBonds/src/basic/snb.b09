@@ -4,7 +4,7 @@ PROCEDURE snb
 (* PURPOSE:   Application coordinator.                *)
 (*            Loads snbUtil as permanent resident.   *)
 (*            Deletes stale SNBSTATE if present.     *)
-(*            Forks pgChild (pre-game setup).        *)
+(*            Forks snbSetup (pre-game setup).       *)
 (*            Year loop: forks four phase children   *)
 (*            per year in sequence:                  *)
 (*              snbDividend - year increment; dividend *)
@@ -15,13 +15,16 @@ PROCEDURE snb
 (*              snbMarket  - market resolution        *)
 (*              snbSell    - sell phase               *)
 (*              snbBuy     - buy phase                *)
-(*            Forks snbEndGame (end-game screens).   *)
+(*            After the configured final year buy    *)
+(*            phase, forks one closing snbMarket     *)
+(*            pass to determine final prices, then   *)
+(*            forks snbEndGame (end-game screens).   *)
 (*            Before each fork: ensures required     *)
 (*            modules are in the OS module directory  *)
 (*            via ensureModule(forChild=TRUE).        *)
 (*                                                   *)
 (*            currYear convention:                   *)
-(*              pgChild writes currYear=0.           *)
+(*              snbSetup writes currYear=0.          *)
 (*              snbDividend increments at start of   *)
 (*              run,                                 *)
 (*              before doing any other work. So after *)
@@ -35,8 +38,13 @@ PROCEDURE snb
 (*              2 = GS_YEAR  : phase complete, ok    *)
 (*              3 = GS_DONE  : game over             *)
 (*                                                   *)
-(*            On GS_DONE from any child: exits year  *)
-(*            loop and forks snbEndGame immediately. *)
+(*            On GS_DONE from snbBuy in the final    *)
+(*            year: exits the year loop, runs one    *)
+(*            closing market pass, then forks        *)
+(*            snbEndGame.                            *)
+(*            On GS_DONE from any other child: exits *)
+(*            year loop and forks snbEndGame         *)
+(*            immediately.                           *)
 (*            On coordinator/child failure: prints   *)
 (*            diagnostics and exits without           *)
 (*            snbEndGame                              *)
@@ -62,6 +70,7 @@ DIM activePlrs : INTEGER  \ ! plyrCount - bankrCnt
 DIM modNam     : STRING[20]
 DIM gameOver   : BOOLEAN
 DIM runEndGame : BOOLEAN
+DIM doClsgMkt  : BOOLEAN
 DIM ok         : BOOLEAN
 DIM debugLog   : BOOLEAN
 DIM i          : INTEGER
@@ -86,50 +95,50 @@ IF wasStale THEN
   ENDIF
 ENDIF
 
-! Ensure snbUtil and pgChild module are in the OS module
+! Ensure snbUtil and snbSetup module are in the OS module
 ! directory before forking. forChild=TRUE uses F$NMLink /
 ! F$NMLoad.
 modNam := "snbUtil"
 RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbUtil for pgChild"
+  PRINT "SNB: failed to ensure snbUtil for snbSetup"
   END
 ENDIF
 modNam := "snbSetup"
 RUN ensureModule(modNam, TRUE, debugLog, ok)
 IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbSetup (pgChild)"
+  PRINT "SNB: failed to ensure snbSetup child"
   END
 ENDIF
 
 ! Fork pre-game child: runs setup screens, writes SNBSTATE
 ! with currYear=0 (pre-game state; snbDividend will increment to
-! 1 on first run). On user quit pgChild writes nothing;
+! 1 on first run). On user quit snbSetup writes nothing;
 ! readHdr returns loadOK=FALSE and SNB exits below.
-RUN forkPhase("pgChild", debugLog, exitStat)
+RUN forkPhase("snbSetup", debugLog, exitStat)
 IF exitStat <> 0 THEN
-  PRINT "SNB: pgChild failed exitStat="; exitStat
+  PRINT "SNB: snbSetup failed exitStat="; exitStat
   END
 ENDIF
 
-! Read header written by pgChild.
+! Read header written by snbSetup.
 RUN readHdr(hdr, loadOK)
 IF NOT loadOK THEN
   ! No SNBSTATE: user quit from pre-game menu.
   END
 ENDIF
 
-! Confirm pgChild wrote GS_PREGM (1).
-! Any other value indicates an unexpected pgChild exit state.
+! Confirm snbSetup wrote GS_PREGM (1).
+! Any other value indicates an unexpected snbSetup exit state.
 iGSt := hdr.gameStage  \ ! stage BYTE
 IF iGSt <> 1 THEN
-  PRINT "SNB: unexpected gameStage after pgChild: "; iGSt
+  PRINT "SNB: unexpected gameStage after snbSetup: "; iGSt
   END
 ENDIF
 
 ! Read initial values from header.
-! iCYr=0 after pgChild; snbDividend will increment to 1 on first run.
-iCYr   := hdr.currYear  \ ! stage BYTE; 0 from pgChild
+! iCYr=0 after snbSetup; snbDividend will increment to 1 on first run.
+iCYr   := hdr.currYear  \ ! stage BYTE; 0 from snbSetup
 iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 
 ! ---- Coordinator year loop ----------------------------------
@@ -139,6 +148,7 @@ iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 ! year.
 gameOver := FALSE
 runEndGame := FALSE
+doClsgMkt := FALSE
 
 LOOP
 
@@ -274,6 +284,30 @@ ENDLOOP
 IF NOT runEndGame THEN
   PRINT "SNB: coordinator stopped before end-game phase"
   END
+ENDIF
+
+IF iCYr >= iMaxYr THEN
+  doClsgMkt := TRUE
+ENDIF
+
+IF doClsgMkt THEN
+  modNam := "snbUtil"
+  RUN ensureModule(modNam, TRUE, debugLog, ok)
+  IF NOT ok THEN
+    PRINT "SNB: failed to ensure snbUtil (closing snbMarket)"
+    END
+  ENDIF
+  modNam := "snbMarket"
+  RUN ensureModule(modNam, TRUE, debugLog, ok)
+  IF NOT ok THEN
+    PRINT "SNB: failed to ensure snbMarket (closing draw)"
+    END
+  ENDIF
+  RUN forkPhase("snbMarket", debugLog, exitStat)
+  IF exitStat <> 0 THEN
+    PRINT "SNB: closing snbMarket failed exitStat="; exitStat
+    END
+  ENDIF
 ENDIF
 
 ! Ensure snbUtil and snbEndGame module are in the OS module

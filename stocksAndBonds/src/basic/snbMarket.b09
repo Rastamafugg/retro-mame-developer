@@ -5,7 +5,10 @@ PROCEDURE snbMarket
 (*             Draws the situation card, generates dice rolls,  *)
 (*             resolves all stock prices, applies Card 1        *)
 (*             dividend bonus (Years 2-9), and displays         *)
-(*             S11-S15. Always writes gameStage=GS_YEAR (2).   *)
+(*             S11-S15. When called after final-year GS_DONE,  *)
+(*             it performs the one closing-price draw using    *)
+(*             the next card slot beyond the last played year. *)
+(*             Always writes gameStage=GS_YEAR (2).            *)
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Reads and writes SNBSTATE. Modifies             *)
@@ -77,9 +80,15 @@ iRMode := hdr.rollMode   \ ! stage BYTE
 
 ! Draw and decode the situation card for this year.
 ! deckOrd is indexed by deckPos; drawCard advances it and
-! reshuffles when exhausted. Use currYear as deck position
-! proxy: each year consumes one card in sequence.
-iDkPos := iCYr  \ ! deck position = current year (1..10)
+! reshuffles when exhausted. During the normal year loop use
+! currYear as the card slot. After final-year GS_DONE, use the
+! next slot to perform the closing-price draw before endgame.
+iDkPos := iCYr
+IF hdr.gameStage = 3 THEN
+  IF iCYr >= iMaxYr THEN
+    iDkPos := iCYr + 1
+  ENDIF
+ENDIF
 RUN drawCard(deckOrd, iDkPos, cardId)
 RUN getCard(cardId, crd)
 

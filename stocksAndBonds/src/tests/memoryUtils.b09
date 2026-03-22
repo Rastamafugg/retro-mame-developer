@@ -155,6 +155,7 @@ DATA "waitKey","snbUtil","","","","","","","","","",""
 DATA "getNumIn","snbUtil","","","","","","","","","",""
 ! --- snbSetup (deps: snbUtil, snbSaveLoad) ---
 DATA "snbSetup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
+DATA "setup","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
 DATA "initPlayer","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
 DATA "initMkt","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
 DATA "scrStart","snbSetup","snbUtil","snbSaveLoad","","","","","","","",""
@@ -291,9 +292,9 @@ END
 ! --- snbUtil (8 procs: entry + 7) ---
 100 DATA "snbUtil","clrScr","printAt","fmtMoney","getMenuKey"
 DATA "waitKey","getNumIn","shuffleDeck","","","",""
-! --- snbSetup (6 procs: entry + 5) ---
-DATA "snbSetup","initPlayer","initMkt","scrStart","scrSetup"
-DATA "scrConfirm","","","","","",""
+! --- snbSetup (7 procs: entry + 6) ---
+DATA "snbSetup","setup","initPlayer","initMkt","scrStart"
+DATA "scrSetup","scrConfirm","","","","",""
 ! --- snbSaveLoad (3 procs: entry + 2) ---
 DATA "snbSaveLoad","saveGame","loadGame","","","","","","","","",""
 ! --- snbEndGame (5 procs: entry + 4) ---

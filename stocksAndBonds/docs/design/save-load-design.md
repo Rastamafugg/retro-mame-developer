@@ -27,9 +27,11 @@ The save file format serves two purposes:
    identical file format. See `phase-child-design.md` for the current
    coordinator design.
 
-The shuffled deck is trimmed on first write. Only the first `maxYears`
-entries of the 36-element deck are written to disk. Entries beyond
-`maxYears` are never drawn during play and are not persisted.
+The shuffled deck is trimmed on first write. Only the first
+`maxYears + 1` entries of the 36-element deck are written to disk.
+Entries `1..maxYears` cover the annual market draws, and entry
+`maxYears + 1` is reserved for the closing-price draw after the final
+year.
 
 `maxYears = 10` is the default, rules-faithful game length. Other values are a
 project extension and must not change the rules behavior when `maxYears = 10`.
@@ -111,6 +113,8 @@ resolution sequence (S11–S15) as if the year is beginning fresh.
 The final year is not treated specially for save format purposes. If
 `currYear = maxYears`, the resumed year still performs dividend posting,
 bond interest, and margin charge handling before market resolution.
+The save format does reserve one extra deck entry beyond `maxYears`
+for the closing-price draw that follows the final year.
 
 ### SELL_PHASE and BUY_PHASE resume behavior
 
@@ -233,26 +237,26 @@ SIZE: 18 + 9 = **27 bytes**.
 
 ## 6. Byte-Size Accounting
 
-The deck section is variable-length: `maxYears` bytes, bounded by the
+The deck section is variable-length: `maxYears + 1` bytes, bounded by the
 configured game length. The maximum game length is 10 years.
 
 | Component             | Type/Count              | Bytes (max)  |
 |-----------------------|-------------------------|--------------|
 | SaveHdr               | 1 record                | 11           |
-| deckOrd (trimmed)     | maxYears × BYTE (max 10)| 10           |
+| deckOrd (trimmed)     | (maxYears+1) × BYTE     | 11           |
 | PlyrRec               | 6 records × 63          | 378          |
 | MktState              | 1 record                | 27           |
-| **Total (max)**       |                         | **426**      |
-| **Total (min, 1 yr)** |                         | **417**      |
+| **Total (max)**       |                         | **427**      |
+| **Total (min, 1 yr)** |                         | **418**      |
 
 426 bytes is negligible on any OS-9 storage medium. The variable memory
 budget (32KB) is unaffected: the TYPE definitions and working variables
 for save/load require under 200 bytes at runtime.
 
 The in-memory `deckOrd` array is declared as `DIM deckOrd(36):BYTE`
-and fully shuffled. Only indices 1 through `maxYears` are written to
-and read from disk. Indices `maxYears+1` through 36 are never used
-after the shuffle and are not persisted.
+and fully shuffled. Only indices 1 through `maxYears + 1` are written
+to and read from disk. Indices above `maxYears + 1` are never used in
+the rules-faithful flow and are not persisted.
 
 All 6 `PlyrRec` entries are always written and read regardless of
 `plyrCount`. Inactive slots (index > plyrCount) contain whatever values
@@ -369,8 +373,8 @@ pathOpen := TRUE
 
 PUT #path, hdr
 
-! Write only the first maxYears deck entries.
-FOR i := 1 TO hdr.maxYears
+! Write only the first maxYears+1 deck entries.
+FOR i := 1 TO hdr.maxYears + 1
     PUT #path, deckOrd(i)
 NEXT i
 
@@ -457,8 +461,8 @@ IF chkExpect <> hdr.checksum THEN
     END
 ENDIF
 
-! Read trimmed deck — only maxYears entries were written.
-FOR i := 1 TO hdr.maxYears
+! Read trimmed deck — only maxYears+1 entries were written.
+FOR i := 1 TO hdr.maxYears + 1
     GET #path, deckOrd(i)
 NEXT i
 
@@ -535,7 +539,7 @@ population before calling `saveGame`. Fields computed internally by
 | `hdr.gameStage`   | Phase constant written by child at exit              |
 | `hdr.savedPhase`  | Current intra-year checkpoint (0–3)                  |
 | `hdr.savedPlyr`   | Current player index at checkpoint                   |
-| `deckOrd(1..36)`  | Shuffled deck array (only 1..maxYears written)       |
+| `deckOrd(1..36)`  | Shuffled deck array (only 1..maxYears+1 written)     |
 | `plyrs(1..n)`     | All PlyrRec fields for active players                |
 | `mkt.stckPrice`   | Current price per stock                              |
 | `mkt.divSuspnd`   | Dividend suspension state per stock                  |
@@ -578,11 +582,11 @@ stale `SNBSTATE` files on new-game startup.
 
 ### Variable-length deck section
 
-The deck section of the save file is `maxYears` bytes, not a fixed 36
+The deck section of the save file is `maxYears + 1` bytes, not a fixed 36
 bytes. Any procedure that reads the deck section must first read the
 header to obtain `maxYears`. The load procedure enforces this ordering.
 The in-memory `deckOrd` array is always declared as 36 elements; only
-the first `maxYears` elements are populated from disk.
+the first `maxYears + 1` elements are populated from disk.
 
 ### Single active save
 
