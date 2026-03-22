@@ -994,6 +994,8 @@ PROCEDURE TSTMKTYR
 (*             Test B: mixed rolls - stock 2 receives roll=4;  *)
 (*               all others roll=7. Verify mktDlta(2) differs  *)
 (*               from mktDlta(1), proving per-stock dispatch.  *)
+(*             Test C: worthless stock is surrendered at $0    *)
+(*               and re-established from 100 the next year.    *)
 (*                                                             *)
 (* Expected values (Bull table, Card 13 = Stryker Bull +17):  *)
 (*   Test A roll=5:                                            *)
@@ -1097,6 +1099,63 @@ IF mktDlt(2) <> mktDlt(1) THEN
   pass := pass + 1
 ELSE
   PRINT "  FAIL: mktDlt(2)=mktDlt(1) (per-stock dispatch fail)"
+  fail := fail + 1
+ENDIF
+
+RUN waitKey
+
+! ---- Test C: worthless stock handling ----------------------
+PRINT "Test C: worthless stock surrender and next-year reset"
+FOR s := 1 TO 9
+  rolls(s) := 5
+NEXT s
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+plyrs(1).stckShrs(5) := 100
+plyrs(1).mgnHeld(5)  := TRUE
+mkt.stckPrice(5)     := 10
+
+! Card 14: Bear stock 5 -15. Bear roll 5 for stock 5 = -40.
+! 10-40-15 => 0, so holdings must be surrendered.
+RUN applyMktYear(14, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
+
+IF mkt.stckPrice(5) = 0 THEN
+  PRINT "  PASS: stckPrice(5)=0"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: stckPrice(5)="; mkt.stckPrice(5); " expected 0"
+  fail := fail + 1
+ENDIF
+
+IF plyrs(1).stckShrs(5) = 0 THEN
+  PRINT "  PASS: stckShrs(5)=0 after surrender"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: stckShrs(5)="; plyrs(1).stckShrs(5); " exp 0"
+  fail := fail + 1
+ENDIF
+
+IF NOT plyrs(1).mgnHeld(5) THEN
+  PRINT "  PASS: mgnHeld(5)=FALSE after surrender"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: mgnHeld(5)=TRUE expected FALSE"
+  fail := fail + 1
+ENDIF
+
+RUN initPlayer(plyrs(1))
+RUN initMkt(mkt)
+mkt.stckPrice(1) := 0
+
+! Worthless stock is re-established from 100 before resolution.
+! Card 13 is Bull; roll 5 for stock 1 = +23 and no stock-1 card effect.
+RUN applyMktYear(13, rolls, 1, plyrs, mkt, prcBef, mktDlt, crdDlt, splitOc, divSusp, divRnst)
+
+IF mkt.stckPrice(1) = 123 THEN
+  PRINT "  PASS: bankrupt stock reset to 100 before resolution"
+  pass := pass + 1
+ELSE
+  PRINT "  FAIL: stckPrice(1)="; mkt.stckPrice(1); " exp 123"
   fail := fail + 1
 ENDIF
 

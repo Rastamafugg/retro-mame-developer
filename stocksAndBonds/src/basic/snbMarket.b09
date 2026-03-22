@@ -554,7 +554,8 @@ PROCEDURE applyMktYear
 (*             stocks for one year (spec Sections 5-7).        *)
 (*             For each stock: looks up market table delta,    *)
 (*             looks up card delta, resolves price/split/flags, *)
-(*             updates mkt, and doubles stckShrs on split.     *)
+(*             updates mkt, doubles stckShrs on split, and     *)
+(*             surrenders worthless-stock holdings.            *)
 (*             Populates per-stock output arrays for S13-S15.  *)
 (* PARAMS    : cardId    - drawn card number (1..36)            *)
 (*             rolls     - per-stock 2d6 result (2..12);        *)
@@ -595,6 +596,7 @@ DIM s      : INTEGER
 DIM p      : INTEGER
 DIM e      : INTEGER
 DIM curPrc : INTEGER
+DIM basePrc: INTEGER
 DIM delta  : INTEGER
 DIM cDelta : INTEGER
 DIM tmpPrc : INTEGER
@@ -624,8 +626,14 @@ FOR s := 1 TO 9
 
   ! Resolve price, split, and dividend suspension flags.
   curPrc := mkt.stckPrice(s)
+  IF curPrc = 0 THEN
+    ! Worthless stock is re-established like Year 1.
+    basePrc := 100
+  ELSE
+    basePrc := curPrc
+  ENDIF
   prcBefCrd(s) := curPrc
-  RUN resolvePrice(curPrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
+  RUN resolvePrice(basePrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
 
   ! Record display flags for S13/S14/S15.
   splitOcc(s) := splt
@@ -644,12 +652,19 @@ FOR s := 1 TO 9
   mkt.stckPrice(s) := tmpPrc
   mkt.divSuspnd(s) := dNow
 
+  ! Worthless stock holders surrender certificates for no value.
+  IF tmpPrc = 0 THEN
+    FOR p := 1 TO plyrCnt
+      plyrs(p).stckShrs(s) := 0
+      plyrs(p).mgnHeld(s)  := FALSE
+    NEXT p
+
   ! On split: double all players' shares for this stock.
-  IF splt THEN
+  ELSE IF splt THEN
     FOR p := 1 TO plyrCnt
       plyrs(p).stckShrs(s) := plyrs(p).stckShrs(s) * 2
     NEXT p
-  ENDIF
+  ENDIF \ENDIF
 
 NEXT s
 

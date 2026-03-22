@@ -361,6 +361,10 @@ sharesOwned = 0          (stock surrendered)
 marginBalance still due  (debt does not forgive)
 ```
 
+On the next year's market resolution pass, any stock whose carried price is $0
+is re-established at $100 before applying that year's market-table and card
+effects.
+
 ### 9.5 Repaying Margin
 
 ```
