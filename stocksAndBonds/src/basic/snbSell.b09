@@ -1,4 +1,19 @@
 PROCEDURE snbSell
+(* ============================================================ *)
+(* PROCEDURE : snbSell                                          *)
+(* PURPOSE   : Sell-phase child process. Loads SNBSTATE, runs  *)
+(*             the sell phase for every non-bankrupt player,   *)
+(*             skips the sell pass entirely in Year 1, then    *)
+(*             writes the updated state back to SNBSTATE.      *)
+(*             AI turns use aiSell plus scrAISellTurn. Human   *)
+(*             turns use scrSell.                              *)
+(* PARAMS    : None (child process; no PARAM handoff)          *)
+(* SIDE EFX  : Reads and writes SNBSTATE. Modifies player      *)
+(*             cash, margin, holdings, and margin flags via    *)
+(*             applySells.                                     *)
+(* NOTE      : snbUtil and snbSell must be pre-loaded by the   *)
+(*             coordinator before fork.                        *)
+(* ============================================================ *)
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
@@ -14,10 +29,8 @@ DIM iPCnt      : INTEGER
 DIM ordTyp(12) : INTEGER
 DIM ordId(12)  : INTEGER
 DIM ordQty(12) : INTEGER
-DIM decAct(12) : BYTE
 DIM ordCnt     : INTEGER
 DIM usrAct     : INTEGER
-DIM actByt     : BYTE
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
 DIM pNam       : STRING[20]
@@ -63,11 +76,7 @@ IF iCYr > 1 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
           PRINT "snbSell: AI sell apply ok p="; p
         ENDIF
-        FOR tInt := 1 TO ordCnt
-          decAct(tInt) := 1
-        NEXT tInt
-        actByt := 1
-        RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
+        RUN scrAISellTurn(pNam, ordTyp, ordId, ordQty, ordCnt)
         PRINT "snbSell: AI sell summary ok p="; p
       ENDIF
     ENDIF
@@ -478,44 +487,31 @@ END
 900 PRINT "applySells error ("; ERR; ")"
 END
 
-PROCEDURE scrAITurn
+PROCEDURE scrAISellTurn
 (* ============================================================ *)
-(* PROCEDURE : scrAITurn                                        *)
-(* PURPOSE   : S19 Computer Player Turn Summary screen.        *)
-(*             Displays the AI player's decisions for the      *)
-(*             current sell or buy phase so human observers    *)
-(*             can follow what the computer player did.        *)
-(*             Shows only actionable decisions (SELL, BUY,     *)
-(*             REPAY). PASS entries are suppressed; if all     *)
-(*             entries are PASS (or decCnt=0), displays        *)
-(*             "(no action this phase)".                       *)
+(* PROCEDURE : scrAISellTurn                                    *)
+(* PURPOSE   : S19 AI sell-summary screen. Displays only sell  *)
+(*             orders produced by aiSell for the current AI    *)
+(*             player. If ordCnt=0, displays a no-action line. *)
 (*             Display-only: no output parameters. Returns     *)
 (*             after waitKey.                                  *)
 (* PARAMS    : plyrNam  - AI player name                       *)
-(*             phase    - 1=SELL 2=BUY                         *)
-(*             decAct   - decision action per entry:           *)
-(*                        1=SELL 2=BUY 3=REPAY 4=PASS          *)
-(*             decType  - asset type: 1=STOCK 2=BOND 0=N/A    *)
-(*             decId    - asset index (1-9 stock, 1-3 bond,    *)
-(*                        0 for REPAY/PASS)                    *)
-(*             decQty   - quantity (shares, units, or $ amount *)
-(*                        for REPAY; 0 for PASS)               *)
-(*             decCnt   - number of entries in arrays (0..12)  *)
+(*             ordType  - asset type: 1=STOCK 2=BOND          *)
+(*             ordId    - asset index (1-9 stock, 1-3 bond)   *)
+(*             ordQty   - quantity (shares or bond units)     *)
+(*             ordCnt   - number of entries in arrays (0..12) *)
 (* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
 (* ============================================================ *)
 PARAM plyrNam    : STRING[20]
-PARAM phase      : BYTE
-PARAM decAct(12) : BYTE
-PARAM decType(12): INTEGER
-PARAM decId(12)  : INTEGER
-PARAM decQty(12) : INTEGER
-PARAM decCnt     : INTEGER
+PARAM ordType(12): INTEGER
+PARAM ordId(12)  : INTEGER
+PARAM ordQty(12) : INTEGER
+PARAM ordCnt     : INTEGER
 DIM sNam(9) : STRING[14]
 DIM bPar(3) : INTEGER
 DIM i       : INTEGER
 DIM s       : INTEGER
 DIM b       : INTEGER
-DIM shown   : INTEGER
 DIM pStr    : STRING[8]
 
 ON ERROR GOTO 900
@@ -535,60 +531,24 @@ bPar(2) := 5000
 bPar(3) := 10000
 
 RUN clrScr
-PRINT "=== COMPUTER TURN ===";
-IF phase = 1 THEN
-  PRINT "  SELL PHASE"
-ELSE
-  PRINT "  BUY PHASE"
-ENDIF
+PRINT "=== COMPUTER TURN ===  SELL PHASE"
 PRINT "Player: "; plyrNam
 PRINT
 
-shown := 0
-
-FOR i := 1 TO decCnt
-
-  IF decAct(i) = 1 THEN
-
-    ! SELL decision
-    PRINT "  SELL  ";
-    IF decType(i) = 1 THEN
-      s := decId(i)
-      PRINT decQty(i); "  "; sNam(s)
-    ELSE IF decType(i) = 2 THEN
-      b := decId(i)
-      RUN fmtMoney(bPar(b), pStr)
-      PRINT decQty(i); "  $"; pStr; " bond"
-    ENDIF \ENDIF
-    shown := shown + 1
-
-  ELSE IF decAct(i) = 2 THEN
-
-    ! BUY decision
-    PRINT "  BUY   ";
-    IF decType(i) = 1 THEN
-      s := decId(i)
-      PRINT decQty(i); "  "; sNam(s)
-    ELSE IF decType(i) = 2 THEN
-      b := decId(i)
-      RUN fmtMoney(bPar(b), pStr)
-      PRINT decQty(i); "  $"; pStr; " bond"
-    ENDIF \ENDIF
-    shown := shown + 1
-
-  ELSE IF decAct(i) = 3 THEN
-
-    ! REPAY decision: decQty holds dollar amount
-    RUN fmtMoney(decQty(i), pStr)
-    PRINT "  REPAY $"; pStr; " margin"
-    shown := shown + 1
-
-  ENDIF \ENDIF \ENDIF
-
-NEXT i
-
-IF shown = 0 THEN
+IF ordCnt = 0 THEN
   PRINT "  (no action this phase)"
+ELSE
+  FOR i := 1 TO ordCnt
+    PRINT "  SELL  ";
+    IF ordType(i) = 1 THEN
+      s := ordId(i)
+      PRINT ordQty(i); "  "; sNam(s)
+    ELSE IF ordType(i) = 2 THEN
+      b := ordId(i)
+      RUN fmtMoney(bPar(b), pStr)
+      PRINT ordQty(i); "  $"; pStr; " bond"
+    ENDIF \ENDIF
+  NEXT i
 ENDIF
 
 PRINT
@@ -596,7 +556,7 @@ RUN waitKey
 
 END
 
-900 PRINT "scrAITurn error ("; ERR; ")"
+900 PRINT "scrAISellTurn error ("; ERR; ")"
 END
 
 PROCEDURE scrSell

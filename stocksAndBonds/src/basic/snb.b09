@@ -5,7 +5,7 @@ PROCEDURE SNB
 (*            Loads snbUtil as permanent resident.   *)
 (*            Deletes stale SNBSTATE if present.     *)
 (*            Forks pgChild (pre-game setup).        *)
-(*            Year loop: forks three phase children  *)
+(*            Year loop: forks four phase children   *)
 (*            per year in sequence:                  *)
 (*              divChild   - year increment; dividend *)
 (*                           and bond interest        *)
@@ -13,7 +13,8 @@ PROCEDURE SNB
 (*                           financial work; all      *)
 (*                           years for increment)     *)
 (*              mktChild   - market resolution        *)
-(*              trdChild   - sell and buy phases      *)
+(*              snbSell    - sell phase               *)
+(*              snbBuy     - buy phase                *)
 (*            Forks egChild (end-game screens).      *)
 (*            Before each fork: ensures required     *)
 (*            modules are in the OS module directory  *)
@@ -24,8 +25,8 @@ PROCEDURE SNB
 (*              divChild increments at start of run, *)
 (*              before doing any other work. So after *)
 (*              divChild, currYear=N means Year N is  *)
-(*              being processed by mktChild and       *)
-(*              trdChild.                            *)
+(*              being processed by mktChild, snbSell, *)
+(*              and snbBuy.                           *)
 (*                                                   *)
 (*            gameStage values written by children:  *)
 (*              1 = GS_PREGM : pre-game complete     *)
@@ -77,13 +78,13 @@ IF wasStale THEN
   PRINT "SNB: stale SNBSTATE deleted"
 ENDIF
 
-! Ensure pgChild module and snbSaveLoad are in the OS module
-! directory before forking. snbSaveLoad provides saveGame to
-! pgChild. forChild=TRUE uses F$NMLink / F$NMLoad.
-modNam := "snbSaveLoad"
+! Ensure snbUtil and pgChild module are in the OS module
+! directory before forking. forChild=TRUE uses F$NMLink /
+! F$NMLoad.
+modNam := "snbUtil"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbSaveLoad for pgChild"
+  PRINT "SNB: failed to ensure snbUtil for pgChild"
   END
 ENDIF
 modNam := "snbSetup"
@@ -126,7 +127,8 @@ iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
 ! ---- Coordinator year loop ----------------------------------
 ! Each iteration covers one complete game year via three children.
 ! divChild always runs first and increments currYear before any
-! other work, so mktChild and trdChild see the correct year.
+! other work, so mktChild, snbSell, and snbBuy see the correct
+! year.
 gameOver := FALSE
 runEndGame := FALSE
 
@@ -139,10 +141,10 @@ LOOP
   ! Increments currYear at start of run. Applies dividends and
   ! bond interest only in Years 2-9 (Years 1 and 10 increment
   ! only, per spec Section 6). Always writes GS_YEAR (2).
-  modNam := "snbSaveLoad"
+  modNam := "snbUtil"
   RUN ensureModule(modNam, TRUE, ok)
   IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbSaveLoad (divChild)"
+    PRINT "SNB: failed to ensure snbUtil (divChild)"
     gameOver := TRUE
   ENDIF
   modNam := "snbDividend"
@@ -160,10 +162,10 @@ LOOP
   ! Draws card, generates rolls, resolves all stock prices.
   ! Displays S11-S15. Always writes GS_YEAR (2).
   IF NOT gameOver THEN
-    modNam := "snbSaveLoad"
+    modNam := "snbUtil"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbSaveLoad (mktChild)"
+      PRINT "SNB: failed to ensure snbUtil (mktChild)"
       gameOver := TRUE
     ENDIF
     modNam := "snbMarket"
@@ -178,38 +180,47 @@ LOOP
     ENDIF
   ENDIF
 
-  ! ---- Phase 3: trdChild (all years) ----------------------
-  ! Sell phase (skipped internally in Year 1) then buy phase.
-  ! Writes GS_DONE (3) when game ends (Year 10 complete or
-  ! lone survivor remains in a multiplayer game). Otherwise
-  ! GS_YEAR (2).
+  ! ---- Phase 3: snbSell (all years) -----------------------
+  ! Sell phase. snbSell skips internally in Year 1 and always
+  ! writes GS_YEAR (2).
   IF NOT gameOver THEN
-    modNam := "snbSaveLoad"
+    modNam := "snbUtil"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbSaveLoad (trdChild)"
+      PRINT "SNB: failed to ensure snbUtil (snbSell)"
       gameOver := TRUE
     ENDIF
-    modNam := "snbBuySell"
+    modNam := "snbSell"
     RUN ensureModule(modNam, TRUE, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbBuySell (trdChild)"
-      gameOver := TRUE
-    ENDIF
-    modNam := "snbTrade"
-    RUN ensureModule(modNam, TRUE, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbTrade (trdChild)"
-      gameOver := TRUE
-    ENDIF
-    modNam := "snbAI"
-    RUN ensureModule(modNam, TRUE, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbAI (trdChild)"
+      PRINT "SNB: failed to ensure snbSell"
       gameOver := TRUE
     ENDIF
     IF NOT gameOver THEN
-      RUN forkPhase("trdChild", exitStat)
+      RUN forkPhase("snbSell", exitStat)
+      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
+    ENDIF
+  ENDIF
+
+  ! ---- Phase 4: snbBuy (all years) ------------------------
+  ! Buy phase. Writes GS_DONE (3) when game ends (Year 10
+  ! complete or lone survivor remains in a multiplayer game).
+  ! Otherwise GS_YEAR (2).
+  IF NOT gameOver THEN
+    modNam := "snbUtil"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbUtil (snbBuy)"
+      gameOver := TRUE
+    ENDIF
+    modNam := "snbBuy"
+    RUN ensureModule(modNam, TRUE, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbBuy"
+      gameOver := TRUE
+    ENDIF
+    IF NOT gameOver THEN
+      RUN forkPhase("snbBuy", exitStat)
       GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
     ENDIF
   ENDIF
@@ -217,7 +228,7 @@ LOOP
   ! ---- Year-end safety nets -------------------------------
   ! iCYr is updated by GOSUB 100 after each child fork, so it
   ! reflects the currYear written by divChild (the active year).
-  ! Primary exit: trdChild writes GS_DONE; GOSUB 100 sets
+  ! Primary exit: snbBuy writes GS_DONE; GOSUB 100 sets
   ! gameOver=TRUE. These nets catch failure to write GS_DONE.
   IF NOT gameOver THEN
 
@@ -257,12 +268,12 @@ IF NOT runEndGame THEN
   END
 ENDIF
 
-! Ensure egChild module and snbSaveLoad are in the OS module
-! directory. snbSaveLoad provides loadGame to egChild.
-modNam := "snbSaveLoad"
+! Ensure snbUtil and egChild module are in the OS module
+! directory before forking.
+modNam := "snbUtil"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbSaveLoad for egChild"
+  PRINT "SNB: failed to ensure snbUtil for egChild"
   END
 ENDIF
 modNam := "snbEndGame"
