@@ -45,6 +45,8 @@ DIM actByt     : BYTE     \ ! action return from scrDivInt (discarded)
 DIM p          : INTEGER
 DIM s          : INTEGER
 DIM b          : INTEGER
+DIM pTypeVal   : INTEGER
+DIM aiTierVal  : INTEGER
 
 ON ERROR GOTO 900
 
@@ -117,7 +119,9 @@ IF iCYr > 1 THEN
         ENDIF
       NEXT b
 
-      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
+      pTypeVal  := plyrs(p).plyrType
+      aiTierVal := plyrs(p).aiTier
+      RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNam)
       ! Line exceeds 79 chars; RUN statement cannot be split.
       RUN scrDivInt(iCYr, pNam, cashBef(p), divRcvd, bndInt, totRcvd, plyrs(p).cashBal, actByt)
     ENDIF

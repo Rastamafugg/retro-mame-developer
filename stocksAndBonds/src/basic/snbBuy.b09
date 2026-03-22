@@ -42,6 +42,7 @@ DIM mgnYrOk    : BOOLEAN
 DIM usrAct     : INTEGER
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
+DIM pTypeVal   : INTEGER
 DIM p          : INTEGER
 
 ON ERROR GOTO 900
@@ -59,7 +60,9 @@ mgnYrOk := FALSE
 
 FOR p := 1 TO iPCnt
   IF NOT plyrs(p).isBankrupt THEN
-    RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
+    pTypeVal  := plyrs(p).plyrType
+    aiTierVal := plyrs(p).aiTier
+    RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNam)
     ordCnt  := 0
     mgnRpy  := 0
     mgnElig := plyrs(p).hadCashPur
@@ -842,6 +845,8 @@ DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
 DIM minCash  : INTEGER
 DIM divRate(9): INTEGER
+DIM pTypeVal : INTEGER
+DIM aiTierVal: INTEGER
 
 ON ERROR GOTO 900
 
@@ -885,7 +890,9 @@ simMgn   := plyr.marginTot
 LOOP
 
   RUN clrScr
-  RUN fmtPlyrName(plyr.plyrName, plyr.plyrType, plyr.aiTier, dispNam)
+  pTypeVal  := plyr.plyrType
+  aiTierVal := plyr.aiTier
+  RUN fmtPlyrName(plyr.plyrName, pTypeVal, aiTierVal, dispNam)
   PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
   PRINT "Player: "; dispNam
   RUN fmtMoney(simCash, pStr)

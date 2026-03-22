@@ -33,6 +33,7 @@ DIM ordCnt     : INTEGER
 DIM usrAct     : INTEGER
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
+DIM pTypeVal   : INTEGER
 DIM pNam       : STRING[27]
 DIM p          : INTEGER
 
@@ -50,7 +51,9 @@ iPCnt := hdr.plyrCount
 IF iCYr > 1 THEN
   FOR p := 1 TO iPCnt
     IF NOT plyrs(p).isBankrupt THEN
-      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
+      pTypeVal  := plyrs(p).plyrType
+      aiTierVal := plyrs(p).aiTier
+      RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNam)
       ordCnt := 0
       IF plyrs(p).plyrType = 1 THEN
         PRINT "snbSell: human sell start p="; p
@@ -611,6 +614,8 @@ DIM dispNam : STRING[27]
 DIM numOk   : BOOLEAN
 DIM totProc : INTEGER
 DIM divRate(9): INTEGER
+DIM pTypeVal : INTEGER
+DIM aiTierVal: INTEGER
 
 ON ERROR GOTO 900
 
@@ -642,7 +647,9 @@ bDen(3) := 10000
 
 ! --- Holdings display and initial pass/enter prompt ----------
 RUN clrScr
-RUN fmtPlyrName(plyr.plyrName, plyr.plyrType, plyr.aiTier, dispNam)
+pTypeVal  := plyr.plyrType
+aiTierVal := plyr.aiTier
+RUN fmtPlyrName(plyr.plyrName, pTypeVal, aiTierVal, dispNam)
 PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
 PRINT "Player: "; dispNam
 RUN fmtMoney(plyr.cashBal, pStr)

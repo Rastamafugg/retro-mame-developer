@@ -153,6 +153,8 @@ DIM stckVal  : INTEGER
 DIM bndVal   : INTEGER
 DIM pStr     : STRING[8]
 DIM dispNam  : STRING[27]
+DIM pTypeVal : INTEGER
+DIM aiTierVal: INTEGER
 
 ON ERROR GOTO 900
 
@@ -209,7 +211,9 @@ FOR p := 1 TO plyrCount
     bndVal := bndVal + (plyrs(i).bondUnts(j) * bPar(j))
   NEXT j
 
-  RUN fmtPlyrName(plyrs(i).plyrName, plyrs(i).plyrType, plyrs(i).aiTier, dispNam)
+  pTypeVal  := plyrs(i).plyrType
+  aiTierVal := plyrs(i).aiTier
+  RUN fmtPlyrName(plyrs(i).plyrName, pTypeVal, aiTierVal, dispNam)
   PRINT " "; p; "  "; dispNam
   RUN fmtMoney(plyrs(i).cashBal, pStr)
   PRINT "    Cash:"; pStr; "  ";
@@ -258,6 +262,8 @@ DIM i    : INTEGER
 DIM topW : INTEGER
 DIM pStr : STRING[8]
 DIM dispNam : STRING[27]
+DIM pTypeVal : INTEGER
+DIM aiTierVal: INTEGER
 
 ON ERROR GOTO 900
 
@@ -287,7 +293,9 @@ ELSE
   FOR i := 1 TO plyrCount
     IF NOT plyrs(srtOrd(i)).isBankrupt THEN
       IF wlth(srtOrd(i)) = topW THEN
-        RUN fmtPlyrName(plyrs(srtOrd(i)).plyrName, plyrs(srtOrd(i)).plyrType, plyrs(srtOrd(i)).aiTier, dispNam)
+        pTypeVal  := plyrs(srtOrd(i)).plyrType
+        aiTierVal := plyrs(srtOrd(i)).aiTier
+        RUN fmtPlyrName(plyrs(srtOrd(i)).plyrName, pTypeVal, aiTierVal, dispNam)
         PRINT "  *** "; dispNam; " ***"
       ENDIF
     ENDIF

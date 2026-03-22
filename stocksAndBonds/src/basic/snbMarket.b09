@@ -58,6 +58,8 @@ DIM iSeed      : INTEGER  \ ! per-year RNG seed for child-process roll variance
 DIM tInt       : INTEGER  \ ! reused loop counter / staging variable
 DIM p          : INTEGER
 DIM s          : INTEGER
+DIM pTypeVal   : INTEGER
+DIM aiTierVal  : INTEGER
 
 ON ERROR GOTO 900
 
@@ -118,7 +120,9 @@ FOR s := 1 TO 9
     ! applyMktYear already doubled stckShrs(s) on split;
     ! shrBf = current / 2 restores the pre-split count.
     FOR p := 1 TO iPCnt
-      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNames(p))
+      pTypeVal  := plyrs(p).plyrType
+      aiTierVal := plyrs(p).aiTier
+      RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNames(p))
       shrAf(p)  := plyrs(p).stckShrs(s)
       shrBf(p)  := plyrs(p).stckShrs(s) / 2
     NEXT p
