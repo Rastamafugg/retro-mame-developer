@@ -2,7 +2,7 @@
 
 Status: Current  
 Authority: Gameplay and rules behavior  
-Depends on: `stock-and-bonds-rules.md`  
+Depends on: `stocks-and-bonds-rules.md`  
 Supersedes: Conflicting gameplay statements in `project-timeline.md`,
 `forkio-plan.md`, and `module-phase-transition.md`
 
