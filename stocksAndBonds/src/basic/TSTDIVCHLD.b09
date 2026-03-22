@@ -1,14 +1,14 @@
 PROCEDURE TSTDIVCHLD
 (* ================================================== *)
 (* PROCEDURE: TSTDIVCHLD                              *)
-(* PURPOSE:   C1 verification. Tests divChild:        *)
+(* PURPOSE:   C1 verification. Tests snbDividend:     *)
 (*              Block 1: Year 1 - increment only;     *)
 (*                currYear 0->1, cashBal unchanged    *)
 (*              Block 2: Year 5 - dividends applied;  *)
 (*                currYear 4->5, cashBal correct      *)
 (*              Block 3: Year 10 - dividends applied; *)
 (*                currYear 9->10, cashBal correct     *)
-(*            Calls divChild via RUN (no fork).       *)
+(*            Calls snbDividend via RUN (no fork).    *)
 (*            Prints TSTDIVCHLD: PASS if all correct. *)
 (*                                                   *)
 (* PRE:       snbSaveLoad and snbDividend must be    *)
@@ -61,7 +61,7 @@ IF NOT ok THEN
   END
 ENDIF
 
-PRINT "=== TSTDIVCHLD: C1 divChild TEST ==="
+PRINT "=== TSTDIVCHLD: C1 snbDividend TEST ==="
 PRINT
 
 ! ============================================================
@@ -74,7 +74,7 @@ hdr.plyrCount   := 1
 hdr.rollMode    := 1
 hdr.savedPhase  := 0
 hdr.savedPlyr   := 0
-hdr.gameStage   := 1  \ ! GS_PREGM; divChild will overwrite
+hdr.gameStage   := 1  \ ! GS_PREGM; snbDividend will overwrite
 
 ! Zero all player state; selectively set per block.
 plyrs(1).plyrName   := "TEST"
@@ -101,7 +101,7 @@ NEXT i
 
 ! ==========================================================
 ! Block 1: Year 1 - increment only; no dividend work.
-! Write currYear=0; divChild must increment to 1.
+! Write currYear=0; snbDividend must increment to 1.
 ! Player cashBal must be unchanged.
 ! ==========================================================
 PRINT "Block 1: Year 1 (increment only; no dividends)"
@@ -119,7 +119,7 @@ plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks - would pay $700 if applied
 plyrs(1).bondUnts(2) := 1    \ ! medium bond - would pay $250 if applied
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN divChild
+RUN snbDividend
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear   \ ! stage BYTE
@@ -145,7 +145,7 @@ RUN waitKey
 !   Expected dividend: 100 * 7 = $700
 !   Expected bond interest: $250
 !   Expected cashBal: 5000 + 700 + 250 = 5950
-! Write currYear=4; divChild must increment to 5.
+! Write currYear=4; snbDividend must increment to 5.
 ! ==========================================================
 PRINT "Block 2: Year 5 (dividends and interest applied)"
 
@@ -162,7 +162,7 @@ plyrs(1).stckShrs(4) := 100  \ ! Shady Brooks: $7/share dividend
 plyrs(1).bondUnts(2) := 1    \ ! medium bond: $250 interest
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN divChild
+RUN snbDividend
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear   \ ! stage BYTE
@@ -188,7 +188,7 @@ RUN waitKey
 !   Expected dividend: 50 * 7 = $350
 !   Expected bond interest: 2 * 50 = $100
 !   Expected cashBal: 7500 + 350 + 100 = 7950
-! Write currYear=9; divChild must increment to 10.
+! Write currYear=9; snbDividend must increment to 10.
 ! ==========================================================
 PRINT "Block 3: Year 10 (dividends and interest applied)"
 
@@ -205,7 +205,7 @@ plyrs(1).stckShrs(4) := 50   \ ! Shady Brooks - would pay $350 if applied
 plyrs(1).bondUnts(1) := 2    \ ! small bonds - would pay $100 if applied
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-RUN divChild
+RUN snbDividend
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear   \ ! stage BYTE

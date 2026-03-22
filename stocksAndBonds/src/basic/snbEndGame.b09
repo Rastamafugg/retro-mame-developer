@@ -1,21 +1,6 @@
 PROCEDURE snbEndGame
-(* ================================================== *)
-(* PROCEDURE: snbEndGame                              *)
-(* PURPOSE:   README entry for snbEndGame module.     *)
-(*            Lists all procedures in this module.   *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-PRINT "snbEndGame"
-PRINT "  egChild"
-PRINT "  scrFinalMkt"
-PRINT "  scrWealth"
-PRINT "  scrWinner"
-PRINT "  scrPostGame"
-END
-
-PROCEDURE egChild
 (* ============================================================ *)
-(* PROCEDURE : egChild                                          *)
+(* PROCEDURE : snbEndGame                                       *)
 (* PURPOSE   : End-game child process entry point. Loads       *)
 (*             SNBSTATE written by the final phase child,      *)
 (*             then runs the full end-game screen sequence:    *)
@@ -53,7 +38,7 @@ ON ERROR GOTO 900
 
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 IF NOT loadOK THEN
-  PRINT "egChild: loadGame failed"
+  PRINT "snbEndGame: loadGame failed"
   END
 ENDIF
 
@@ -65,7 +50,7 @@ RUN scrWinner(plyrs, iPlyrCnt, wlth, srtOrd)
 RUN scrPostGame(pgAct)
 END
 
-900 PRINT "egChild error ("; ERR; ")"
+900 PRINT "snbEndGame error ("; ERR; ")"
 END
 
 PROCEDURE scrFinalMkt

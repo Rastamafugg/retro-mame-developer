@@ -1,28 +1,6 @@
 PROCEDURE snbMarket
-(* ================================================== *)
-(* PROCEDURE: snbMarket                               *)
-(* PURPOSE:   README entry for snbMarket module.      *)
-(*            Lists all procedures in this module.   *)
-(* PARAMS:    None                                    *)
-(* ================================================== *)
-PRINT "snbMarket"
-PRINT "  mktChild"
-PRINT "  getMktDelta"
-PRINT "  getCard"
-PRINT "  resolvePrice"
-PRINT "  applyMktYear"
-PRINT "  drawCard"
-PRINT "  doRolls"
-PRINT "  scrCard"
-PRINT "  scrDice"
-PRINT "  scrMktBoard"
-PRINT "  scrSplit"
-PRINT "  scrDivFlag"
-END
-
-PROCEDURE mktChild
 (* ============================================================ *)
-(* PROCEDURE : mktChild                                         *)
+(* PROCEDURE : snbMarket                                        *)
 (* PURPOSE   : Market resolution phase child. Runs every year. *)
 (*             Draws the situation card, generates dice rolls,  *)
 (*             resolves all stock prices, applies Card 1        *)
@@ -86,7 +64,7 @@ ON ERROR GOTO 900
 ! Load full game state from coordinator IPC file.
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 IF NOT loadOK THEN
-  PRINT "mktChild: loadGame failed"
+  PRINT "snbMarket: loadGame failed"
   END
 ENDIF
 
@@ -183,7 +161,7 @@ IF crd.divBonus > 0 AND iCYr > 1 AND iCYr < iMaxYr THEN
   NEXT p
 ENDIF
 
-! Always write GS_YEAR (2); mktChild never terminates the game.
+! Always write GS_YEAR (2); snbMarket never terminates the game.
 hdr.gameStage := 2  \ ! GS_YEAR
 
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
@@ -194,7 +172,7 @@ END
 721 DATA "Shady Brooks","Stryker Drlg","Tri-City Trn"
 722 DATA "United Auto","Uranium Ent","Valley Power"
 
-900 PRINT "mktChild error ("; ERR; ")"
+900 PRINT "snbMarket error ("; ERR; ")"
 END
 
 PROCEDURE doRolls

@@ -4,7 +4,7 @@ PROCEDURE TSTMKTCHLD
 (* PURPOSE:   C2 verification using the same parent/  *)
 (*            child runtime shape as SNB. The parent  *)
 (*            writes SNBSTATE, ensures child modules  *)
-(*            with forChild=TRUE, forks mktChild via  *)
+(*            with forChild=TRUE, forks snbMarket via *)
 (*            RunB/F$Fork, waits, then reloads state  *)
 (*            from SNBSTATE to verify results.        *)
 (*                                                    *)
@@ -53,7 +53,7 @@ IF NOT ok THEN
   END
 ENDIF
 
-PRINT "=== TSTMKTCHLD: C2 mktChild FORK TEST ==="
+PRINT "=== TSTMKTCHLD: C2 snbMarket FORK TEST ==="
 PRINT
 
 ! Base state shared by all blocks.
@@ -140,7 +140,7 @@ IF NOT ok THEN
 ENDIF
 PRINT "  Child libraries ensured for block 1. Press a key to fork."
 RUN waitKey
-RUN forkPhase("mktChild", exitStat)
+RUN forkPhase("snbMarket", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
@@ -211,7 +211,7 @@ IF NOT ok THEN
 ENDIF
 PRINT "  Child libraries ensured for block 2. Press a key to fork."
 RUN waitKey
-RUN forkPhase("mktChild", exitStat)
+RUN forkPhase("snbMarket", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
@@ -286,7 +286,7 @@ IF NOT ok THEN
 ENDIF
 PRINT "  Child libraries ensured for block 3. Press a key to fork."
 RUN waitKey
-RUN forkPhase("mktChild", exitStat)
+RUN forkPhase("snbMarket", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear
@@ -358,7 +358,7 @@ IF NOT ok THEN
 ENDIF
 PRINT "  Child libraries ensured for block 4. Press a key to fork."
 RUN waitKey
-RUN forkPhase("mktChild", exitStat)
+RUN forkPhase("snbMarket", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 
 iCYr := hdr.currYear

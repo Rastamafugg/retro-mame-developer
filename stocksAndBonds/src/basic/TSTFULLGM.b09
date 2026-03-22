@@ -25,8 +25,8 @@ PRINT "This test launches the real snb coordinator."
 PRINT
 PRINT "Checklist before marking PASS:"
 PRINT "  1. pgChild setup completed normally."
-PRINT "  2. divChild, mktChild, and trdChild transitions ran."
-PRINT "  3. egChild end-game screens displayed without error."
+PRINT "  2. snbDividend, snbMarket, snbSell, and snbBuy ran."
+PRINT "  3. snbEndGame screens displayed without error."
 PRINT "  4. Winner display matched the observed final state."
 PRINT
 PRINT "Press any key to ensure modules and launch snb...";
