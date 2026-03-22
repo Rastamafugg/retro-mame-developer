@@ -78,7 +78,22 @@ mkt.stckPrice(1)     := 0
 mkt.stckPrice(4)     := 100
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 PRINT "  block1: saveGame returned"
-GOSUB 100
+modNam := "snbUtil"
+PRINT "  block1: before ensure snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+PRINT "  block1: after ensure snbUtil"
+IF NOT ok THEN
+  PRINT "TSTTRDSP: failed to ensure snbUtil"
+  END
+ENDIF
+modNam := "snbSell"
+PRINT "  block1: before ensure snbSell"
+RUN ensureModule(modNam, TRUE, ok)
+PRINT "  block1: after ensure snbSell"
+IF NOT ok THEN
+  PRINT "TSTTRDSP: failed to ensure snbSell"
+  END
+ENDIF
 PRINT "  block1: ensureModule returned"
 PRINT "  Child libraries ensured for block 1. Press a key to fork."
 RUN waitKey
@@ -127,7 +142,18 @@ plyrs(2).plyrType := 2
 plyrs(2).aiTier   := 2
 plyrs(2).cashBal  := 1000
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-GOSUB 200
+modNam := "snbUtil"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTTRDSP: failed to ensure snbUtil"
+  END
+ENDIF
+modNam := "snbBuy"
+RUN ensureModule(modNam, TRUE, ok)
+IF NOT ok THEN
+  PRINT "TSTTRDSP: failed to ensure snbBuy"
+  END
+ENDIF
 PRINT "  Child libraries ensured for block 2. Press a key to fork."
 RUN waitKey
 RUN forkPhase("snbBuy", exitStat)
@@ -145,9 +171,7 @@ ENDIF
 PRINT
 RUN waitKey
 
-ON ERROR GOTO 800
 DELETE "SNBSTATE"
-800 ON ERROR GOTO 900
 PRINT "=== TSTTRDSP SUMMARY ==="
 PRINT "Failures: "; failCnt
 IF failCnt = 0 THEN
@@ -156,40 +180,6 @@ ELSE
   PRINT "TSTTRDSP: FAIL"
 ENDIF
 END
-
-100 PRINT "  block1: sub100 start"
-    modNam := "snbUtil"
-    PRINT "  block1: before ensure snbUtil"
-    RUN ensureModule(modNam, TRUE, ok)
-    PRINT "  block1: after ensure snbUtil"
-    IF NOT ok THEN
-      PRINT "TSTTRDSP: failed to ensure snbUtil"
-      END
-    ENDIF
-    modNam := "snbSell"
-    PRINT "  block1: before ensure snbSell"
-    RUN ensureModule(modNam, TRUE, ok)
-    PRINT "  block1: after ensure snbSell"
-    IF NOT ok THEN
-      PRINT "TSTTRDSP: failed to ensure snbSell"
-      END
-    ENDIF
-    PRINT "  block1: sub100 return"
-    RETURN
-
-200 modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, ok)
-    IF NOT ok THEN
-      PRINT "TSTTRDSP: failed to ensure snbUtil"
-      END
-    ENDIF
-    modNam := "snbBuy"
-    RUN ensureModule(modNam, TRUE, ok)
-    IF NOT ok THEN
-      PRINT "TSTTRDSP: failed to ensure snbBuy"
-      END
-    ENDIF
-    RETURN
 
 900 PRINT "TSTTRDSP error ("; ERR; ")"
 PRINT "TSTTRDSP: FAIL"
