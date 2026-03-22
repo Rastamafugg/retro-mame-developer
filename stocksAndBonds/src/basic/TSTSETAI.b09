@@ -1,0 +1,191 @@
+PROCEDURE TSTSETAI
+(* ================================================== *)
+(* PROCEDURE: TSTSETAI                                *)
+(* PURPOSE:   Manual setup-path harness for AI tier   *)
+(*            selection. Runs real snbSetup, then     *)
+(*            verifies the returned player records     *)
+(*            match a fixed test script.              *)
+(*                                                    *)
+(*            Use this exact input sequence:          *)
+(*            1. Start screen: 1 (New Game)           *)
+(*            2. Player count: 3                      *)
+(*            3. Player 1: name HUMAN, type 1         *)
+(*            4. Player 2: name EASY,  type 2, tier 1 *)
+(*            5. Player 3: name HARD,  type 2, tier 3 *)
+(*            6. Roll mode: 2                         *)
+(*            7. Confirm: 1                           *)
+(* ================================================== *)
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+DIM menuAct     : INTEGER
+DIM hdr         : SaveHdr
+DIM deckOrd(36) : BYTE
+DIM plyrs(6)    : PlyrRec
+DIM mkt         : MktState
+DIM modNam      : STRING[20]
+DIM ok          : BOOLEAN
+DIM failCnt     : INTEGER
+DIM i           : INTEGER
+
+ON ERROR GOTO 900
+
+failCnt := 0
+
+PRINT "=== TSTSETAI: AI DIFFICULTY SETUP TEST ==="
+PRINT
+PRINT "Follow this input script exactly:"
+PRINT "  1. New Game"
+PRINT "  2. Player count = 3"
+PRINT "  3. P1 name HUMAN, type Human"
+PRINT "  4. P2 name EASY, type Computer, difficulty Easy"
+PRINT "  5. P3 name HARD, type Computer, difficulty Hard"
+PRINT "  6. Roll mode = B"
+PRINT "  7. Confirm"
+PRINT
+PRINT "Press any key to load modules and begin...";
+RUN waitKey
+
+modNam := "snbUtil"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTSETAI: failed to load snbUtil"
+  END
+ENDIF
+
+modNam := "snbSetup"
+RUN ensureModule(modNam, FALSE, ok)
+IF NOT ok THEN
+  PRINT "TSTSETAI: failed to load snbSetup"
+  END
+ENDIF
+
+menuAct := 0
+RUN snbSetup(menuAct, hdr, deckOrd, plyrs, mkt)
+
+PRINT
+PRINT "Returned values:"
+PRINT "  menuAct       = "; menuAct
+PRINT "  hdr.plyrCount = "; hdr.plyrCount
+PRINT "  hdr.rollMode  = "; hdr.rollMode
+FOR i := 1 TO 3
+  PRINT "  P"; i; " name="; plyrs(i).plyrName;
+  PRINT " type="; plyrs(i).plyrType; " aiTier="; plyrs(i).aiTier
+NEXT i
+
+IF menuAct <> 1 THEN
+  PRINT "  FAIL: expected menuAct=1"
+  failCnt := failCnt + 1
+ENDIF
+IF hdr.plyrCount <> 3 THEN
+  PRINT "  FAIL: expected hdr.plyrCount=3"
+  failCnt := failCnt + 1
+ENDIF
+IF hdr.rollMode <> 2 THEN
+  PRINT "  FAIL: expected hdr.rollMode=2"
+  failCnt := failCnt + 1
+ENDIF
+IF plyrs(1).plyrType <> 1 OR plyrs(1).aiTier <> 0 THEN
+  PRINT "  FAIL: P1 expected Human with aiTier 0"
+  failCnt := failCnt + 1
+ENDIF
+IF plyrs(2).plyrType <> 2 OR plyrs(2).aiTier <> 1 THEN
+  PRINT "  FAIL: P2 expected Computer Easy"
+  failCnt := failCnt + 1
+ENDIF
+IF plyrs(3).plyrType <> 2 OR plyrs(3).aiTier <> 3 THEN
+  PRINT "  FAIL: P3 expected Computer Hard"
+  failCnt := failCnt + 1
+ENDIF
+
+PRINT
+IF failCnt = 0 THEN
+  PRINT "TSTSETAI: PASS"
+ELSE
+  PRINT "TSTSETAI: FAIL"
+ENDIF
+END
+
+900 PRINT "TSTSETAI error ("; ERR; ")"
+PRINT "TSTSETAI: FAIL"
+END
+
+PROCEDURE waitKey
+(* ================================================== *)
+(* PROCEDURE: waitKey                                 *)
+(* PURPOSE:   Pause before launching snbSetup.        *)
+(* NOTE:      Local copy; do not pack with snbUtil.   *)
+(* ================================================== *)
+DIM k : STRING[1]
+ON ERROR GOTO 900
+GET #0, k
+PRINT
+END
+900 PRINT "waitKey error ("; ERR; ")"
+END
+
+PROCEDURE ensureModule
+(* ============================================================ *)
+(* PROCEDURE : ensureModule                                     *)
+(* PURPOSE   : Ensure a named module is resident for the        *)
+(*             current process.                                 *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM modNam : STRING[20]
+PARAM forChild : BOOLEAN
+PARAM ok     : BOOLEAN
+DIM regs       : Register
+DIM namBuf(22) : BYTE
+DIM linkCode   : BYTE
+DIM loadCode   : BYTE
+DIM nameLen    : INTEGER
+DIM iCC        : INTEGER
+DIM errB       : INTEGER
+DIM i          : INTEGER
+
+ON ERROR GOTO 900
+
+ok := FALSE
+
+IF forChild THEN
+  linkCode := $21
+  loadCode := $22
+ELSE
+  linkCode := $00
+  loadCode := $01
+ENDIF
+
+nameLen := LEN(modNam)
+IF nameLen = 0 THEN
+  PRINT "ensureModule: empty module name"
+  END
+ENDIF
+FOR i := 1 TO nameLen - 1
+  namBuf(i) := ASC(MID$(modNam, i, 1))
+NEXT i
+namBuf(nameLen) := LOR(ASC(MID$(modNam, nameLen, 1)), $80)
+
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(linkCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) = 0 THEN
+  ok := TRUE
+  END
+ENDIF
+
+regs.a := 0
+regs.x := ADDR(namBuf)
+RUN SysCall(loadCode, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) <> 0 THEN
+  errB := regs.b
+  PRINT "ensureModule: load failed: "; modNam; " err: "; errB
+  END
+ENDIF
+
+ok := TRUE
+END
+
+900 PRINT "ensureModule error ("; ERR; ")"
+END
