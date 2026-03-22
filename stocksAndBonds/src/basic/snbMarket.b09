@@ -632,7 +632,7 @@ FOR s := 1 TO 9
   ELSE
     basePrc := curPrc
   ENDIF
-  prcBefCrd(s) := curPrc
+  prcBefCrd(s) := basePrc
   RUN resolvePrice(basePrc, delta, cDelta, 0, tmpPrc, tmpShr, splt, dNow, dPrv)
 
   ! Record display flags for S13/S14/S15.
