@@ -67,6 +67,15 @@ If a syscall detail appears ambiguous or undocumented, use
 - If a test or harness appears flawed, preserve the requested scenario and fix
   only the defect under investigation unless the user approves a scenario
   change first.
+- Do not present inferred runtime behavior, console behavior, screen behavior,
+  or hardware behavior as an observed fact unless it was directly reported by
+  the user or directly verified in the current task.
+- When diagnosing failures from user-reported output, distinguish explicitly
+  between:
+  1. observed facts from the user or code
+  2. hypotheses that still need confirmation
+- If the observed output is insufficient to prove a cause, say that directly
+  and propose checks instead of inventing an explanation.
 
 ## When Helping With Syscalls
 

@@ -77,9 +77,16 @@ plyrs(2).stckShrs(4) := 20
 mkt.stckPrice(1)     := 0
 mkt.stckPrice(4)     := 100
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+PRINT "  block1: saveGame returned"
 GOSUB 100
+PRINT "  block1: ensureModule returned"
+PRINT "  Child libraries ensured for block 1. Press a key to fork."
+RUN waitKey
+PRINT "  block1: pre-fork waitKey returned"
 RUN forkPhase("snbSell", exitStat)
+PRINT "  block1: forkPhase returned"
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+PRINT "  block1: loadGame returned"
 PRINT "  exitStat = "; exitStat
 PRINT "  loadOK   = "; loadOK
 PRINT "  P1 stk1  = "; plyrs(1).stckShrs(1)
@@ -121,6 +128,8 @@ plyrs(2).aiTier   := 2
 plyrs(2).cashBal  := 1000
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
 GOSUB 200
+PRINT "  Child libraries ensured for block 2. Press a key to fork."
+RUN waitKey
 RUN forkPhase("snbBuy", exitStat)
 RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
 PRINT "  exitStat = "; exitStat
