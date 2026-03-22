@@ -606,8 +606,8 @@ IF ownMod = "" THEN
   GOTO 900
 ENDIF
 
-! SNB and snbUtil are never unloaded
-IF ownMod = "SNB" OR ownMod = "snbUtil" THEN
+! snb and snbUtil are never unloaded
+IF ownMod = "snb" OR ownMod = "snbUtil" THEN
   ok := TRUE
   END
 ENDIF

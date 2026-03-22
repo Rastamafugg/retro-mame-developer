@@ -2,15 +2,15 @@ PROCEDURE TSTFULLGM
 (* ================================================== *)
 (* PROCEDURE: TSTFULLGM                               *)
 (* PURPOSE:   C4 full-integration confirmation test. *)
-(*            Loads SNB and its support modules, then *)
+(*            Loads snb and its support modules, then *)
 (*            launches the real coordinator for a     *)
-(*            manual end-to-end run. When SNB returns,*)
+(*            manual end-to-end run. When snb returns,*)
 (*            asks the tester to confirm PASS/FAIL.   *)
 (*                                                    *)
 (*            This is a visual/manual integration     *)
 (*            harness, not a machine-verifiable game  *)
 (*            simulator. The tester drives setup and  *)
-(*            gameplay inside SNB, then records the   *)
+(*            gameplay inside snb, then records the   *)
 (*            result here on return.                  *)
 (* ================================================== *)
 DIM modNam : STRING[20]
@@ -21,7 +21,7 @@ ON ERROR GOTO 900
 
 PRINT "=== TSTFULLGM: C4 FULL INTEGRATION TEST ==="
 PRINT
-PRINT "This test launches the real SNB coordinator."
+PRINT "This test launches the real snb coordinator."
 PRINT
 PRINT "Checklist before marking PASS:"
 PRINT "  1. pgChild setup completed normally."
@@ -29,7 +29,7 @@ PRINT "  2. divChild, mktChild, and trdChild transitions ran."
 PRINT "  3. egChild end-game screens displayed without error."
 PRINT "  4. Winner display matched the observed final state."
 PRINT
-PRINT "Press any key to ensure modules and launch SNB...";
+PRINT "Press any key to ensure modules and launch snb...";
 RUN waitKey
 
 modNam := "snbUtil"
@@ -46,17 +46,17 @@ IF NOT ok THEN
   END
 ENDIF
 
-modNam := "SNB"
+modNam := "snb"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
-  PRINT "TSTFULLGM: failed to load SNB"
+  PRINT "TSTFULLGM: failed to load snb"
   END
 ENDIF
 
-RUN SNB
+RUN snb
 
 PRINT
-PRINT "SNB returned to TSTFULLGM."
+PRINT "snb returned to TSTFULLGM."
 PRINT "1=PASS  2=FAIL"
 RUN getMenuKey(1, 2, key)
 
@@ -74,7 +74,7 @@ END
 PROCEDURE waitKey
 (* ================================================== *)
 (* PROCEDURE: waitKey                                 *)
-(* PURPOSE:   Pause before launching SNB.             *)
+(* PURPOSE:   Pause before launching snb.             *)
 (* NOTE:      Local copy; do not pack with snbUtil.   *)
 (* ================================================== *)
 DIM k : STRING[1]
@@ -89,7 +89,7 @@ PROCEDURE ensureModule
 (* ============================================================ *)
 (* PROCEDURE : ensureModule                                     *)
 (* PURPOSE   : Ensure a named module is resident, using the    *)
-(*             same logic as SNB and the child tests.          *)
+(*             same logic as snb and the child tests.          *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM modNam   : STRING[20]

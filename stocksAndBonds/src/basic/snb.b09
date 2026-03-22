@@ -1,6 +1,6 @@
-PROCEDURE SNB
+PROCEDURE snb
 (* ================================================== *)
-(* PROCEDURE: SNB                                     *)
+(* PROCEDURE: snb                                     *)
 (* PURPOSE:   Application coordinator.                *)
 (*            Loads snbUtil as permanent resident.   *)
 (*            Deletes stale SNBSTATE if present.     *)
