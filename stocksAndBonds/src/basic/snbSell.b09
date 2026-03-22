@@ -1,0 +1,843 @@
+PROCEDURE snbSell
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+DIM hdr        : SaveHdr
+DIM deckOrd(36): BYTE
+DIM plyrs(6)   : PlyrRec
+DIM mkt        : MktState
+DIM prof       : AIProfile
+DIM loadOK     : BOOLEAN
+DIM iCYr       : INTEGER
+DIM iPCnt      : INTEGER
+DIM ordTyp(12) : INTEGER
+DIM ordId(12)  : INTEGER
+DIM ordQty(12) : INTEGER
+DIM decAct(12) : BYTE
+DIM ordCnt     : INTEGER
+DIM usrAct     : INTEGER
+DIM actByt     : BYTE
+DIM tInt       : INTEGER
+DIM aiTierVal  : INTEGER
+DIM pNam       : STRING[20]
+DIM p          : INTEGER
+
+ON ERROR GOTO 900
+
+RUN loadGame("SNBSTATE", hdr, deckOrd, plyrs, mkt, loadOK)
+IF NOT loadOK THEN
+  PRINT "snbSell: loadGame failed"
+  END
+ENDIF
+
+iCYr  := hdr.currYear
+iPCnt := hdr.plyrCount
+
+IF iCYr > 1 THEN
+  FOR p := 1 TO iPCnt
+    IF NOT plyrs(p).isBankrupt THEN
+      pNam   := plyrs(p).plyrName
+      ordCnt := 0
+      IF plyrs(p).plyrType = 1 THEN
+        PRINT "snbSell: human sell start p="; p
+        RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, usrAct)
+        PRINT "snbSell: human sell returned p="; p; " ordCnt="; ordCnt
+        IF ordCnt > 0 THEN
+          RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+          PRINT "snbSell: human sell apply ok p="; p
+        ENDIF
+      ELSE
+        aiTierVal := plyrs(p).aiTier
+        IF aiTierVal < 1 OR aiTierVal > 3 THEN
+          aiTierVal := 2
+          plyrs(p).aiTier := 2
+        ENDIF
+        PRINT "snbSell: AI sell start p="; p; " tier="; aiTierVal
+        tInt := aiTierVal
+        RUN initAIProf(tInt, prof)
+        PRINT "snbSell: AI sell profile ok p="; p
+        RUN aiSell(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
+        PRINT "snbSell: AI sell orders ok p="; p; " ordCnt="; ordCnt
+        IF ordCnt > 0 THEN
+          RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
+          PRINT "snbSell: AI sell apply ok p="; p
+        ENDIF
+        FOR tInt := 1 TO ordCnt
+          decAct(tInt) := 1
+        NEXT tInt
+        actByt := 1
+        RUN scrAITurn(pNam, actByt, decAct, ordTyp, ordId, ordQty, ordCnt)
+        PRINT "snbSell: AI sell summary ok p="; p
+      ENDIF
+    ENDIF
+  NEXT p
+ENDIF
+
+hdr.gameStage := 2
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+900 PRINT "snbSell error ("; ERR; ")"
+RUN waitKey
+END
+
+PROCEDURE saveGame
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePath   : STRING[20]
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+DIM path      : BYTE
+DIM pathOpen  : BOOLEAN
+DIM iFlgs     : INTEGER
+DIM shft      : INTEGER
+DIM chkSum    : INTEGER
+DIM iMaxYr    : INTEGER
+DIM iPlyrCnt  : INTEGER
+DIM i         : INTEGER
+
+ON ERROR GOTO 900
+pathOpen := FALSE
+hdr.bnkrFlgs := 0
+shft         := 1
+iPlyrCnt     := hdr.plyrCount
+FOR i := 1 TO iPlyrCnt
+  IF plyrs(i).isBankrupt THEN
+    iFlgs        := hdr.bnkrFlgs
+    hdr.bnkrFlgs := LOR(iFlgs, shft)
+  ENDIF
+  shft := shft * 2
+NEXT i
+chkSum := hdr.magic      + hdr.fmtVersion + hdr.maxYears
+chkSum := chkSum + hdr.plyrCount  + hdr.rollMode
+chkSum := chkSum + hdr.currYear   + hdr.savedPhase
+chkSum := chkSum + hdr.savedPlyr  + hdr.gameStage
+chkSum := chkSum + hdr.bnkrFlgs
+hdr.checksum := LAND(chkSum, 255)
+ON ERROR GOTO 100
+DELETE savePath
+100 ON ERROR GOTO 900
+CREATE #path, savePath:WRITE
+pathOpen := TRUE
+PUT #path, hdr
+iMaxYr := hdr.maxYears
+FOR i := 1 TO iMaxYr
+  PUT #path, deckOrd(i)
+NEXT i
+PUT #path, plyrs
+PUT #path, mkt
+CLOSE #path
+pathOpen := FALSE
+END
+
+900 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    PRINT "saveGame error ("; ERR; ") writing: "; savePath
+    ERROR(ERR)
+END
+
+PROCEDURE loadGame
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePath   : STRING[20]
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+PARAM loadOK     : BOOLEAN
+DIM path      : BYTE
+DIM pathOpen  : BOOLEAN
+DIM chkExp    : INTEGER
+DIM iMaxYr    : INTEGER
+DIM i         : INTEGER
+
+ON ERROR GOTO 900
+pathOpen := FALSE
+loadOK   := FALSE
+OPEN #path, savePath:READ
+pathOpen := TRUE
+GET #path, hdr
+IF hdr.magic <> $53 THEN
+  PRINT "loadGame: not a valid save file: "; savePath
+  END
+ENDIF
+IF hdr.fmtVersion <> 1 THEN
+  PRINT "loadGame: incompatible save file version: "; savePath
+  END
+ENDIF
+chkExp := hdr.magic      + hdr.fmtVersion + hdr.maxYears
+chkExp := chkExp + hdr.plyrCount  + hdr.rollMode
+chkExp := chkExp + hdr.currYear   + hdr.savedPhase
+chkExp := chkExp + hdr.savedPlyr  + hdr.gameStage
+chkExp := chkExp + hdr.bnkrFlgs
+chkExp := LAND(chkExp, 255)
+IF chkExp <> hdr.checksum THEN
+  PRINT "loadGame: save file is corrupt: "; savePath
+  END
+ENDIF
+iMaxYr := hdr.maxYears
+FOR i := 1 TO iMaxYr
+  GET #path, deckOrd(i)
+NEXT i
+GET #path, plyrs
+GET #path, mkt
+CLOSE #path
+pathOpen := FALSE
+loadOK := TRUE
+END
+
+900 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    PRINT "loadGame error ("; ERR; ") reading: "; savePath
+    loadOK := FALSE
+END
+
+PROCEDURE initAIProf
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+PARAM tNum: INTEGER
+PARAM prof: AIProfile
+
+ON ERROR GOTO 900
+IF tNum = 1 THEN
+    prof.tier       := 1
+    prof.concenCap  := 70
+    prof.spltSlPct  := 20
+    prof.distSlPrc  := 50
+    prof.mgnMaxExpo := 0
+    prof.mgnBuffer  := 0
+    prof.mgnResvPct := 20
+    prof.repayFrac  := 25
+    prof.mgnClrYear := 9
+    prof.endgameYr  := 0
+    prof.spltSlPcE  := 20
+    prof.repayFrcE  := 25
+    prof.bondIdlCsh := 1000
+    prof.bndIdlCsE  := 1000
+    prof.zeroDivEl  := TRUE
+    prof.useYldScr  := FALSE
+    prof.useMargin  := FALSE
+    prof.bondPriory := TRUE
+ELSE IF tNum = 2 THEN
+    prof.tier       := 2
+    prof.concenCap  := 40
+    prof.spltSlPct  := 50
+    prof.distSlPrc  := 50
+    prof.mgnMaxExpo := 0
+    prof.mgnBuffer  := 0
+    prof.mgnResvPct := 10
+    prof.repayFrac  := 50
+    prof.mgnClrYear := 9
+    prof.endgameYr  := 0
+    prof.spltSlPcE  := 50
+    prof.repayFrcE  := 50
+    prof.bondIdlCsh := 5000
+    prof.bndIdlCsE  := 5000
+    prof.zeroDivEl  := TRUE
+    prof.useYldScr  := TRUE
+    prof.useMargin  := FALSE
+    prof.bondPriory := FALSE
+ELSE IF tNum = 3 THEN
+    prof.tier       := 3
+    prof.concenCap  := 25
+    prof.spltSlPct  := 30
+    prof.distSlPrc  := 60
+    prof.mgnMaxExpo := 30
+    prof.mgnBuffer  := 30
+    prof.mgnResvPct := 5
+    prof.repayFrac  := 75
+    prof.mgnClrYear := 8
+    prof.endgameYr  := 7
+    prof.spltSlPcE  := 70
+    prof.repayFrcE  := 90
+    prof.bondIdlCsh := 10000
+    prof.bndIdlCsE  := 5000
+    prof.zeroDivEl  := FALSE
+    prof.useYldScr  := TRUE
+    prof.useMargin  := TRUE
+    prof.bondPriory := FALSE
+ELSE
+    GOTO 900
+ENDIF \ENDIF \ENDIF
+END
+
+900 PRINT "initAIProf error ("; ERR; ")"
+END
+
+PROCEDURE aiSell
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
+PARAM currYear    : INTEGER
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM prof        : AIProfile
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+DIM splitSellPW : INTEGER
+DIM distSellPW  : INTEGER
+DIM marginClrYr : INTEGER
+DIM divPer(9)   : INTEGER
+DIM bPar(3)     : INTEGER
+DIM pendQty(9)  : INTEGER
+DIM pendBnd(3)  : INTEGER
+DIM clrIdx(9)   : INTEGER
+DIM clrSco(9)   : INTEGER
+DIM i           : INTEGER
+DIM j           : INTEGER
+DIM s           : INTEGER
+DIM b           : INTEGER
+DIM sellLots    : INTEGER
+DIM needed      : INTEGER
+DIM avail       : INTEGER
+DIM prcd        : INTEGER
+DIM tmp         : INTEGER
+DIM holdCnt     : INTEGER
+DIM minPos      : INTEGER
+DIM simCash     : INTEGER
+
+ON ERROR GOTO 900
+splitSellPW := prof.spltSlPct
+distSellPW  := prof.distSlPrc
+marginClrYr := prof.mgnClrYear
+IF prof.endgameYr > 0 THEN
+  IF currYear >= prof.endgameYr THEN
+    splitSellPW := prof.spltSlPcE
+  ENDIF
+ENDIF
+divPer(1) := 1
+divPer(2) := 0
+divPer(3) := 4
+divPer(4) := 7
+divPer(5) := 0
+divPer(6) := 0
+divPer(7) := 2
+divPer(8) := 6
+divPer(9) := 3
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+ordCnt := 0
+FOR i := 1 TO 9
+  pendQty(i) := 0
+NEXT i
+FOR i := 1 TO 3
+  pendBnd(i) := 0
+NEXT i
+FOR s := 1 TO 9
+  IF plyr.stckShrs(s) > 0 THEN
+    IF mkt.stckPrice(s) = 0 THEN
+      IF ordCnt < 12 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt) := s
+        ordQty(ordCnt) := plyr.stckShrs(s)
+        pendQty(s) := plyr.stckShrs(s)
+      ENDIF
+    ELSE IF mkt.stckPrice(s) <= 25 AND plyr.mgnHeld(s) THEN
+      IF ordCnt < 12 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt) := s
+        ordQty(ordCnt) := plyr.stckShrs(s)
+        pendQty(s) := plyr.stckShrs(s)
+      ENDIF
+    ELSE IF mkt.stckPrice(s) >= 150 THEN
+      sellLots := (plyr.stckShrs(s) / 10) * splitSellPW / 10
+      sellLots := (sellLots / 10) * 10
+      IF sellLots >= 10 AND ordCnt < 12 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt) := s
+        ordQty(ordCnt) := sellLots
+        pendQty(s) := sellLots
+      ENDIF
+    ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellPW THEN
+      IF ordCnt < 12 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt) := s
+        ordQty(ordCnt) := plyr.stckShrs(s)
+        pendQty(s) := plyr.stckShrs(s)
+      ENDIF
+    ENDIF \ENDIF \ENDIF \ENDIF
+  ENDIF
+NEXT s
+simCash := plyr.cashBal
+IF simCash < 0 THEN
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF simCash >= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt) := b
+      ordQty(ordCnt) := 1
+      pendBnd(b) := pendBnd(b) + 1
+      simCash := simCash + bPar(b)
+    ENDLOOP
+  NEXT b
+ENDIF
+IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
+  holdCnt := 0
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) - pendQty(s) > 0 THEN
+      holdCnt := holdCnt + 1
+      clrIdx(holdCnt) := s
+      IF divPer(s) = 0 OR mkt.divSuspnd(s) THEN
+        clrSco(holdCnt) := 0
+      ELSE
+        clrSco(holdCnt) := divPer(s) * 1000 / mkt.stckPrice(s)
+      ENDIF
+    ENDIF
+  NEXT s
+  FOR i := 1 TO holdCnt - 1
+    minPos := i
+    FOR j := i + 1 TO holdCnt
+      IF clrSco(j) < clrSco(minPos) THEN
+        minPos := j
+      ELSE IF clrSco(j) = clrSco(minPos) THEN
+        IF clrIdx(j) < clrIdx(minPos) THEN
+          minPos := j
+        ENDIF
+      ENDIF \ENDIF
+    NEXT j
+    IF minPos <> i THEN
+      tmp := clrSco(i)
+      clrSco(i) := clrSco(minPos)
+      clrSco(minPos) := tmp
+      tmp := clrIdx(i)
+      clrIdx(i) := clrIdx(minPos)
+      clrIdx(minPos) := tmp
+    ENDIF
+  NEXT i
+  needed := plyr.marginTot
+  FOR i := 1 TO holdCnt
+    IF needed > 0 THEN
+      s := clrIdx(i)
+      avail := plyr.stckShrs(s) - pendQty(s)
+      IF avail > 0 THEN
+        prcd := avail * mkt.stckPrice(s)
+        IF prcd <= needed THEN
+          IF ordCnt < 12 THEN
+            ordCnt := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt) := s
+            ordQty(ordCnt) := avail
+            pendQty(s) := pendQty(s) + avail
+            needed := needed - prcd
+          ENDIF
+        ELSE
+          sellLots := (needed + mkt.stckPrice(s) - 1)
+          sellLots := sellLots / mkt.stckPrice(s)
+          sellLots := ((sellLots + 9) / 10) * 10
+          IF sellLots > avail THEN
+            sellLots := avail
+          ENDIF
+          IF sellLots >= 10 AND ordCnt < 12 THEN
+            ordCnt := ordCnt + 1
+            ordType(ordCnt) := 1
+            ordId(ordCnt) := s
+            ordQty(ordCnt) := sellLots
+            pendQty(s) := pendQty(s) + sellLots
+            needed := needed - (sellLots * mkt.stckPrice(s))
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+  NEXT i
+  FOR b := 1 TO 3
+    LOOP
+      EXITIF needed <= 0 THEN
+      ENDEXIT
+      EXITIF plyr.bondUnts(b) - pendBnd(b) <= 0 THEN
+      ENDEXIT
+      EXITIF ordCnt >= 12 THEN
+      ENDEXIT
+      ordCnt := ordCnt + 1
+      ordType(ordCnt) := 2
+      ordId(ordCnt) := b
+      ordQty(ordCnt) := 1
+      pendBnd(b) := pendBnd(b) + 1
+      needed := needed - bPar(b)
+    ENDLOOP
+  NEXT b
+ENDIF
+END
+
+900 PRINT "aiSell error ("; ERR; ")"
+END
+
+PROCEDURE applySells
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+DIM bPar(3) : INTEGER
+DIM i       : INTEGER
+DIM s       : INTEGER
+DIM b       : INTEGER
+DIM prcd    : INTEGER
+DIM repay   : INTEGER
+
+ON ERROR GOTO 900
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+FOR i := 1 TO ordCnt
+  IF ordType(i) = 1 THEN
+    s := ordId(i)
+    prcd := ordQty(i) * mkt.stckPrice(s)
+    IF plyr.mgnHeld(s) THEN
+      repay := plyr.marginTot
+      IF prcd < repay THEN
+        repay := prcd
+      ENDIF
+      plyr.marginTot := plyr.marginTot - repay
+      plyr.cashBal   := plyr.cashBal + (prcd - repay)
+    ELSE
+      plyr.cashBal := plyr.cashBal + prcd
+    ENDIF
+    plyr.stckShrs(s) := plyr.stckShrs(s) - ordQty(i)
+    IF plyr.stckShrs(s) = 0 THEN
+      plyr.mgnHeld(s) := FALSE
+    ENDIF
+  ELSE IF ordType(i) = 2 THEN
+    b := ordId(i)
+    prcd := ordQty(i) * bPar(b)
+    plyr.cashBal := plyr.cashBal + prcd
+    plyr.bondUnts(b) := plyr.bondUnts(b) - ordQty(i)
+  ENDIF \ENDIF
+NEXT i
+END
+
+900 PRINT "applySells error ("; ERR; ")"
+END
+
+PROCEDURE scrAITurn
+PARAM plyrNam    : STRING[20]
+PARAM phase      : BYTE
+PARAM decAct(12) : BYTE
+PARAM decType(12): INTEGER
+PARAM decId(12)  : INTEGER
+PARAM decQty(12) : INTEGER
+PARAM decCnt     : INTEGER
+DIM sNam(9) : STRING[14]
+DIM bPar(3) : INTEGER
+DIM i       : INTEGER
+DIM s       : INTEGER
+DIM b       : INTEGER
+DIM shown   : INTEGER
+DIM pStr    : STRING[8]
+
+ON ERROR GOTO 900
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+bPar(1) := 1000
+bPar(2) := 5000
+bPar(3) := 10000
+RUN clrScr
+PRINT "=== COMPUTER TURN ===";
+IF phase = 1 THEN
+  PRINT "  SELL PHASE"
+ELSE
+  PRINT "  BUY PHASE"
+ENDIF
+PRINT "Player: "; plyrNam
+PRINT
+shown := 0
+FOR i := 1 TO decCnt
+  IF decAct(i) = 1 THEN
+    PRINT "  SELL  ";
+    IF decType(i) = 1 THEN
+      s := decId(i)
+      PRINT decQty(i); "  "; sNam(s)
+    ELSE IF decType(i) = 2 THEN
+      b := decId(i)
+      RUN fmtMoney(bPar(b), pStr)
+      PRINT decQty(i); "  $"; pStr; " bond"
+    ENDIF \ENDIF
+    shown := shown + 1
+  ELSE IF decAct(i) = 2 THEN
+    PRINT "  BUY   ";
+    IF decType(i) = 1 THEN
+      s := decId(i)
+      PRINT decQty(i); "  "; sNam(s)
+    ELSE IF decType(i) = 2 THEN
+      b := decId(i)
+      RUN fmtMoney(bPar(b), pStr)
+      PRINT decQty(i); "  $"; pStr; " bond"
+    ENDIF \ENDIF
+    shown := shown + 1
+  ELSE IF decAct(i) = 3 THEN
+    RUN fmtMoney(decQty(i), pStr)
+    PRINT "  REPAY $"; pStr; " margin"
+    shown := shown + 1
+  ENDIF \ENDIF \ENDIF
+NEXT i
+IF shown = 0 THEN
+  PRINT "  (no action this phase)"
+ENDIF
+PRINT
+RUN waitKey
+END
+
+900 PRINT "scrAITurn error ("; ERR; ")"
+END
+
+PROCEDURE scrSell
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM currYear    : INTEGER
+PARAM plyr        : PlyrRec
+PARAM mkt         : MktState
+PARAM ordType(12) : INTEGER
+PARAM ordId(12)   : INTEGER
+PARAM ordQty(12)  : INTEGER
+PARAM ordCnt      : INTEGER
+PARAM action      : INTEGER
+DIM sNam(9) : STRING[14]
+DIM bDen(3) : INTEGER
+DIM i       : INTEGER
+DIM s       : INTEGER
+DIM b       : INTEGER
+DIM yldPct  : INTEGER
+DIM divVal  : INTEGER
+DIM hasSell : BOOLEAN
+DIM qty     : INTEGER
+DIM valid   : BOOLEAN
+DIM key     : INTEGER
+DIM nSep    : STRING[1]
+DIM qIn     : STRING[8]
+DIM pStr    : STRING[8]
+DIM numOk   : BOOLEAN
+DIM totProc : INTEGER
+DIM divRate(9): INTEGER
+
+ON ERROR GOTO 900
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
+divRate(1) := 1
+divRate(2) := 0
+divRate(3) := 4
+divRate(4) := 7
+divRate(5) := 0
+divRate(6) := 0
+divRate(7) := 2
+divRate(8) := 6
+divRate(9) := 3
+bDen(1) := 1000
+bDen(2) := 5000
+bDen(3) := 10000
+RUN clrScr
+PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
+PRINT "Player: "; plyr.plyrName
+RUN fmtMoney(plyr.cashBal, pStr)
+PRINT "Cash: $"; pStr;
+RUN fmtMoney(plyr.marginTot, pStr)
+PRINT "  Margin: $"; pStr
+PRINT
+PRINT "STOCKS:"
+hasSell := FALSE
+FOR s := 1 TO 9
+  IF plyr.stckShrs(s) > 0 THEN
+    hasSell := TRUE
+    RUN fmtMoney(mkt.stckPrice(s), pStr)
+    yldPct := divRate(s)
+    divVal := (mkt.stckPrice(s) * divRate(s)) / 100
+    nSep := ""
+    IF LEN(sNam(s)) = 11 THEN
+      nSep := " "
+    ENDIF
+    PRINT " "; s; " "; sNam(s); nSep; "  ";
+    PRINT plyr.stckShrs(s); " shr @ $"; pStr;
+    PRINT " "; yldPct; "% -> $"; divVal;
+    IF plyr.mgnHeld(s) THEN
+      PRINT "  [MGN]"
+    ELSE
+      PRINT
+    ENDIF
+  ENDIF
+NEXT s
+PRINT
+PRINT "BONDS:"
+FOR b := 1 TO 3
+  IF plyr.bondUnts(b) > 0 THEN
+    hasSell := TRUE
+    PRINT " "; b; " $"; bDen(b); "  ";
+    PRINT plyr.bondUnts(b); " unit(s)"
+  ENDIF
+NEXT b
+IF NOT hasSell THEN
+  PRINT
+  PRINT "Nothing to sell this turn."
+  RUN waitKey
+  ordCnt := 0
+  action := 2
+  END
+ENDIF
+PRINT
+PRINT "1=Enter sales  2=Pass turn"
+RUN getMenuKey(1, 2, key)
+IF key = 2 THEN
+  ordCnt := 0
+  action := 2
+  END
+ENDIF
+LOOP
+  ordCnt := 0
+  FOR i := 1 TO 12
+    ordType(i) := 0
+    ordId(i)   := 0
+    ordQty(i)  := 0
+  NEXT i
+  RUN clrScr
+  PRINT "SELL ORDERS  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
+      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      yldPct := divRate(s)
+      divVal := (mkt.stckPrice(s) * divRate(s)) / 100
+      nSep := ""
+      IF LEN(sNam(s)) = 11 THEN
+        nSep := " "
+      ENDIF
+      PRINT sNam(s); nSep; " ("; plyr.stckShrs(s);
+      PRINT " avail @ $"; pStr; " "; yldPct; "% -> $"; divVal; ")"
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Sell qty (0/Enter=skip, mult of 10): ", qIn
+        IF qIn = "" THEN
+          qty := 0
+          valid := TRUE
+        ELSE
+          RUN getNumIn(qIn, qty, numOk)
+          IF NOT numOk THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or positive mult of 10."
+          ELSE IF MOD(qty, 10) <> 0 THEN
+            PRINT "  Invalid: must be a multiple of 10."
+          ELSE IF qty > plyr.stckShrs(s) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.stckShrs(s); " shares."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF \ENDIF
+        ENDIF
+      ENDWHILE
+      IF qty > 0 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 1
+        ordId(ordCnt) := s
+        ordQty(ordCnt) := qty
+      ENDIF
+    ENDIF
+  NEXT s
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      PRINT "$"; bDen(b); " bond";
+      PRINT " ("; plyr.bondUnts(b); " unit(s) held)"
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Units to sell (0/Enter=skip): ", qIn
+        IF qIn = "" THEN
+          qty := 0
+          valid := TRUE
+        ELSE
+          RUN getNumIn(qIn, qty, numOk)
+          IF NOT numOk THEN
+            PRINT "  Invalid: enter a number."
+          ELSE IF qty < 0 THEN
+            PRINT "  Invalid: enter 0 or a positive number."
+          ELSE IF qty > plyr.bondUnts(b) THEN
+            PRINT "  Invalid: you hold only ";
+            PRINT plyr.bondUnts(b); " unit(s)."
+          ELSE
+            valid := TRUE
+          ENDIF \ENDIF \ENDIF
+        ENDIF
+      ENDWHILE
+      IF qty > 0 THEN
+        ordCnt := ordCnt + 1
+        ordType(ordCnt) := 2
+        ordId(ordCnt) := b
+        ordQty(ordCnt) := qty
+      ENDIF
+    ENDIF
+  NEXT b
+  RUN clrScr
+  PRINT "SELL SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT
+  totProc := 0
+  IF ordCnt = 0 THEN
+    PRINT "  (no sell orders entered)"
+  ELSE
+    FOR i := 1 TO ordCnt
+      IF ordType(i) = 1 THEN
+        s := ordId(i)
+        RUN fmtMoney(mkt.stckPrice(s), pStr)
+        PRINT "  Sell "; ordQty(i); " "; sNam(s);
+        PRINT " @ $"; pStr;
+        RUN fmtMoney(ordQty(i) * mkt.stckPrice(s), pStr)
+        PRINT " = $"; pStr
+        totProc := totProc + (ordQty(i) * mkt.stckPrice(s))
+      ELSE IF ordType(i) = 2 THEN
+        b := ordId(i)
+        PRINT "  Sell "; ordQty(i); " $"; bDen(b); " bond";
+        IF ordQty(i) > 1 THEN
+          PRINT "s"
+        ELSE
+          PRINT
+        ENDIF
+        RUN fmtMoney(ordQty(i) * bDen(b), pStr)
+        PRINT "    Proceeds: $"; pStr
+        totProc := totProc + (ordQty(i) * bDen(b))
+      ENDIF \ENDIF
+    NEXT i
+  ENDIF
+  PRINT
+  RUN fmtMoney(totProc, pStr)
+  PRINT "Total proceeds: $"; pStr
+  PRINT
+  PRINT "1=Confirm  2=Revise orders"
+  RUN getMenuKey(1, 2, key)
+  EXITIF key = 1 THEN
+  ENDEXIT
+ENDLOOP
+action := 1
+END
+
+900 PRINT "scrSell error ("; ERR; ")"
+END
