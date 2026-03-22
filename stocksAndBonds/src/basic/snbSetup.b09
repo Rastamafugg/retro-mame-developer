@@ -11,7 +11,7 @@ PROCEDURE snbSetup
 (* SIDE EFX  : Writes SNBSTATE on normal exit.       *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
@@ -152,7 +152,8 @@ PROCEDURE scrSetup
 (* PROCEDURE: scrSetup                                *)
 (* PURPOSE:   Display S2 new game setup screen.      *)
 (*            Collect player count, names, types,    *)
-(*            AI difficulty, and market roll mode.   *)
+(*            AI difficulty, market roll mode, and   *)
+(*            margin rules setting.                  *)
 (* PARAMS:    plyrCount  - receives player count 1-6 *)
 (*            plyrType   - receives type per player  *)
 (*                         1=Human  2=Computer       *)
@@ -162,6 +163,8 @@ PROCEDURE scrSetup
 (*                         0=Human 1=E 2=M 3=H       *)
 (*            rollMode   - receives roll mode        *)
 (*                         1=A  2=B  3=C             *)
+(*            mgnRule    - receives margin rules     *)
+(*                         0=Off 1=On                *)
 (* NOTES:     plyrType is INTEGER array; callers     *)
 (*            copy to PlyrRec.plyrType (BYTE).       *)
 (*            aiTier is INTEGER array; callers copy  *)
@@ -174,8 +177,10 @@ PARAM plyrType(6):INTEGER
 PARAM plyrName(6):STRING[20]
 PARAM aiTier(6):INTEGER
 PARAM rollMode:INTEGER
+PARAM mgnRule:INTEGER
 
 DIM i:INTEGER
+DIM mgnAct:INTEGER
 
 ON ERROR GOTO 900
 
@@ -222,6 +227,17 @@ ELSE IF rollMode = 2 THEN
 ELSE
   PRINT "C"
 ENDIF \ENDIF
+
+PRINT
+PRINT "  Margin rules  1=Off  2=On: ";
+RUN getMenuKey(1, 2, mgnAct)
+IF mgnAct = 1 THEN
+  mgnRule := 0
+  PRINT "Off"
+ELSE
+  mgnRule := 1
+  PRINT "On"
+ENDIF
 END
 
 900 PRINT "scrSetup error ("; ERR; ")"
@@ -241,6 +257,8 @@ PROCEDURE scrConfirm
 (*                         0=Human 1=E 2=M 3=H       *)
 (*            rollMode   - market roll mode           *)
 (*                         1=A  2=B  3=C             *)
+(*            mgnRule    - margin rules               *)
+(*                         0=Off 1=On                *)
 (*            action     - receives selection:        *)
 (*                         1=Confirm  2=Back         *)
 (* NOTES:     plyrType is INTEGER array matching     *)
@@ -252,6 +270,7 @@ PARAM plyrType(6):INTEGER
 PARAM plyrName(6):STRING[20]
 PARAM aiTier(6):INTEGER
 PARAM rollMode:INTEGER
+PARAM mgnRule:INTEGER
 PARAM action:INTEGER
 
 DIM i:INTEGER
@@ -283,6 +302,11 @@ ELSE
 ENDIF \ENDIF
 
 PRINT "  Roll Mode:  "; modeLabel
+IF mgnRule = 1 THEN
+  PRINT "  Margin Rules:  On"
+ELSE
+  PRINT "  Margin Rules:  Off"
+ENDIF
 PRINT
 PRINT "  1. Confirm"
 PRINT "  2. Back"
@@ -313,7 +337,7 @@ PROCEDURE setup
 (* SIDE EFX  : Clears screen. Modifies out params.             *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
@@ -326,6 +350,7 @@ DIM action       : INTEGER
 DIM cfmAct       : INTEGER
 DIM setupCnt     : INTEGER
 DIM setupMode    : INTEGER
+DIM setupMgn     : INTEGER
 DIM setupTyp(6)  : INTEGER
 DIM setupTier(6) : INTEGER
 DIM setupNam(6)  : STRING[20]
@@ -348,8 +373,8 @@ REPEAT
   ELSE IF action = 1 THEN
     cfmAct := 0
     REPEAT
-      RUN scrSetup(setupCnt, setupTyp, setupNam, setupTier, setupMode)
-      RUN scrConfirm(setupCnt, setupTyp, setupNam, setupTier, setupMode, cfmAct)
+      RUN scrSetup(setupCnt, setupTyp, setupNam, setupTier, setupMode, setupMgn)
+      RUN scrConfirm(setupCnt, setupTyp, setupNam, setupTier, setupMode, setupMgn, cfmAct)
     UNTIL cfmAct = 1
     FOR i := 1 TO 6
       RUN initPlayer(plyrs(i))
@@ -374,6 +399,7 @@ REPEAT
     hdr.maxYears   := 10
     hdr.plyrCount  := setupCnt  \ ! INTEGER->BYTE; 1-6 safe
     hdr.rollMode   := setupMode \ ! INTEGER->BYTE; 1-3 safe
+    hdr.mgnRule    := setupMgn  \ ! INTEGER->BYTE; 0-1 safe
     hdr.currYear   := 0
     hdr.savedPhase := 0
     hdr.savedPlyr  := 1

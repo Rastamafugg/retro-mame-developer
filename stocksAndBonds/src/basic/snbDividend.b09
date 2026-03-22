@@ -23,7 +23,7 @@ PROCEDURE snbDividend
 (*             any other DATA lines in this procedure.          *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN

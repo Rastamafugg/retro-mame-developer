@@ -256,15 +256,16 @@ PROCEDURE saveGame
 (* PROCEDURE : saveGame                                         *)
 (* PURPOSE   : Serialize complete game state to disk.          *)
 (*             Computes bnkrFlgs from plyrs.isBankrupt and      *)
-(*             checksum from all 10 non-checksum header fields  *)
+(*             checksum from all 11 non-checksum header fields  *)
 (*             before writing. Overwrites existing file if      *)
 (*             present. Writes only hdr.maxYears + 1 deck       *)
 (*             entries (trimmed deck).                          *)
 (*                                                             *)
 (*             CALLER MUST SET before calling:                  *)
 (*               hdr.magic, hdr.fmtVersion, hdr.maxYears,       *)
-(*               hdr.plyrCount, hdr.rollMode, hdr.currYear,     *)
-(*               hdr.savedPhase, hdr.savedPlyr, hdr.gameStage   *)
+(*               hdr.plyrCount, hdr.rollMode, hdr.mgnRule,      *)
+(*               hdr.currYear, hdr.savedPhase, hdr.savedPlyr,   *)
+(*               hdr.gameStage                                  *)
 (*             saveGame computes hdr.bnkrFlgs and              *)
 (*             hdr.checksum internally; caller must NOT set     *)
 (*             these fields.                                    *)
@@ -275,10 +276,11 @@ PROCEDURE saveGame
 (*               ...through Bit 5 ($20) = Player 6 bankrupt    *)
 (*               Bits 6-7 always 0                              *)
 (*                                                             *)
-(*             Checksum = LAND(sum of 10 covered BYTE fields,   *)
+(*             Checksum = LAND(sum of 11 covered BYTE fields,   *)
 (*             255). Covered fields: magic, fmtVersion,         *)
-(*             maxYears, plyrCount, rollMode, currYear,          *)
-(*             savedPhase, savedPlyr, gameStage, bnkrFlgs.      *)
+(*             maxYears, plyrCount, rollMode, mgnRule,          *)
+(*             currYear, savedPhase, savedPlyr, gameStage,      *)
+(*             bnkrFlgs.                                        *)
 (*                                                             *)
 (* PARAMS    : savePath  - target filename (max 20 chars)       *)
 (*             hdr       - SaveHdr; bnkrFlgs+checksum set here  *)
@@ -290,7 +292,7 @@ PROCEDURE saveGame
 (*             Modifies hdr.bnkrFlgs and hdr.checksum.         *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
@@ -327,13 +329,13 @@ FOR i := 1 TO iPlyrCnt
 NEXT i
 
 ! --- Step 2: Compute header checksum -------------------------
-! Covers all 10 non-checksum BYTE fields. BYTE fields auto-widen
+! Covers all 11 non-checksum BYTE fields. BYTE fields auto-widen
 ! to INTEGER in addition chain; no per-field staging needed.
 chkSum := hdr.magic      + hdr.fmtVersion + hdr.maxYears
 chkSum := chkSum + hdr.plyrCount  + hdr.rollMode
-chkSum := chkSum + hdr.currYear   + hdr.savedPhase
-chkSum := chkSum + hdr.savedPlyr  + hdr.gameStage
-chkSum := chkSum + hdr.bnkrFlgs
+chkSum := chkSum + hdr.mgnRule    + hdr.currYear
+chkSum := chkSum + hdr.savedPhase + hdr.savedPlyr
+chkSum := chkSum + hdr.gameStage  + hdr.bnkrFlgs
 hdr.checksum := LAND(chkSum, 255)
 
 ! --- Step 3: Delete existing file; ignore error if absent ----
@@ -395,7 +397,7 @@ PROCEDURE loadGame
 (* SIDE EFX  : Prints diagnostic message on failure.           *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
@@ -439,9 +441,9 @@ ENDIF
 ! Recompute and verify checksum.
 chkExp := hdr.magic      + hdr.fmtVersion + hdr.maxYears
 chkExp := chkExp + hdr.plyrCount  + hdr.rollMode
-chkExp := chkExp + hdr.currYear   + hdr.savedPhase
-chkExp := chkExp + hdr.savedPlyr  + hdr.gameStage
-chkExp := chkExp + hdr.bnkrFlgs
+chkExp := chkExp + hdr.mgnRule    + hdr.currYear
+chkExp := chkExp + hdr.savedPhase + hdr.savedPlyr
+chkExp := chkExp + hdr.gameStage  + hdr.bnkrFlgs
 chkExp := LAND(chkExp, 255)
 
 IF chkExp <> hdr.checksum THEN

@@ -55,7 +55,7 @@ PROCEDURE snb
 (* PARAMS:    None                                    *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 DIM hdr        : SaveHdr
 DIM wasStale   : BOOLEAN
 DIM loadOK     : BOOLEAN
@@ -416,7 +416,7 @@ END
 PROCEDURE readHdr
 (* ============================================================ *)
 (* PROCEDURE : readHdr                                          *)
-(* PURPOSE   : Read the 11-byte SaveHdr from SNBSTATE.         *)
+(* PURPOSE   : Read the 12-byte SaveHdr from SNBSTATE.         *)
 (*             Opens SNBSTATE in read mode, reads exactly       *)
 (*             SIZE(SaveHdr) bytes via GET, closes the file.    *)
 (*             Sets loadOK=TRUE on success, FALSE on any error. *)
@@ -432,7 +432,7 @@ PROCEDURE readHdr
 (*             game state variables.                            *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 PARAM hdr    : SaveHdr
 PARAM loadOK : BOOLEAN
 DIM path     : BYTE

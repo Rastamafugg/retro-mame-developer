@@ -14,7 +14,7 @@ PROCEDURE snbSell
 (* NOTE      : snbUtil and snbSell must be pre-loaded by the   *)
 (*             coordinator before fork.                        *)
 (* ============================================================ *)
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN

@@ -13,9 +13,10 @@ PROCEDURE TSTSETAI
 (*            4. Player 2: name EASY,  type 2, tier 1 *)
 (*            5. Player 3: name HARD,  type 2, tier 3 *)
 (*            6. Roll mode: 2                         *)
-(*            7. Confirm: 1                           *)
+(*            7. Margin rules: 2 (On)                *)
+(*            8. Confirm: 1                           *)
 (* ================================================== *)
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 DIM menuAct     : INTEGER
@@ -41,7 +42,8 @@ PRINT "  3. P1 name HUMAN, type Human"
 PRINT "  4. P2 name EASY, type Computer, difficulty Easy"
 PRINT "  5. P3 name HARD, type Computer, difficulty Hard"
 PRINT "  6. Roll mode = B"
-PRINT "  7. Confirm"
+PRINT "  7. Margin rules = On"
+PRINT "  8. Confirm"
 PRINT
 PRINT "Press any key to load modules and begin...";
 RUN waitKey
@@ -68,6 +70,7 @@ PRINT "Returned values:"
 PRINT "  menuAct       = "; menuAct
 PRINT "  hdr.plyrCount = "; hdr.plyrCount
 PRINT "  hdr.rollMode  = "; hdr.rollMode
+PRINT "  hdr.mgnRule   = "; hdr.mgnRule
 FOR i := 1 TO 3
   PRINT "  P"; i; " name="; plyrs(i).plyrName;
   PRINT " type="; plyrs(i).plyrType; " aiTier="; plyrs(i).aiTier
@@ -83,6 +86,10 @@ IF hdr.plyrCount <> 3 THEN
 ENDIF
 IF hdr.rollMode <> 2 THEN
   PRINT "  FAIL: expected hdr.rollMode=2"
+  failCnt := failCnt + 1
+ENDIF
+IF hdr.mgnRule <> 1 THEN
+  PRINT "  FAIL: expected hdr.mgnRule=1"
   failCnt := failCnt + 1
 ENDIF
 IF plyrs(1).plyrType <> 1 OR plyrs(1).aiTier <> 0 THEN
