@@ -84,6 +84,7 @@ PARAM mkt : MktState
 
 DIM sNam(9) : STRING[14]
 DIM s       : INTEGER
+DIM nSep    : STRING[1]
 DIM pStr    : STRING[8]
 
 ON ERROR GOTO 900
@@ -102,11 +103,15 @@ RUN clrScr
 PRINT "=== FINAL MARKET BOARD (S24) ==="
 PRINT
 PRINT " #  STOCK          PRICE  STATUS"
-PRINT " -  -------------  -----  --------"
+PRINT " -  -------------  -----  ------"
 
 FOR s := 1 TO 9
+  nSep := ""
+  IF LEN(sNam(s)) = 11 THEN
+    nSep := " "
+  ENDIF
   RUN fmtMoney(mkt.stckPrice(s), pStr)
-  PRINT " "; s; "  "; sNam(s); "  "; pStr; "  ";
+  PRINT " "; s; "  "; sNam(s); nSep; "   "; pStr; "      ";
   IF mkt.stckPrice(s) = 0 THEN
     PRINT "BANKRUPT"
   ELSE IF mkt.divSuspnd(s) THEN
