@@ -82,197 +82,38 @@ END
 RUN waitKey
 END
 
-PROCEDURE saveGame
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
-TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM savePath   : STRING[20]
-PARAM hdr        : SaveHdr
-PARAM deckOrd(36): BYTE
-PARAM plyrs(6)   : PlyrRec
-PARAM mkt        : MktState
-DIM path      : BYTE
-DIM pathOpen  : BOOLEAN
-DIM iFlgs     : INTEGER
-DIM shft      : INTEGER
-DIM chkSum    : INTEGER
-DIM iMaxYr    : INTEGER
-DIM iPlyrCnt  : INTEGER
-DIM i         : INTEGER
-
-ON ERROR GOTO 900
-pathOpen := FALSE
-hdr.bnkrFlgs := 0
-shft         := 1
-iPlyrCnt     := hdr.plyrCount
-FOR i := 1 TO iPlyrCnt
-  IF plyrs(i).isBankrupt THEN
-    iFlgs        := hdr.bnkrFlgs
-    hdr.bnkrFlgs := LOR(iFlgs, shft)
-  ENDIF
-  shft := shft * 2
-NEXT i
-chkSum := hdr.magic      + hdr.fmtVersion + hdr.maxYears
-chkSum := chkSum + hdr.plyrCount  + hdr.rollMode
-chkSum := chkSum + hdr.currYear   + hdr.savedPhase
-chkSum := chkSum + hdr.savedPlyr  + hdr.gameStage
-chkSum := chkSum + hdr.bnkrFlgs
-hdr.checksum := LAND(chkSum, 255)
-ON ERROR GOTO 100
-DELETE savePath
-100 ON ERROR GOTO 900
-CREATE #path, savePath:WRITE
-pathOpen := TRUE
-PUT #path, hdr
-iMaxYr := hdr.maxYears
-FOR i := 1 TO iMaxYr
-  PUT #path, deckOrd(i)
-NEXT i
-PUT #path, plyrs
-PUT #path, mkt
-CLOSE #path
-pathOpen := FALSE
-END
-
-900 IF pathOpen THEN
-      CLOSE #path
-    ENDIF
-    PRINT "saveGame error ("; ERR; ") writing: "; savePath
-    ERROR(ERR)
-END
-
-PROCEDURE loadGame
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
-TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM savePath   : STRING[20]
-PARAM hdr        : SaveHdr
-PARAM deckOrd(36): BYTE
-PARAM plyrs(6)   : PlyrRec
-PARAM mkt        : MktState
-PARAM loadOK     : BOOLEAN
-DIM path      : BYTE
-DIM pathOpen  : BOOLEAN
-DIM chkExp    : INTEGER
-DIM iMaxYr    : INTEGER
-DIM i         : INTEGER
-
-ON ERROR GOTO 900
-pathOpen := FALSE
-loadOK   := FALSE
-OPEN #path, savePath:READ
-pathOpen := TRUE
-GET #path, hdr
-IF hdr.magic <> $53 THEN
-  PRINT "loadGame: not a valid save file: "; savePath
-  END
-ENDIF
-IF hdr.fmtVersion <> 1 THEN
-  PRINT "loadGame: incompatible save file version: "; savePath
-  END
-ENDIF
-chkExp := hdr.magic      + hdr.fmtVersion + hdr.maxYears
-chkExp := chkExp + hdr.plyrCount  + hdr.rollMode
-chkExp := chkExp + hdr.currYear   + hdr.savedPhase
-chkExp := chkExp + hdr.savedPlyr  + hdr.gameStage
-chkExp := chkExp + hdr.bnkrFlgs
-chkExp := LAND(chkExp, 255)
-IF chkExp <> hdr.checksum THEN
-  PRINT "loadGame: save file is corrupt: "; savePath
-  END
-ENDIF
-iMaxYr := hdr.maxYears
-FOR i := 1 TO iMaxYr
-  GET #path, deckOrd(i)
-NEXT i
-GET #path, plyrs
-GET #path, mkt
-CLOSE #path
-pathOpen := FALSE
-loadOK := TRUE
-END
-
-900 IF pathOpen THEN
-      CLOSE #path
-    ENDIF
-    PRINT "loadGame error ("; ERR; ") reading: "; savePath
-    loadOK := FALSE
-END
-
-PROCEDURE initAIProf
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
-PARAM tNum: INTEGER
-PARAM prof: AIProfile
-
-ON ERROR GOTO 900
-IF tNum = 1 THEN
-    prof.tier       := 1
-    prof.concenCap  := 70
-    prof.spltSlPct  := 20
-    prof.distSlPrc  := 50
-    prof.mgnMaxExpo := 0
-    prof.mgnBuffer  := 0
-    prof.mgnResvPct := 20
-    prof.repayFrac  := 25
-    prof.mgnClrYear := 9
-    prof.endgameYr  := 0
-    prof.spltSlPcE  := 20
-    prof.repayFrcE  := 25
-    prof.bondIdlCsh := 1000
-    prof.bndIdlCsE  := 1000
-    prof.zeroDivEl  := TRUE
-    prof.useYldScr  := FALSE
-    prof.useMargin  := FALSE
-    prof.bondPriory := TRUE
-ELSE IF tNum = 2 THEN
-    prof.tier       := 2
-    prof.concenCap  := 40
-    prof.spltSlPct  := 50
-    prof.distSlPrc  := 50
-    prof.mgnMaxExpo := 0
-    prof.mgnBuffer  := 0
-    prof.mgnResvPct := 10
-    prof.repayFrac  := 50
-    prof.mgnClrYear := 9
-    prof.endgameYr  := 0
-    prof.spltSlPcE  := 50
-    prof.repayFrcE  := 50
-    prof.bondIdlCsh := 5000
-    prof.bndIdlCsE  := 5000
-    prof.zeroDivEl  := TRUE
-    prof.useYldScr  := TRUE
-    prof.useMargin  := FALSE
-    prof.bondPriory := FALSE
-ELSE IF tNum = 3 THEN
-    prof.tier       := 3
-    prof.concenCap  := 25
-    prof.spltSlPct  := 30
-    prof.distSlPrc  := 60
-    prof.mgnMaxExpo := 30
-    prof.mgnBuffer  := 30
-    prof.mgnResvPct := 5
-    prof.repayFrac  := 75
-    prof.mgnClrYear := 8
-    prof.endgameYr  := 7
-    prof.spltSlPcE  := 70
-    prof.repayFrcE  := 90
-    prof.bondIdlCsh := 10000
-    prof.bndIdlCsE  := 5000
-    prof.zeroDivEl  := FALSE
-    prof.useYldScr  := TRUE
-    prof.useMargin  := TRUE
-    prof.bondPriory := FALSE
-ELSE
-    GOTO 900
-ENDIF \ENDIF \ENDIF
-END
-
-900 PRINT "initAIProf error ("; ERR; ")"
-END
-
 PROCEDURE aiSell
+(* ============================================================ *)
+(* PROCEDURE : aiSell                                           *)
+(* PURPOSE   : AI sell phase decision engine.                  *)
+(*             Implements ai-player-logic.md Section 4.        *)
+(*             Working vars are loaded from AIProfile at start, *)
+(*             with endgame overrides applied when applicable.  *)
+(*             All three tiers use this single procedure.       *)
+(*             Does NOT modify plyr. Caller applies orders.    *)
+(*                                                             *)
+(*             Sell logic order (ai-player-logic.md Sec 6):    *)
+(*               1. Stock Rules 1-4 (ascending stockId)        *)
+(*               2. Emergency bond sell (cashBal < 0)          *)
+(*               3. Proactive margin clearance (Year >= clrYr) *)
+(*                                                             *)
+(* PARAMS    : currYear      - current game year (1..10)       *)
+(*             plyr          - player record (READ ONLY)       *)
+(*             mkt           - market state (READ ONLY)        *)
+(*             prof          - AI difficulty profile (READ ONLY*)
+(*             ordType(12)   - output: 1=STOCK 2=BOND          *)
+(*             ordId(12)     - output: asset index (1-9 / 1-3) *)
+(*             ordQty(12)    - output: quantity per order       *)
+(*             ordCnt        - output: number of orders (0..12)*)
+(* SIDE EFX  : None. plyr and mkt are not modified.            *)
+(* NOTE      : ordCnt=0 is a valid output (all rules pass).   *)
+(*             Array slots cap at 12; orders beyond are        *)
+(*             silently dropped.                               *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
 PARAM currYear    : INTEGER
 PARAM plyr        : PlyrRec
@@ -282,15 +123,17 @@ PARAM ordType(12) : INTEGER
 PARAM ordId(12)   : INTEGER
 PARAM ordQty(12)  : INTEGER
 PARAM ordCnt      : INTEGER
-DIM splitSellPW : INTEGER
-DIM distSellPW  : INTEGER
-DIM marginClrYr : INTEGER
-DIM divPer(9)   : INTEGER
-DIM bPar(3)     : INTEGER
-DIM pendQty(9)  : INTEGER
-DIM pendBnd(3)  : INTEGER
-DIM clrIdx(9)   : INTEGER
-DIM clrSco(9)   : INTEGER
+
+DIM splitSellPW : INTEGER \ ! working: spltSlPct (endgame override ok)
+DIM distSellPW  : INTEGER \ ! working: distSlPrc
+DIM marginClrYr : INTEGER \ ! working: mgnClrYear
+
+DIM divPer(9)   : INTEGER \ ! dividend per share (spec Section 2.1)
+DIM bPar(3)     : INTEGER \ ! bond par values
+DIM pendQty(9)  : INTEGER \ ! shares already queued in sell orders
+DIM pendBnd(3)  : INTEGER \ ! bond units already queued in sell orders
+DIM clrIdx(9)   : INTEGER \ ! stock indices for clearance sort
+DIM clrSco(9)   : INTEGER \ ! yield scores for clearance sort
 DIM i           : INTEGER
 DIM j           : INTEGER
 DIM s           : INTEGER
@@ -302,29 +145,38 @@ DIM prcd        : INTEGER
 DIM tmp         : INTEGER
 DIM holdCnt     : INTEGER
 DIM minPos      : INTEGER
-DIM simCash     : INTEGER
+DIM simCash     : INTEGER \ ! simulated cashBal for bond emergency check
 
 ON ERROR GOTO 900
-splitSellPW := prof.spltSlPct
-distSellPW  := prof.distSlPrc
-marginClrYr := prof.mgnClrYear
+
+! --- AIProfile field loading (ai-player-logic.md Sec 3) --------
+splitSellPW := prof.spltSlPct   \ ! BYTE field -> INTEGER working var
+distSellPW  := prof.distSlPrc   \ ! BYTE field -> INTEGER working var
+marginClrYr := prof.mgnClrYear  \ ! BYTE field -> INTEGER working var
+! --- Endgame override (endgameYr=0 for Easy/Medium -> skip) ----
 IF prof.endgameYr > 0 THEN
   IF currYear >= prof.endgameYr THEN
-    splitSellPW := prof.spltSlPcE
+    splitSellPW := prof.spltSlPcE  \ ! endgame override: BYTE -> INTEGER
   ENDIF
 ENDIF
-divPer(1) := 1
-divPer(2) := 0
-divPer(3) := 4
-divPer(4) := 7
-divPer(5) := 0
-divPer(6) := 0
-divPer(7) := 2
-divPer(8) := 6
-divPer(9) := 3
+
+! --- Dividend per share (spec Section 2.1) ------------------
+divPer(1) := 1 \ ! Growth Corp
+divPer(2) := 0 \ ! Metro Props    (no yield)
+divPer(3) := 4 \ ! Pioneer Mut
+divPer(4) := 7 \ ! Shady Brooks
+divPer(5) := 0 \ ! Stryker Drlg   (no yield)
+divPer(6) := 0 \ ! Tri-City Trn   (no yield)
+divPer(7) := 2 \ ! United Auto
+divPer(8) := 6 \ ! Uranium Ent
+divPer(9) := 3 \ ! Valley Power
+
+! --- Bond par values ----------------------------------------
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
+! --- Init output and tracking arrays -----------------------
 ordCnt := 0
 FOR i := 1 TO 9
   pendQty(i) := 0
@@ -332,45 +184,76 @@ NEXT i
 FOR i := 1 TO 3
   pendBnd(i) := 0
 NEXT i
+
+! ============================================================
+! Section 4.1: Stock sell rules. Ascending stockId order.
+! Rules are IF/ELSE IF; first match governs each stock.
+!   Rule 1: price = 0                     -> SELL all
+!   Rule 2: price <= 25, mgnHeld          -> SELL all
+!   Rule 3: price >= 150                  -> SELL splitSellPW%
+!   Rule 4: divSuspnd AND price<=distSellPW -> SELL all
+!   Rule 5: default                       -> PASS
+! ============================================================
+
 FOR s := 1 TO 9
   IF plyr.stckShrs(s) > 0 THEN
+
     IF mkt.stckPrice(s) = 0 THEN
+      ! Rule 1 - Bankrupt; explicitly clear the position.
       IF ordCnt < 12 THEN
-        ordCnt := ordCnt + 1
+        ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
-        ordId(ordCnt) := s
-        ordQty(ordCnt) := plyr.stckShrs(s)
-        pendQty(s) := plyr.stckShrs(s)
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
       ENDIF
+
     ELSE IF mkt.stckPrice(s) <= 25 AND plyr.mgnHeld(s) THEN
+      ! Rule 2 - Margin call imminent (MarginCallPrice = 25).
       IF ordCnt < 12 THEN
-        ordCnt := ordCnt + 1
+        ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
-        ordId(ordCnt) := s
-        ordQty(ordCnt) := plyr.stckShrs(s)
-        pendQty(s) := plyr.stckShrs(s)
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
       ENDIF
+
     ELSE IF mkt.stckPrice(s) >= 150 THEN
+      ! Rule 3 - Split threshold (StockSplitThreshold = 150).
+      ! sellLots = floor(shares * splitSellPW% / 10) * 10
       sellLots := (plyr.stckShrs(s) / 10) * splitSellPW / 10
       sellLots := (sellLots / 10) * 10
       IF sellLots >= 10 AND ordCnt < 12 THEN
-        ordCnt := ordCnt + 1
+        ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
-        ordId(ordCnt) := s
-        ordQty(ordCnt) := sellLots
-        pendQty(s) := sellLots
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := sellLots
+        pendQty(s)      := sellLots
       ENDIF
+
     ELSE IF mkt.divSuspnd(s) AND mkt.stckPrice(s) <= distSellPW THEN
+      ! Rule 4 - Distressed suspended-dividend stock.
       IF ordCnt < 12 THEN
-        ordCnt := ordCnt + 1
+        ordCnt          := ordCnt + 1
         ordType(ordCnt) := 1
-        ordId(ordCnt) := s
-        ordQty(ordCnt) := plyr.stckShrs(s)
-        pendQty(s) := plyr.stckShrs(s)
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := plyr.stckShrs(s)
+        pendQty(s)      := plyr.stckShrs(s)
       ENDIF
+
     ENDIF \ENDIF \ENDIF \ENDIF
+    ! Rule 5 (default PASS) requires no action.
+
   ENDIF
 NEXT s
+
+! ============================================================
+! Section 4.3: Emergency bond sell.
+! Sell minimum bond units to bring simulated cashBal >= 0.
+! Uses plyr.cashBal directly (sell orders not yet applied).
+! Ascending denomination order (smallest first).
+! ============================================================
+
 simCash := plyr.cashBal
 IF simCash < 0 THEN
   FOR b := 1 TO 3
@@ -381,28 +264,41 @@ IF simCash < 0 THEN
       ENDEXIT
       EXITIF ordCnt >= 12 THEN
       ENDEXIT
-      ordCnt := ordCnt + 1
+      ordCnt          := ordCnt + 1
       ordType(ordCnt) := 2
-      ordId(ordCnt) := b
-      ordQty(ordCnt) := 1
-      pendBnd(b) := pendBnd(b) + 1
-      simCash := simCash + bPar(b)
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      simCash         := simCash + bPar(b)
     ENDLOOP
   NEXT b
 ENDIF
+
+! ============================================================
+! Section 4.4: Proactive margin clearance.
+! Active when currYear >= marginClrYr (loaded from profile).
+! Target: generate proceeds >= plyr.marginTot.
+! Sort holdings ascending by yield score; sell weakest first.
+! Pass 1: stocks. Pass 2: bonds if still needed.
+! ============================================================
+
 IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
+
+  ! Build yield-scored list of held stocks.
   holdCnt := 0
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) - pendQty(s) > 0 THEN
-      holdCnt := holdCnt + 1
+      holdCnt         := holdCnt + 1
       clrIdx(holdCnt) := s
       IF divPer(s) = 0 OR mkt.divSuspnd(s) THEN
-        clrSco(holdCnt) := 0
+        clrSco(holdCnt) := 0  \ ! Lowest score = sell first
       ELSE
         clrSco(holdCnt) := divPer(s) * 1000 / mkt.stckPrice(s)
       ENDIF
     ENDIF
   NEXT s
+
+  ! Selection sort ascending by score; tie-break ascending id.
   FOR i := 1 TO holdCnt - 1
     minPos := i
     FOR j := i + 1 TO holdCnt
@@ -415,49 +311,59 @@ IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
       ENDIF \ENDIF
     NEXT j
     IF minPos <> i THEN
-      tmp := clrSco(i)
-      clrSco(i) := clrSco(minPos)
+      tmp            := clrSco(i)
+      clrSco(i)      := clrSco(minPos)
       clrSco(minPos) := tmp
-      tmp := clrIdx(i)
-      clrIdx(i) := clrIdx(minPos)
+      tmp            := clrIdx(i)
+      clrIdx(i)      := clrIdx(minPos)
       clrIdx(minPos) := tmp
     ENDIF
   NEXT i
+
   needed := plyr.marginTot
+
+  ! Pass 1 - sell stocks, weakest first, until needed <= 0.
   FOR i := 1 TO holdCnt
     IF needed > 0 THEN
-      s := clrIdx(i)
+      s     := clrIdx(i)
       avail := plyr.stckShrs(s) - pendQty(s)
       IF avail > 0 THEN
         prcd := avail * mkt.stckPrice(s)
         IF prcd <= needed THEN
+          ! Full position: does not exceed needed.
           IF ordCnt < 12 THEN
-            ordCnt := ordCnt + 1
+            ordCnt          := ordCnt + 1
             ordType(ordCnt) := 1
-            ordId(ordCnt) := s
-            ordQty(ordCnt) := avail
-            pendQty(s) := pendQty(s) + avail
-            needed := needed - prcd
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := avail
+            pendQty(s)      := pendQty(s) + avail
+            needed          := needed - prcd
           ENDIF
         ELSE
+          ! Partial sell: ceiling lots to cover remainder.
+          ! sellLots := ceil(needed / price), rounded to 10.
           sellLots := (needed + mkt.stckPrice(s) - 1)
           sellLots := sellLots / mkt.stckPrice(s)
           sellLots := ((sellLots + 9) / 10) * 10
+          ! Clamp to available (inline MIN).
           IF sellLots > avail THEN
             sellLots := avail
           ENDIF
           IF sellLots >= 10 AND ordCnt < 12 THEN
-            ordCnt := ordCnt + 1
+            ordCnt          := ordCnt + 1
             ordType(ordCnt) := 1
-            ordId(ordCnt) := s
-            ordQty(ordCnt) := sellLots
-            pendQty(s) := pendQty(s) + sellLots
+            ordId(ordCnt)   := s
+            ordQty(ordCnt)  := sellLots
+            pendQty(s)      := pendQty(s) + sellLots
             needed := needed - (sellLots * mkt.stckPrice(s))
           ENDIF
         ENDIF
       ENDIF
     ENDIF
   NEXT i
+
+  ! Pass 2 - supplement with bonds if still needed > 0.
+  ! Sell smallest denomination first; one unit at a time.
   FOR b := 1 TO 3
     LOOP
       EXITIF needed <= 0 THEN
@@ -466,21 +372,44 @@ IF currYear >= marginClrYr AND plyr.marginTot > 0 THEN
       ENDEXIT
       EXITIF ordCnt >= 12 THEN
       ENDEXIT
-      ordCnt := ordCnt + 1
+      ordCnt          := ordCnt + 1
       ordType(ordCnt) := 2
-      ordId(ordCnt) := b
-      ordQty(ordCnt) := 1
-      pendBnd(b) := pendBnd(b) + 1
-      needed := needed - bPar(b)
+      ordId(ordCnt)   := b
+      ordQty(ordCnt)  := 1
+      pendBnd(b)      := pendBnd(b) + 1
+      needed          := needed - bPar(b)
     ENDLOOP
   NEXT b
+
 ENDIF
+
 END
 
 900 PRINT "aiSell error ("; ERR; ")"
 END
 
 PROCEDURE applySells
+(* ============================================================ *)
+(* PROCEDURE : applySells                                       *)
+(* PURPOSE   : Apply validated sell orders from scrSell to a   *)
+(*             single player record (spec Sections 11.1-11.3). *)
+(*             Stock sell: proceeds = qty * currentPrice.      *)
+(*             Margin-held stock: repay MIN(marginTot,proceeds) *)
+(*             from proceeds before crediting cash. mgnHeld    *)
+(*             cleared when stckShrs reaches 0.                *)
+(*             Bond sell: redeem at par; proceeds = qty * par. *)
+(*             ordType: 1=STOCK 2=BOND.                        *)
+(*             No-op when ordCnt = 0 (player passed).          *)
+(* PARAMS    : plyr     - player record (modified in place)    *)
+(*             mkt      - market state; stckPrice(9) read-only *)
+(*             ordType  - asset type per order (1=stock 2=bond)*)
+(*             ordId    - asset index per order (1-9 / 1-3)    *)
+(*             ordQty   - quantity per order                    *)
+(*             ordCnt   - number of valid orders (0..12)       *)
+(* SIDE EFX  : Modifies plyr.cashBal, plyr.marginTot,          *)
+(*             plyr.stckShrs, plyr.mgnHeld, plyr.bondUnts.     *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM plyr        : PlyrRec
@@ -497,14 +426,23 @@ DIM prcd    : INTEGER
 DIM repay   : INTEGER
 
 ON ERROR GOTO 900
+
+! Bond par values: small=$1000  medium=$5000  large=$10000
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
 FOR i := 1 TO ordCnt
+
   IF ordType(i) = 1 THEN
-    s := ordId(i)
+
+    ! --- Stock sell (spec Section 11.1 / 11.3) ---------------
+    s    := ordId(i)
     prcd := ordQty(i) * mkt.stckPrice(s)
+
     IF plyr.mgnHeld(s) THEN
+      ! Repay margin from proceeds before crediting cash.
+      ! Inline MIN(marginTot, prcd): repay what is available.
       repay := plyr.marginTot
       IF prcd < repay THEN
         repay := prcd
@@ -514,23 +452,57 @@ FOR i := 1 TO ordCnt
     ELSE
       plyr.cashBal := plyr.cashBal + prcd
     ENDIF
+
     plyr.stckShrs(s) := plyr.stckShrs(s) - ordQty(i)
+
+    ! Clear margin flag only when position is fully closed.
     IF plyr.stckShrs(s) = 0 THEN
       plyr.mgnHeld(s) := FALSE
     ENDIF
+
   ELSE IF ordType(i) = 2 THEN
-    b := ordId(i)
-    prcd := ordQty(i) * bPar(b)
-    plyr.cashBal := plyr.cashBal + prcd
+
+    ! --- Bond sell (spec Section 11.2) -----------------------
+    ! Bonds redeem at par; no margin consideration.
+    b                := ordId(i)
+    prcd             := ordQty(i) * bPar(b)
+    plyr.cashBal     := plyr.cashBal + prcd
     plyr.bondUnts(b) := plyr.bondUnts(b) - ordQty(i)
+
   ENDIF \ENDIF
+
 NEXT i
+
 END
 
 900 PRINT "applySells error ("; ERR; ")"
 END
 
 PROCEDURE scrAITurn
+(* ============================================================ *)
+(* PROCEDURE : scrAITurn                                        *)
+(* PURPOSE   : S19 Computer Player Turn Summary screen.        *)
+(*             Displays the AI player's decisions for the      *)
+(*             current sell or buy phase so human observers    *)
+(*             can follow what the computer player did.        *)
+(*             Shows only actionable decisions (SELL, BUY,     *)
+(*             REPAY). PASS entries are suppressed; if all     *)
+(*             entries are PASS (or decCnt=0), displays        *)
+(*             "(no action this phase)".                       *)
+(*             Display-only: no output parameters. Returns     *)
+(*             after waitKey.                                  *)
+(* PARAMS    : plyrNam  - AI player name                       *)
+(*             phase    - 1=SELL 2=BUY                         *)
+(*             decAct   - decision action per entry:           *)
+(*                        1=SELL 2=BUY 3=REPAY 4=PASS          *)
+(*             decType  - asset type: 1=STOCK 2=BOND 0=N/A    *)
+(*             decId    - asset index (1-9 stock, 1-3 bond,    *)
+(*                        0 for REPAY/PASS)                    *)
+(*             decQty   - quantity (shares, units, or $ amount *)
+(*                        for REPAY; 0 for PASS)               *)
+(*             decCnt   - number of entries in arrays (0..12)  *)
+(* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
+(* ============================================================ *)
 PARAM plyrNam    : STRING[20]
 PARAM phase      : BYTE
 PARAM decAct(12) : BYTE
@@ -547,6 +519,7 @@ DIM shown   : INTEGER
 DIM pStr    : STRING[8]
 
 ON ERROR GOTO 900
+
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -556,9 +529,11 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
 RUN clrScr
 PRINT "=== COMPUTER TURN ===";
 IF phase = 1 THEN
@@ -568,9 +543,14 @@ ELSE
 ENDIF
 PRINT "Player: "; plyrNam
 PRINT
+
 shown := 0
+
 FOR i := 1 TO decCnt
+
   IF decAct(i) = 1 THEN
+
+    ! SELL decision
     PRINT "  SELL  ";
     IF decType(i) = 1 THEN
       s := decId(i)
@@ -581,7 +561,10 @@ FOR i := 1 TO decCnt
       PRINT decQty(i); "  $"; pStr; " bond"
     ENDIF \ENDIF
     shown := shown + 1
+
   ELSE IF decAct(i) = 2 THEN
+
+    ! BUY decision
     PRINT "  BUY   ";
     IF decType(i) = 1 THEN
       s := decId(i)
@@ -592,23 +575,54 @@ FOR i := 1 TO decCnt
       PRINT decQty(i); "  $"; pStr; " bond"
     ENDIF \ENDIF
     shown := shown + 1
+
   ELSE IF decAct(i) = 3 THEN
+
+    ! REPAY decision: decQty holds dollar amount
     RUN fmtMoney(decQty(i), pStr)
     PRINT "  REPAY $"; pStr; " margin"
     shown := shown + 1
+
   ENDIF \ENDIF \ENDIF
+
 NEXT i
+
 IF shown = 0 THEN
   PRINT "  (no action this phase)"
 ENDIF
+
 PRINT
 RUN waitKey
+
 END
 
 900 PRINT "scrAITurn error ("; ERR; ")"
 END
 
 PROCEDURE scrSell
+(* ============================================================ *)
+(* PROCEDURE : scrSell                                          *)
+(* PURPOSE   : S16 Human Sell Phase screen.                    *)
+(*             Displays portfolio (shares, prices, margin       *)
+(*             flags) and bond holdings. Accepts sell orders   *)
+(*             per asset with validation:                       *)
+(*               Stock qty: positive multiple of 10,           *)
+(*                          <= shares held.                    *)
+(*               Bond qty : 0..units held.                     *)
+(*             Bankrupt stocks (price=0) are skipped.          *)
+(*             Caller must not invoke in Year 1.               *)
+(* PARAMS    : currYear - current year (1..10)                  *)
+(*             plyr     - player record for this turn          *)
+(*             mkt      - current market state                  *)
+(*             ordType  - output: 1=STOCK 2=BOND per order     *)
+(*             ordId    - output: asset index per order        *)
+(*                        (1-9 stocks, 1-3 bonds)              *)
+(*             ordQty   - output: quantity per order            *)
+(*             ordCnt   - output: number of orders placed      *)
+(*             action   - output: 1=CONFIRM 2=PASS             *)
+(* SIDE EFX  : Clears screen. Uses INPUT for order quantities. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM currYear    : INTEGER
@@ -638,6 +652,8 @@ DIM totProc : INTEGER
 DIM divRate(9): INTEGER
 
 ON ERROR GOTO 900
+
+! Assign stock names matching stock IDs 1..9
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -647,6 +663,7 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
 divRate(1) := 1
 divRate(2) := 0
 divRate(3) := 4
@@ -656,9 +673,13 @@ divRate(6) := 0
 divRate(7) := 2
 divRate(8) := 6
 divRate(9) := 3
+
+! Bond par values (= denomination for this game)
 bDen(1) := 1000
 bDen(2) := 5000
 bDen(3) := 10000
+
+! --- Holdings display and initial pass/enter prompt ----------
 RUN clrScr
 PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
 PRINT "Player: "; plyr.plyrName
@@ -667,6 +688,7 @@ PRINT "Cash: $"; pStr;
 RUN fmtMoney(plyr.marginTot, pStr)
 PRINT "  Margin: $"; pStr
 PRINT
+
 PRINT "STOCKS:"
 hasSell := FALSE
 FOR s := 1 TO 9
@@ -689,6 +711,7 @@ FOR s := 1 TO 9
     ENDIF
   ENDIF
 NEXT s
+
 PRINT
 PRINT "BONDS:"
 FOR b := 1 TO 3
@@ -698,6 +721,7 @@ FOR b := 1 TO 3
     PRINT plyr.bondUnts(b); " unit(s)"
   ENDIF
 NEXT b
+
 IF NOT hasSell THEN
   PRINT
   PRINT "Nothing to sell this turn."
@@ -706,24 +730,32 @@ IF NOT hasSell THEN
   action := 2
   END
 ENDIF
+
 PRINT
 PRINT "1=Enter sales  2=Pass turn"
 RUN getMenuKey(1, 2, key)
+
 IF key = 2 THEN
   ordCnt := 0
   action := 2
   END
 ENDIF
+
+! --- Order entry / summary / confirm loop --------------------
 LOOP
+
   ordCnt := 0
   FOR i := 1 TO 12
     ordType(i) := 0
     ordId(i)   := 0
     ordQty(i)  := 0
   NEXT i
+
   RUN clrScr
   PRINT "SELL ORDERS  YEAR "; currYear; "  "; plyr.plyrName
   PRINT
+
+  ! Stock entries. Bankrupt stocks (price=0) skipped.
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
       RUN fmtMoney(mkt.stckPrice(s), pStr)
@@ -739,7 +771,7 @@ LOOP
       WHILE NOT valid DO
         INPUT "  Sell qty (0/Enter=skip, mult of 10): ", qIn
         IF qIn = "" THEN
-          qty := 0
+          qty   := 0
           valid := TRUE
         ELSE
           RUN getNumIn(qIn, qty, numOk)
@@ -760,11 +792,13 @@ LOOP
       IF qty > 0 THEN
         ordCnt := ordCnt + 1
         ordType(ordCnt) := 1
-        ordId(ordCnt) := s
-        ordQty(ordCnt) := qty
+        ordId(ordCnt)   := s
+        ordQty(ordCnt)  := qty
       ENDIF
     ENDIF
   NEXT s
+
+  ! Bond entries.
   FOR b := 1 TO 3
     IF plyr.bondUnts(b) > 0 THEN
       PRINT "$"; bDen(b); " bond";
@@ -792,11 +826,13 @@ LOOP
       IF qty > 0 THEN
         ordCnt := ordCnt + 1
         ordType(ordCnt) := 2
-        ordId(ordCnt) := b
-        ordQty(ordCnt) := qty
+        ordId(ordCnt)   := b
+        ordQty(ordCnt)  := qty
       ENDIF
     ENDIF
   NEXT b
+
+  ! --- Summary and confirm ----------------------------------
   RUN clrScr
   PRINT "SELL SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
   PRINT
@@ -827,15 +863,19 @@ LOOP
       ENDIF \ENDIF
     NEXT i
   ENDIF
+
   PRINT
   RUN fmtMoney(totProc, pStr)
   PRINT "Total proceeds: $"; pStr
   PRINT
   PRINT "1=Confirm  2=Revise orders"
   RUN getMenuKey(1, 2, key)
+
   EXITIF key = 1 THEN
   ENDEXIT
+
 ENDLOOP
+
 action := 1
 END
 

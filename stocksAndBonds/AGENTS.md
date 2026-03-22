@@ -61,6 +61,12 @@ If a syscall detail appears ambiguous or undocumented, use
 - For test procedures with multiple output blocks, add `RUN waitKey` between
   blocks so results remain readable.
 - Keep changes narrowly scoped; do not bundle unrelated cleanup.
+- Do not change test scenarios, reproduction conditions, player types,
+  interaction model, or acceptance criteria unless the user explicitly asks for
+  that change.
+- If a test or harness appears flawed, preserve the requested scenario and fix
+  only the defect under investigation unless the user approves a scenario
+  change first.
 
 ## When Helping With Syscalls
 

@@ -23,12 +23,6 @@ IF NOT ok THEN
   PRINT "TSTTRDSP: failed to load snbUtil"
   END
 ENDIF
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, FALSE, ok)
-IF NOT ok THEN
-  PRINT "TSTTRDSP: failed to load snbSaveLoad"
-  END
-ENDIF
 
 PRINT "=== TSTTRDSP: SPLIT TRADE PHASE TEST ==="
 PRINT

@@ -125,197 +125,42 @@ END
 RUN waitKey
 END
 
-PROCEDURE saveGame
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
-TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM savePath   : STRING[20]
-PARAM hdr        : SaveHdr
-PARAM deckOrd(36): BYTE
-PARAM plyrs(6)   : PlyrRec
-PARAM mkt        : MktState
-DIM path      : BYTE
-DIM pathOpen  : BOOLEAN
-DIM iFlgs     : INTEGER
-DIM shft      : INTEGER
-DIM chkSum    : INTEGER
-DIM iMaxYr    : INTEGER
-DIM iPlyrCnt  : INTEGER
-DIM i         : INTEGER
-
-ON ERROR GOTO 900
-pathOpen := FALSE
-hdr.bnkrFlgs := 0
-shft         := 1
-iPlyrCnt     := hdr.plyrCount
-FOR i := 1 TO iPlyrCnt
-  IF plyrs(i).isBankrupt THEN
-    iFlgs        := hdr.bnkrFlgs
-    hdr.bnkrFlgs := LOR(iFlgs, shft)
-  ENDIF
-  shft := shft * 2
-NEXT i
-chkSum := hdr.magic      + hdr.fmtVersion + hdr.maxYears
-chkSum := chkSum + hdr.plyrCount  + hdr.rollMode
-chkSum := chkSum + hdr.currYear   + hdr.savedPhase
-chkSum := chkSum + hdr.savedPlyr  + hdr.gameStage
-chkSum := chkSum + hdr.bnkrFlgs
-hdr.checksum := LAND(chkSum, 255)
-ON ERROR GOTO 100
-DELETE savePath
-100 ON ERROR GOTO 900
-CREATE #path, savePath:WRITE
-pathOpen := TRUE
-PUT #path, hdr
-iMaxYr := hdr.maxYears
-FOR i := 1 TO iMaxYr
-  PUT #path, deckOrd(i)
-NEXT i
-PUT #path, plyrs
-PUT #path, mkt
-CLOSE #path
-pathOpen := FALSE
-END
-
-900 IF pathOpen THEN
-      CLOSE #path
-    ENDIF
-    PRINT "saveGame error ("; ERR; ") writing: "; savePath
-    ERROR(ERR)
-END
-
-PROCEDURE loadGame
-TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
-TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
-TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
-PARAM savePath   : STRING[20]
-PARAM hdr        : SaveHdr
-PARAM deckOrd(36): BYTE
-PARAM plyrs(6)   : PlyrRec
-PARAM mkt        : MktState
-PARAM loadOK     : BOOLEAN
-DIM path      : BYTE
-DIM pathOpen  : BOOLEAN
-DIM chkExp    : INTEGER
-DIM iMaxYr    : INTEGER
-DIM i         : INTEGER
-
-ON ERROR GOTO 900
-pathOpen := FALSE
-loadOK   := FALSE
-OPEN #path, savePath:READ
-pathOpen := TRUE
-GET #path, hdr
-IF hdr.magic <> $53 THEN
-  PRINT "loadGame: not a valid save file: "; savePath
-  END
-ENDIF
-IF hdr.fmtVersion <> 1 THEN
-  PRINT "loadGame: incompatible save file version: "; savePath
-  END
-ENDIF
-chkExp := hdr.magic      + hdr.fmtVersion + hdr.maxYears
-chkExp := chkExp + hdr.plyrCount  + hdr.rollMode
-chkExp := chkExp + hdr.currYear   + hdr.savedPhase
-chkExp := chkExp + hdr.savedPlyr  + hdr.gameStage
-chkExp := chkExp + hdr.bnkrFlgs
-chkExp := LAND(chkExp, 255)
-IF chkExp <> hdr.checksum THEN
-  PRINT "loadGame: save file is corrupt: "; savePath
-  END
-ENDIF
-iMaxYr := hdr.maxYears
-FOR i := 1 TO iMaxYr
-  GET #path, deckOrd(i)
-NEXT i
-GET #path, plyrs
-GET #path, mkt
-CLOSE #path
-pathOpen := FALSE
-loadOK := TRUE
-END
-
-900 IF pathOpen THEN
-      CLOSE #path
-    ENDIF
-    PRINT "loadGame error ("; ERR; ") reading: "; savePath
-    loadOK := FALSE
-END
-
-PROCEDURE initAIProf
-TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
-PARAM tNum: INTEGER
-PARAM prof: AIProfile
-
-ON ERROR GOTO 900
-IF tNum = 1 THEN
-    prof.tier       := 1
-    prof.concenCap  := 70
-    prof.spltSlPct  := 20
-    prof.distSlPrc  := 50
-    prof.mgnMaxExpo := 0
-    prof.mgnBuffer  := 0
-    prof.mgnResvPct := 20
-    prof.repayFrac  := 25
-    prof.mgnClrYear := 9
-    prof.endgameYr  := 0
-    prof.spltSlPcE  := 20
-    prof.repayFrcE  := 25
-    prof.bondIdlCsh := 1000
-    prof.bndIdlCsE  := 1000
-    prof.zeroDivEl  := TRUE
-    prof.useYldScr  := FALSE
-    prof.useMargin  := FALSE
-    prof.bondPriory := TRUE
-ELSE IF tNum = 2 THEN
-    prof.tier       := 2
-    prof.concenCap  := 40
-    prof.spltSlPct  := 50
-    prof.distSlPrc  := 50
-    prof.mgnMaxExpo := 0
-    prof.mgnBuffer  := 0
-    prof.mgnResvPct := 10
-    prof.repayFrac  := 50
-    prof.mgnClrYear := 9
-    prof.endgameYr  := 0
-    prof.spltSlPcE  := 50
-    prof.repayFrcE  := 50
-    prof.bondIdlCsh := 5000
-    prof.bndIdlCsE  := 5000
-    prof.zeroDivEl  := TRUE
-    prof.useYldScr  := TRUE
-    prof.useMargin  := FALSE
-    prof.bondPriory := FALSE
-ELSE IF tNum = 3 THEN
-    prof.tier       := 3
-    prof.concenCap  := 25
-    prof.spltSlPct  := 30
-    prof.distSlPrc  := 60
-    prof.mgnMaxExpo := 30
-    prof.mgnBuffer  := 30
-    prof.mgnResvPct := 5
-    prof.repayFrac  := 75
-    prof.mgnClrYear := 8
-    prof.endgameYr  := 7
-    prof.spltSlPcE  := 70
-    prof.repayFrcE  := 90
-    prof.bondIdlCsh := 10000
-    prof.bndIdlCsE  := 5000
-    prof.zeroDivEl  := FALSE
-    prof.useYldScr  := TRUE
-    prof.useMargin  := TRUE
-    prof.bondPriory := FALSE
-ELSE
-    GOTO 900
-ENDIF \ENDIF \ENDIF
-END
-
-900 PRINT "initAIProf error ("; ERR; ")"
-END
-
 PROCEDURE aiBuy
+(* ============================================================ *)
+(* PROCEDURE : aiBuy                                            *)
+(* PURPOSE   : AI buy phase decision engine.                   *)
+(*             Implements ai-player-logic.md Section 5.        *)
+(*             Working vars are loaded from AIProfile at start, *)
+(*             with endgame overrides applied when applicable.  *)
+(*             All three tiers use this single procedure.       *)
+(*             Does NOT modify plyr. Caller applies orders.    *)
+(*                                                             *)
+(*             Buy logic order (ai-player-logic.md Sec 5):     *)
+(*               1. Voluntary margin repayment (Step 1)        *)
+(*               2. Margin eligibility check (Step 2)          *)
+(*               3. Stock scoring (Step 3)                     *)
+(*               4a. Cash stock purchases (Step 4a)            *)
+(*               4b. Margin stock purchases (Step 4b; Hard)    *)
+(*               5. Bond purchase (Step 5)                     *)
+(*                                                             *)
+(* PARAMS    : currYear      - current game year (1..10)       *)
+(*             plyr          - player record (READ ONLY)       *)
+(*             mkt           - market state (READ ONLY)        *)
+(*             prof          - AI difficulty profile (READ ONLY*)
+(*             ordType(12)   - output: 1=STOCK 2=BOND          *)
+(*             ordId(12)     - output: asset index (1-9 / 1-3) *)
+(*             ordQty(12)    - output: quantity per order       *)
+(*             ordPurch(12)  - output: 1=CASH 2=MARGIN         *)
+(*             ordCnt        - output: number of orders (0..12)*)
+(*             mgnRepay      - output: voluntary repay amount  *)
+(* SIDE EFX  : None. plyr and mkt are not modified.            *)
+(* NOTE      : ordCnt=0 and mgnRepay=0 is valid (all pass).   *)
+(*             Array slots cap at 12; extras silently dropped. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE AIProfile = tier,concenCap,spltSlPct,distSlPrc,mgnMaxExpo,mgnBuffer,mgnResvPct,repayFrac,mgnClrYear,endgameYr,spltSlPcE,repayFrcE:BYTE;bondIdlCsh,bndIdlCsE:INTEGER;zeroDivEl,useYldScr,useMargin,bondPriory:BOOLEAN
 PARAM currYear      : INTEGER
 PARAM plyr          : PlyrRec
@@ -327,35 +172,40 @@ PARAM ordQty(12)    : INTEGER
 PARAM ordPurch(12)  : INTEGER
 PARAM ordCnt        : INTEGER
 PARAM mgnRepay      : INTEGER
-DIM concentCapW  : INTEGER
-DIM mgnRsvPctW   : INTEGER
-DIM repayFracW   : INTEGER
-DIM bondIdlCshW  : INTEGER
-DIM zeroDivElgW  : BOOLEAN
-DIM useYldScrW   : BOOLEAN
-DIM useMarginW   : BOOLEAN
-DIM mgnBufW      : INTEGER
-DIM mgnMaxExpW   : INTEGER
-DIM margAllwd    : BOOLEAN
-DIM cashPassLt(9): INTEGER
-DIM portfVal     : INTEGER
-DIM capLmt       : INTEGER
-DIM alrdySpt     : INTEGER
-DIM headroom     : INTEGER
-DIM maxFull      : INTEGER
-DIM divPer(9)    : INTEGER
-DIM bPar(3)      : INTEGER
-DIM score(9)     : INTEGER
-DIM srtIdx(9)    : INTEGER
-DIM srtSco(9)    : INTEGER
-DIM simCash      : INTEGER
-DIM annlChrg     : INTEGER
-DIM burdenThr    : INTEGER
-DIM repayAmt     : INTEGER
-DIM candCnt      : INTEGER
-DIM maxPos       : INTEGER
-DIM maxCash      : INTEGER
-DIM maxLots      : INTEGER
+
+! Endgame-overrideable working variables.
+DIM concentCapW  : INTEGER \ ! concentrationCap
+DIM mgnRsvPctW   : INTEGER \ ! marginReservePct
+DIM repayFracW   : INTEGER \ ! repayFraction (endgame override ok)
+DIM bondIdlCshW  : INTEGER \ ! bondIdleCash  (endgame override ok)
+DIM zeroDivElgW  : BOOLEAN \ ! zeroDivEligible (endgame override ok)
+! Non-overridden AIProfile fields loaded to working vars.
+DIM useYldScrW   : BOOLEAN \ ! useYieldScoring
+DIM useMarginW   : BOOLEAN \ ! useMargin
+DIM mgnBufW      : INTEGER \ ! marginBuffer: BYTE -> INTEGER staging
+DIM mgnMaxExpW   : INTEGER \ ! marginMaxExposure: BYTE -> INTEGER staging
+! Margin pass state.
+DIM margAllwd    : BOOLEAN \ ! margin eligibility flag (Step 2)
+DIM cashPassLt(9): INTEGER \ ! lots bought in cash pass (Step 4a)
+DIM portfVal     : INTEGER \ ! portfolio value for margin exposure
+DIM capLmt       : INTEGER \ ! concentration cap in dollars
+DIM alrdySpt     : INTEGER \ ! cash spent on stock in cash pass
+DIM headroom     : INTEGER \ ! remaining cap headroom for margin
+DIM maxFull      : INTEGER \ ! max full-cost for margin purchase
+
+DIM divPer(9)    : INTEGER \ ! dividend per share (spec Section 2.1)
+DIM bPar(3)      : INTEGER \ ! bond par values
+DIM score(9)     : INTEGER \ ! candidate scores (-1 = ineligible)
+DIM srtIdx(9)    : INTEGER \ ! sorted candidate stock indices
+DIM srtSco(9)    : INTEGER \ ! sorted candidate scores
+DIM simCash      : INTEGER \ ! simulated cash after repayment
+DIM annlChrg     : INTEGER \ ! estimated annual margin interest charge
+DIM burdenThr    : INTEGER \ ! repayment trigger threshold
+DIM repayAmt     : INTEGER \ ! candidate repay amount (pre-clamp)
+DIM candCnt      : INTEGER \ ! number of eligible buy candidates
+DIM maxPos       : INTEGER \ ! selection sort: index of current max
+DIM maxCash      : INTEGER \ ! cap-limited cash for this stock
+DIM maxLots      : INTEGER \ ! lots to buy (multiple of 10)
 DIM stocksBought : BOOLEAN
 DIM i            : INTEGER
 DIM j            : INTEGER
@@ -363,36 +213,56 @@ DIM s            : INTEGER
 DIM tmp          : INTEGER
 
 ON ERROR GOTO 900
-concentCapW  := prof.concenCap
-mgnRsvPctW   := prof.mgnResvPct
-repayFracW   := prof.repayFrac
-bondIdlCshW  := prof.bondIdlCsh
+
+! --- AIProfile field loading (ai-player-logic.md Sec 3) --------
+concentCapW  := prof.concenCap   \ ! BYTE field -> INTEGER working var
+mgnRsvPctW   := prof.mgnResvPct  \ ! BYTE field -> INTEGER working var
+repayFracW   := prof.repayFrac   \ ! BYTE field -> INTEGER working var
+bondIdlCshW  := prof.bondIdlCsh  \ ! INTEGER field -> INTEGER
 zeroDivElgW  := prof.zeroDivEl
 useYldScrW   := prof.useYldScr
 useMarginW   := prof.useMargin
-mgnBufW      := prof.mgnBuffer
-mgnMaxExpW   := prof.mgnMaxExpo
+mgnBufW      := prof.mgnBuffer   \ ! BYTE field -> INTEGER working var
+mgnMaxExpW   := prof.mgnMaxExpo  \ ! BYTE field -> INTEGER working var
+! --- Endgame override (endgameYr=0 for Easy/Medium -> skip) ----
 IF prof.endgameYr > 0 THEN
   IF currYear >= prof.endgameYr THEN
-    repayFracW  := prof.repayFrcE
-    bondIdlCshW := prof.bndIdlCsE
-    zeroDivElgW := FALSE
+    repayFracW  := prof.repayFrcE   \ ! endgame override: BYTE -> INTEGER
+    bondIdlCshW := prof.bndIdlCsE   \ ! endgame override: INTEGER
+    zeroDivElgW := FALSE            \ ! Hard endgame: exclude zero-div
   ENDIF
 ENDIF
-divPer(1) := 1
-divPer(2) := 0
-divPer(3) := 4
-divPer(4) := 7
-divPer(5) := 0
-divPer(6) := 0
-divPer(7) := 2
-divPer(8) := 6
-divPer(9) := 3
+
+! --- Dividend per share (spec Section 2.1) ------------------
+divPer(1) := 1 \ ! Growth Corp
+divPer(2) := 0 \ ! Metro Props    (no yield)
+divPer(3) := 4 \ ! Pioneer Mut
+divPer(4) := 7 \ ! Shady Brooks
+divPer(5) := 0 \ ! Stryker Drlg   (no yield)
+divPer(6) := 0 \ ! Tri-City Trn   (no yield)
+divPer(7) := 2 \ ! United Auto
+divPer(8) := 6 \ ! Uranium Ent
+divPer(9) := 3 \ ! Valley Power
+
+! --- Bond par values ----------------------------------------
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
+! --- Init outputs -------------------------------------------
 ordCnt   := 0
 mgnRepay := 0
+
+! ============================================================
+! Step 1 - Voluntary margin repayment check.
+! MarginInterestRate = 5% (spec Section 1 constant).
+! annlChrg  = marginTot * 5 / 100  (= marginTot / 20).
+! burdenThr = cashBal * mgnRsvPctW / 100.
+! If annlChrg > burdenThr AND cashBal > 0:
+!   repayAmt = cashBal * repayFracW / 100; clamp to marginTot.
+!   Return as mgnRepay; reduce simCash by repayAmt.
+! ============================================================
+
 simCash := plyr.cashBal
 IF plyr.marginTot > 0 AND plyr.cashBal > 0 THEN
   annlChrg  := plyr.marginTot / 20
@@ -406,6 +276,14 @@ IF plyr.marginTot > 0 AND plyr.cashBal > 0 THEN
     simCash  := simCash - repayAmt
   ENDIF
 ENDIF
+
+! ============================================================
+! Step 2 - Margin eligibility.
+! Hard: useMarginW=TRUE. Requires: prior cash purchase AND
+! not Year 10 AND currYear < mgnClrYear.
+! Easy/Medium: useMarginW=FALSE -> margAllwd always FALSE.
+! ============================================================
+
 margAllwd := FALSE
 IF useMarginW THEN
   IF plyr.hadCashPur THEN
@@ -416,33 +294,48 @@ IF useMarginW THEN
     ENDIF
   ENDIF
 ENDIF
+
+! ============================================================
+! Step 3 - Stock candidate scoring.
+! BankruptcyPrice=0; MarginCallPrice=25.
+!   bankrupt or at call threshold   -> score = -1
+!   dividend suspended              -> score = -1
+!   zero-dividend, ineligible       -> score = -1
+!   zero-dividend, eligible         -> score = 0
+!   yielding, useYldScrW=TRUE       -> divPer*1000 / price
+!   yielding, useYldScrW=FALSE      -> score = 0 (Easy: flat)
+! Candidates (score >= 0) stored in srtIdx/srtSco.
+! ============================================================
+
 candCnt := 0
 FOR s := 1 TO 9
   IF mkt.stckPrice(s) = 0 THEN
-    score(s) := -1
+    score(s) := -1 \ ! Bankrupt; ineligible
   ELSE IF mkt.stckPrice(s) <= 25 THEN
-    score(s) := -1
+    score(s) := -1 \ ! At/below margin call price; ineligible
   ELSE IF mkt.divSuspnd(s) THEN
-    score(s) := -1
+    score(s) := -1 \ ! Dividend suspended; distressed
   ELSE IF divPer(s) = 0 THEN
     IF zeroDivElgW THEN
-      score(s) := 0
+      score(s) := 0 \ ! Eligible; lowest priority
     ELSE
-      score(s) := -1
+      score(s) := -1 \ ! Excluded (Hard/endgame)
     ENDIF
   ELSE
     IF useYldScrW THEN
       score(s) := divPer(s) * 1000 / mkt.stckPrice(s)
     ELSE
-      score(s) := 0
+      score(s) := 0  \ ! Easy: no yield scoring; all score equal
     ENDIF
   ENDIF \ENDIF \ENDIF \ENDIF
   IF score(s) >= 0 THEN
-    candCnt := candCnt + 1
+    candCnt         := candCnt + 1
     srtIdx(candCnt) := s
     srtSco(candCnt) := score(s)
   ENDIF
 NEXT s
+
+! --- Selection sort: descending score; ascending id tie-break
 FOR i := 1 TO candCnt - 1
   maxPos := i
   FOR j := i + 1 TO candCnt
@@ -455,17 +348,25 @@ FOR i := 1 TO candCnt - 1
     ENDIF \ENDIF
   NEXT j
   IF maxPos <> i THEN
-    tmp := srtSco(i)
-    srtSco(i) := srtSco(maxPos)
+    tmp            := srtSco(i)
+    srtSco(i)      := srtSco(maxPos)
     srtSco(maxPos) := tmp
-    tmp := srtIdx(i)
-    srtIdx(i) := srtIdx(maxPos)
+    tmp            := srtIdx(i)
+    srtIdx(i)      := srtIdx(maxPos)
     srtIdx(maxPos) := tmp
   ENDIF
 NEXT i
+
+! ============================================================
+! Step 4a - Cash stock purchase allocation.
+! cashPassLt(s) records lots purchased here for Step 4b
+! headroom calculation.
+! ============================================================
+
 FOR i := 1 TO 9
   cashPassLt(i) := 0
 NEXT i
+
 stocksBought := FALSE
 FOR i := 1 TO candCnt
   s := srtIdx(i)
@@ -474,21 +375,34 @@ FOR i := 1 TO candCnt
     maxLots := maxCash / mkt.stckPrice(s)
     maxLots := (maxLots / 10) * 10
     IF maxLots >= 10 AND ordCnt < 12 THEN
-      ordCnt := ordCnt + 1
-      ordType(ordCnt) := 1
-      ordId(ordCnt) := s
-      ordQty(ordCnt) := maxLots
-      ordPurch(ordCnt) := 1
-      simCash := simCash - (maxLots * mkt.stckPrice(s))
-      cashPassLt(s) := maxLots
-      stocksBought := TRUE
+      ordCnt           := ordCnt + 1
+      ordType(ordCnt)  := 1
+      ordId(ordCnt)    := s
+      ordQty(ordCnt)   := maxLots
+      ordPurch(ordCnt) := 1 \ ! CASH
+      simCash          := simCash - (maxLots * mkt.stckPrice(s))
+      cashPassLt(s)    := maxLots
+      stocksBought     := TRUE
     ENDIF
   ENDIF
 NEXT i
+
+! ============================================================
+! Step 4b - Margin stock purchase allocation.
+! Hard tier only (margAllwd=TRUE); skipped for Easy/Medium.
+! Per spec Section 5.5, all four checks must pass:
+!   priceOK    : price >= MarginCallPrice(25) + mgnBufW
+!   exposureOK : marginTot < portfVal * mgnMaxExpW%
+!   headroomOK : remaining cap after cash pass >= 1 lot cost
+!   lotsOK     : maxLots >= 10
+! MarginRate = 0.50: cash covers 50% of full purchase cost.
+! ============================================================
+
 IF margAllwd THEN
   FOR i := 1 TO candCnt
     s := srtIdx(i)
     IF mkt.stckPrice(s) >= 25 + mgnBufW THEN
+      ! Compute portfolio value for exposure check.
       portfVal := simCash
       FOR j := 1 TO 9
         portfVal := portfVal + plyr.stckShrs(j) * mkt.stckPrice(j)
@@ -496,11 +410,14 @@ IF margAllwd THEN
       FOR j := 1 TO 3
         portfVal := portfVal + plyr.bondUnts(j) * bPar(j)
       NEXT j
+      ! Exposure check: marginTot < portfVal * mgnMaxExpW%
       IF plyr.marginTot < portfVal / 100 * mgnMaxExpW THEN
+        ! Concentration headroom after cash pass.
         capLmt   := portfVal / 100 * concentCapW
         alrdySpt := cashPassLt(s) * mkt.stckPrice(s)
         headroom := capLmt - alrdySpt
         IF headroom >= mkt.stckPrice(s) * 10 THEN
+          ! maxFull = min(simCash*2, headroom)
           maxFull := simCash * 2
           IF maxFull > headroom THEN
             maxFull := headroom
@@ -508,12 +425,13 @@ IF margAllwd THEN
           maxLots := maxFull / mkt.stckPrice(s)
           maxLots := (maxLots / 10) * 10
           IF maxLots >= 10 AND ordCnt < 12 THEN
-            ordCnt := ordCnt + 1
-            ordType(ordCnt) := 1
-            ordId(ordCnt) := s
-            ordQty(ordCnt) := maxLots
-            ordPurch(ordCnt) := 2
-            simCash := simCash - maxLots * mkt.stckPrice(s) / 2
+            ordCnt           := ordCnt + 1
+            ordType(ordCnt)  := 1
+            ordId(ordCnt)    := s
+            ordQty(ordCnt)   := maxLots
+            ordPurch(ordCnt) := 2 \ ! MARGIN
+            ! Deduct 50% cash portion (MarginRate = 0.50).
+            simCash    := simCash - maxLots * mkt.stckPrice(s) / 2
             stocksBought := TRUE
           ENDIF
         ENDIF
@@ -521,29 +439,39 @@ IF margAllwd THEN
     ENDIF
   NEXT i
 ENDIF
+
+! ============================================================
+! Step 5 - Bond purchase.
+! Buy if simCash >= bondIdlCshW AND (bondPriory OR no stocks).
+! bondPriory=TRUE for Easy: buys bonds even when stocks bought.
+! Medium/Hard (bondPriory=FALSE): only when no stocks bought.
+! Buy largest affordable denomination; one unit only.
+! ============================================================
+
 IF simCash >= bondIdlCshW THEN
   IF prof.bondPriory OR NOT stocksBought THEN
     IF simCash >= 10000 AND ordCnt < 12 THEN
-      ordCnt := ordCnt + 1
-      ordType(ordCnt) := 2
-      ordId(ordCnt) := 3
-      ordQty(ordCnt) := 1
-      ordPurch(ordCnt) := 1
+      ordCnt           := ordCnt + 1
+      ordType(ordCnt)  := 2
+      ordId(ordCnt)    := 3 \ ! Large bond par 10000
+      ordQty(ordCnt)   := 1
+      ordPurch(ordCnt) := 1 \ ! CASH
     ELSE IF simCash >= 5000 AND ordCnt < 12 THEN
-      ordCnt := ordCnt + 1
-      ordType(ordCnt) := 2
-      ordId(ordCnt) := 2
-      ordQty(ordCnt) := 1
+      ordCnt           := ordCnt + 1
+      ordType(ordCnt)  := 2
+      ordId(ordCnt)    := 2 \ ! Medium bond par 5000
+      ordQty(ordCnt)   := 1
       ordPurch(ordCnt) := 1
     ELSE IF simCash >= 1000 AND ordCnt < 12 THEN
-      ordCnt := ordCnt + 1
-      ordType(ordCnt) := 2
-      ordId(ordCnt) := 1
-      ordQty(ordCnt) := 1
+      ordCnt           := ordCnt + 1
+      ordType(ordCnt)  := 2
+      ordId(ordCnt)    := 1 \ ! Small bond par 1000
+      ordQty(ordCnt)   := 1
       ordPurch(ordCnt) := 1
-    ENDIF
+    ENDIF \ENDIF \ENDIF
   ENDIF
 ENDIF
+
 END
 
 900 PRINT "aiBuy error ("; ERR; ")"
@@ -551,6 +479,46 @@ RUN waitKey
 END
 
 PROCEDURE applyBuys
+(* ============================================================ *)
+(* PROCEDURE : applyBuys                                       *)
+(* PURPOSE   : Apply validated buy orders from scrBuy or aiBuy *)
+(*             to a single player record (spec Sections 9.2    *)
+(*             and 10).                                        *)
+(*             Stock CASH buy (ordPurch=1):                    *)
+(*               cost := qty * stckPrice(s)                    *)
+(*               cashBal -= cost                               *)
+(*               stckShrs(s) += qty                            *)
+(*               hadCashPur := TRUE                            *)
+(*             Stock MARGIN buy (ordPurch=2):                  *)
+(*               cost := qty * stckPrice(s)                    *)
+(*               cashPay := cost / 2   (MarginRate = 50%)      *)
+(*               mgnPay  := cost - cashPay                     *)
+(*               cashBal   -= cashPay                          *)
+(*               marginTot += mgnPay                           *)
+(*               stckShrs(s) += qty                            *)
+(*               mgnHeld(s) := TRUE                            *)
+(*             Bond buy (always cash; ordPurch=1):             *)
+(*               cashBal -= qty * bPar(b)                      *)
+(*               bondUnts(b) += qty                            *)
+(*             ordType: 1=STOCK 2=BOND.                        *)
+(*             Caller is responsible for applying mgnRepay     *)
+(*             (cashBal -= mgnRepay; marginTot -= mgnRepay)    *)
+(*             BEFORE calling this procedure. This procedure   *)
+(*             does not handle voluntary margin repayment.     *)
+(*             No-op when ordCnt = 0 (player passed).          *)
+(* PARAMS    : plyr      - player record (modified in place)   *)
+(*             mkt       - market state; stckPrice read-only   *)
+(*             ordType   - asset type per order (1=STOCK 2=BND)*)
+(*             ordId     - asset index per order (1-9 / 1-3)   *)
+(*             ordQty    - quantity per order                   *)
+(*             ordPurch  - purchase type per order             *)
+(*                         1=CASH  2=MARGIN                    *)
+(*             ordCnt    - number of valid orders (0..12)      *)
+(* SIDE EFX  : Modifies plyr.cashBal, plyr.marginTot,          *)
+(*             plyr.stckShrs, plyr.mgnHeld, plyr.bondUnts,     *)
+(*             plyr.hadCashPur.                                *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM plyr         : PlyrRec
@@ -570,37 +538,82 @@ DIM cashPay : INTEGER
 DIM mgnPay  : INTEGER
 
 ON ERROR GOTO 900
+
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
 FOR i := 1 TO ordCnt
+
   s   := ordId(i)
   b   := ordId(i)
   qty := ordQty(i)
+
   IF ordType(i) = 1 THEN
+
+    ! --- Stock buy -------------------------------------------
     cost := qty * mkt.stckPrice(s)
+
     IF ordPurch(i) = 2 THEN
+
+      ! Margin purchase: 50% cash, 50% margin (spec Sec 9.2).
+      ! Integer arithmetic: cashPay := cost / 2.
+      ! mgnPay := cost - cashPay captures any odd-cent rounding
+      ! (cost is always even: qty multiple of 10, price integer).
       cashPay := cost / 2
       mgnPay  := cost - cashPay
-      plyr.cashBal   := plyr.cashBal - cashPay
+
+      plyr.cashBal   := plyr.cashBal   - cashPay
       plyr.marginTot := plyr.marginTot + mgnPay
       plyr.mgnHeld(s) := TRUE
+
     ELSE
+
+      ! Cash purchase (ordPurch = 1).
       plyr.cashBal    := plyr.cashBal - cost
       plyr.hadCashPur := TRUE
+
     ENDIF
+
     plyr.stckShrs(s) := plyr.stckShrs(s) + qty
+
   ELSE IF ordType(i) = 2 THEN
-    plyr.cashBal     := plyr.cashBal - (qty * bPar(b))
+
+    ! --- Bond buy (spec Sec 10.3) ----------------------------
+    ! Bonds are always purchased at par; always cash.
+    plyr.cashBal    := plyr.cashBal - (qty * bPar(b))
     plyr.bondUnts(b) := plyr.bondUnts(b) + qty
+
   ENDIF \ENDIF
+
 NEXT i
+
 END
 
 900 PRINT "applyBuys error ("; ERR; ")"
 END
 
 PROCEDURE scrMgnRepay
+(* ============================================================ *)
+(* PROCEDURE : scrMgnRepay                                      *)
+(* PURPOSE   : S18 Margin Repayment sub-screen.                *)
+(*             Displays outstanding margin, available cash,    *)
+(*             and the valid repayment range. Accepts a single *)
+(*             integer amount in range 0..maxRpy and returns   *)
+(*             it in amtToRpy.                                 *)
+(*             Called from scrBuy when player selects the      *)
+(*             repay margin option. maxRpy must equal          *)
+(*             MIN(marginTot, cashBal) - caller is responsible *)
+(*             for computing this before calling.              *)
+(*             0 is a valid entry (player declines repayment   *)
+(*             after viewing the screen).                      *)
+(* PARAMS    : marginTot  - current outstanding margin total   *)
+(*             cashBal    - current available cash             *)
+(*             maxRpy     - maximum repayable amount           *)
+(*                          (MIN(marginTot, cashBal))          *)
+(*             amtToRpy   - output: amount player will repay   *)
+(* SIDE EFX  : Clears screen. Uses INPUT for repayment amount. *)
+(* ============================================================ *)
 PARAM marginTot : INTEGER
 PARAM cashBal   : INTEGER
 PARAM maxRpy    : INTEGER
@@ -612,6 +625,7 @@ DIM valid : BOOLEAN
 DIM pStr  : STRING[8]
 
 ON ERROR GOTO 900
+
 RUN clrScr
 PRINT "=== MARGIN REPAYMENT (S18) ==="
 PRINT
@@ -622,12 +636,13 @@ PRINT "Cash available     : $"; pStr
 RUN fmtMoney(maxRpy, pStr)
 PRINT "Maximum repayable  : $"; pStr
 PRINT
+
 valid := FALSE
 WHILE NOT valid DO
   PRINT "Enter repayment amount (0 to "; maxRpy; ", 0=none):"
   INPUT "> ", qIn
   IF qIn = "" THEN
-    amt := 0
+    amt   := 0
     valid := TRUE
   ELSE
     RUN getNumIn(qIn, amt, numOk)
@@ -643,6 +658,7 @@ WHILE NOT valid DO
     ENDIF \ENDIF \ENDIF
   ENDIF
 ENDWHILE
+
 amtToRpy := amt
 END
 
@@ -650,6 +666,30 @@ END
 END
 
 PROCEDURE scrAITurn
+(* ============================================================ *)
+(* PROCEDURE : scrAITurn                                        *)
+(* PURPOSE   : S19 Computer Player Turn Summary screen.        *)
+(*             Displays the AI player's decisions for the      *)
+(*             current sell or buy phase so human observers    *)
+(*             can follow what the computer player did.        *)
+(*             Shows only actionable decisions (SELL, BUY,     *)
+(*             REPAY). PASS entries are suppressed; if all     *)
+(*             entries are PASS (or decCnt=0), displays        *)
+(*             "(no action this phase)".                       *)
+(*             Display-only: no output parameters. Returns     *)
+(*             after waitKey.                                  *)
+(* PARAMS    : plyrNam  - AI player name                       *)
+(*             phase    - 1=SELL 2=BUY                         *)
+(*             decAct   - decision action per entry:           *)
+(*                        1=SELL 2=BUY 3=REPAY 4=PASS          *)
+(*             decType  - asset type: 1=STOCK 2=BOND 0=N/A    *)
+(*             decId    - asset index (1-9 stock, 1-3 bond,    *)
+(*                        0 for REPAY/PASS)                    *)
+(*             decQty   - quantity (shares, units, or $ amount *)
+(*                        for REPAY; 0 for PASS)               *)
+(*             decCnt   - number of entries in arrays (0..12)  *)
+(* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
+(* ============================================================ *)
 PARAM plyrNam    : STRING[20]
 PARAM phase      : BYTE
 PARAM decAct(12) : BYTE
@@ -666,6 +706,7 @@ DIM shown   : INTEGER
 DIM pStr    : STRING[8]
 
 ON ERROR GOTO 900
+
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -675,9 +716,11 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
 RUN clrScr
 PRINT "=== COMPUTER TURN ===";
 IF phase = 1 THEN
@@ -687,9 +730,14 @@ ELSE
 ENDIF
 PRINT "Player: "; plyrNam
 PRINT
+
 shown := 0
+
 FOR i := 1 TO decCnt
+
   IF decAct(i) = 1 THEN
+
+    ! SELL decision
     PRINT "  SELL  ";
     IF decType(i) = 1 THEN
       s := decId(i)
@@ -700,7 +748,10 @@ FOR i := 1 TO decCnt
       PRINT decQty(i); "  $"; pStr; " bond"
     ENDIF \ENDIF
     shown := shown + 1
+
   ELSE IF decAct(i) = 2 THEN
+
+    ! BUY decision
     PRINT "  BUY   ";
     IF decType(i) = 1 THEN
       s := decId(i)
@@ -711,23 +762,61 @@ FOR i := 1 TO decCnt
       PRINT decQty(i); "  $"; pStr; " bond"
     ENDIF \ENDIF
     shown := shown + 1
+
   ELSE IF decAct(i) = 3 THEN
+
+    ! REPAY decision: decQty holds dollar amount
     RUN fmtMoney(decQty(i), pStr)
     PRINT "  REPAY $"; pStr; " margin"
     shown := shown + 1
+
   ENDIF \ENDIF \ENDIF
+
 NEXT i
+
 IF shown = 0 THEN
   PRINT "  (no action this phase)"
 ENDIF
+
 PRINT
 RUN waitKey
+
 END
 
 900 PRINT "scrAITurn error ("; ERR; ")"
 END
 
 PROCEDURE scrBuy
+(* ============================================================ *)
+(* PROCEDURE : scrBuy                                           *)
+(* PURPOSE   : S17 Human Buy Phase screen.                     *)
+(*             Displays cash, margin, eligibility flags, stock *)
+(*             prices, and bond options. Accepts buy orders    *)
+(*             with per-order purchase type (CASH or MARGIN).  *)
+(*             Includes inline margin repayment via scrMgnRepay.*)
+(*             Validates all orders against simulated cash.    *)
+(*             Does NOT modify plyr; caller applies via        *)
+(*             applyBuys. mgnRepay returned for caller to apply*)
+(*             before applyBuys is called.                     *)
+(*             Bankrupt stocks (price=0) excluded from display.*)
+(* PARAMS    : currYear   - current year (1..10)               *)
+(*             plyr       - player record (read-only)          *)
+(*             mkt        - market state; stckPrice read-only  *)
+(*             mgnElig    - margin purchase eligible           *)
+(*                          (plyr.hadCashPur from caller)      *)
+(*             mgnYrOk    - margin allowed this year           *)
+(*                          (currently FALSE while disabled)   *)
+(*             ordType    - output: 1=STOCK 2=BOND per order   *)
+(*             ordId      - output: asset index per order      *)
+(*             ordQty     - output: quantity per order         *)
+(*             ordPurch   - output: 1=CASH 2=MARGIN per order  *)
+(*             ordCnt     - output: number of orders (0..12)   *)
+(*             mgnRepay   - output: repayment amount (0=none)  *)
+(*             action     - output: 1=CONFIRM 2=PASS           *)
+(* SIDE EFX  : Clears screen. Calls scrMgnRepay if repayment  *)
+(*             selected. Uses INPUT for order quantities.      *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
 TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
 PARAM currYear      : INTEGER
@@ -768,7 +857,9 @@ DIM minCash  : INTEGER
 DIM divRate(9): INTEGER
 
 ON ERROR GOTO 900
+
 PRINT "scrBuy: start"
+
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -778,6 +869,7 @@ sNam(6) := "Tri-City Trn"
 sNam(7) := "United Auto"
 sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
+
 divRate(1) := 1
 divRate(2) := 0
 divRate(3) := 4
@@ -787,14 +879,24 @@ divRate(6) := 0
 divRate(7) := 2
 divRate(8) := 6
 divRate(9) := 3
+
 bPar(1) := 1000
 bPar(2) := 5000
 bPar(3) := 10000
+
+! canMgn: TRUE only when both eligibility conditions met.
 canMgn   := mgnElig AND mgnYrOk
 mgnRepay := 0
 simCash  := plyr.cashBal
 simMgn   := plyr.marginTot
+
+! ============================================================
+! Phase 1: repayment and enter/pass decision.
+! Loop redisplays after each repayment so updated cash/margin
+! are visible before the player commits to order entry.
+! ============================================================
 LOOP
+
   RUN clrScr
   PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
   PRINT "Player: "; plyr.plyrName
@@ -809,6 +911,7 @@ LOOP
     PRINT "  (No margin: rule disabled)"
   ENDIF
   PRINT
+
   PRINT "STOCKS:"
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
@@ -823,12 +926,15 @@ LOOP
       PRINT " "; yldPct; "% -> $"; divVal
     ENDIF
   NEXT s
+
   PRINT
   PRINT "BONDS:"
   PRINT " 1  Small  par=$1000   int=$50"
   PRINT " 2  Medium par=$5000   int=$250"
   PRINT " 3  Large  par=$10000  int=$500"
   PRINT
+
+  ! Build menu based on margin total and simCash.
   IF simMgn > 0 AND simCash > 0 THEN
     PRINT "1=Enter orders  2=Repay margin  3=Pass"
     passKey := 3
@@ -838,14 +944,18 @@ LOOP
     passKey := 2
     RUN getMenuKey(1, 2, key)
   ENDIF
+
   IF key = passKey THEN
     PRINT "scrBuy: pass selected"
     ordCnt := 0
     action := 2
     END
   ENDIF
+
   EXITIF key = 1 THEN
   ENDEXIT
+
+  ! key = 2 with simMgn > 0: call margin repayment sub-screen.
   maxRpy := simMgn
   IF simCash < maxRpy THEN
     maxRpy := simCash
@@ -855,8 +965,14 @@ LOOP
   mgnRepay := mgnRepay + repayAmt
   simCash  := simCash  - repayAmt
   simMgn   := simMgn   - repayAmt
+
 ENDLOOP
+
+! ============================================================
+! Phase 2: order entry + summary + confirm/revise loop.
+! ============================================================
 LOOP
+
   ordCnt := 0
   FOR i := 1 TO 12
     ordType(i)  := 0
@@ -864,12 +980,18 @@ LOOP
     ordQty(i)   := 0
     ordPurch(i) := 0
   NEXT i
+
+  ! Reinitialise simCash to post-repayment balance for this
+  ! entry pass. mgnRepay is already final from Phase 1.
   simCash := plyr.cashBal - mgnRepay
+
   RUN clrScr
   PRINT "BUY ORDERS  YEAR "; currYear; "  "; plyr.plyrName
   RUN fmtMoney(simCash, pStr)
   PRINT "Available cash: $"; pStr
   PRINT
+
+  ! --- Stock entries ----------------------------------------
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
       minCash := 10 * mkt.stckPrice(s)
@@ -888,11 +1010,12 @@ LOOP
         PRINT " "; yldPct; "% -> $"; divVal
         RUN fmtMoney(simCash, pStr)
         PRINT "  (cash avail: $"; pStr; ")"
+
         valid := FALSE
         WHILE NOT valid DO
           INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
           IF qIn = "" THEN
-            qty := 0
+            qty   := 0
             valid := TRUE
           ELSE
             RUN getNumIn(qIn, qty, numOk)
@@ -903,15 +1026,18 @@ LOOP
             ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
               PRINT "  Invalid: must be a multiple of 10."
             ELSE IF qty > 0 THEN
+              ! Determine purchase type.
               IF canMgn THEN
                 PRINT "  1=Cash  2=Margin"
                 RUN getMenuKey(1, 2, purch)
               ELSE
                 purch := 1
               ENDIF
+              ! Compute cost based on type.
               IF purch = 1 THEN
                 cashCost := qty * mkt.stckPrice(s)
               ELSE
+                ! Margin: player pays 50% cash upfront.
                 cashCost := (qty * mkt.stckPrice(s)) / 2
               ENDIF
               IF cashCost > simCash THEN
@@ -930,17 +1056,21 @@ LOOP
             ENDIF \ENDIF \ENDIF \ENDIF
           ENDIF
         ENDWHILE
+
         IF qty > 0 THEN
-          ordCnt := ordCnt + 1
-          ordType(ordCnt) := 1
-          ordId(ordCnt) := s
-          ordQty(ordCnt) := qty
-          ordPurch(ordCnt) := purch
+          ordCnt              := ordCnt + 1
+          ordType(ordCnt)     := 1
+          ordId(ordCnt)       := s
+          ordQty(ordCnt)      := qty
+          ordPurch(ordCnt)    := purch
           PRINT "scrBuy: stock order idx="; ordCnt; " s="; s; " q="; qty
         ENDIF
       ENDIF
+
     ENDIF
   NEXT s
+
+  ! --- Bond entries -----------------------------------------
   FOR b := 1 TO 3
     IF simCash >= bPar(b) THEN
       PRINT "$"; bPar(b); " bond  (int=$";
@@ -950,11 +1080,12 @@ LOOP
       ENDIF \ENDIF
       RUN fmtMoney(simCash, pStr)
       PRINT "  (cash avail: $"; pStr; ")"
+
       valid := FALSE
       WHILE NOT valid DO
         INPUT "  Units to buy (0/Enter=skip): ", qIn
         IF qIn = "" THEN
-          qty := 0
+          qty   := 0
           valid := TRUE
         ELSE
           RUN getNumIn(qIn, qty, numOk)
@@ -975,16 +1106,20 @@ LOOP
           ENDIF \ENDIF \ENDIF
         ENDIF
       ENDWHILE
+
       IF qty > 0 THEN
-        ordCnt := ordCnt + 1
-        ordType(ordCnt) := 2
-        ordId(ordCnt) := b
-        ordQty(ordCnt) := qty
+        ordCnt           := ordCnt + 1
+        ordType(ordCnt)  := 2
+        ordId(ordCnt)    := b
+        ordQty(ordCnt)   := qty
         ordPurch(ordCnt) := 1
         PRINT "scrBuy: bond order idx="; ordCnt; " b="; b; " q="; qty
       ENDIF
     ENDIF
+
   NEXT b
+
+  ! --- Summary and confirm ----------------------------------
   RUN clrScr
   PRINT "BUY SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
   PRINT
@@ -1026,9 +1161,12 @@ LOOP
   PRINT "1=Confirm  2=Revise orders"
   RUN getMenuKey(1, 2, key)
   PRINT "scrBuy: summary key="; key
+
   EXITIF key = 1 THEN
   ENDEXIT
+
 ENDLOOP
+
 PRINT "scrBuy: pre-return ordCnt="; ordCnt; " repay="; mgnRepay
 RUN fmtMoney(simCash, pStr)
 PRINT "scrBuy: pre-return self-check cash="; pStr
