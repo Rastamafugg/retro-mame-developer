@@ -319,7 +319,7 @@ PARAM action:INTEGER
 
 DIM i:INTEGER
 DIM modeLabel:STRING[1]
-DIM tierLabel:STRING[6]
+DIM dispName:STRING[27]
 
 ON ERROR GOTO 900
 
@@ -331,19 +331,8 @@ PRINT "  ============="
 PRINT
 
 FOR i := 1 TO plyrCount
-  PRINT "  Player "; i; ":  "; plyrName(i); "  ";
-  IF plyrType(i) = 1 THEN
-    PRINT "(Human)"
-  ELSE
-    IF aiTier(i) = 1 THEN
-      tierLabel := "Easy"
-    ELSE IF aiTier(i) = 2 THEN
-      tierLabel := "Medium"
-    ELSE
-      tierLabel := "Hard"
-    ENDIF \ENDIF
-    PRINT "(Computer "; tierLabel; ")"
-  ENDIF
+  RUN fmtPlyrName(plyrName(i), plyrType(i), aiTier(i), dispName)
+  PRINT "  Player "; i; ":  "; dispName
 NEXT i
 
 PRINT

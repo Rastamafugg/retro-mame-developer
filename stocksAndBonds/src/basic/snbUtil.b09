@@ -9,6 +9,7 @@ PRINT "snbUtil"
 PRINT "  clrScr"
 PRINT "  printAt"
 PRINT "  fmtMoney"
+PRINT "  fmtPlyrName"
 PRINT "  getMenuKey"
 PRINT "  waitKey"
 PRINT "  getNumIn"
@@ -134,6 +135,40 @@ END
 
 900 \ ! Error handler
 PRINT "fmtMoney error ("; ERR; ")"
+END
+
+PROCEDURE fmtPlyrName
+(* ================================================== *)
+(* PROCEDURE: fmtPlyrName                             *)
+(* PURPOSE:   Build display name for a player.        *)
+(*            Human players display as name only.     *)
+(*            AI players append tier label:           *)
+(*            EASY, MEDIUM, or HARD.                  *)
+(* PARAMS:    plyrName - stored player name           *)
+(*            plyrType - 1=Human 2=Computer           *)
+(*            aiTier   - 1=Easy 2=Medium 3=Hard       *)
+(*            dispName - receives display name        *)
+(* ================================================== *)
+PARAM plyrName : STRING[20]
+PARAM plyrType : INTEGER
+PARAM aiTier   : INTEGER
+PARAM dispName : STRING[27]
+
+ON ERROR GOTO 900
+
+dispName := plyrName
+IF plyrType = 2 THEN
+  IF aiTier = 1 THEN
+    dispName := plyrName + " EASY"
+  ELSE IF aiTier = 3 THEN
+    dispName := plyrName + " HARD"
+  ELSE
+    dispName := plyrName + " MEDIUM"
+  ENDIF \ENDIF
+ENDIF
+END
+
+900 PRINT "fmtPlyrName error ("; ERR; ")"
 END
 
 PROCEDURE getMenuKey

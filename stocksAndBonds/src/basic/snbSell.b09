@@ -33,7 +33,7 @@ DIM ordCnt     : INTEGER
 DIM usrAct     : INTEGER
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
-DIM pNam       : STRING[20]
+DIM pNam       : STRING[27]
 DIM p          : INTEGER
 
 ON ERROR GOTO 900
@@ -50,7 +50,7 @@ iPCnt := hdr.plyrCount
 IF iCYr > 1 THEN
   FOR p := 1 TO iPCnt
     IF NOT plyrs(p).isBankrupt THEN
-      pNam   := plyrs(p).plyrName
+      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
       ordCnt := 0
       IF plyrs(p).plyrType = 1 THEN
         PRINT "snbSell: human sell start p="; p
@@ -502,7 +502,7 @@ PROCEDURE scrAISellTurn
 (*             ordCnt   - number of entries in arrays (0..12) *)
 (* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
 (* ============================================================ *)
-PARAM plyrNam    : STRING[20]
+PARAM plyrNam    : STRING[27]
 PARAM ordType(12): INTEGER
 PARAM ordId(12)  : INTEGER
 PARAM ordQty(12) : INTEGER
@@ -607,6 +607,7 @@ DIM key     : INTEGER
 DIM nSep    : STRING[1]
 DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
+DIM dispNam : STRING[27]
 DIM numOk   : BOOLEAN
 DIM totProc : INTEGER
 DIM divRate(9): INTEGER
@@ -641,8 +642,9 @@ bDen(3) := 10000
 
 ! --- Holdings display and initial pass/enter prompt ----------
 RUN clrScr
+RUN fmtPlyrName(plyr.plyrName, plyr.plyrType, plyr.aiTier, dispNam)
 PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
-PRINT "Player: "; plyr.plyrName
+PRINT "Player: "; dispNam
 RUN fmtMoney(plyr.cashBal, pStr)
 PRINT "Cash: $"; pStr;
 RUN fmtMoney(plyr.marginTot, pStr)
@@ -712,7 +714,7 @@ LOOP
   NEXT i
 
   RUN clrScr
-  PRINT "SELL ORDERS  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT "SELL ORDERS  YEAR "; currYear; "  "; dispNam
   PRINT
 
   ! Stock entries. Bankrupt stocks (price=0) skipped.
@@ -794,7 +796,7 @@ LOOP
 
   ! --- Summary and confirm ----------------------------------
   RUN clrScr
-  PRINT "SELL SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT "SELL SUMMARY  YEAR "; currYear; "  "; dispNam
   PRINT
   totProc := 0
   IF ordCnt = 0 THEN

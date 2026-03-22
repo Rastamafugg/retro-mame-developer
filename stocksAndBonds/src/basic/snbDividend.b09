@@ -40,7 +40,7 @@ DIM bndInt(3)  : INTEGER  \ ! per-bond interest received for display
 DIM divRate(9) : INTEGER  \ ! dividend per share (spec Section 2.1)
 DIM bndRate(3) : INTEGER  \ ! annual interest per bond unit (spec 2.2)
 DIM totRcvd    : INTEGER  \ ! total div+int received this year
-DIM pNam       : STRING[20] \ ! staged plyrName for scrDivInt call
+DIM pNam       : STRING[27] \ ! staged display name for scrDivInt call
 DIM actByt     : BYTE     \ ! action return from scrDivInt (discarded)
 DIM p          : INTEGER
 DIM s          : INTEGER
@@ -117,7 +117,7 @@ IF iCYr > 1 THEN
         ENDIF
       NEXT b
 
-      pNam := plyrs(p).plyrName  \ ! stage STRING[20] for scrDivInt
+      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
       ! Line exceeds 79 chars; RUN statement cannot be split.
       RUN scrDivInt(iCYr, pNam, cashBef(p), divRcvd, bndInt, totRcvd, plyrs(p).cashBal, actByt)
     ENDIF
@@ -310,7 +310,7 @@ PROCEDURE scrDivInt
 (*             Repositions DATA pointer (RESTORE used).        *)
 (* ============================================================ *)
 PARAM currYear   : INTEGER
-PARAM plyrName   : STRING[20]
+PARAM plyrName   : STRING[27]
 PARAM cashBef    : INTEGER
 PARAM divRcvd(9) : INTEGER
 PARAM bndInt(3)  : INTEGER

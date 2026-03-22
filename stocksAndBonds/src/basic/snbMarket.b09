@@ -48,7 +48,7 @@ DIM dvSusp(9)  : BOOLEAN  \ ! TRUE if dividends newly suspended
 DIM dvRnst(9)  : BOOLEAN  \ ! TRUE if dividends reinstated
 DIM flavTxt    : STRING[160] \ ! flavour text (stub; empty for now)
 DIM sNam       : STRING[12]  \ ! stock name for split/divflag display
-DIM pNames(6)  : STRING[20]  \ ! player names for scrSplit
+DIM pNames(6)  : STRING[27]  \ ! display names for scrSplit
 DIM shrBf(6)   : INTEGER     \ ! shares before split per player
 DIM shrAf(6)   : INTEGER     \ ! shares after split per player
 DIM evTyp      : INTEGER     \ ! 1=suspended 2=reinstated
@@ -118,7 +118,7 @@ FOR s := 1 TO 9
     ! applyMktYear already doubled stckShrs(s) on split;
     ! shrBf = current / 2 restores the pre-split count.
     FOR p := 1 TO iPCnt
-      pNames(p) := plyrs(p).plyrName
+      RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNames(p))
       shrAf(p)  := plyrs(p).stckShrs(s)
       shrBf(p)  := plyrs(p).stckShrs(s) / 2
     NEXT p
@@ -938,7 +938,7 @@ PARAM stkName     : STRING[12]
 PARAM oldPrc      : INTEGER
 PARAM newPrc      : INTEGER
 PARAM plyrCnt     : INTEGER
-PARAM plyrName(6) : STRING[20]
+PARAM plyrName(6) : STRING[27]
 PARAM shrBef(6)   : INTEGER
 PARAM shrAft(6)   : INTEGER
 PARAM action      : BYTE
@@ -955,11 +955,11 @@ PRINT
 PRINT USING "'  Old price:  $',I4>", oldPrc
 PRINT USING "'  New price:  $',I4>", newPrc
 PRINT
-PRINT "  PLAYER               BEFORE   AFTER"
-PRINT "  -------------------  ------  ------"
+PRINT "  PLAYER                      BEFORE   AFTER"
+PRINT "  --------------------------  ------  ------"
 FOR p := 1 TO plyrCnt
   IF shrBef(p) > 0 THEN
-    PRINT USING "'  ',S20<,I6>,X2,I6>", plyrName(p), shrBef(p), shrAft(p)
+    PRINT USING "'  ',S27<,I6>,X2,I6>", plyrName(p), shrBef(p), shrAft(p)
   ENDIF
 NEXT p
 PRINT

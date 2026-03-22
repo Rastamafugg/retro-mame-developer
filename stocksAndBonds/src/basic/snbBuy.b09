@@ -36,7 +36,7 @@ DIM decAct(12) : BYTE
 DIM ordCnt     : INTEGER
 DIM decCnt     : INTEGER
 DIM mgnRpy     : INTEGER
-DIM pNam       : STRING[20]
+DIM pNam       : STRING[27]
 DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM usrAct     : INTEGER
@@ -59,7 +59,7 @@ mgnYrOk := FALSE
 
 FOR p := 1 TO iPCnt
   IF NOT plyrs(p).isBankrupt THEN
-    pNam    := plyrs(p).plyrName
+    RUN fmtPlyrName(plyrs(p).plyrName, plyrs(p).plyrType, plyrs(p).aiTier, pNam)
     ordCnt  := 0
     mgnRpy  := 0
     mgnElig := plyrs(p).hadCashPur
@@ -696,7 +696,7 @@ PROCEDURE scrAIBuyTurn
 (*             decCnt   - number of entries in arrays (0..12)  *)
 (* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
 (* ============================================================ *)
-PARAM plyrNam    : STRING[20]
+PARAM plyrNam    : STRING[27]
 PARAM decAct(12) : BYTE
 PARAM decType(12): INTEGER
 PARAM decId(12)  : INTEGER
@@ -836,6 +836,7 @@ DIM divVal   : INTEGER
 DIM nSep     : STRING[1]
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
+DIM dispNam  : STRING[27]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
@@ -884,8 +885,9 @@ simMgn   := plyr.marginTot
 LOOP
 
   RUN clrScr
+  RUN fmtPlyrName(plyr.plyrName, plyr.plyrType, plyr.aiTier, dispNam)
   PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
-  PRINT "Player: "; plyr.plyrName
+  PRINT "Player: "; dispNam
   RUN fmtMoney(simCash, pStr)
   PRINT "Cash: $"; pStr;
   RUN fmtMoney(simMgn, pStr)
@@ -972,7 +974,7 @@ LOOP
   simCash := plyr.cashBal - mgnRepay
 
   RUN clrScr
-  PRINT "BUY ORDERS  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT "BUY ORDERS  YEAR "; currYear; "  "; dispNam
   RUN fmtMoney(simCash, pStr)
   PRINT "Available cash: $"; pStr
   PRINT
@@ -1107,7 +1109,7 @@ LOOP
 
   ! --- Summary and confirm ----------------------------------
   RUN clrScr
-  PRINT "BUY SUMMARY  YEAR "; currYear; "  "; plyr.plyrName
+  PRINT "BUY SUMMARY  YEAR "; currYear; "  "; dispNam
   PRINT
   IF mgnRepay > 0 THEN
     RUN fmtMoney(mgnRepay, pStr)
