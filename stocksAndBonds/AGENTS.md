@@ -76,6 +76,16 @@ If a syscall detail appears ambiguous or undocumented, use
   2. hypotheses that still need confirmation
 - If the observed output is insufficient to prove a cause, say that directly
   and propose checks instead of inventing an explanation.
+- Before editing a diagnostic harness or repro test, state in one sentence what
+  behavior or scenario must remain unchanged.
+- For troubleshooting, prefer the smallest possible inline instrumentation at
+  the suspected failing step over structural rewrites, helper subroutines, or
+  control-flow refactors.
+- Do not add new `GOSUB`, `GOTO`, helper branches, or error-routing scaffolding
+  to an existing diagnostic harness unless the user explicitly asks for a
+  structural refactor.
+- In diagnostic harnesses, preserve existing execution order, prompts, pauses,
+  and block shape unless the user explicitly asks to change them.
 
 ## When Helping With Syscalls
 

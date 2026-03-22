@@ -54,11 +54,19 @@ These instructions govern how to build, edit, review, and QA Basic09 code in thi
 
 * **Do not add `MODULE`/`ENDMODULE` wrappers.** These are not valid Basic09 syntax.
 
+* **Before editing a diagnostic harness or repro test, identify in one sentence what behavior must remain unchanged.** Treat the existing repro scenario as part of the requirement unless the user explicitly says otherwise.
+
 ---
 
 ## 5. Test Procedure Code
 
 * **When writing test procedures, add user-input calls to pause the output between test blocks** When a test procedure has multiple blocks of tests, the earlier results can scroll off the screen before the user can read them.  Add a call `RUN waitKey` at the end of each test block, to allow the user to review pass/fails before proceeding to the next set of test in the procedure.
+
+* **Do not alter repro conditions in an existing diagnostic harness unless the user explicitly requests that change.** This includes player types, execution order, prompts, pauses, pass/fail criteria, and interaction model.
+
+* **For troubleshooting edits, prefer the smallest possible inline instrumentation at the suspected failing step.** Do not introduce new `GOSUB`, `GOTO`, helper branches, or error-routing scaffolding into an existing diagnostic harness unless the user explicitly asks for a structural refactor.
+
+* **When diagnosing from runtime output, distinguish observed facts from hypotheses.** Do not present inferred console, screen, runtime, or hardware behavior as an observed fact unless it was directly reported by the user or directly verified in the current task.
 
 ---
 
