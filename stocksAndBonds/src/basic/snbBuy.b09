@@ -67,17 +67,13 @@ FOR p := 1 TO iPCnt
     mgnRpy  := 0
     mgnElig := plyrs(p).hadCashPur
     IF plyrs(p).plyrType = 1 THEN
-      PRINT "snbBuy: human buy start p="; p
       RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, usrAct)
-      PRINT "snbBuy: human buy returned p="; p; " ordCnt="; ordCnt; " repay="; mgnRpy
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
         plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
-        PRINT "snbBuy: human buy repay applied p="; p
       ENDIF
       IF ordCnt > 0 THEN
         RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
-        PRINT "snbBuy: human buy apply ok p="; p
       ENDIF
     ELSE
       aiTierVal := plyrs(p).aiTier
@@ -85,22 +81,16 @@ FOR p := 1 TO iPCnt
         aiTierVal := 2
         plyrs(p).aiTier := 2
       ENDIF
-      PRINT "snbBuy: AI buy start p="; p; " tier="; aiTierVal
       tInt := aiTierVal
       RUN initAIProf(tInt, prof)
-      PRINT "snbBuy: AI buy profile ok p="; p
       prof.useMargin := FALSE
-      PRINT "snbBuy: AI buy margin disabled p="; p
       RUN aiBuy(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
-      PRINT "snbBuy: AI buy orders ok p="; p; " ordCnt="; ordCnt; " repay="; mgnRpy
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
         plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
-        PRINT "snbBuy: AI buy repay applied p="; p
       ENDIF
       IF ordCnt > 0 THEN
         RUN applyBuys(plyrs(p), mkt, ordTyp, ordId, ordQty, ordPur, ordCnt)
-        PRINT "snbBuy: AI buy apply ok p="; p
       ENDIF
       FOR tInt := 1 TO ordCnt
         decAct(tInt) := 2
@@ -116,7 +106,6 @@ FOR p := 1 TO iPCnt
         ENDIF
       ENDIF
       RUN scrAIBuyTurn(pNam, decAct, ordTyp, ordId, ordQty, decCnt)
-      PRINT "snbBuy: AI buy summary ok p="; p
     ENDIF
   ENDIF
 NEXT p
@@ -850,8 +839,6 @@ DIM aiTierVal: INTEGER
 
 ON ERROR GOTO 900
 
-PRINT "scrBuy: start"
-
 sNam(1) := "Growth Corp"
 sNam(2) := "Metro Props"
 sNam(3) := "Pioneer Mut"
@@ -941,7 +928,6 @@ LOOP
   ENDIF
 
   IF key = passKey THEN
-    PRINT "scrBuy: pass selected"
     ordCnt := 0
     action := 2
     END
@@ -1058,7 +1044,6 @@ LOOP
           ordId(ordCnt)       := s
           ordQty(ordCnt)      := qty
           ordPurch(ordCnt)    := purch
-          PRINT "scrBuy: stock order idx="; ordCnt; " s="; s; " q="; qty
         ENDIF
       ENDIF
 
@@ -1108,7 +1093,6 @@ LOOP
         ordId(ordCnt)    := b
         ordQty(ordCnt)   := qty
         ordPurch(ordCnt) := 1
-        PRINT "scrBuy: bond order idx="; ordCnt; " b="; b; " q="; qty
       ENDIF
     ENDIF
 
@@ -1155,16 +1139,12 @@ LOOP
   PRINT
   PRINT "1=Confirm  2=Revise orders"
   RUN getMenuKey(1, 2, key)
-  PRINT "scrBuy: summary key="; key
 
   EXITIF key = 1 THEN
   ENDEXIT
 
 ENDLOOP
 
-PRINT "scrBuy: pre-return ordCnt="; ordCnt; " repay="; mgnRepay
-RUN fmtMoney(simCash, pStr)
-PRINT "scrBuy: pre-return self-check cash="; pStr
 action := 1
 END
 

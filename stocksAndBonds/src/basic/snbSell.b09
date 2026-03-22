@@ -56,12 +56,9 @@ IF iCYr > 1 THEN
       RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNam)
       ordCnt := 0
       IF plyrs(p).plyrType = 1 THEN
-        PRINT "snbSell: human sell start p="; p
         RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, usrAct)
-        PRINT "snbSell: human sell returned p="; p; " ordCnt="; ordCnt
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
-          PRINT "snbSell: human sell apply ok p="; p
         ENDIF
       ELSE
         aiTierVal := plyrs(p).aiTier
@@ -69,18 +66,13 @@ IF iCYr > 1 THEN
           aiTierVal := 2
           plyrs(p).aiTier := 2
         ENDIF
-        PRINT "snbSell: AI sell start p="; p; " tier="; aiTierVal
         tInt := aiTierVal
         RUN initAIProf(tInt, prof)
-        PRINT "snbSell: AI sell profile ok p="; p
         RUN aiSell(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordCnt)
-        PRINT "snbSell: AI sell orders ok p="; p; " ordCnt="; ordCnt
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
-          PRINT "snbSell: AI sell apply ok p="; p
         ENDIF
         RUN scrAISellTurn(pNam, ordTyp, ordId, ordQty, ordCnt)
-        PRINT "snbSell: AI sell summary ok p="; p
       ENDIF
     ENDIF
   NEXT p
