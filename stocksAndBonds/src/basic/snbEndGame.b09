@@ -14,10 +14,9 @@ PROCEDURE snbEndGame
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Reads SNBSTATE. Displays screens. No writes.   *)
-(* NOTE      : snbSaveLoad must be pre-loaded by coordinator.  *)
-(*             snbUtil (clrScr, fmtMoney, waitKey) is          *)
-(*             permanently resident. All four screen           *)
-(*             procedures are in this same packed file.        *)
+(* NOTE      : snbUtil and snbEndGame must be pre-loaded by    *)
+(*             coordinator. All four screen procedures are in  *)
+(*             this same packed file.                          *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE

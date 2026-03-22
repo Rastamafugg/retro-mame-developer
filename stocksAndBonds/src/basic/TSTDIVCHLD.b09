@@ -11,9 +11,9 @@ PROCEDURE TSTDIVCHLD
 (*            Calls snbDividend via RUN (no fork).    *)
 (*            Prints TSTDIVCHLD: PASS if all correct. *)
 (*                                                   *)
-(* PRE:       snbSaveLoad and snbDividend must be    *)
+(* PRE:       snbUtil and snbDividend must be        *)
 (*            packed and resident before run.         *)
-(*            RUN snbSaveLoad                         *)
+(*            RUN snbUtil                             *)
 (*            RUN snbDividend                         *)
 (* ================================================== *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -42,14 +42,6 @@ modNam := "snbUtil"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
   PRINT "TSTDIVCHLD: failed to load snbUtil"
-  END
-ENDIF
-
-! Load snbSaveLoad as permanent resident for SNTSTDIVCHLDB's lifetime.
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, FALSE, ok)
-IF NOT ok THEN
-  PRINT "TSTDIVCHLD: failed to load snbSaveLoad"
   END
 ENDIF
 

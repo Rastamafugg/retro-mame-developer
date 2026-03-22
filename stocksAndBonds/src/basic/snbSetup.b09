@@ -350,8 +350,7 @@ PROCEDURE pgChild
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Writes SNBSTATE on normal exit via saveGame.    *)
 (*             Writes nothing on quit.                         *)
-(* NOTE      : snbSaveLoad must be pre-loaded by coordinator.  *)
-(*             snbUtil is permanently resident.                *)
+(* NOTE      : snbUtil must be pre-loaded by coordinator.      *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE

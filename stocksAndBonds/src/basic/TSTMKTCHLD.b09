@@ -38,18 +38,11 @@ ON ERROR GOTO 900
 
 failCnt := 0
 
-! Parent process: snbUtil for waitKey, snbSaveLoad for save/load.
+! Parent process: snbUtil for waitKey, save/load, and helpers.
 modNam := "snbUtil"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to load snbUtil"
-  END
-ENDIF
-
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, FALSE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to load snbSaveLoad"
   END
 ENDIF
 
@@ -126,12 +119,6 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 1)"
   END
 ENDIF
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 1)"
-  END
-ENDIF
 modNam := "snbMarket"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
@@ -195,12 +182,6 @@ modNam := "snbUtil"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 2)"
-  END
-ENDIF
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 2)"
   END
 ENDIF
 modNam := "snbMarket"
@@ -272,12 +253,6 @@ IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 3)"
   END
 ENDIF
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 3)"
-  END
-ENDIF
 modNam := "snbMarket"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
@@ -342,12 +317,6 @@ modNam := "snbUtil"
 RUN ensureModule(modNam, TRUE, ok)
 IF NOT ok THEN
   PRINT "TSTMKTCHLD: failed to ensure snbUtil (block 4)"
-  END
-ENDIF
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, TRUE, ok)
-IF NOT ok THEN
-  PRINT "TSTMKTCHLD: failed to ensure snbSaveLoad (block 4)"
   END
 ENDIF
 modNam := "snbMarket"

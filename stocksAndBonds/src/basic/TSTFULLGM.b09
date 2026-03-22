@@ -39,13 +39,6 @@ IF NOT ok THEN
   END
 ENDIF
 
-modNam := "snbSaveLoad"
-RUN ensureModule(modNam, FALSE, ok)
-IF NOT ok THEN
-  PRINT "TSTFULLGM: failed to load snbSaveLoad"
-  END
-ENDIF
-
 modNam := "snb"
 RUN ensureModule(modNam, FALSE, ok)
 IF NOT ok THEN
