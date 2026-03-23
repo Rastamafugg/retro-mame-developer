@@ -412,8 +412,7 @@ anyDiv := FALSE
 anyBnd := FALSE
 
 RUN clrScr
-PRINT
-PRINT "  DIVIDENDS AND INTEREST"
+PRINT "=== DIVIDENDS AND INTEREST ==="
 PRINT "  "; plyrName; "  YEAR "; currYear
 PRINT
 

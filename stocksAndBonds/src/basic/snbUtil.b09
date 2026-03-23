@@ -65,7 +65,7 @@ DIM k:STRING[1]
 ON ERROR GOTO 900
 
 PRINT
-PRINT "Press any key to continue...";
+PRINT "  Press any key to continue...";
 GET #0, k
 PRINT
 END
@@ -231,7 +231,7 @@ DIM k:STRING[1]
 ON ERROR GOTO 900
 
 PRINT
-PRINT "Any key=continue  S=save+exit  Q=quit: ";
+PRINT "  Any key=continue  S=save+exit  Q=quit: ";
 GET #0, k
 PRINT
 

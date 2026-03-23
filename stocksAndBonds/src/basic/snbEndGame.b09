@@ -102,10 +102,10 @@ sNam(8) := "Uranium Ent"
 sNam(9) := "Valley Power"
 
 RUN clrScr
-PRINT "=== FINAL MARKET BOARD (S24) ==="
+PRINT "=== FINAL MARKET BOARD ==="
 PRINT
-PRINT " #  STOCK          PRICE  STATUS"
-PRINT " -  -------------  -----  ------"
+PRINT "  #  STOCK          PRICE  STATUS"
+PRINT "  -  -------------  -----  ------"
 
 FOR s := 1 TO 9
   nSep := ""
@@ -113,7 +113,7 @@ FOR s := 1 TO 9
     nSep := " "
   ENDIF
   RUN fmtMoney(mkt.stckPrice(s), pStr)
-  PRINT " "; s; "  "; sNam(s); nSep; "   "; pStr; "      ";
+  PRINT "  "; s; "  "; sNam(s); nSep; "   "; pStr; "      ";
   IF mkt.stckPrice(s) = 0 THEN
     PRINT "BANKRUPT"
   ELSE IF mkt.divSuspnd(s) THEN
@@ -213,7 +213,7 @@ NEXT i
 
 ! --- Display ranked results ---------------------------------
 RUN clrScr
-PRINT "=== FINAL WEALTH SUMMARY (S25) ==="
+PRINT "=== FINAL WEALTH SUMMARY ==="
 PRINT
 
 FOR p := 1 TO plyrCount
@@ -232,7 +232,7 @@ FOR p := 1 TO plyrCount
   pTypeVal  := plyrs(i).plyrType
   aiTierVal := plyrs(i).aiTier
   RUN fmtPlyrName(plyrs(i).plyrName, pTypeVal, aiTierVal, dispNam)
-  PRINT " "; p; "  "; dispNam
+  PRINT "  "; p; "  "; dispNam
   RUN fmtMoney(plyrs(i).cashBal, pStr)
   PRINT "    Cash:"; pStr; "  ";
   RUN fmtMoney(stckVal, pStr)
@@ -242,7 +242,7 @@ FOR p := 1 TO plyrCount
   RUN fmtMoney(wlth(i), pStr)
   PRINT "Tot:"; pStr
   IF plyrs(i).isBankrupt THEN
-    PRINT "    [BANKRUPT]"
+    PRINT "     [BANKRUPT]"
   ENDIF
   PRINT
 NEXT p
@@ -297,7 +297,7 @@ FOR i := 1 TO plyrCount
 NEXT i
 
 RUN clrScr
-PRINT "=== WINNER DECLARATION (S26) ==="
+PRINT "=== WINNER DECLARATION ==="
 PRINT
 
 IF topW = -32767 THEN

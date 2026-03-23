@@ -73,6 +73,7 @@ DIM gameOver   : BOOLEAN
 DIM runEndGame : BOOLEAN
 DIM doClsgMkt  : BOOLEAN
 DIM ok         : BOOLEAN
+DIM hasState   : BOOLEAN
 DIM debugLog   : BOOLEAN
 DIM needSetup  : BOOLEAN
 DIM i          : INTEGER
@@ -132,6 +133,10 @@ LOOP
     ENDIF
   ENDIF
 
+  RUN stateExists(hasState)
+  IF NOT hasState THEN
+    END
+  ENDIF
   RUN readHdr(hdr, loadOK)
   IF NOT loadOK THEN
     END
@@ -490,6 +495,35 @@ END
     ENDIF
     PRINT "readHdr error ("; ERR; ")"
     loadOK := FALSE
+END
+
+PROCEDURE stateExists
+(* ============================================================ *)
+(* PROCEDURE : stateExists                                      *)
+(* PURPOSE   : Check whether SNBSTATE exists without printing   *)
+(*             an expected file-not-found error.                *)
+(* PARAMS    : hasState - TRUE if SNBSTATE can be opened        *)
+(* ============================================================ *)
+PARAM hasState : BOOLEAN
+DIM path       : BYTE
+DIM pathOpen   : BOOLEAN
+
+ON ERROR GOTO 100
+
+pathOpen := FALSE
+hasState := FALSE
+
+OPEN #path, "SNBSTATE":READ
+pathOpen := TRUE
+CLOSE #path
+pathOpen := FALSE
+hasState := TRUE
+END
+
+100 IF pathOpen THEN
+      CLOSE #path
+    ENDIF
+    hasState := FALSE
 END
 
 PROCEDURE forkPhase

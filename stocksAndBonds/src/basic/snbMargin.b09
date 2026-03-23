@@ -216,25 +216,24 @@ ON ERROR GOTO 900
 plyr.isBankrupt := TRUE
 
 RUN clrScr
-PRINT "*** BANKRUPTCY ***"
-PRINT
-PRINT "Player  : "; plyr.plyrName
-PRINT "Year    : "; currYear; " of 10"
+PRINT "=== BANKRUPTCY ==="
+PRINT "  Player  : "; plyr.plyrName
+PRINT "  Year    : "; currYear; " of 10"
 PRINT
 IF reason = 1 THEN
-  PRINT "Reason  : Margin interest charge"
-  PRINT "          Cash balance went negative after annual"
-  PRINT "          margin interest was deducted."
+  PRINT "  Reason  : Margin interest charge"
+  PRINT "            Cash balance went negative after annual"
+  PRINT "            margin interest was deducted."
 ELSE
-  PRINT "Reason  : Margin call"
-  PRINT "          Insufficient assets to meet the margin"
-  PRINT "          call obligation."
+  PRINT "  Reason  : Margin call"
+  PRINT "            Insufficient assets to meet the margin"
+  PRINT "            call obligation."
 ENDIF
 PRINT
 RUN fmtMoney(finalCash, pStr)
-PRINT "Final cash : $"; pStr
+PRINT "  Final cash : $"; pStr
 PRINT
-PRINT plyr.plyrName; " has been eliminated from the game."
+PRINT "  "; plyr.plyrName; " has been eliminated from the game."
 PRINT
 RUN waitKey
 
@@ -289,8 +288,7 @@ IF currYear = 1 OR currYear = 10 THEN
 ENDIF
 
 RUN clrScr
-PRINT
-PRINT "  MARGIN INTEREST (S10)"
+PRINT "=== MARGIN INTEREST ==="
 PRINT "  "; plyrNam; "  YEAR "; currYear; " OF 10"
 PRINT
 
@@ -313,8 +311,8 @@ IF isFrcLiq THEN
   PRINT
 ENDIF
 
-RUN waitKey
-action := 1
+PRINT "  X=confirm  S=save+exit  Q=quit"
+RUN getPhaseNav(action)
 END
 
 900 PRINT "scrMgnInt error ("; ERR; ")"
@@ -811,23 +809,19 @@ LOOP
   simCash := simCash - actualRpy
 
   RUN clrScr
-  PRINT "*** YEAR 10 - MARGIN CLEARANCE REQUIRED ***"
-  PRINT "Player: "; plyr.plyrName
-  PRINT
-  RUN fmtMoney(plyr.marginTot, pStr)
-  RUN fmtMoney(simMgn, pStr2)
-  PRINT "Margin outstanding : $"; pStr; " [$"; pStr2; "]"
-  RUN fmtMoney(plyr.cashBal, pStr)
-  RUN fmtMoney(simCash, pStr2)
-  PRINT "Current cash       : $"; pStr; " [$"; pStr2; "]"
-  PRINT "All margin must be cleared before the buy phase."
-  IF repay > 0 THEN
-    RUN fmtMoney(repay, pStr)
-    PRINT "Pending repayment  : $"; pStr
-  ENDIF
-  PRINT
+PRINT "=== YEAR 10 - MARGIN CLEARANCE REQUIRED ==="
+PRINT "  Player: "; plyr.plyrName
+PRINT
+RUN fmtMoney(plyr.marginTot, pStr)
+RUN fmtMoney(simMgn, pStr2)
+PRINT "  Margin outstanding : $"; pStr; " [$"; pStr2; "]"
+RUN fmtMoney(plyr.cashBal, pStr)
+RUN fmtMoney(simCash, pStr2)
+PRINT "  Current cash       : $"; pStr; " [$"; pStr2; "]"
+PRINT "  All margin must be cleared before the buy phase."
+PRINT
 
-  PRINT "HOLDINGS:"
+PRINT "  HOLDINGS:"
   mapCnt := 0
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 THEN
@@ -875,7 +869,7 @@ LOOP
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key, M=repay cash, X=confirm, D=bankrupt"
+  PRINT "  Select asset key, M=repay cash, X=confirm, D=bankrupt"
   GET #0, kIn
   PRINT
 

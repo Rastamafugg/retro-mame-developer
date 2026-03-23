@@ -763,8 +763,8 @@ bPar(2) := 5000
 bPar(3) := 10000
 
 RUN clrScr
-PRINT "=== COMPUTER TURN ===  BUY PHASE"
-PRINT "Player: "; plyrNam
+PRINT "=== COMPUTER TURN - BUY PHASE ==="
+PRINT "  Player: "; plyrNam
 PRINT
 
 shown := 0
@@ -959,25 +959,23 @@ LOOP
   pTypeVal  := plyr.plyrType
   aiTierVal := plyr.aiTier
   RUN fmtPlyrName(plyr.plyrName, pTypeVal, aiTierVal, dispNam)
-  PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
-  PRINT "Player: "; dispNam
+  PRINT "=== BUY PHASE - YEAR "; currYear; " ==="
+  PRINT "  Player: "; dispNam
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
-  PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
+  PRINT "  Cash: $"; pStr; " [$"; pStr2; "]";
   RUN fmtMoney(plyr.marginTot, pStr)
   RUN fmtMoney(simMgn, pStr2)
-  PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
-  IF NOT mgnElig THEN
-    PRINT "  (No margin: no prior cash purchase)"
+  IF mgnYrOk THEN
+    PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
   ENDIF
-  IF mgnRepay > 0 THEN
-    RUN fmtMoney(mgnRepay, pStr)
-    PRINT "  Pending repay: $"; pStr
+  IF mgnYrOk AND NOT mgnElig THEN
+    PRINT "  (No margin: no prior cash purchase)"
   ENDIF
   PRINT
 
   mapCnt := 0
-  PRINT "STOCKS:"
+  PRINT "  STOCKS: press 1-9"
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
       mapCnt := mapCnt + 1
@@ -1014,7 +1012,7 @@ LOOP
   NEXT s
 
   PRINT
-  PRINT "BONDS:"
+  PRINT "  BONDS: press A-C"
   FOR b := 1 TO 3
     mapCnt := mapCnt + 1
     mapType(mapCnt) := 2
@@ -1043,9 +1041,17 @@ LOOP
 
   PRINT
   IF ordCnt > 0 OR mgnRepay > 0 THEN
-    PRINT "X=confirm orders  P=pass  M=repay margin  S=save+exit  Q=quit"
+    IF mgnYrOk AND plyr.marginTot > 0 THEN
+      PRINT "  X=confirm orders  P=pass  M=repay margin  S=save+exit  Q=quit"
+    ELSE
+      PRINT "  X=confirm orders  P=pass  S=save+exit  Q=quit"
+    ENDIF
   ELSE
-    PRINT "P=pass  M=repay margin  S=save+exit  Q=quit"
+    IF mgnYrOk AND plyr.marginTot > 0 THEN
+      PRINT "  P=pass  M=repay margin  S=save+exit  Q=quit"
+    ELSE
+      PRINT "  P=pass  S=save+exit  Q=quit"
+    ENDIF
   ENDIF
   GET #0, kIn
   PRINT
@@ -1092,7 +1098,7 @@ LOOP
       action := 1
       END
     ENDIF
-  ELSE IF keyCode = ASC("M") THEN
+  ELSE IF keyCode = ASC("M") AND mgnYrOk AND plyr.marginTot > 0 THEN
     baseCash := simCash + mgnRepay
     baseMgn  := simMgn + mgnRepay
     maxRpy := baseMgn

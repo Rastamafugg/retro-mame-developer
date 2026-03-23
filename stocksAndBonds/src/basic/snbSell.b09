@@ -694,8 +694,8 @@ bPar(2) := 5000
 bPar(3) := 10000
 
 RUN clrScr
-PRINT "=== COMPUTER TURN ===  SELL PHASE"
-PRINT "Player: "; plyrNam
+PRINT "=== COMPUTER TURN - SELL PHASE ==="
+PRINT "  Player: "; plyrNam
 PRINT
 
 IF ordCnt = 0 THEN
@@ -863,17 +863,17 @@ LOOP
   pTypeVal  := plyr.plyrType
   aiTierVal := plyr.aiTier
   RUN fmtPlyrName(plyr.plyrName, pTypeVal, aiTierVal, dispNam)
-  PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
-  PRINT "Player: "; dispNam
+  PRINT "=== SELL PHASE - YEAR "; currYear; " ==="
+  PRINT "  Player: "; dispNam
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
-  PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
+  PRINT "  Cash: $"; pStr; " [$"; pStr2; "]";
   RUN fmtMoney(plyr.marginTot, pStr)
   RUN fmtMoney(simMgn, pStr2)
   PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
   PRINT
 
-  PRINT "STOCKS:"
+  PRINT "  STOCKS: press 1-n"
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
       hasSell := TRUE
@@ -909,7 +909,7 @@ LOOP
   NEXT s
 
   PRINT
-  PRINT "BONDS:"
+  PRINT "  BONDS: press A-n"
   key := 0
   FOR b := 1 TO 3
     IF plyr.bondUnts(b) > 0 THEN
@@ -951,12 +951,11 @@ LOOP
   ENDIF
 
   PRINT
-  RUN fmtMoney(totProc, pStr)
-  PRINT "Pending proceeds: $"; pStr
+  PRINT
   IF ordCnt > 0 THEN
-    PRINT "X=confirm orders  P=pass  S=save+exit  Q=quit"
+    PRINT "  X=confirm orders  P=pass  S=save+exit  Q=quit"
   ELSE
-    PRINT "P=pass  S=save+exit  Q=quit"
+    PRINT "  P=pass  S=save+exit  Q=quit"
   ENDIF
   GET #0, kIn
   PRINT
