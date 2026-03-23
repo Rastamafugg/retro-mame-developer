@@ -22,6 +22,9 @@ before making changes.
   target block. Do not apply broad or repeated-text replacements to `IF`,
   `ELSE IF`, `ENDIF`, `WHILE`, `ENDWHILE`, `LOOP`, or `ENDLOOP` lines outside
   the intended local context.
+- For Basic09 work, do not use generic repeated-text patches. Every edit must
+  be anchored to unique local context in the named procedure or exact target
+  block.
 - For `stocksAndBonds`, treat the project documentation under
   `stocksAndBonds/docs` as authoritative over general language assumptions.
 - Before responding that a Basic09 code change is complete, follow the

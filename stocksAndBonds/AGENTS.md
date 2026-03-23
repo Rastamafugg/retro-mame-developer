@@ -60,6 +60,9 @@ If a syscall detail appears ambiguous or undocumented, use
 - For Basic09 control-flow fixes, edit only the named procedure range and use
   exact local context. Do not patch repeated `ENDIF` or similar closure lines
   by broad text replacement across the file.
+- Do not use generic repeated-text patches for Basic09 source. Every patch must
+  be anchored to unique surrounding lines inside the named procedure or exact
+  target block.
 - For every `IF` or `ELSE IF` added in a procedure edit, verify the matching
   closure count in that same procedure before making any further edits.
 - After any control-flow edit, immediately re-read the exact edited line block
