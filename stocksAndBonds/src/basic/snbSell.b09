@@ -119,10 +119,11 @@ IF iCYr > 1 THEN
         IF NOT plyrs(p).isBankrupt THEN
           IF iCYr < 10 THEN
             FOR s := 1 TO 9
-              IF plyrs(p).marginTot > 0 THEN
-                IF plyrs(p).mgnHeld(s) AND plyrs(p).stckShrs(s) > 0 THEN
-                  IF mkt.stckPrice(s) <= 25 THEN
-                    oblgRem := plyrs(p).marginTot
+              IF NOT plyrs(p).isBankrupt THEN
+                IF plyrs(p).marginTot > 0 THEN
+                  IF plyrs(p).mgnHeld(s) AND plyrs(p).stckShrs(s) > 0 THEN
+                    IF mkt.stckPrice(s) <= 25 THEN
+                      oblgRem := plyrs(p).marginTot
                     ! Line exceeds 79 chars; RUN statement cannot be split.
                     RUN scrMgnCall(plyrs(p).plyrName, sNam(s), mkt.stckPrice(s), 25, oblgRem)
                     IF plyrs(p).plyrType = 1 THEN
@@ -182,6 +183,7 @@ IF iCYr > 1 THEN
                     plyrs(p).obligation := 0
                   ENDIF
                 ENDIF
+              ENDIF
               ENDIF
             NEXT s
           ENDIF
@@ -724,7 +726,7 @@ PROCEDURE scrSell
 (*             a persistent keyed editor. Each asset row shows *)
 (*             its selection key. Selecting a key edits only   *)
 (*             that one security, then returns to the main     *)
-(*             sell screen. P passes and C confirms orders.    *)
+(*             sell screen. P passes and X confirms orders.    *)
 (*             Stock qty: positive multiple of 10, <= shares   *)
 (*             held. Bond qty: 0..units held. Bankrupt stocks  *)
 (*             (price=0) are skipped. Caller must not invoke   *)
@@ -863,7 +865,8 @@ LOOP
   RUN fmtMoney(simCash, pStr2)
   PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
   RUN fmtMoney(plyr.marginTot, pStr)
-  PRINT "  Margin: $"; pStr
+  RUN fmtMoney(simMgn, pStr2)
+  PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
   PRINT
 
   PRINT "STOCKS:"
@@ -947,7 +950,7 @@ LOOP
   RUN fmtMoney(totProc, pStr)
   PRINT "Pending proceeds: $"; pStr
   IF ordCnt > 0 THEN
-    PRINT "C=confirm orders  P=pass  S=save+exit  Q=quit"
+    PRINT "X=confirm orders  P=pass  S=save+exit  Q=quit"
   ELSE
     PRINT "P=pass  S=save+exit  Q=quit"
   ENDIF
@@ -988,7 +991,7 @@ LOOP
       action := 2
       END
     ENDIF
-  ELSE IF keyCode = ASC("C") THEN
+  ELSE IF keyCode = ASC("X") THEN
     IF ordCnt > 0 THEN
       action := 1
       END

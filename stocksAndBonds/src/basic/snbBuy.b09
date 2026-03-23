@@ -816,7 +816,7 @@ PROCEDURE scrBuy
 (*             in a persistent keyed editor. Each asset row    *)
 (*             shows its selection key. Selecting a key edits  *)
 (*             only that one security, then returns to the     *)
-(*             main buy screen. P passes and C confirms orders.*)
+(*             main buy screen. P passes and X confirms orders.*)
 (*             M edits margin repayment.                       *)
 (*             Stock quantity is entered first, then 1=CASH    *)
 (*             or 2=MARGIN when margin is eligible. Validates  *)
@@ -1042,7 +1042,7 @@ LOOP
 
   PRINT
   IF ordCnt > 0 OR mgnRepay > 0 THEN
-    PRINT "C=confirm orders  P=pass  M=repay margin  S=save+exit  Q=quit"
+    PRINT "X=confirm orders  P=pass  M=repay margin  S=save+exit  Q=quit"
   ELSE
     PRINT "P=pass  M=repay margin  S=save+exit  Q=quit"
   ENDIF
@@ -1086,7 +1086,7 @@ LOOP
       action := 2
       END
     ENDIF
-  ELSE IF keyCode = ASC("C") THEN
+  ELSE IF keyCode = ASC("X") THEN
     IF ordCnt > 0 OR mgnRepay > 0 THEN
       action := 1
       END

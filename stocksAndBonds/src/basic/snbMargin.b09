@@ -423,7 +423,7 @@ PROCEDURE scrForceLiq
 (*             and all held assets in a persistent keyed       *)
 (*             editor. Selecting an asset key edits only that  *)
 (*             one pending sell order, then returns to the     *)
-(*             main screen. S submits current orders. D        *)
+(*             main screen. X confirms current orders. D       *)
 (*             declares bankruptcy.                            *)
 (*             Stock qty: mult of 10, <=stckShrs. Bond qty:    *)
 (*             positive integer <=bondUnts. Zero/Enter clears  *)
@@ -529,6 +529,9 @@ LOOP
   PRINT
   RUN fmtMoney(oblgRem, pStr)
   PRINT "Obligation remaining : $"; pStr
+  RUN fmtMoney(plyr.marginTot, pStr)
+  RUN fmtMoney(simMgn, pStr2)
+  PRINT "Current margin       : $"; pStr; " [$"; pStr2; "]"
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
   PRINT "Current cash         : $"; pStr; " [$"; pStr2; "]"
@@ -582,7 +585,7 @@ LOOP
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key to edit. S=submit  D=bankrupt"
+  PRINT "Select asset key to edit. X=confirm  D=bankrupt"
   GET #0, kIn
   PRINT
 
@@ -599,7 +602,7 @@ LOOP
     action := 2
     ordCnt := 0
     END
-  ELSE IF keyCode = ASC("S") THEN
+  ELSE IF keyCode = ASC("X") THEN
     action := 1
     END
   ELSE
@@ -701,7 +704,7 @@ PROCEDURE scrMgnClr
 (*             Enforced at the Year 10 boundary for any player *)
 (*             with marginTot > 0. Uses a persistent keyed     *)
 (*             editor for per-asset sells plus M for cash      *)
-(*             repayment. S submits pending sells/repayment.   *)
+(*             repayment. X confirms pending sells/repayment.  *)
 (*             D declares bankruptcy. Caller re-enters this    *)
 (*             screen if plyr.marginTot > 0 after return.      *)
 (* PARAMS    : plyr   - player record (modified)               *)
@@ -810,7 +813,8 @@ LOOP
   PRINT "Player: "; plyr.plyrName
   PRINT
   RUN fmtMoney(plyr.marginTot, pStr)
-  PRINT "Margin outstanding : $"; pStr
+  RUN fmtMoney(simMgn, pStr2)
+  PRINT "Margin outstanding : $"; pStr; " [$"; pStr2; "]"
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
   PRINT "Current cash       : $"; pStr; " [$"; pStr2; "]"
@@ -869,7 +873,7 @@ LOOP
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key, M=repay cash, S=submit, D=bankrupt"
+  PRINT "Select asset key, M=repay cash, X=confirm, D=bankrupt"
   GET #0, kIn
   PRINT
 
@@ -885,7 +889,7 @@ LOOP
   IF keyCode = ASC("D") THEN
     action := 2
     END
-  ELSE IF keyCode = ASC("S") THEN
+  ELSE IF keyCode = ASC("X") THEN
     action := 1
     EXITIF TRUE THEN
     ENDEXIT
