@@ -423,7 +423,7 @@ PROCEDURE scrForceLiq
 (*             and all held assets in a persistent keyed       *)
 (*             editor. Selecting an asset key edits only that  *)
 (*             one pending sell order, then returns to the     *)
-(*             main screen. C submits current orders. B        *)
+(*             main screen. S submits current orders. D        *)
 (*             declares bankruptcy.                            *)
 (*             Stock qty: mult of 10, <=stckShrs. Bond qty:    *)
 (*             positive integer <=bondUnts. Zero/Enter clears  *)
@@ -461,6 +461,7 @@ DIM b       : INTEGER
 DIM qty     : INTEGER
 DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
+DIM pStr2   : STRING[8]
 DIM valid   : BOOLEAN
 DIM numOk   : BOOLEAN
 DIM keyCode : INTEGER
@@ -472,6 +473,10 @@ DIM slotIdx : INTEGER
 DIM slotQty : INTEGER
 DIM selIdx  : INTEGER
 DIM kIn     : STRING[1]
+DIM simCash : INTEGER
+DIM simMgn  : INTEGER
+DIM repay   : INTEGER
+DIM prcd    : INTEGER
 
 ON ERROR GOTO 900
 
@@ -498,6 +503,26 @@ NEXT i
 
 LOOP
 
+  simCash := plyr.cashBal
+  simMgn  := plyr.marginTot
+  FOR i := 1 TO ordCnt
+    IF ordType(i) = 1 THEN
+      prcd := ordQty(i) * mkt.stckPrice(ordId(i))
+      IF plyr.mgnHeld(ordId(i)) THEN
+        repay := simMgn
+        IF prcd < repay THEN
+          repay := prcd
+        ENDIF
+        simMgn  := simMgn - repay
+        simCash := simCash + (prcd - repay)
+      ELSE
+        simCash := simCash + prcd
+      ENDIF
+    ELSE
+      simCash := simCash + (ordQty(i) * bPar(ordId(i)))
+    ENDIF
+  NEXT i
+
   RUN clrScr
   PRINT "*** FORCED LIQUIDATION ***"
   PRINT "Player: "; plyrNam
@@ -505,7 +530,8 @@ LOOP
   RUN fmtMoney(oblgRem, pStr)
   PRINT "Obligation remaining : $"; pStr
   RUN fmtMoney(plyr.cashBal, pStr)
-  PRINT "Current cash         : $"; pStr
+  RUN fmtMoney(simCash, pStr2)
+  PRINT "Current cash         : $"; pStr; " [$"; pStr2; "]"
   PRINT
 
   PRINT "HOLDINGS:"
@@ -556,7 +582,7 @@ LOOP
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key to edit. C=submit  B=bankrupt"
+  PRINT "Select asset key to edit. S=submit  D=bankrupt"
   GET #0, kIn
   PRINT
 
@@ -569,11 +595,11 @@ LOOP
     keyCode := 0
   ENDIF
 
-  IF keyCode = ASC("B") THEN
+  IF keyCode = ASC("D") THEN
     action := 2
     ordCnt := 0
     END
-  ELSE IF keyCode = ASC("C") THEN
+  ELSE IF keyCode = ASC("S") THEN
     action := 1
     END
   ELSE
@@ -675,8 +701,8 @@ PROCEDURE scrMgnClr
 (*             Enforced at the Year 10 boundary for any player *)
 (*             with marginTot > 0. Uses a persistent keyed     *)
 (*             editor for per-asset sells plus M for cash      *)
-(*             repayment. C submits pending sells/repayment.   *)
-(*             B declares bankruptcy. Caller re-enters this    *)
+(*             repayment. S submits pending sells/repayment.   *)
+(*             D declares bankruptcy. Caller re-enters this    *)
 (*             screen if plyr.marginTot > 0 after return.      *)
 (* PARAMS    : plyr   - player record (modified)               *)
 (*             mkt    - market state (read-only)               *)
@@ -706,6 +732,7 @@ DIM b          : INTEGER
 DIM qty        : INTEGER
 DIM qIn        : STRING[8]
 DIM pStr       : STRING[8]
+DIM pStr2      : STRING[8]
 DIM valid      : BOOLEAN
 DIM numOk      : BOOLEAN
 DIM keyCode    : INTEGER
@@ -717,6 +744,9 @@ DIM slotIdx    : INTEGER
 DIM slotQty    : INTEGER
 DIM selIdx     : INTEGER
 DIM kIn        : STRING[1]
+DIM simCash    : INTEGER
+DIM simMgn     : INTEGER
+DIM prcd       : INTEGER
 
 ON ERROR GOTO 900
 
@@ -744,6 +774,37 @@ NEXT i
 
 LOOP
 
+  simCash := plyr.cashBal
+  simMgn  := plyr.marginTot
+  FOR i := 1 TO ordCnt
+    IF ordType(i) = 1 THEN
+      prcd := ordQty(i) * mkt.stckPrice(ordId(i))
+      IF plyr.mgnHeld(ordId(i)) THEN
+        actualRpy := simMgn
+        IF prcd < actualRpy THEN
+          actualRpy := prcd
+        ENDIF
+        simMgn  := simMgn - actualRpy
+        simCash := simCash + (prcd - actualRpy)
+      ELSE
+        simCash := simCash + prcd
+      ENDIF
+    ELSE
+      simCash := simCash + (ordQty(i) * bPar(ordId(i)))
+    ENDIF
+  NEXT i
+  actualRpy := repay
+  IF actualRpy > simMgn THEN
+    actualRpy := simMgn
+  ENDIF
+  IF actualRpy > simCash THEN
+    actualRpy := simCash
+  ENDIF
+  IF actualRpy < 0 THEN
+    actualRpy := 0
+  ENDIF
+  simCash := simCash - actualRpy
+
   RUN clrScr
   PRINT "*** YEAR 10 - MARGIN CLEARANCE REQUIRED ***"
   PRINT "Player: "; plyr.plyrName
@@ -751,7 +812,8 @@ LOOP
   RUN fmtMoney(plyr.marginTot, pStr)
   PRINT "Margin outstanding : $"; pStr
   RUN fmtMoney(plyr.cashBal, pStr)
-  PRINT "Current cash       : $"; pStr
+  RUN fmtMoney(simCash, pStr2)
+  PRINT "Current cash       : $"; pStr; " [$"; pStr2; "]"
   PRINT "All margin must be cleared before the buy phase."
   IF repay > 0 THEN
     RUN fmtMoney(repay, pStr)
@@ -807,7 +869,7 @@ LOOP
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key, M=repay cash, C=submit, B=bankrupt"
+  PRINT "Select asset key, M=repay cash, S=submit, D=bankrupt"
   GET #0, kIn
   PRINT
 
@@ -820,10 +882,10 @@ LOOP
     keyCode := 0
   ENDIF
 
-  IF keyCode = ASC("B") THEN
+  IF keyCode = ASC("D") THEN
     action := 2
     END
-  ELSE IF keyCode = ASC("C") THEN
+  ELSE IF keyCode = ASC("S") THEN
     action := 1
     EXITIF TRUE THEN
     ENDEXIT

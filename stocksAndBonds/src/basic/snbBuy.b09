@@ -872,6 +872,7 @@ DIM divVal   : INTEGER
 DIM nSep     : STRING[1]
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
+DIM pStr2    : STRING[8]
 DIM dispNam  : STRING[27]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
@@ -960,8 +961,9 @@ LOOP
   RUN fmtPlyrName(plyr.plyrName, pTypeVal, aiTierVal, dispNam)
   PRINT "=== BUY PHASE  YEAR "; currYear; " ==="
   PRINT "Player: "; dispNam
-  RUN fmtMoney(simCash, pStr)
-  PRINT "Cash: $"; pStr;
+  RUN fmtMoney(plyr.cashBal, pStr)
+  RUN fmtMoney(simCash, pStr2)
+  PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
   RUN fmtMoney(simMgn, pStr)
   PRINT "  Margin: $"; pStr
   IF NOT mgnElig THEN

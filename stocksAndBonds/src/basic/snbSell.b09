@@ -766,9 +766,14 @@ DIM key     : INTEGER
 DIM nSep    : STRING[1]
 DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
+DIM pStr2   : STRING[8]
 DIM dispNam : STRING[27]
 DIM numOk   : BOOLEAN
 DIM totProc : INTEGER
+DIM simCash : INTEGER
+DIM simMgn  : INTEGER
+DIM repay   : INTEGER
+DIM prcd    : INTEGER
 DIM divRate(9): INTEGER
 DIM pTypeVal : INTEGER
 DIM aiTierVal: INTEGER
@@ -822,6 +827,32 @@ NEXT i
 
 LOOP
 
+  simCash := plyr.cashBal
+  simMgn  := plyr.marginTot
+  mapCnt  := 0
+  hasSell := FALSE
+  totProc := 0
+  FOR i := 1 TO ordCnt
+    IF ordType(i) = 1 THEN
+      prcd := ordQty(i) * mkt.stckPrice(ordId(i))
+      totProc := totProc + prcd
+      IF plyr.mgnHeld(ordId(i)) THEN
+        repay := simMgn
+        IF prcd < repay THEN
+          repay := prcd
+        ENDIF
+        simMgn  := simMgn - repay
+        simCash := simCash + (prcd - repay)
+      ELSE
+        simCash := simCash + prcd
+      ENDIF
+    ELSE
+      prcd := ordQty(i) * bDen(ordId(i))
+      totProc := totProc + prcd
+      simCash := simCash + prcd
+    ENDIF
+  NEXT i
+
   RUN clrScr
   pTypeVal  := plyr.plyrType
   aiTierVal := plyr.aiTier
@@ -829,21 +860,11 @@ LOOP
   PRINT "=== SELL PHASE  YEAR "; currYear; " ==="
   PRINT "Player: "; dispNam
   RUN fmtMoney(plyr.cashBal, pStr)
-  PRINT "Cash: $"; pStr;
+  RUN fmtMoney(simCash, pStr2)
+  PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
   RUN fmtMoney(plyr.marginTot, pStr)
   PRINT "  Margin: $"; pStr
   PRINT
-
-  mapCnt  := 0
-  hasSell := FALSE
-  totProc := 0
-  FOR i := 1 TO ordCnt
-    IF ordType(i) = 1 THEN
-      totProc := totProc + (ordQty(i) * mkt.stckPrice(ordId(i)))
-    ELSE
-      totProc := totProc + (ordQty(i) * bDen(ordId(i)))
-    ENDIF
-  NEXT i
 
   PRINT "STOCKS:"
   FOR s := 1 TO 9
