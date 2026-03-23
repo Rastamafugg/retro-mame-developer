@@ -1017,7 +1017,7 @@ LOOP
               ELSE
                 valid := TRUE
               ENDIF
-            ENDIF \ENDIF
+            ENDIF \ENDIF \ENDIF
           ENDIF \ENDIF
         ENDIF
       ENDWHILE
@@ -1050,7 +1050,7 @@ LOOP
         ordQty(slotIdx)  := qty
       ENDIF
     ENDIF
-  ENDIF \ENDIF
+  ENDIF
 
 ENDLOOP
 
