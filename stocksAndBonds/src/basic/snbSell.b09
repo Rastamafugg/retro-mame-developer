@@ -769,7 +769,6 @@ DIM hasSell : BOOLEAN
 DIM qty     : INTEGER
 DIM valid   : BOOLEAN
 DIM key     : INTEGER
-DIM nSep    : STRING[1]
 DIM qIn     : STRING[8]
 DIM pStr    : STRING[8]
 DIM pStr2   : STRING[8]
@@ -791,6 +790,9 @@ DIM mapCnt   : INTEGER
 DIM mapType(12): INTEGER
 DIM mapId(12)  : INTEGER
 DIM mapKey(12) : INTEGER
+DIM stockCnt  : INTEGER
+DIM bondCnt   : INTEGER
+DIM keyLbl    : STRING[1]
 DIM slotIdx  : INTEGER
 DIM slotQty  : INTEGER
 DIM cnfIn    : STRING[1]
@@ -873,7 +875,27 @@ LOOP
   PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
   PRINT
 
-  PRINT "  STOCKS: press 1-n"
+  stockCnt := 0
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
+      stockCnt := stockCnt + 1
+    ENDIF
+  NEXT s
+  bondCnt := 0
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      bondCnt := bondCnt + 1
+    ENDIF
+  NEXT b
+
+  PRINT "  STOCKS:";
+  IF stockCnt = 1 THEN
+    PRINT " press 1"
+  ELSE IF stockCnt > 1 THEN
+    PRINT " press 1-"; stockCnt
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 AND mkt.stckPrice(s) > 0 THEN
       hasSell := TRUE
@@ -887,16 +909,11 @@ LOOP
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      keyLbl := CHR$(mapKey(mapCnt))
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-      nSep := ""
-      IF LEN(sNam(s)) = 11 THEN
-        nSep := " "
-      ENDIF
-      PRINT CHR$(mapKey(mapCnt)); " "; sNam(s); nSep; " ";
-      PRINT plyr.stckShrs(s); " shr @ $"; pStr;
-      PRINT " "; yldPct; "% -> $"; divVal;
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' ',S12<,I5>,' shr @ $',I4>,' ',I2>,'% -> $',I4>", keyLbl, sNam(s), plyr.stckShrs(s), mkt.stckPrice(s), yldPct, divVal;
       IF plyr.mgnHeld(s) THEN
         PRINT " [MGN]";
       ENDIF
@@ -909,7 +926,14 @@ LOOP
   NEXT s
 
   PRINT
-  PRINT "  BONDS: press A-n"
+  PRINT "  BONDS:";
+  IF bondCnt = 1 THEN
+    PRINT " press A"
+  ELSE IF bondCnt > 1 THEN
+    PRINT " press A-"; CHR$(ASC("A") + bondCnt - 1)
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   key := 0
   FOR b := 1 TO 3
     IF plyr.bondUnts(b) > 0 THEN
@@ -925,8 +949,9 @@ LOOP
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      PRINT CHR$(mapKey(mapCnt)); " $"; bDen(b); "  ";
-      PRINT plyr.bondUnts(b); " unit(s)";
+      keyLbl := CHR$(mapKey(mapCnt))
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' $',I5>,'  ',I3>,' unit(s)'", keyLbl, bDen(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
         PRINT "  [Sell "; slotQty; "]"
       ELSE
@@ -950,7 +975,6 @@ LOOP
     END
   ENDIF
 
-  PRINT
   PRINT
   IF ordCnt > 0 THEN
     PRINT "  X=confirm orders  P=pass  S=save+exit  Q=quit"

@@ -869,7 +869,6 @@ DIM repayAmt : INTEGER
 DIM maxRpy   : INTEGER
 DIM yldPct   : INTEGER
 DIM divVal   : INTEGER
-DIM nSep     : STRING[1]
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
 DIM pStr2    : STRING[8]
@@ -887,6 +886,7 @@ DIM mapCnt   : INTEGER
 DIM mapType(12): INTEGER
 DIM mapId(12)  : INTEGER
 DIM mapKey(12) : INTEGER
+DIM keyLbl   : STRING[1]
 DIM slotIdx  : INTEGER
 DIM slotQty  : INTEGER
 DIM selIdx   : INTEGER
@@ -990,15 +990,11 @@ LOOP
           purch   := ordPurch(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(mkt.stckPrice(s), pStr)
+      keyLbl := CHR$(mapKey(mapCnt))
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-      nSep := ""
-      IF LEN(sNam(s)) = 11 THEN
-        nSep := " "
-      ENDIF
-      PRINT CHR$(mapKey(mapCnt)); " "; sNam(s); nSep; "  $"; pStr;
-      PRINT " "; yldPct; "% -> $"; divVal;
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' ',S12<,'  $',I4>,' ',I2>,'% -> $',I4>", keyLbl, sNam(s), mkt.stckPrice(s), yldPct, divVal;
       IF slotQty > 0 THEN
         IF purch = 2 THEN
           PRINT "  [Buy "; slotQty; " M]"
@@ -1024,14 +1020,15 @@ LOOP
         slotQty := ordQty(i)
       ENDIF
     NEXT i
-    PRINT CHR$(mapKey(mapCnt)); " $"; bPar(b); "  int=$";
+    keyLbl := CHR$(mapKey(mapCnt))
     IF b = 1 THEN
-      PRINT "50";
+      divVal := 50
     ELSE IF b = 2 THEN
-      PRINT "250";
+      divVal := 250
     ELSE
-      PRINT "500";
+      divVal := 500
     ENDIF \ENDIF
+    PRINT USING "'  ',S1<,' $',I5>,'  int=$',I4>", keyLbl, bPar(b), divVal;
     IF slotQty > 0 THEN
       PRINT "  [Buy "; slotQty; "]"
     ELSE

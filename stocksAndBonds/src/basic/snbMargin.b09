@@ -467,6 +467,9 @@ DIM mapCnt  : INTEGER
 DIM mapType(12): INTEGER
 DIM mapId(12)  : INTEGER
 DIM mapKey(12) : INTEGER
+DIM stockCnt : INTEGER
+DIM bondCnt  : INTEGER
+DIM keyLbl   : STRING[1]
 DIM slotIdx : INTEGER
 DIM slotQty : INTEGER
 DIM selIdx  : INTEGER
@@ -522,21 +525,41 @@ LOOP
   NEXT i
 
   RUN clrScr
-  PRINT "*** FORCED LIQUIDATION ***"
-  PRINT "Player: "; plyrNam
+  PRINT "=== FORCED LIQUIDATION ==="
+  PRINT "  Player: "; plyrNam
   PRINT
   RUN fmtMoney(oblgRem, pStr)
-  PRINT "Obligation remaining : $"; pStr
+  PRINT "  Obligation remaining : $"; pStr
   RUN fmtMoney(plyr.marginTot, pStr)
   RUN fmtMoney(simMgn, pStr2)
-  PRINT "Current margin       : $"; pStr; " [$"; pStr2; "]"
+  PRINT "  Current margin       : $"; pStr; " [$"; pStr2; "]"
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
-  PRINT "Current cash         : $"; pStr; " [$"; pStr2; "]"
+  PRINT "  Current cash         : $"; pStr; " [$"; pStr2; "]"
   PRINT
 
-  PRINT "HOLDINGS:"
   mapCnt := 0
+  stockCnt := 0
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 THEN
+      stockCnt := stockCnt + 1
+    ENDIF
+  NEXT s
+  bondCnt := 0
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      bondCnt := bondCnt + 1
+    ENDIF
+  NEXT b
+
+  PRINT "  STOCKS:";
+  IF stockCnt = 1 THEN
+    PRINT " press 1"
+  ELSE IF stockCnt > 1 THEN
+    PRINT " press 1-"; stockCnt
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 THEN
       mapCnt := mapCnt + 1
@@ -549,9 +572,9 @@ LOOP
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(mkt.stckPrice(s), pStr)
-      PRINT CHR$(mapKey(mapCnt)); " "; sNam(s); "  ";
-      PRINT plyr.stckShrs(s); " shrs @ $"; pStr;
+      keyLbl := CHR$(mapKey(mapCnt))
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' ',S12<,I5>,' shrs @ $',I4>", keyLbl, sNam(s), plyr.stckShrs(s), mkt.stckPrice(s);
       IF plyr.mgnHeld(s) THEN
         PRINT " [M]"
       ELSE
@@ -562,6 +585,15 @@ LOOP
       ENDIF
     ENDIF
   NEXT s
+  PRINT
+  PRINT "  BONDS:";
+  IF bondCnt = 1 THEN
+    PRINT " press A"
+  ELSE IF bondCnt > 1 THEN
+    PRINT " press A-"; CHR$(ASC("A") + bondCnt - 1)
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   FOR b := 1 TO 3
     IF plyr.bondUnts(b) > 0 THEN
       mapCnt := mapCnt + 1
@@ -574,16 +606,16 @@ LOOP
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(bPar(b), pStr)
-      PRINT CHR$(mapKey(mapCnt)); " $"; pStr; " bond  ";
-      PRINT plyr.bondUnts(b); " unit(s)"
+      keyLbl := CHR$(mapKey(mapCnt))
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' $',I5>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
         PRINT "    [Sell "; slotQty; "]"
       ENDIF
     ENDIF
   NEXT b
   PRINT
-  PRINT "Select asset key to edit. X=confirm  D=bankrupt"
+  PRINT "  X=confirm  D=bankrupt"
   GET #0, kIn
   PRINT
 
@@ -741,6 +773,9 @@ DIM mapCnt     : INTEGER
 DIM mapType(12): INTEGER
 DIM mapId(12)  : INTEGER
 DIM mapKey(12) : INTEGER
+DIM stockCnt   : INTEGER
+DIM bondCnt    : INTEGER
+DIM keyLbl     : STRING[1]
 DIM slotIdx    : INTEGER
 DIM slotQty    : INTEGER
 DIM selIdx     : INTEGER
@@ -809,20 +844,40 @@ LOOP
   simCash := simCash - actualRpy
 
   RUN clrScr
-PRINT "=== YEAR 10 - MARGIN CLEARANCE REQUIRED ==="
-PRINT "  Player: "; plyr.plyrName
-PRINT
-RUN fmtMoney(plyr.marginTot, pStr)
-RUN fmtMoney(simMgn, pStr2)
-PRINT "  Margin outstanding : $"; pStr; " [$"; pStr2; "]"
-RUN fmtMoney(plyr.cashBal, pStr)
-RUN fmtMoney(simCash, pStr2)
-PRINT "  Current cash       : $"; pStr; " [$"; pStr2; "]"
-PRINT "  All margin must be cleared before the buy phase."
-PRINT
+  PRINT "=== YEAR 10 - MARGIN CLEARANCE REQUIRED ==="
+  PRINT "  Player: "; plyr.plyrName
+  PRINT
+  RUN fmtMoney(plyr.marginTot, pStr)
+  RUN fmtMoney(simMgn, pStr2)
+  PRINT "  Margin outstanding : $"; pStr; " [$"; pStr2; "]"
+  RUN fmtMoney(plyr.cashBal, pStr)
+  RUN fmtMoney(simCash, pStr2)
+  PRINT "  Current cash       : $"; pStr; " [$"; pStr2; "]"
+  PRINT "  All margin must be cleared before the buy phase."
+  PRINT
 
-PRINT "  HOLDINGS:"
   mapCnt := 0
+  stockCnt := 0
+  FOR s := 1 TO 9
+    IF plyr.stckShrs(s) > 0 THEN
+      stockCnt := stockCnt + 1
+    ENDIF
+  NEXT s
+  bondCnt := 0
+  FOR b := 1 TO 3
+    IF plyr.bondUnts(b) > 0 THEN
+      bondCnt := bondCnt + 1
+    ENDIF
+  NEXT b
+
+  PRINT "  STOCKS:";
+  IF stockCnt = 1 THEN
+    PRINT " press 1"
+  ELSE IF stockCnt > 1 THEN
+    PRINT " press 1-"; stockCnt
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   FOR s := 1 TO 9
     IF plyr.stckShrs(s) > 0 THEN
       mapCnt := mapCnt + 1
@@ -835,9 +890,9 @@ PRINT "  HOLDINGS:"
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(mkt.stckPrice(s), pStr)
-      PRINT CHR$(mapKey(mapCnt)); " "; sNam(s); "  ";
-      PRINT plyr.stckShrs(s); " shrs @ $"; pStr;
+      keyLbl := CHR$(mapKey(mapCnt))
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' ',S12<,I5>,' shrs @ $',I4>", keyLbl, sNam(s), plyr.stckShrs(s), mkt.stckPrice(s);
       IF plyr.mgnHeld(s) THEN
         PRINT " [M]"
       ELSE
@@ -848,6 +903,15 @@ PRINT "  HOLDINGS:"
       ENDIF
     ENDIF
   NEXT s
+  PRINT
+  PRINT "  BONDS:";
+  IF bondCnt = 1 THEN
+    PRINT " press A"
+  ELSE IF bondCnt > 1 THEN
+    PRINT " press A-"; CHR$(ASC("A") + bondCnt - 1)
+  ELSE
+    PRINT
+  ENDIF \ENDIF
   FOR b := 1 TO 3
     IF plyr.bondUnts(b) > 0 THEN
       mapCnt := mapCnt + 1
@@ -860,16 +924,16 @@ PRINT "  HOLDINGS:"
           slotQty := ordQty(i)
         ENDIF
       NEXT i
-      RUN fmtMoney(bPar(b), pStr)
-      PRINT CHR$(mapKey(mapCnt)); " $"; pStr; " bond  ";
-      PRINT plyr.bondUnts(b); " unit(s)"
+      keyLbl := CHR$(mapKey(mapCnt))
+      ! Line exceeds 79 chars; PRINT USING row format requires single line.
+      PRINT USING "'  ',S1<,' $',I5>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
         PRINT "    [Sell "; slotQty; "]"
       ENDIF
     ENDIF
   NEXT b
   PRINT
-  PRINT "  Select asset key, M=repay cash, X=confirm, D=bankrupt"
+  PRINT "  M=repay cash  X=confirm  D=bankrupt"
   GET #0, kIn
   PRINT
 
