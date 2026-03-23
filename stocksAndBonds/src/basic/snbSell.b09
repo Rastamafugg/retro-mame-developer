@@ -11,8 +11,8 @@ PROCEDURE snbSell
 (* SIDE EFX  : Reads and writes SNBSTATE. Modifies player      *)
 (*             cash, margin, holdings, and margin flags via    *)
 (*             applySells.                                     *)
-(* NOTE      : snbUtil and snbSell must be pre-loaded by the   *)
-(*             coordinator before fork.                        *)
+(* NOTE      : snbUtil, snbMargin, and snbSell must be         *)
+(*             pre-loaded by the coordinator before fork.      *)
 (* ============================================================ *)
 TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
@@ -32,10 +32,16 @@ DIM ordQty(12) : INTEGER
 DIM ordCnt     : INTEGER
 DIM usrAct     : INTEGER
 DIM navAct     : BYTE
+DIM liqAct     : BYTE
+DIM clrAct     : BYTE
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
 DIM pTypeVal   : INTEGER
 DIM pNam       : STRING[27]
+DIM sNam(9)    : STRING[14]
+DIM oblgRem    : INTEGER
+DIM payAmt     : INTEGER
+DIM s          : INTEGER
 DIM p          : INTEGER
 DIM startP     : INTEGER
 
@@ -49,6 +55,15 @@ ENDIF
 
 iCYr  := hdr.currYear
 iPCnt := hdr.plyrCount
+sNam(1) := "Growth Corp"
+sNam(2) := "Metro Props"
+sNam(3) := "Pioneer Mut"
+sNam(4) := "Shady Brooks"
+sNam(5) := "Stryker Drlg"
+sNam(6) := "Tri-City Trn"
+sNam(7) := "United Auto"
+sNam(8) := "Uranium Ent"
+sNam(9) := "Valley Power"
 startP := 1
 IF hdr.savedPhase = 1 THEN
   startP := hdr.savedPlyr
@@ -99,6 +114,124 @@ IF iCYr > 1 THEN
           END
         ENDIF \ENDIF
       ENDIF
+
+      IF hdr.mgnRule = 1 THEN
+        IF NOT plyrs(p).isBankrupt THEN
+          IF iCYr < 10 THEN
+            FOR s := 1 TO 9
+              IF plyrs(p).marginTot > 0 THEN
+                IF plyrs(p).mgnHeld(s) AND plyrs(p).stckShrs(s) > 0 THEN
+                  IF mkt.stckPrice(s) <= 25 THEN
+                    oblgRem := plyrs(p).marginTot
+                    ! Line exceeds 79 chars; RUN statement cannot be split.
+                    RUN scrMgnCall(plyrs(p).plyrName, sNam(s), mkt.stckPrice(s), 25, oblgRem)
+                    IF plyrs(p).plyrType = 1 THEN
+                      LOOP
+                        plyrs(p).obligation := oblgRem
+                        liqAct := 1
+                        ! Line exceeds 79 chars; RUN statement cannot be split.
+                        RUN scrForceLiq(plyrs(p).plyrName, oblgRem, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, liqAct)
+                        IF liqAct = 2 OR ordCnt = 0 THEN
+                          RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 2, iCYr)
+                          plyrs(p).obligation := 0
+                          EXITIF TRUE THEN
+                          ENDEXIT
+                        ENDIF
+                        ! Line exceeds 79 chars; RUN statement cannot be split.
+                        RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
+                        payAmt := plyrs(p).marginTot
+                        IF plyrs(p).cashBal < payAmt THEN
+                          payAmt := plyrs(p).cashBal
+                        ENDIF
+                        IF payAmt < 0 THEN
+                          payAmt := 0
+                        ENDIF
+                        plyrs(p).cashBal   := plyrs(p).cashBal - payAmt
+                        plyrs(p).marginTot := plyrs(p).marginTot - payAmt
+                        oblgRem := plyrs(p).marginTot
+                        EXITIF oblgRem <= 0 THEN
+                        ENDEXIT
+                      ENDLOOP
+                    ELSE
+                      LOOP
+                        plyrs(p).obligation := oblgRem
+                        ! Line exceeds 79 chars; RUN statement cannot be split.
+                        RUN aiLiqOrdr(plyrs(p), mkt, oblgRem, ordTyp, ordId, ordQty, ordCnt)
+                        IF ordCnt = 0 THEN
+                          RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 2, iCYr)
+                          plyrs(p).obligation := 0
+                          EXITIF TRUE THEN
+                          ENDEXIT
+                        ENDIF
+                        ! Line exceeds 79 chars; RUN statement cannot be split.
+                        RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
+                        payAmt := plyrs(p).marginTot
+                        IF plyrs(p).cashBal < payAmt THEN
+                          payAmt := plyrs(p).cashBal
+                        ENDIF
+                        IF payAmt < 0 THEN
+                          payAmt := 0
+                        ENDIF
+                        plyrs(p).cashBal   := plyrs(p).cashBal - payAmt
+                        plyrs(p).marginTot := plyrs(p).marginTot - payAmt
+                        oblgRem := plyrs(p).marginTot
+                        EXITIF oblgRem <= 0 THEN
+                        ENDEXIT
+                      ENDLOOP
+                    ENDIF
+                    plyrs(p).obligation := 0
+                  ENDIF
+                ENDIF
+              ENDIF
+            NEXT s
+          ENDIF
+        ENDIF
+
+        IF NOT plyrs(p).isBankrupt THEN
+          IF iCYr = 10 THEN
+            IF plyrs(p).marginTot > 0 THEN
+              IF plyrs(p).plyrType = 1 THEN
+                LOOP
+                  clrAct := 1
+                  RUN scrMgnClr(plyrs(p), mkt, clrAct)
+                  IF clrAct = 2 THEN
+                    RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 2, iCYr)
+                    EXITIF TRUE THEN
+                    ENDEXIT
+                  ENDIF
+                  EXITIF plyrs(p).marginTot <= 0 THEN
+                  ENDEXIT
+                ENDLOOP
+              ELSE
+                LOOP
+                  payAmt := plyrs(p).marginTot
+                  IF plyrs(p).cashBal < payAmt THEN
+                    payAmt := plyrs(p).cashBal
+                  ENDIF
+                  IF payAmt < 0 THEN
+                    payAmt := 0
+                  ENDIF
+                  plyrs(p).cashBal   := plyrs(p).cashBal - payAmt
+                  plyrs(p).marginTot := plyrs(p).marginTot - payAmt
+                  EXITIF plyrs(p).marginTot <= 0 THEN
+                  ENDEXIT
+                  oblgRem := plyrs(p).marginTot
+                  ! Line exceeds 79 chars; RUN statement cannot be split.
+                  RUN aiLiqOrdr(plyrs(p), mkt, oblgRem, ordTyp, ordId, ordQty, ordCnt)
+                  IF ordCnt = 0 THEN
+                    RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 2, iCYr)
+                    EXITIF TRUE THEN
+                    ENDEXIT
+                  ENDIF
+                  ! Line exceeds 79 chars; RUN statement cannot be split.
+                  RUN applyLiqOrdr(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, oblgRem)
+                ENDLOOP
+              ENDIF
+            ENDIF
+          ENDIF
+        ENDIF
+      ENDIF
+
     ENDIF
   NEXT p
 ENDIF

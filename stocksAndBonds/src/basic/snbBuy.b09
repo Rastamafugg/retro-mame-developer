@@ -59,6 +59,11 @@ iCYr   := hdr.currYear
 iMaxYr := hdr.maxYears
 iPCnt  := hdr.plyrCount
 mgnYrOk := FALSE
+IF hdr.mgnRule = 1 THEN
+  IF iCYr < iMaxYr THEN
+    mgnYrOk := TRUE
+  ENDIF
+ENDIF
 startP := 1
 IF hdr.savedPhase = 2 THEN
   startP := hdr.savedPlyr
@@ -96,7 +101,9 @@ FOR p := startP TO iPCnt
       ENDIF
       tInt := aiTierVal
       RUN initAIProf(tInt, prof)
-      prof.useMargin := FALSE
+      IF hdr.mgnRule = 0 THEN
+        prof.useMargin := FALSE
+      ENDIF
       RUN aiBuy(iCYr, plyrs(p), mkt, prof, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy)
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
@@ -928,9 +935,6 @@ LOOP
   PRINT "  Margin: $"; pStr
   IF NOT mgnElig THEN
     PRINT "  (No margin: no prior cash purchase)"
-  ENDIF
-  IF NOT mgnYrOk THEN
-    PRINT "  (No margin: rule disabled)"
   ENDIF
   PRINT
 

@@ -175,6 +175,14 @@ LOOP
         PRINT "SNB: failed to ensure snbUtil (snbDividend)"
         gameOver := TRUE
       ENDIF
+      IF NOT gameOver THEN
+        modNam := "snbMargin"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbMargin (snbDividend)"
+          gameOver := TRUE
+        ENDIF
+      ENDIF
       modNam := "snbDividend"
       RUN ensureModule(modNam, TRUE, debugLog, ok)
       IF NOT ok THEN
@@ -215,6 +223,14 @@ LOOP
         IF NOT ok THEN
           PRINT "SNB: failed to ensure snbUtil (snbSell)"
           gameOver := TRUE
+        ENDIF
+        IF NOT gameOver THEN
+          modNam := "snbMargin"
+          RUN ensureModule(modNam, TRUE, debugLog, ok)
+          IF NOT ok THEN
+            PRINT "SNB: failed to ensure snbMargin (snbSell)"
+            gameOver := TRUE
+          ENDIF
         ENDIF
         modNam := "snbSell"
         RUN ensureModule(modNam, TRUE, debugLog, ok)
@@ -281,7 +297,6 @@ LOOP
     ENDLOOP
 
     IF NOT runEndGame THEN
-      PRINT "SNB: coordinator stopped before end-game phase"
       END
     ENDIF
 
