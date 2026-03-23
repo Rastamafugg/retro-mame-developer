@@ -17,8 +17,8 @@ PROCEDURE snbDividend
 (* SIDE EFX  : Reads and writes SNBSTATE. Modifies             *)
 (*             plyrs(p).cashBal for all active players in       *)
 (*             Years 2-10 via applyDivInt.                     *)
-(* NOTE      : snbUtil, snbMargin, and snbDividend must be     *)
-(*             pre-loaded by coordinator.                      *)
+(* NOTE      : snbUtil and snbDividend must be pre-loaded by   *)
+(*             coordinator.                                    *)
 (*             DATA lines 700 and 710 must not conflict with   *)
 (*             any other DATA lines in this procedure.          *)
 (* ============================================================ *)
@@ -33,7 +33,6 @@ DIM plyrs(6)   : PlyrRec
 DIM mkt        : MktState
 DIM loadOK     : BOOLEAN
 DIM iCYr       : INTEGER  \ ! staged hdr.currYear BYTE for arithmetic
-DIM iMaxYr     : INTEGER  \ ! staged hdr.maxYears BYTE for year guards
 DIM iPCnt      : INTEGER  \ ! staged hdr.plyrCount BYTE for FOR bound
 DIM cashBef(6) : INTEGER  \ ! cashBal snapshot per player before apply
 DIM divRcvd(9) : INTEGER  \ ! per-stock dividend received for display
@@ -41,17 +40,8 @@ DIM bndInt(3)  : INTEGER  \ ! per-bond interest received for display
 DIM divRate(9) : INTEGER  \ ! dividend per share (spec Section 2.1)
 DIM bndRate(3) : INTEGER  \ ! annual interest per bond unit (spec 2.2)
 DIM totRcvd    : INTEGER  \ ! total div+int received this year
-DIM mgnChg     : INTEGER  \ ! annual margin interest charge
-DIM cashNow    : INTEGER  \ ! cash before annual margin charge
-DIM oblgRem    : INTEGER  \ ! liquidation obligation after charge
 DIM pNam       : STRING[27] \ ! staged display name for scrDivInt call
 DIM actByt     : BYTE     \ ! action return from scrDivInt (discarded)
-DIM mgnAct     : INTEGER  \ ! action return from scrMgnInt
-DIM liqAct     : BYTE     \ ! action return from scrForceLiq
-DIM liqOrdTyp(12): INTEGER
-DIM liqOrdId(12) : INTEGER
-DIM liqOrdQty(12): INTEGER
-DIM liqOrdCnt    : INTEGER
 DIM p          : INTEGER
 DIM s          : INTEGER
 DIM b          : INTEGER
@@ -74,7 +64,6 @@ iCYr := hdr.currYear   \ ! stage BYTE -> INTEGER
 iCYr := iCYr + 1
 hdr.currYear := iCYr   \ ! assign back; 1-10 fits safely in BYTE
 
-iMaxYr := hdr.maxYears    \ ! stage BYTE -> INTEGER
 iPCnt := hdr.plyrCount  \ ! stage BYTE -> INTEGER for FOR bounds
 
 ! Apply dividends and bond interest in Years 2-10.
@@ -144,61 +133,6 @@ IF iCYr > 1 THEN
       ENDIF \ENDIF
     ENDIF
   NEXT p
-
-  IF hdr.mgnRule = 1 THEN
-    IF iCYr < iMaxYr THEN
-      FOR p := 1 TO iPCnt
-        IF NOT plyrs(p).isBankrupt THEN
-          IF plyrs(p).marginTot > 0 THEN
-            mgnChg  := plyrs(p).marginTot / 20
-            cashNow := plyrs(p).cashBal
-            plyrs(p).cashBal := cashNow - mgnChg
-            mgnAct := 1
-            ! Line exceeds 79 chars; RUN statement cannot be split.
-            RUN scrMgnInt(iCYr, plyrs(p).plyrName, plyrs(p).marginTot, mgnChg, cashNow, plyrs(p).cashBal, plyrs(p).cashBal < 0, mgnAct)
-            IF plyrs(p).cashBal < 0 THEN
-              oblgRem := 0 - plyrs(p).cashBal
-              IF plyrs(p).plyrType = 1 THEN
-                LOOP
-                  plyrs(p).obligation := oblgRem
-                  liqAct := 1
-                  ! Line exceeds 79 chars; RUN statement cannot be split.
-                  RUN scrForceLiq(plyrs(p).plyrName, oblgRem, plyrs(p), mkt, liqOrdTyp, liqOrdId, liqOrdQty, liqOrdCnt, liqAct)
-                  IF liqAct = 2 OR liqOrdCnt = 0 THEN
-                    RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 1, iCYr)
-                    plyrs(p).obligation := 0
-                    EXITIF TRUE THEN
-                    ENDEXIT
-                  ENDIF
-                  ! Line exceeds 79 chars; RUN statement cannot be split.
-                  RUN applyLiqOrdr(plyrs(p), mkt, liqOrdTyp, liqOrdId, liqOrdQty, liqOrdCnt, oblgRem)
-                  EXITIF oblgRem <= 0 THEN
-                  ENDEXIT
-                ENDLOOP
-              ELSE
-                LOOP
-                  plyrs(p).obligation := oblgRem
-                  ! Line exceeds 79 chars; RUN statement cannot be split.
-                  RUN aiLiqOrdr(plyrs(p), mkt, oblgRem, liqOrdTyp, liqOrdId, liqOrdQty, liqOrdCnt)
-                  IF liqOrdCnt = 0 THEN
-                    RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 1, iCYr)
-                    plyrs(p).obligation := 0
-                    EXITIF TRUE THEN
-                    ENDEXIT
-                  ENDIF
-                  ! Line exceeds 79 chars; RUN statement cannot be split.
-                  RUN applyLiqOrdr(plyrs(p), mkt, liqOrdTyp, liqOrdId, liqOrdQty, liqOrdCnt, oblgRem)
-                  EXITIF oblgRem <= 0 THEN
-                  ENDEXIT
-                ENDLOOP
-              ENDIF
-              plyrs(p).obligation := 0
-            ENDIF
-          ENDIF
-        ENDIF
-      NEXT p
-    ENDIF
-  ENDIF
 
 ENDIF  \ ! iCYr > 1
 
