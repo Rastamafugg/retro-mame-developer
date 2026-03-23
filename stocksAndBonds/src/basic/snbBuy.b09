@@ -1053,7 +1053,7 @@ LOOP
     mgnRepay := 0
     action   := 4
     END
-  ENDIF
+  ENDIF \ENDIF
 
   IF kIn <> "" THEN
     keyCode := ASC(kIn)
