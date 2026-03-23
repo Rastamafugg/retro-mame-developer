@@ -124,6 +124,13 @@ IF iCYr > 1 THEN
       RUN fmtPlyrName(plyrs(p).plyrName, pTypeVal, aiTierVal, pNam)
       ! Line exceeds 79 chars; RUN statement cannot be split.
       RUN scrDivInt(iCYr, pNam, cashBef(p), divRcvd, bndInt, totRcvd, plyrs(p).cashBal, actByt)
+      IF actByt = 2 THEN
+        RUN saveQuitToMenu(4, 1, hdr, deckOrd, plyrs, mkt)
+        END
+      ELSE IF actByt = 3 THEN
+        RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+        END
+      ENDIF
     ENDIF
   NEXT p
 
@@ -309,7 +316,7 @@ PROCEDURE scrDivInt
 (*                        0 for bonds not held                 *)
 (*             totRcvd  - total dividends + interest received  *)
 (*             cashAft  - cash balance after dividends         *)
-(*             action   - returns 1 (CONTINUE) on exit         *)
+(*             action   - returns 1=CONTINUE 2=SAVE 3=QUIT     *)
 (* SIDE EFX  : Clears screen. Blocks on keypress.             *)
 (*             Repositions DATA pointer (RESTORE used).        *)
 (* ============================================================ *)
@@ -375,8 +382,7 @@ PRINT USING "'  Cash before:      $',I6>", cashBef
 PRINT USING "'  Cash after:       $',I6>", cashAft
 PRINT
 
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 ! Stock names 1..9 for dividend display (spec Section 2.1)

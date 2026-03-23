@@ -11,6 +11,10 @@ PRINT "  printAt"
 PRINT "  fmtMoney"
 PRINT "  fmtPlyrName"
 PRINT "  getMenuKey"
+PRINT "  getPhaseNav"
+PRINT "  getSaveQuitAct"
+PRINT "  quitToMenu"
+PRINT "  saveQuitToMenu"
 PRINT "  waitKey"
 PRINT "  getNumIn"
 PRINT "  saveGame"
@@ -207,6 +211,136 @@ END
 
 900 \ ! Error handler
 PRINT "getMenuKey error ("; ERR; ")"
+END
+
+PROCEDURE getPhaseNav
+(* ================================================== *)
+(* PROCEDURE: getPhaseNav                             *)
+(* PURPOSE:   Read a year-phase navigation key.      *)
+(*            Any key except S/Q continues. S saves  *)
+(*            and exits the current game. Q quits    *)
+(*            without saving.                        *)
+(* PARAMS:    action - receives result:              *)
+(*              1=Continue 2=Save+Exit 3=Quit        *)
+(* EFFECTS:   Prints prompt and waits for one key.   *)
+(* ================================================== *)
+PARAM action:BYTE
+
+DIM k:STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT
+PRINT "Any key=continue  S=save+exit  Q=quit: ";
+GET #0, k
+PRINT
+
+IF k = "S" OR k = "s" THEN
+  action := 2
+ELSE IF k = "Q" OR k = "q" THEN
+  action := 3
+ELSE
+  action := 1
+ENDIF \ENDIF
+END
+
+900 PRINT "getPhaseNav error ("; ERR; ")"
+END
+
+PROCEDURE getSaveQuitAct
+(* ================================================== *)
+(* PROCEDURE: getSaveQuitAct                          *)
+(* PURPOSE:   Map a raw input string to the standard  *)
+(*            screen action codes for save or quit.   *)
+(*            Returns 0 when the input is neither.    *)
+(* PARAMS:    keyIn  - raw key or line input          *)
+(*            action - receives 0/3/4                *)
+(*                      0=other 3=save+exit 4=quit   *)
+(* EFFECTS:   None beyond setting action.            *)
+(* ================================================== *)
+PARAM keyIn  : STRING
+PARAM action : INTEGER
+
+ON ERROR GOTO 900
+
+action := 0
+IF keyIn = "S" OR keyIn = "s" THEN
+  action := 3
+ELSE IF keyIn = "Q" OR keyIn = "q" THEN
+  action := 4
+ENDIF \ENDIF
+END
+
+900 PRINT "getSaveQuitAct error ("; ERR; ")"
+END
+
+PROCEDURE quitToMenu
+(* ============================================================ *)
+(* PROCEDURE : quitToMenu                                       *)
+(* PURPOSE   : Signal the coordinator to stop the current game *)
+(*             loop and return to the outer menu flow. Writes   *)
+(*             that signal into SNBSTATE.                       *)
+(* PARAMS    : hdr       - current save header (updated here)  *)
+(*             deckOrd   - current deck state                  *)
+(*             plyrs     - current player state                *)
+(*             mkt       - current market state                *)
+(* SIDE EFX  : Writes SNBSTATE with savedPhase=9, savedPlyr=0. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+
+ON ERROR GOTO 900
+
+hdr.savedPhase := 9
+hdr.savedPlyr  := 0
+RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+END
+
+900 PRINT "quitToMenu error ("; ERR; ")"
+END
+
+PROCEDURE saveQuitToMenu
+(* ============================================================ *)
+(* PROCEDURE : saveQuitToMenu                                   *)
+(* PURPOSE   : Save a resumable snapshot to SNBGAME, then      *)
+(*             signal the coordinator through SNBSTATE to stop  *)
+(*             the current game and return to menu flow.        *)
+(* PARAMS    : savePhase - checkpoint to store in SNBGAME      *)
+(*             savePlyr  - player index for that checkpoint    *)
+(*             hdr       - current save header (updated here)  *)
+(*             deckOrd   - current deck state                  *)
+(*             plyrs     - current player state                *)
+(*             mkt       - current market state                *)
+(* SIDE EFX  : Writes SNBGAME, then writes SNBSTATE quit flag. *)
+(* ============================================================ *)
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE SaveHdr = magic,fmtVersion,maxYears,plyrCount,rollMode,mgnRule,currYear,savedPhase,savedPlyr,gameStage,bnkrFlgs,checksum:BYTE
+! Line exceeds 79 chars; TYPE statement requires single line.
+TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
+TYPE MktState = stckPrice(9):INTEGER;divSuspnd(9):BOOLEAN
+PARAM savePhase  : INTEGER
+PARAM savePlyr   : INTEGER
+PARAM hdr        : SaveHdr
+PARAM deckOrd(36): BYTE
+PARAM plyrs(6)   : PlyrRec
+PARAM mkt        : MktState
+
+ON ERROR GOTO 900
+
+hdr.savedPhase := savePhase
+hdr.savedPlyr  := savePlyr
+RUN saveGame("SNBGAME", hdr, deckOrd, plyrs, mkt)
+RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+END
+
+900 PRINT "saveQuitToMenu error ("; ERR; ")"
 END
 
 PROCEDURE getNumIn

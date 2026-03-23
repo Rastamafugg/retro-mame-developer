@@ -65,6 +65,7 @@ DIM iCYr       : INTEGER  \ ! staged hdr.currYear
 DIM iMaxYr     : INTEGER  \ ! staged hdr.maxYears
 DIM iPlyrCnt   : INTEGER  \ ! staged hdr.plyrCount
 DIM iBnkr      : INTEGER  \ ! staged hdr.bnkrFlgs for bit scan
+DIM iSavPh     : INTEGER  \ ! staged hdr.savedPhase
 DIM bankrCnt   : INTEGER  \ ! count of bankrupt players
 DIM activePlrs : INTEGER  \ ! plyrCount - bankrCnt
 DIM modNam     : STRING[20]
@@ -73,6 +74,7 @@ DIM runEndGame : BOOLEAN
 DIM doClsgMkt  : BOOLEAN
 DIM ok         : BOOLEAN
 DIM debugLog   : BOOLEAN
+DIM needSetup  : BOOLEAN
 DIM i          : INTEGER
 
 ON ERROR GOTO 900
@@ -95,243 +97,254 @@ IF wasStale THEN
   ENDIF
 ENDIF
 
-! Ensure snbUtil and snbSetup module are in the OS module
-! directory before forking. forChild=TRUE uses F$NMLink /
-! F$NMLoad.
-modNam := "snbUtil"
-RUN ensureModule(modNam, TRUE, debugLog, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbUtil for snbSetup"
-  END
-ENDIF
-modNam := "snbSetup"
-RUN ensureModule(modNam, TRUE, debugLog, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbSetup child"
-  END
-ENDIF
-
-! Fork pre-game child: runs setup screens, writes SNBSTATE
-! with currYear=0 (pre-game state; snbDividend will increment to
-! 1 on first run). On user quit snbSetup writes nothing;
-! readHdr returns loadOK=FALSE and SNB exits below.
-RUN forkPhase("snbSetup", debugLog, exitStat)
-IF exitStat <> 0 THEN
-  PRINT "SNB: snbSetup failed exitStat="; exitStat
-  END
-ENDIF
-
-! Read header written by snbSetup.
-RUN readHdr(hdr, loadOK)
-IF NOT loadOK THEN
-  ! No SNBSTATE: user quit from pre-game menu.
-  END
-ENDIF
-
-! Confirm snbSetup wrote GS_PREGM (1).
-! Any other value indicates an unexpected snbSetup exit state.
-iGSt := hdr.gameStage  \ ! stage BYTE
-IF iGSt <> 1 THEN
-  PRINT "SNB: unexpected gameStage after snbSetup: "; iGSt
-  END
-ENDIF
-
-! Read initial values from header.
-! iCYr=0 after snbSetup; snbDividend will increment to 1 on first run.
-iCYr   := hdr.currYear  \ ! stage BYTE; 0 from snbSetup
-iMaxYr := hdr.maxYears  \ ! stage BYTE; 10 in standard game
-
-! ---- Coordinator year loop ----------------------------------
-! Each iteration covers one complete game year via three children.
-! snbDividend always runs first and increments currYear before
-! any other work, so snbMarket, snbSell, and snbBuy see the correct
-! year.
-gameOver := FALSE
-runEndGame := FALSE
-doClsgMkt := FALSE
+needSetup := TRUE
 
 LOOP
 
-  EXITIF iCYr >= iMaxYr OR gameOver THEN
-  ENDEXIT
+  IF needSetup THEN
+    RUN chkStale(wasStale)
+    IF wasStale THEN
+      IF debugLog THEN
+        PRINT "SNB: stale SNBSTATE deleted"
+      ENDIF
+    ENDIF
 
-  ! ---- Phase 1: snbDividend (all years) -------------------
-  ! Increments currYear at start of run. Applies dividends and
-  ! bond interest only in Years 2-9 (Years 1 and 10 increment
-  ! only, per spec Section 6). Always writes GS_YEAR (2).
-  modNam := "snbUtil"
-  RUN ensureModule(modNam, TRUE, debugLog, ok)
-  IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbUtil (snbDividend)"
-    gameOver := TRUE
-  ENDIF
-  modNam := "snbDividend"
-  RUN ensureModule(modNam, TRUE, debugLog, ok)
-  IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbDividend"
-    gameOver := TRUE
-  ENDIF
-  IF NOT gameOver THEN
-    RUN forkPhase("snbDividend", debugLog, exitStat)
-    GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
-  ENDIF
-
-  ! ---- Phase 2: snbMarket (all years) ---------------------
-  ! Draws card, generates rolls, resolves all stock prices.
-  ! Displays S11-S15. Always writes GS_YEAR (2).
-  IF NOT gameOver THEN
+    ! Ensure snbUtil and snbSetup module are in the OS module
+    ! directory before forking. forChild=TRUE uses F$NMLink /
+    ! F$NMLoad.
     modNam := "snbUtil"
     RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbUtil (snbMarket)"
-      gameOver := TRUE
+      PRINT "SNB: failed to ensure snbUtil for snbSetup"
+      END
     ENDIF
-    modNam := "snbMarket"
+    modNam := "snbSetup"
     RUN ensureModule(modNam, TRUE, debugLog, ok)
     IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbMarket"
-      gameOver := TRUE
+      PRINT "SNB: failed to ensure snbSetup child"
+      END
     ENDIF
-    IF NOT gameOver THEN
-      RUN forkPhase("snbMarket", debugLog, exitStat)
-      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
+
+    RUN forkPhase("snbSetup", debugLog, exitStat)
+    IF exitStat <> 0 THEN
+      PRINT "SNB: snbSetup failed exitStat="; exitStat
+      END
     ENDIF
   ENDIF
 
-  ! ---- Phase 3: snbSell (all years) -----------------------
-  ! Sell phase. snbSell skips internally in Year 1 and always
-  ! writes GS_YEAR (2).
-  IF NOT gameOver THEN
-    modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, debugLog, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbUtil (snbSell)"
-      gameOver := TRUE
-    ENDIF
-    modNam := "snbSell"
-    RUN ensureModule(modNam, TRUE, debugLog, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbSell"
-      gameOver := TRUE
-    ENDIF
-    IF NOT gameOver THEN
-      RUN forkPhase("snbSell", debugLog, exitStat)
-      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
-    ENDIF
+  RUN readHdr(hdr, loadOK)
+  IF NOT loadOK THEN
+    END
   ENDIF
 
-  ! ---- Phase 4: snbBuy (all years) ------------------------
-  ! Buy phase. Writes GS_DONE (3) when game ends (Year 10
-  ! complete or lone survivor remains in a multiplayer game).
-  ! Otherwise GS_YEAR (2).
-  IF NOT gameOver THEN
-    modNam := "snbUtil"
-    RUN ensureModule(modNam, TRUE, debugLog, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbUtil (snbBuy)"
-      gameOver := TRUE
-    ENDIF
-    modNam := "snbBuy"
-    RUN ensureModule(modNam, TRUE, debugLog, ok)
-    IF NOT ok THEN
-      PRINT "SNB: failed to ensure snbBuy"
-      gameOver := TRUE
-    ENDIF
-    IF NOT gameOver THEN
-      RUN forkPhase("snbBuy", debugLog, exitStat)
-      GOSUB 100  \ ! check exitStat, readHdr, set gameOver/iGSt/iCYr
-    ENDIF
+  iGSt   := hdr.gameStage   \ ! stage BYTE
+  iCYr   := hdr.currYear    \ ! stage BYTE
+  iMaxYr := hdr.maxYears    \ ! stage BYTE
+  iSavPh := hdr.savedPhase  \ ! stage BYTE
+
+  IF iSavPh = 8 THEN
+    needSetup := TRUE
+  ELSE
+    needSetup := FALSE
   ENDIF
+  IF NOT needSetup THEN
 
-  ! ---- Year-end safety nets -------------------------------
-  ! iCYr is updated by GOSUB 100 after each child fork, so it
-  ! reflects the currYear written by snbDividend (the active year).
-  ! Primary exit: snbBuy writes GS_DONE; GOSUB 100 sets
-  ! gameOver=TRUE. These nets catch failure to write GS_DONE.
-  IF NOT gameOver THEN
+    IF iGSt < 1 OR iGSt > 3 THEN
+      PRINT "SNB: unexpected gameStage after setup/load: "; iGSt
+      END
+    ENDIF
 
-    ! Safety net 1: all years processed.
-    ! Uses >= so it fires after Year 10 completes (iCYr=10,
-    ! iMaxYr=10). The EXITIF at the top uses the same condition.
-    IF iCYr >= iMaxYr THEN
+    ! ---- Coordinator year loop --------------------------------
+    gameOver := FALSE
+    runEndGame := FALSE
+    doClsgMkt := FALSE
+    IF iGSt = 3 THEN
       gameOver := TRUE
       runEndGame := TRUE
     ENDIF
 
-    ! Safety net 2: only one (or zero) active players remain
-    ! in a multiplayer game.
+    LOOP
+
+      EXITIF (iCYr >= iMaxYr AND iSavPh = 0) OR gameOver THEN
+      ENDEXIT
+
+    IF iSavPh = 0 THEN
+      modNam := "snbUtil"
+      RUN ensureModule(modNam, TRUE, debugLog, ok)
+      IF NOT ok THEN
+        PRINT "SNB: failed to ensure snbUtil (snbDividend)"
+        gameOver := TRUE
+      ENDIF
+      modNam := "snbDividend"
+      RUN ensureModule(modNam, TRUE, debugLog, ok)
+      IF NOT ok THEN
+        PRINT "SNB: failed to ensure snbDividend"
+        gameOver := TRUE
+      ENDIF
+      IF NOT gameOver THEN
+        RUN forkPhase("snbDividend", debugLog, exitStat)
+        GOSUB 100
+      ENDIF
+    ENDIF
+
     IF NOT gameOver THEN
-      iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
-      iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
-      bankrCnt := 0
-      FOR i := 1 TO 6
-        IF LAND(iBnkr, 1) = 1 THEN
-          bankrCnt := bankrCnt + 1
+      IF iSavPh = 0 OR iSavPh = 4 THEN
+        modNam := "snbUtil"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbUtil (snbMarket)"
+          gameOver := TRUE
         ENDIF
-        iBnkr := iBnkr / 2
-      NEXT i
-      activePlrs := iPlyrCnt - bankrCnt
-      IF iPlyrCnt > 1 AND activePlrs <= 1 THEN
+        modNam := "snbMarket"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbMarket"
+          gameOver := TRUE
+        ENDIF
+        IF NOT gameOver THEN
+          RUN forkPhase("snbMarket", debugLog, exitStat)
+          GOSUB 100
+        ENDIF
+      ENDIF
+    ENDIF
+
+    IF NOT gameOver THEN
+      IF iSavPh = 0 OR iSavPh = 1 OR iSavPh = 4 THEN
+        modNam := "snbUtil"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbUtil (snbSell)"
+          gameOver := TRUE
+        ENDIF
+        modNam := "snbSell"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbSell"
+          gameOver := TRUE
+        ENDIF
+        IF NOT gameOver THEN
+          RUN forkPhase("snbSell", debugLog, exitStat)
+          GOSUB 100
+        ENDIF
+      ENDIF
+    ENDIF
+
+    IF NOT gameOver THEN
+      IF iSavPh = 0 OR iSavPh = 1 OR iSavPh = 2 OR iSavPh = 4 THEN
+        modNam := "snbUtil"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbUtil (snbBuy)"
+          gameOver := TRUE
+        ENDIF
+        modNam := "snbBuy"
+        RUN ensureModule(modNam, TRUE, debugLog, ok)
+        IF NOT ok THEN
+          PRINT "SNB: failed to ensure snbBuy"
+          gameOver := TRUE
+        ENDIF
+        IF NOT gameOver THEN
+          RUN forkPhase("snbBuy", debugLog, exitStat)
+          GOSUB 100
+        ENDIF
+      ENDIF
+    ENDIF
+
+    IF NOT gameOver THEN
+
+      IF iCYr >= iMaxYr THEN
         gameOver := TRUE
         runEndGame := TRUE
       ENDIF
+
+      IF NOT gameOver THEN
+        iPlyrCnt := hdr.plyrCount  \ ! stage BYTE
+        iBnkr    := hdr.bnkrFlgs   \ ! stage BYTE
+        bankrCnt := 0
+        FOR i := 1 TO 6
+          IF LAND(iBnkr, 1) = 1 THEN
+            bankrCnt := bankrCnt + 1
+          ENDIF
+          iBnkr := iBnkr / 2
+        NEXT i
+        activePlrs := iPlyrCnt - bankrCnt
+        IF iPlyrCnt > 1 AND activePlrs <= 1 THEN
+          gameOver := TRUE
+          runEndGame := TRUE
+        ENDIF
+      ENDIF
+
     ENDIF
+
+      iSavPh := 0
+
+    ENDLOOP
+
+    IF NOT runEndGame THEN
+      PRINT "SNB: coordinator stopped before end-game phase"
+      END
+    ENDIF
+
+    IF iCYr >= iMaxYr THEN
+      doClsgMkt := TRUE
+    ENDIF
+
+    IF doClsgMkt THEN
+      modNam := "snbUtil"
+      RUN ensureModule(modNam, TRUE, debugLog, ok)
+      IF NOT ok THEN
+        PRINT "SNB: failed to ensure snbUtil (closing snbMarket)"
+        END
+      ENDIF
+      modNam := "snbMarket"
+      RUN ensureModule(modNam, TRUE, debugLog, ok)
+      IF NOT ok THEN
+        PRINT "SNB: failed to ensure snbMarket (closing draw)"
+        END
+      ENDIF
+      RUN forkPhase("snbMarket", debugLog, exitStat)
+      IF exitStat <> 0 THEN
+        PRINT "SNB: closing snbMarket failed exitStat="; exitStat
+        END
+      ENDIF
+    ENDIF
+
+    modNam := "snbUtil"
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbUtil for snbEndGame"
+      END
+    ENDIF
+    modNam := "snbEndGame"
+    RUN ensureModule(modNam, TRUE, debugLog, ok)
+    IF NOT ok THEN
+      PRINT "SNB: failed to ensure snbEndGame"
+      END
+    ENDIF
+
+    RUN forkPhase("snbEndGame", debugLog, exitStat)
+    IF exitStat <> 0 THEN
+      PRINT "SNB: snbEndGame failed exitStat="; exitStat
+      END
+    ENDIF
+
+    RUN readHdr(hdr, loadOK)
+    IF NOT loadOK THEN
+      END
+    ENDIF
+    iSavPh := hdr.savedPhase
+    iGSt   := hdr.gameStage
+    IF iSavPh = 8 THEN
+      needSetup := TRUE
+    ELSE IF iGSt <> 3 THEN
+      needSetup := FALSE
+    ELSE
+      END
+    ENDIF \ENDIF
 
   ENDIF
 
 ENDLOOP
-
-IF NOT runEndGame THEN
-  PRINT "SNB: coordinator stopped before end-game phase"
-  END
-ENDIF
-
-IF iCYr >= iMaxYr THEN
-  doClsgMkt := TRUE
-ENDIF
-
-IF doClsgMkt THEN
-  modNam := "snbUtil"
-  RUN ensureModule(modNam, TRUE, debugLog, ok)
-  IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbUtil (closing snbMarket)"
-    END
-  ENDIF
-  modNam := "snbMarket"
-  RUN ensureModule(modNam, TRUE, debugLog, ok)
-  IF NOT ok THEN
-    PRINT "SNB: failed to ensure snbMarket (closing draw)"
-    END
-  ENDIF
-  RUN forkPhase("snbMarket", debugLog, exitStat)
-  IF exitStat <> 0 THEN
-    PRINT "SNB: closing snbMarket failed exitStat="; exitStat
-    END
-  ENDIF
-ENDIF
-
-! Ensure snbUtil and snbEndGame module are in the OS module
-! directory before forking.
-modNam := "snbUtil"
-RUN ensureModule(modNam, TRUE, debugLog, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbUtil for snbEndGame"
-  END
-ENDIF
-modNam := "snbEndGame"
-RUN ensureModule(modNam, TRUE, debugLog, ok)
-IF NOT ok THEN
-  PRINT "SNB: failed to ensure snbEndGame"
-  END
-ENDIF
-
-! Fork end-game child: loads SNBSTATE, computes wealth,
-! displays winner.
-RUN forkPhase("snbEndGame", debugLog, exitStat)
-IF exitStat <> 0 THEN
-  PRINT "SNB: snbEndGame failed exitStat="; exitStat
-ENDIF
-END
 
 ! ---- GOSUB 100: post-fork check ---------------------------
 ! Called immediately after every RUN forkPhase(...).
@@ -350,7 +363,11 @@ END
     ENDIF
     iGSt := hdr.gameStage  \ ! stage BYTE
     iCYr := hdr.currYear   \ ! stage BYTE; updated by snbDividend
-    IF iGSt = 3 THEN        \ ! GS_DONE: game over
+    iSavPh := hdr.savedPhase \ ! stage BYTE
+    IF iSavPh = 9 THEN
+      gameOver := TRUE
+      runEndGame := FALSE
+    ELSE IF iGSt = 3 THEN   \ ! GS_DONE: game over
       gameOver := TRUE
       runEndGame := TRUE
     ENDIF

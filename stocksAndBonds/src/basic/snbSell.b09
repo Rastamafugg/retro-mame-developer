@@ -31,11 +31,13 @@ DIM ordId(12)  : INTEGER
 DIM ordQty(12) : INTEGER
 DIM ordCnt     : INTEGER
 DIM usrAct     : INTEGER
+DIM navAct     : BYTE
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
 DIM pTypeVal   : INTEGER
 DIM pNam       : STRING[27]
 DIM p          : INTEGER
+DIM startP     : INTEGER
 
 ON ERROR GOTO 900
 
@@ -47,9 +49,13 @@ ENDIF
 
 iCYr  := hdr.currYear
 iPCnt := hdr.plyrCount
+startP := 1
+IF hdr.savedPhase = 1 THEN
+  startP := hdr.savedPlyr
+ENDIF
 
 IF iCYr > 1 THEN
-  FOR p := 1 TO iPCnt
+  FOR p := startP TO iPCnt
     IF NOT plyrs(p).isBankrupt THEN
       pTypeVal  := plyrs(p).plyrType
       aiTierVal := plyrs(p).aiTier
@@ -57,6 +63,13 @@ IF iCYr > 1 THEN
       ordCnt := 0
       IF plyrs(p).plyrType = 1 THEN
         RUN scrSell(iCYr, plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt, usrAct)
+        IF usrAct = 3 THEN
+          RUN saveQuitToMenu(1, p, hdr, deckOrd, plyrs, mkt)
+          END
+        ELSE IF usrAct = 4 THEN
+          RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+          END
+        ENDIF
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
         ENDIF
@@ -72,11 +85,26 @@ IF iCYr > 1 THEN
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
         ENDIF
-        RUN scrAISellTurn(pNam, ordTyp, ordId, ordQty, ordCnt)
+        navAct := 1
+        RUN scrAISellTurn(pNam, ordTyp, ordId, ordQty, ordCnt, navAct)
+        IF navAct = 2 THEN
+          IF p < iPCnt THEN
+            RUN saveQuitToMenu(1, p + 1, hdr, deckOrd, plyrs, mkt)
+          ELSE
+            RUN saveQuitToMenu(2, 1, hdr, deckOrd, plyrs, mkt)
+          ENDIF
+          END
+        ELSE IF navAct = 3 THEN
+          RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+          END
+        ENDIF
       ENDIF
     ENDIF
   NEXT p
 ENDIF
+
+hdr.savedPhase := 2
+hdr.savedPlyr  := 1
 
 hdr.gameStage := 2
 RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
@@ -488,20 +516,21 @@ PROCEDURE scrAISellTurn
 (* PURPOSE   : S19 AI sell-summary screen. Displays only sell  *)
 (*             orders produced by aiSell for the current AI    *)
 (*             player. If ordCnt=0, displays a no-action line. *)
-(*             Display-only: no output parameters. Returns     *)
-(*             after waitKey.                                  *)
+(*             Returns action for continue/save/quit.          *)
 (* PARAMS    : plyrNam  - AI player name                       *)
 (*             ordType  - asset type: 1=STOCK 2=BOND          *)
 (*             ordId    - asset index (1-9 stock, 1-3 bond)   *)
 (*             ordQty   - quantity (shares or bond units)     *)
 (*             ordCnt   - number of entries in arrays (0..12) *)
-(* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
+(*             action   - 1=CONTINUE 2=SAVE 3=QUIT            *)
+(* SIDE EFX  : Clears screen. Waits for navigation key.        *)
 (* ============================================================ *)
 PARAM plyrNam    : STRING[27]
 PARAM ordType(12): INTEGER
 PARAM ordId(12)  : INTEGER
 PARAM ordQty(12) : INTEGER
 PARAM ordCnt     : INTEGER
+PARAM action     : BYTE
 DIM sNam(9) : STRING[14]
 DIM bPar(3) : INTEGER
 DIM i       : INTEGER
@@ -547,7 +576,7 @@ ELSE
 ENDIF
 
 PRINT
-RUN waitKey
+RUN getPhaseNav(action)
 
 END
 
@@ -575,6 +604,7 @@ PROCEDURE scrSell
 (*             ordQty   - output: quantity per order            *)
 (*             ordCnt   - output: number of orders placed      *)
 (*             action   - output: 1=CONFIRM 2=PASS             *)
+(*                        3=SAVE+EXIT 4=QUIT                   *)
 (* SIDE EFX  : Clears screen. Uses INPUT for order quantities. *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
@@ -608,6 +638,9 @@ DIM totProc : INTEGER
 DIM divRate(9): INTEGER
 DIM pTypeVal : INTEGER
 DIM aiTierVal: INTEGER
+DIM navAct   : BYTE
+DIM kIn      : STRING[1]
+DIM sqAct    : INTEGER
 
 ON ERROR GOTO 900
 
@@ -686,17 +719,39 @@ NEXT b
 IF NOT hasSell THEN
   PRINT
   PRINT "Nothing to sell this turn."
-  RUN waitKey
+  RUN getPhaseNav(navAct)
   ordCnt := 0
-  action := 2
+  IF navAct = 2 THEN
+    action := 3
+  ELSE IF navAct = 3 THEN
+    action := 4
+  ELSE
+    action := 2
+  ENDIF \ENDIF
   END
 ENDIF
 
 PRINT
-PRINT "1=Enter sales  2=Pass turn"
-RUN getMenuKey(1, 2, key)
+PRINT "1=Enter sales  2=Pass turn  S=save+exit  Q=quit"
+GET #0, kIn
+PRINT
 
-IF key = 2 THEN
+IF kIn = "2" THEN
+  ordCnt := 0
+  action := 2
+  END
+ENDIF
+RUN getSaveQuitAct(kIn, sqAct)
+IF sqAct = 3 THEN
+  ordCnt := 0
+  action := 3
+  END
+ELSE IF sqAct = 4 THEN
+  ordCnt := 0
+  action := 4
+  END
+ENDIF
+IF kIn <> "1" THEN
   ordCnt := 0
   action := 2
   END
@@ -735,19 +790,30 @@ LOOP
           qty   := 0
           valid := TRUE
         ELSE
-          RUN getNumIn(qIn, qty, numOk)
-          IF NOT numOk THEN
-            PRINT "  Invalid: enter a number."
-          ELSE IF qty < 0 THEN
-            PRINT "  Invalid: enter 0 or positive mult of 10."
-          ELSE IF MOD(qty, 10) <> 0 THEN
-            PRINT "  Invalid: must be a multiple of 10."
-          ELSE IF qty > plyr.stckShrs(s) THEN
-            PRINT "  Invalid: you hold only ";
-            PRINT plyr.stckShrs(s); " shares."
+          RUN getSaveQuitAct(qIn, sqAct)
+          IF sqAct = 3 THEN
+            ordCnt := 0
+            action := 3
+            END
+          ELSE IF sqAct = 4 THEN
+            ordCnt := 0
+            action := 4
+            END
           ELSE
-            valid := TRUE
-          ENDIF \ENDIF \ENDIF \ENDIF
+            RUN getNumIn(qIn, qty, numOk)
+            IF NOT numOk THEN
+              PRINT "  Invalid: enter a number."
+            ELSE IF qty < 0 THEN
+              PRINT "  Invalid: enter 0 or positive mult of 10."
+            ELSE IF MOD(qty, 10) <> 0 THEN
+              PRINT "  Invalid: must be a multiple of 10."
+            ELSE IF qty > plyr.stckShrs(s) THEN
+              PRINT "  Invalid: you hold only ";
+              PRINT plyr.stckShrs(s); " shares."
+            ELSE
+              valid := TRUE
+            ENDIF \ENDIF \ENDIF \ENDIF
+          ENDIF
         ENDIF
       ENDWHILE
       IF qty > 0 THEN
@@ -771,17 +837,28 @@ LOOP
           qty := 0
           valid := TRUE
         ELSE
-          RUN getNumIn(qIn, qty, numOk)
-          IF NOT numOk THEN
-            PRINT "  Invalid: enter a number."
-          ELSE IF qty < 0 THEN
-            PRINT "  Invalid: enter 0 or a positive number."
-          ELSE IF qty > plyr.bondUnts(b) THEN
-            PRINT "  Invalid: you hold only ";
-            PRINT plyr.bondUnts(b); " unit(s)."
+          RUN getSaveQuitAct(qIn, sqAct)
+          IF sqAct = 3 THEN
+            ordCnt := 0
+            action := 3
+            END
+          ELSE IF sqAct = 4 THEN
+            ordCnt := 0
+            action := 4
+            END
           ELSE
-            valid := TRUE
-          ENDIF \ENDIF \ENDIF
+            RUN getNumIn(qIn, qty, numOk)
+            IF NOT numOk THEN
+              PRINT "  Invalid: enter a number."
+            ELSE IF qty < 0 THEN
+              PRINT "  Invalid: enter 0 or a positive number."
+            ELSE IF qty > plyr.bondUnts(b) THEN
+              PRINT "  Invalid: you hold only ";
+              PRINT plyr.bondUnts(b); " unit(s)."
+            ELSE
+              valid := TRUE
+            ENDIF \ENDIF \ENDIF
+          ENDIF
         ENDIF
       ENDWHILE
       IF qty > 0 THEN
@@ -829,10 +906,21 @@ LOOP
   RUN fmtMoney(totProc, pStr)
   PRINT "Total proceeds: $"; pStr
   PRINT
-  PRINT "1=Confirm  2=Revise orders"
-  RUN getMenuKey(1, 2, key)
+  PRINT "1=Confirm  2=Revise orders  S=save+exit  Q=quit"
+  GET #0, kIn
+  PRINT
+  RUN getSaveQuitAct(kIn, sqAct)
+  IF sqAct = 3 THEN
+    ordCnt := 0
+    action := 3
+    END
+  ELSE IF sqAct = 4 THEN
+    ordCnt := 0
+    action := 4
+    END
+  ENDIF
 
-  EXITIF key = 1 THEN
+  EXITIF kIn = "1" THEN
   ENDEXIT
 
 ENDLOOP

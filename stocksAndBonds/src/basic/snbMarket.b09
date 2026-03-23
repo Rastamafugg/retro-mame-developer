@@ -95,6 +95,13 @@ RUN getCard(cardId, crd)
 ! Display S11 situation card (flavour text stub for now).
 flavTxt := ""
 RUN scrCard(cardId, crd, flavTxt, actByt)
+IF actByt = 2 THEN
+  RUN saveQuitToMenu(4, 1, hdr, deckOrd, plyrs, mkt)
+  END
+ELSE IF actByt = 3 THEN
+  RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+  END
+ENDIF
 
 ! Each market phase runs in a fresh child process, so reseed the
 ! RNG from persisted game state before generating this year's dice.
@@ -113,6 +120,13 @@ NEXT s
 
 ! Display S12 dice roll results.
 RUN scrDice(hdr.rollMode, rCnt, dOne, dTwo, rTot, actByt)
+IF actByt = 2 THEN
+  RUN saveQuitToMenu(4, 1, hdr, deckOrd, plyrs, mkt)
+  END
+ELSE IF actByt = 3 THEN
+  RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+  END
+ENDIF
 
 ! Resolve all stock prices for this year.
 ! Line exceeds 79 chars; RUN statement cannot be split.
@@ -121,6 +135,13 @@ RUN applyMktYear(cardId, rolls, iPCnt, plyrs, mkt, prcBef, mktDlt, crdDlt, spOcc
 ! Display S13 market results board.
 ! Line exceeds 79 chars; RUN statement cannot be split.
 RUN scrMktBoard(prcBef, mktDlt, crdDlt, mkt.stckPrice, spOcc, dvSusp, dvRnst, actByt)
+IF actByt = 2 THEN
+  RUN saveQuitToMenu(1, 1, hdr, deckOrd, plyrs, mkt)
+  END
+ELSE IF actByt = 3 THEN
+  RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+  END
+ENDIF
 
 ! Display S14/S15 per stock where a notable event occurred.
 FOR s := 1 TO 9
@@ -144,6 +165,13 @@ FOR s := 1 TO 9
     NEXT tInt
     ! Line exceeds 79 chars; RUN statement cannot be split.
     RUN scrSplit(sNam, oDPrc, mkt.stckPrice(s), iPCnt, pNames, shrBf, shrAf, actByt)
+    IF actByt = 2 THEN
+      RUN saveQuitToMenu(1, 1, hdr, deckOrd, plyrs, mkt)
+      END
+    ELSE IF actByt = 3 THEN
+      RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+      END
+    ENDIF
   ENDIF
   IF dvSusp(s) OR dvRnst(s) THEN
     ! Read stock name at position s from DATA 720.
@@ -157,6 +185,13 @@ FOR s := 1 TO 9
       evTyp := 2  \ ! REINSTATED
     ENDIF
     RUN scrDivFlag(sNam, evTyp, mkt.stckPrice(s), 50, actByt)
+    IF actByt = 2 THEN
+      RUN saveQuitToMenu(1, 1, hdr, deckOrd, plyrs, mkt)
+      END
+    ELSE IF actByt = 3 THEN
+      RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+      END
+    ENDIF
   ENDIF
 NEXT s
 
@@ -718,7 +753,7 @@ PROCEDURE scrCard
 (* PARAMS    : crdNum  - card number (1..36) for display       *)
 (*             card    - populated CardRec from getCard        *)
 (*             flavTxt - flavour text string for this card     *)
-(*             action  - returns 1 (CONTINUE) on exit          *)
+(*             action  - returns 1=CONTINUE 2=SAVE 3=QUIT      *)
 (* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
 (*             Repositions DATA pointer (RESTORE used).        *)
 (* NOTE      : Flavour text longer than ~76 chars will wrap    *)
@@ -767,8 +802,7 @@ IF card.divBonus > 0 THEN
   PRINT "  DIVIDEND BONUS: $"; card.divBonus; " per share"
 ENDIF
 PRINT
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 ! Stock names 1..9 for effect display (spec Section 2.1)
@@ -795,7 +829,7 @@ PROCEDURE scrDice
 (*             dieOne   - first die value per roll slot (1..6) *)
 (*             dieTwo   - second die value per roll slot (1..6)*)
 (*             rollTot  - sum per roll slot (2..12)             *)
-(*             action   - returns 1 (CONTINUE) on exit         *)
+(*             action   - returns 1=CONTINUE 2=SAVE 3=QUIT     *)
 (* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
 (*             Repositions DATA pointer (RESTORE used)         *)
 (*             when rollMode = 3.                               *)
@@ -845,8 +879,7 @@ ELSE
 ENDIF
 
 PRINT
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 ! Stock names 1..9 for mode C display (spec Section 2.1)
@@ -879,7 +912,7 @@ PROCEDURE scrMktBoard
 (*             splitOcc  - TRUE if split triggered per stock   *)
 (*             divSuspd  - TRUE if dividends newly suspended   *)
 (*             divRnstd  - TRUE if dividends reinstated        *)
-(*             action    - returns 1 (CONTINUE) on exit        *)
+(*             action    - returns 1=CONTINUE 2=SAVE 3=QUIT    *)
 (* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
 (*             Repositions DATA pointer (RESTORE used).        *)
 (* ============================================================ *)
@@ -931,8 +964,7 @@ FOR s := 1 TO 9
 NEXT s
 
 PRINT
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 ! Stock names 1..9 (spec Section 2.1)
@@ -959,7 +991,7 @@ PROCEDURE scrSplit
 (*             plyrName - player name per slot (1..plyrCnt)    *)
 (*             shrBef   - shares held before split per player  *)
 (*             shrAft   - shares held after split per player   *)
-(*             action   - returns 1 (CONTINUE) on exit         *)
+(*             action   - returns 1=CONTINUE 2=SAVE 3=QUIT     *)
 (* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
 (* ============================================================ *)
 PARAM stkName     : STRING[12]
@@ -991,8 +1023,7 @@ FOR p := 1 TO plyrCnt
   ENDIF
 NEXT p
 PRINT
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 900 PRINT "scrSplit error ("; ERR; ")"
@@ -1010,7 +1041,7 @@ PROCEDURE scrDivFlag
 (*             evtType - 1 = SUSPENDED   2 = REINSTATED        *)
 (*             newPrc  - resolved stock price this year        *)
 (*             cutPrc  - dividend cutoff price (always 50)     *)
-(*             action  - returns 1 (CONTINUE) on exit          *)
+(*             action  - returns 1=CONTINUE 2=SAVE 3=QUIT      *)
 (* SIDE EFX  : Clears screen. Blocks on keypress via waitKey. *)
 (* ============================================================ *)
 PARAM stkName : STRING[12]
@@ -1040,8 +1071,7 @@ ELSE
   PRINT "  Dividends reinstated."
 ENDIF
 PRINT
-RUN waitKey
-action := 1
+RUN getPhaseNav(action)
 END
 
 900 PRINT "scrDivFlag error ("; ERR; ")"

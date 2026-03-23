@@ -26,6 +26,10 @@ If a syscall detail appears ambiguous or undocumented, use
 
 - Do not assume syntax from other BASIC dialects.
 - Do not invent Basic09 syntax, keywords, or control-flow forms.
+- Do not introduce any Basic09 function, keyword, statement form, or control
+  structure unless it is explicitly documented in the Basic09 reference manual
+  or already demonstrated in current project source. If not verified, do not
+  use it.
 - Follow `bestPractices.md` for declaration order, line numbering, naming,
   comments, and procedure structure.
 - Consult `basic09-error-handling.md` before changing error handling.
@@ -86,6 +90,13 @@ If a syscall detail appears ambiguous or undocumented, use
   structural refactor.
 - In diagnostic harnesses, preserve existing execution order, prompts, pauses,
   and block shape unless the user explicitly asks to change them.
+- Before giving a completion response for any Basic09 source change, run a
+  deliberate self-review against the checklist in
+  `docs/agents/basic09-software-development-agent.md` Section 6 and correct
+  violations first.
+- That self-review must include a targeted scan of the edited procedures for
+  any newly introduced syntax, built-in names, or control-flow forms that were
+  not explicitly verified against the Basic09 manual or existing project code.
 
 ## When Helping With Syscalls
 

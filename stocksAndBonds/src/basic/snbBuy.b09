@@ -40,10 +40,12 @@ DIM pNam       : STRING[27]
 DIM mgnElig    : BOOLEAN
 DIM mgnYrOk    : BOOLEAN
 DIM usrAct     : INTEGER
+DIM navAct     : BYTE
 DIM tInt       : INTEGER
 DIM aiTierVal  : INTEGER
 DIM pTypeVal   : INTEGER
 DIM p          : INTEGER
+DIM startP     : INTEGER
 
 ON ERROR GOTO 900
 
@@ -57,8 +59,12 @@ iCYr   := hdr.currYear
 iMaxYr := hdr.maxYears
 iPCnt  := hdr.plyrCount
 mgnYrOk := FALSE
+startP := 1
+IF hdr.savedPhase = 2 THEN
+  startP := hdr.savedPlyr
+ENDIF
 
-FOR p := 1 TO iPCnt
+FOR p := startP TO iPCnt
   IF NOT plyrs(p).isBankrupt THEN
     pTypeVal  := plyrs(p).plyrType
     aiTierVal := plyrs(p).aiTier
@@ -67,7 +73,14 @@ FOR p := 1 TO iPCnt
     mgnRpy  := 0
     mgnElig := plyrs(p).hadCashPur
     IF plyrs(p).plyrType = 1 THEN
-      RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, usrAct)
+        RUN scrBuy(iCYr, plyrs(p), mkt, mgnElig, mgnYrOk, ordTyp, ordId, ordQty, ordPur, ordCnt, mgnRpy, usrAct)
+        IF usrAct = 3 THEN
+          RUN saveQuitToMenu(2, p, hdr, deckOrd, plyrs, mkt)
+          END
+        ELSE IF usrAct = 4 THEN
+          RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+          END
+        ENDIF
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
         plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
@@ -105,10 +118,32 @@ FOR p := 1 TO iPCnt
           ordQty(decCnt) := mgnRpy
         ENDIF
       ENDIF
-      RUN scrAIBuyTurn(pNam, decAct, ordTyp, ordId, ordQty, decCnt)
+      navAct := 1
+        RUN scrAIBuyTurn(pNam, decAct, ordTyp, ordId, ordQty, decCnt, navAct)
+        IF navAct = 2 THEN
+          IF p < iPCnt THEN
+            RUN saveQuitToMenu(2, p + 1, hdr, deckOrd, plyrs, mkt)
+          ELSE
+            hdr.savedPhase := 0
+            hdr.savedPlyr  := 1
+            IF iCYr >= iMaxYr THEN
+              hdr.gameStage := 3
+            ELSE
+              hdr.gameStage := 2
+            ENDIF
+            RUN saveQuitToMenu(0, 1, hdr, deckOrd, plyrs, mkt)
+          ENDIF
+          END
+        ELSE IF navAct = 3 THEN
+          RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
+          END
+        ENDIF
     ENDIF
   ENDIF
 NEXT p
+
+hdr.savedPhase := 0
+hdr.savedPlyr  := 1
 
 activePlrs := 0
 FOR p := 1 TO iPCnt
@@ -686,7 +721,8 @@ PROCEDURE scrAIBuyTurn
 (*                        0 for REPAY)                         *)
 (*             decQty   - quantity (shares, units, or $ repay) *)
 (*             decCnt   - number of entries in arrays (0..12)  *)
-(* SIDE EFX  : Clears screen. Waits for keypress via waitKey.  *)
+(*             action   - 1=CONTINUE 2=SAVE 3=QUIT            *)
+(* SIDE EFX  : Clears screen. Waits for navigation key.        *)
 (* ============================================================ *)
 PARAM plyrNam    : STRING[27]
 PARAM decAct(12) : BYTE
@@ -694,6 +730,7 @@ PARAM decType(12): INTEGER
 PARAM decId(12)  : INTEGER
 PARAM decQty(12) : INTEGER
 PARAM decCnt     : INTEGER
+PARAM action     : BYTE
 DIM sNam(9) : STRING[14]
 DIM bPar(3) : INTEGER
 DIM i       : INTEGER
@@ -757,7 +794,7 @@ IF shown = 0 THEN
 ENDIF
 
 PRINT
-RUN waitKey
+RUN getPhaseNav(action)
 
 END
 
@@ -791,6 +828,7 @@ PROCEDURE scrBuy
 (*             ordCnt     - output: number of orders (0..12)   *)
 (*             mgnRepay   - output: repayment amount (0=none)  *)
 (*             action     - output: 1=CONFIRM 2=PASS           *)
+(*                          3=SAVE+EXIT 4=QUIT                *)
 (* SIDE EFX  : Clears screen. Calls scrMgnRepay if repayment  *)
 (*             selected. Uses INPUT for order quantities.      *)
 (* ============================================================ *)
@@ -836,6 +874,8 @@ DIM minCash  : INTEGER
 DIM divRate(9): INTEGER
 DIM pTypeVal : INTEGER
 DIM aiTierVal: INTEGER
+DIM kIn      : STRING[1]
+DIM sqAct    : INTEGER
 
 ON ERROR GOTO 900
 
@@ -918,13 +958,31 @@ LOOP
 
   ! Build menu based on margin total and simCash.
   IF simMgn > 0 AND simCash > 0 THEN
-    PRINT "1=Enter orders  2=Repay margin  3=Pass"
+    PRINT "1=Enter orders  2=Repay margin  3=Pass  S=save+exit  Q=quit"
     passKey := 3
-    RUN getMenuKey(1, 3, key)
   ELSE
-    PRINT "1=Enter orders  2=Pass"
+    PRINT "1=Enter orders  2=Pass  S=save+exit  Q=quit"
     passKey := 2
-    RUN getMenuKey(1, 2, key)
+  ENDIF
+  GET #0, kIn
+  PRINT
+
+  RUN getSaveQuitAct(kIn, sqAct)
+  IF sqAct = 3 THEN
+    ordCnt   := 0
+    mgnRepay := 0
+    action   := 3
+    END
+  ELSE IF sqAct = 4 THEN
+    ordCnt   := 0
+    mgnRepay := 0
+    action   := 4
+    END
+  ENDIF
+  IF kIn >= "1" AND kIn <= "3" THEN
+    key := VAL(kIn)
+  ELSE
+    key := 0
   ENDIF
 
   IF key = passKey THEN
@@ -936,16 +994,18 @@ LOOP
   EXITIF key = 1 THEN
   ENDEXIT
 
-  ! key = 2 with simMgn > 0: call margin repayment sub-screen.
-  maxRpy := simMgn
-  IF simCash < maxRpy THEN
-    maxRpy := simCash
+  IF key = 2 THEN
+    ! key = 2 with simMgn > 0: call margin repayment sub-screen.
+    maxRpy := simMgn
+    IF simCash < maxRpy THEN
+      maxRpy := simCash
+    ENDIF
+    repayAmt := 0
+    RUN scrMgnRepay(simMgn, simCash, maxRpy, repayAmt)
+    mgnRepay := mgnRepay + repayAmt
+    simCash  := simCash  - repayAmt
+    simMgn   := simMgn   - repayAmt
   ENDIF
-  repayAmt := 0
-  RUN scrMgnRepay(simMgn, simCash, maxRpy, repayAmt)
-  mgnRepay := mgnRepay + repayAmt
-  simCash  := simCash  - repayAmt
-  simMgn   := simMgn   - repayAmt
 
 ENDLOOP
 
@@ -992,51 +1052,83 @@ LOOP
         RUN fmtMoney(simCash, pStr)
         PRINT "  (cash avail: $"; pStr; ")"
 
-        valid := FALSE
-        WHILE NOT valid DO
-          INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
-          IF qIn = "" THEN
-            qty   := 0
-            valid := TRUE
+      valid := FALSE
+      WHILE NOT valid DO
+        INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
+        IF qIn = "" THEN
+          qty   := 0
+          valid := TRUE
+        ELSE
+          RUN getSaveQuitAct(qIn, sqAct)
+          IF sqAct = 3 THEN
+            ordCnt  := 0
+            mgnRepay := 0
+            action  := 3
+            END
+          ELSE IF sqAct = 4 THEN
+            ordCnt  := 0
+            mgnRepay := 0
+            action  := 4
+            END
           ELSE
             RUN getNumIn(qIn, qty, numOk)
-            IF NOT numOk THEN
-              PRINT "  Invalid: enter a number."
-            ELSE IF qty < 0 THEN
-              PRINT "  Invalid: enter 0 or positive mult of 10."
-            ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
-              PRINT "  Invalid: must be a multiple of 10."
-            ELSE IF qty > 0 THEN
-              ! Determine purchase type.
-              IF canMgn THEN
-                PRINT "  1=Cash  2=Margin"
-                RUN getMenuKey(1, 2, purch)
-              ELSE
-                purch := 1
-              ENDIF
-              ! Compute cost based on type.
-              IF purch = 1 THEN
-                cashCost := qty * mkt.stckPrice(s)
-              ELSE
-                ! Margin: player pays 50% cash upfront.
-                cashCost := (qty * mkt.stckPrice(s)) / 2
-              ENDIF
-              IF cashCost > simCash THEN
-                IF purch = 1 THEN
-                  PRINT "  Insufficient cash (need $"; cashCost; ")."
+              IF NOT numOk THEN
+                PRINT "  Invalid: enter a number."
+              ELSE IF qty < 0 THEN
+                PRINT "  Invalid: enter 0 or positive mult of 10."
+              ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+                PRINT "  Invalid: must be a multiple of 10."
+              ELSE IF qty > 0 THEN
+                ! Determine purchase type.
+                IF canMgn THEN
+                  PRINT "  1=Cash  2=Margin  S=save+exit  Q=quit"
+                  GET #0, kIn
+                  PRINT
+                  RUN getSaveQuitAct(kIn, sqAct)
+                  IF sqAct = 3 THEN
+                    ordCnt   := 0
+                    mgnRepay := 0
+                    action   := 3
+                    END
+                  ELSE IF sqAct = 4 THEN
+                    ordCnt   := 0
+                    mgnRepay := 0
+                    action   := 4
+                    END
+                  ENDIF
+                  IF kIn >= "1" AND kIn <= "2" THEN
+                    purch := VAL(kIn)
+                  ELSE
+                    purch := 1
+                  ENDIF
                 ELSE
-                  PRINT "  Insufficient cash for margin (need $";
-                  PRINT cashCost; ")."
+                  purch := 1
+                ENDIF
+                ! Compute cost based on type.
+                IF purch = 1 THEN
+                  cashCost := qty * mkt.stckPrice(s)
+                ELSE
+                  ! Margin: player pays 50% cash upfront.
+                  cashCost := (qty * mkt.stckPrice(s)) / 2
+                ENDIF
+                IF cashCost > simCash THEN
+                  IF purch = 1 THEN
+                    PRINT "  Insufficient cash (need $"; cashCost; ")."
+                  ELSE
+                    PRINT "  Insufficient cash for margin (need $";
+                    PRINT cashCost; ")."
+                  ENDIF
+                ELSE
+                  simCash := simCash - cashCost
+                  valid   := TRUE
                 ENDIF
               ELSE
-                simCash := simCash - cashCost
-                valid   := TRUE
-              ENDIF
-            ELSE
-              valid := TRUE
-            ENDIF \ENDIF \ENDIF \ENDIF
+                valid := TRUE
+              ENDIF \ENDIF \ENDIF \ENDIF
+            ENDIF
           ENDIF
-        ENDWHILE
+        ENDIF
+      ENDWHILE
 
         IF qty > 0 THEN
           ordCnt              := ordCnt + 1
@@ -1068,22 +1160,35 @@ LOOP
           qty   := 0
           valid := TRUE
         ELSE
-          RUN getNumIn(qIn, qty, numOk)
-          IF NOT numOk THEN
-            PRINT "  Invalid: enter a number."
-          ELSE IF qty < 0 THEN
-            PRINT "  Invalid: enter 0 or a positive number."
-          ELSE IF qty > 0 THEN
-            cashCost := qty * bPar(b)
-            IF cashCost > simCash THEN
-              PRINT "  Insufficient cash (need $"; cashCost; ")."
-            ELSE
-              simCash := simCash - cashCost
-              valid   := TRUE
-            ENDIF
+          RUN getSaveQuitAct(qIn, sqAct)
+          IF sqAct = 3 THEN
+            ordCnt  := 0
+            mgnRepay := 0
+            action  := 3
+            END
+          ELSE IF sqAct = 4 THEN
+            ordCnt  := 0
+            mgnRepay := 0
+            action  := 4
+            END
           ELSE
-            valid := TRUE
-          ENDIF \ENDIF \ENDIF
+            RUN getNumIn(qIn, qty, numOk)
+            IF NOT numOk THEN
+              PRINT "  Invalid: enter a number."
+            ELSE IF qty < 0 THEN
+              PRINT "  Invalid: enter 0 or a positive number."
+            ELSE IF qty > 0 THEN
+              cashCost := qty * bPar(b)
+              IF cashCost > simCash THEN
+                PRINT "  Insufficient cash (need $"; cashCost; ")."
+              ELSE
+                simCash := simCash - cashCost
+                valid   := TRUE
+              ENDIF
+            ELSE
+              valid := TRUE
+            ENDIF \ENDIF \ENDIF
+          ENDIF
         ENDIF
       ENDWHILE
 
@@ -1137,10 +1242,23 @@ LOOP
   RUN fmtMoney(simCash, pStr)
   PRINT "Remaining cash after orders: $"; pStr
   PRINT
-  PRINT "1=Confirm  2=Revise orders"
-  RUN getMenuKey(1, 2, key)
+  PRINT "1=Confirm  2=Revise orders  S=save+exit  Q=quit"
+  GET #0, kIn
+  PRINT
+  RUN getSaveQuitAct(kIn, sqAct)
+  IF sqAct = 3 THEN
+    ordCnt   := 0
+    mgnRepay := 0
+    action   := 3
+    END
+  ELSE IF sqAct = 4 THEN
+    ordCnt   := 0
+    mgnRepay := 0
+    action   := 4
+    END
+  ENDIF
 
-  EXITIF key = 1 THEN
+  EXITIF kIn = "1" THEN
   ENDEXIT
 
 ENDLOOP

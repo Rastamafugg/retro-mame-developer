@@ -8,9 +8,9 @@ PROCEDURE snbEndGame
 (*               S25 scrWealth    - wealth summary (sorted)    *)
 (*               S26 scrWinner    - winner declaration         *)
 (*               S27 scrPostGame  - post-game menu             *)
-(*             pgAct from scrPostGame is not acted on; the     *)
-(*             coordinator exits after this child returns.     *)
-(*             New game / load routing is a future step.       *)
+(*             pgAct from scrPostGame is written back through  *)
+(*             SNBSTATE so the coordinator can route New Game  *)
+(*             and Load Game selections.                       *)
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Reads SNBSTATE. Displays screens. No writes.   *)
@@ -32,6 +32,7 @@ DIM srtOrd(6)  : INTEGER
 DIM loadOK     : BOOLEAN
 DIM iPlyrCnt   : INTEGER  \ ! stages hdr.plyrCount BYTE for INTEGER PARAM
 DIM pgAct      : INTEGER
+DIM done       : BOOLEAN
 
 ON ERROR GOTO 900
 
@@ -46,7 +47,33 @@ iPlyrCnt := hdr.plyrCount  \ ! stage BYTE -> INTEGER
 RUN scrFinalMkt(mkt)
 RUN scrWealth(plyrs, iPlyrCnt, mkt, wlth, srtOrd)
 RUN scrWinner(plyrs, iPlyrCnt, wlth, srtOrd)
-RUN scrPostGame(pgAct)
+
+done := FALSE
+LOOP
+  EXITIF done THEN
+  ENDEXIT
+
+  RUN scrPostGame(pgAct)
+
+  IF pgAct = 1 THEN
+    hdr.savedPhase := 8  \ ! Coordinator: launch new-game setup
+    hdr.savedPlyr  := 0
+    RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+    done := TRUE
+  ELSE IF pgAct = 2 THEN
+    RUN loadGame("SNBGAME", hdr, deckOrd, plyrs, mkt, loadOK)
+    IF loadOK THEN
+      RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
+      done := TRUE
+    ELSE
+      PRINT "snbEndGame: load SNBGAME failed"
+      RUN waitKey
+    ENDIF
+  ELSE
+    done := TRUE
+  ENDIF \ENDIF
+
+ENDLOOP
 END
 
 900 PRINT "snbEndGame error ("; ERR; ")"

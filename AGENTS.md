@@ -20,3 +20,6 @@ before making changes.
 - Preserve existing formatting and line structure in source files.
 - For `stocksAndBonds`, treat the project documentation under
   `stocksAndBonds/docs` as authoritative over general language assumptions.
+- Before responding that a Basic09 code change is complete, follow the
+  project-local review/checklist instructions for that subtree and fix any
+  issues found. Do not treat checklist execution as optional.
