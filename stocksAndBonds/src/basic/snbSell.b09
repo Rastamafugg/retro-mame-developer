@@ -194,13 +194,17 @@ IF iCYr > 1 THEN
             IF plyrs(p).marginTot > 0 THEN
               IF plyrs(p).plyrType = 1 THEN
                 LOOP
+                  EXITIF plyrs(p).isBankrupt THEN
+                  ENDEXIT
                   clrAct := 1
                   RUN scrMgnClr(plyrs(p), mkt, clrAct)
                   IF clrAct = 2 THEN
                     RUN scrBankrupt(plyrs(p), plyrs(p).cashBal, 2, iCYr)
-                    EXITIF TRUE THEN
+                    EXITIF plyrs(p).isBankrupt THEN
                     ENDEXIT
                   ENDIF
+                  EXITIF plyrs(p).isBankrupt THEN
+                  ENDEXIT
                   EXITIF plyrs(p).marginTot <= 0 THEN
                   ENDEXIT
                 ENDLOOP

@@ -964,8 +964,9 @@ LOOP
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
   PRINT "Cash: $"; pStr; " [$"; pStr2; "]";
-  RUN fmtMoney(simMgn, pStr)
-  PRINT "  Margin: $"; pStr
+  RUN fmtMoney(plyr.marginTot, pStr)
+  RUN fmtMoney(simMgn, pStr2)
+  PRINT "  Margin: $"; pStr; " [$"; pStr2; "]"
   IF NOT mgnElig THEN
     PRINT "  (No margin: no prior cash purchase)"
   ENDIF

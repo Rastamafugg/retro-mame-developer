@@ -782,18 +782,20 @@ LOOP
   FOR i := 1 TO ordCnt
     IF ordType(i) = 1 THEN
       prcd := ordQty(i) * mkt.stckPrice(ordId(i))
-      IF plyr.mgnHeld(ordId(i)) THEN
-        actualRpy := simMgn
-        IF prcd < actualRpy THEN
-          actualRpy := prcd
-        ENDIF
-        simMgn  := simMgn - actualRpy
-        simCash := simCash + (prcd - actualRpy)
-      ELSE
-        simCash := simCash + prcd
+      actualRpy := simMgn
+      IF prcd < actualRpy THEN
+        actualRpy := prcd
       ENDIF
+      simMgn  := simMgn - actualRpy
+      simCash := simCash + (prcd - actualRpy)
     ELSE
-      simCash := simCash + (ordQty(i) * bPar(ordId(i)))
+      prcd := ordQty(i) * bPar(ordId(i))
+      actualRpy := simMgn
+      IF prcd < actualRpy THEN
+        actualRpy := prcd
+      ENDIF
+      simMgn  := simMgn - actualRpy
+      simCash := simCash + (prcd - actualRpy)
     ENDIF
   NEXT i
   actualRpy := repay
@@ -1014,8 +1016,27 @@ LOOP
 
 ENDLOOP
 
-oblgRem := plyr.marginTot
-RUN applyLiqOrdr(plyr, mkt, ordType, ordId, ordQty, ordCnt, oblgRem)
+FOR i := 1 TO ordCnt
+  s := ordId(i)
+  b := ordId(i)
+  qty := ordQty(i)
+  IF ordType(i) = 1 THEN
+    prcd := qty * mkt.stckPrice(s)
+    plyr.stckShrs(s) := plyr.stckShrs(s) - qty
+    IF plyr.stckShrs(s) = 0 THEN
+      plyr.mgnHeld(s) := FALSE
+    ENDIF
+  ELSE
+    prcd := qty * bPar(b)
+    plyr.bondUnts(b) := plyr.bondUnts(b) - qty
+  ENDIF \ENDIF
+  actualRpy := plyr.marginTot
+  IF prcd < actualRpy THEN
+    actualRpy := prcd
+  ENDIF
+  plyr.marginTot := plyr.marginTot - actualRpy
+  plyr.cashBal   := plyr.cashBal + (prcd - actualRpy)
+NEXT i
 
 actualRpy := repay
 IF actualRpy > plyr.marginTot THEN
