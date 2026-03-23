@@ -15,6 +15,8 @@ Superseded by: `phase-child-design.md` for runtime architecture
 
 This file is retained for code division notes and measured module-size data.
 Its same-process load/unload model is no longer the current implementation.
+`snbTrade.b09` and `snbMgnScr.b09` were later retired after their procedures
+were moved into phase children and `snbMargin.b09`.
 
 Each packed module file is named after the first procedure in its PACK list.
 All such entry procedures must carry the `snb` prefix for consistent file
@@ -27,12 +29,10 @@ grouping. The table below records every entry procedure for each module.
 | `snbBuySell`    | `snbBuySell`  | `snbBuySell.b09`    |
 | `snbEndGame`    | `snbEndGame`  | `snbEndGame.b09`    |
 | `snbMargin`     | `snbMargin`   | `snbMargin.b09`     |
-| `snbMgnScr`     | `snbMgnScr`   | `snbMgnScr.b09`     |
 | `snbMktEng`     | `snbMktEng`   | `snbMktEng.b09`     |
 | `snbMktScr`     | `snbMktScr`   | `snbMktScr.b09`     |
 | `snbSaveLoad`   | `snbSaveLoad` | `snbSaveLoad.b09`   |
 | `snbSetup`      | `snbSetup`    | `snbSetup.b09`      |
-| `snbTrade`      | `snbTrade`    | `snbTrade.b09`      |
 | `snbUtil`       | `snbUtil`     | `snb.b09`           |
 | `snbYearLoop`   | `snbYearLoop` | `snbYearLoop.b09`   |
 
@@ -46,13 +46,11 @@ grouping. The table below records every entry procedure for each module.
 | `snbAI`        | snbAI, initAIProf, aiSell, aiBuy                                                                         | snbUtil              |
 | `snbBuySell`   | snbBuySell, scrSell, scrBuy                                                                              | snbUtil              |
 | `snbEndGame`   | snbEndGame, scrFinalMkt, scrWealth, scrWinner, scrPostGame                                               | snbUtil              |
-| `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrBankrupt, scrMgnInt                                              | snbUtil, snbTrade    |
-| `snbMgnScr`    | snbMgnScr, scrForceLiq, scrMgnClr                                                                        | snbUtil, snbTrade    |
+| `snbMargin`    | snbMargin, scrMgnCall, applyLiqOrdr, scrBankrupt, scrMgnInt, aiLiqOrdr, scrForceLiq, scrMgnClr         | snbUtil              |
 | `snbMktEng`    | snbMktEng, getMktDelta, getCard, resolvePrice, applyMktYear, applyDivInt, applyMgnInt, drawCard, doRolls | snbUtil              |
 | `snbMktScr`    | snbMktScr, scrYearHdr, scrDivInt, scrDivFlag, scrCard, scrDice, scrMktBoard, scrSplit                    | snbUtil, snbMktEng   |
 | `snbSaveLoad`  | snbSaveLoad, saveGame, loadGame                                                                          | snbUtil              |
 | `snbSetup`     | snbSetup, initPlayer, initMkt, scrStart, scrSetup, scrConfirm                                            | snbUtil, snbSaveLoad |
-| `snbTrade`     | snbTrade, scrMgnRepay, scrAITurn, applySells, applyBuys                                                  | snbUtil              |
 | `snbUtil`      | snbUtil, clrScr, printAt, fmtMoney, getMenuKey, waitKey, getNumIn, shuffleDeck                           | *(none)*             |
 | `snbYearLoop`  | snbYearLoop, runYearLoop                                                                                 | snbUtil              |
 

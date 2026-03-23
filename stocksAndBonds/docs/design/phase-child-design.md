@@ -211,9 +211,7 @@ Notes:
 | File | Key procedures | Role |
 |------|----------------|------|
 | `snbUtil.b09` | `clrScr`, `printAt`, `fmtMoney`, `fmtPlyrName`, `getMenuKey`, `waitKey`, `getNumIn`, `saveGame`, `loadGame`, `guardSave`, `initAIProf`, `shuffleDeck` | Utility, save/load, and shared setup helpers |
-| `snbTrade.b09` | `applySells`, `applyBuys`, `scrMgnRepay`, `scrAITurn` | Shared trade engine and generic trade UI |
-| `snbMargin.b09` | `scrMgnCall`, `applyLiqOrdr`, `scrBankrupt`, `scrMgnInt` | Margin and liquidation engine/screens |
-| `snbMgnScr.b09` | `scrForceLiq`, `scrMgnClr` | Dedicated margin/liquidation input screens |
+| `snbMargin.b09` | `scrMgnCall`, `applyLiqOrdr`, `scrBankrupt`, `scrMgnInt`, `aiLiqOrdr`, `scrForceLiq`, `scrMgnClr` | Shared margin and liquidation engine/screens |
 
 ### 6.3 Procedures co-located inside child modules
 
