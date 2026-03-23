@@ -101,7 +101,7 @@ IF actByt = 2 THEN
 ELSE IF actByt = 3 THEN
   RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
   END
-ENDIF
+ENDIF \ENDIF
 
 ! Each market phase runs in a fresh child process, so reseed the
 ! RNG from persisted game state before generating this year's dice.
@@ -126,7 +126,7 @@ IF actByt = 2 THEN
 ELSE IF actByt = 3 THEN
   RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
   END
-ENDIF
+ENDIF \ENDIF
 
 ! Resolve all stock prices for this year.
 ! Line exceeds 79 chars; RUN statement cannot be split.
@@ -141,7 +141,7 @@ IF actByt = 2 THEN
 ELSE IF actByt = 3 THEN
   RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
   END
-ENDIF
+ENDIF \ENDIF
 
 ! Display S14/S15 per stock where a notable event occurred.
 FOR s := 1 TO 9
@@ -171,7 +171,7 @@ FOR s := 1 TO 9
     ELSE IF actByt = 3 THEN
       RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
       END
-    ENDIF
+    ENDIF \ENDIF
   ENDIF
   IF dvSusp(s) OR dvRnst(s) THEN
     ! Read stock name at position s from DATA 720.
@@ -191,7 +191,7 @@ FOR s := 1 TO 9
     ELSE IF actByt = 3 THEN
       RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
       END
-    ENDIF
+    ENDIF \ENDIF
   ENDIF
 NEXT s
 

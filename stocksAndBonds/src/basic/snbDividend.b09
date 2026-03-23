@@ -130,7 +130,7 @@ IF iCYr > 1 THEN
       ELSE IF actByt = 3 THEN
         RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
         END
-      ENDIF
+      ENDIF \ENDIF
     ENDIF
   NEXT p
 
