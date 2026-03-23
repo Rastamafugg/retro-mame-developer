@@ -9,8 +9,8 @@ PROCEDURE snbEndGame
 (*               S26 scrWinner    - winner declaration         *)
 (*               S27 scrPostGame  - post-game menu             *)
 (*             pgAct from scrPostGame is written back through  *)
-(*             SNBSTATE so the coordinator can route New Game  *)
-(*             and Load Game selections.                       *)
+(*             SNBSTATE so the coordinator can route a return  *)
+(*             to the main menu.                               *)
 (*             Called by the SNB coordinator via forkPhase.    *)
 (* PARAMS    : None (child process; no PARAM handoff)          *)
 (* SIDE EFX  : Reads SNBSTATE. Displays screens. No writes.   *)
@@ -56,22 +56,13 @@ LOOP
   RUN scrPostGame(pgAct)
 
   IF pgAct = 1 THEN
-    hdr.savedPhase := 8  \ ! Coordinator: launch new-game setup
+    hdr.savedPhase := 8  \ ! Coordinator: return to setup/main menu
     hdr.savedPlyr  := 0
     RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
     done := TRUE
-  ELSE IF pgAct = 2 THEN
-    RUN loadGame("SNBGAME", hdr, deckOrd, plyrs, mkt, loadOK)
-    IF loadOK THEN
-      RUN saveGame("SNBSTATE", hdr, deckOrd, plyrs, mkt)
-      done := TRUE
-    ELSE
-      PRINT "snbEndGame: load SNBGAME failed"
-      RUN waitKey
-    ENDIF
   ELSE
     done := TRUE
-  ENDIF \ENDIF
+  ENDIF
 
 ENDLOOP
 END
@@ -339,12 +330,11 @@ END
 PROCEDURE scrPostGame
 (* ============================================================ *)
 (* PROCEDURE : scrPostGame                                      *)
-(* PURPOSE   : S27 Post-Game Menu. Presents options to start   *)
-(*             a new game, load a saved game, or quit.         *)
+(* PURPOSE   : S27 Post-Game Menu. Presents options to return  *)
+(*             to the main menu or quit.                       *)
 (* PARAMS    : action - receives selection on return:          *)
-(*               1 = New Game                                 *)
-(*               2 = Load Game                                *)
-(*               3 = Quit                                     *)
+(*               1 = Return to Main Menu                      *)
+(*               2 = Quit                                     *)
 (* SIDE EFX  : Clears screen. Blocks until valid key.          *)
 (* ============================================================ *)
 PARAM action : INTEGER
@@ -356,12 +346,11 @@ PRINT
 PRINT "  GAME OVER"
 PRINT "  ========="
 PRINT
-PRINT "  1. New Game"
-PRINT "  2. Load Game"
-PRINT "  3. Quit"
+PRINT "  1. Return to Main Menu"
+PRINT "  2. Quit"
 PRINT
-PRINT "  Select (1-3): ";
-RUN getMenuKey(1, 3, action)
+PRINT "  Select (1-2): ";
+RUN getMenuKey(1, 2, action)
 PRINT
 END
 
