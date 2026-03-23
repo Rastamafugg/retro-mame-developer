@@ -118,6 +118,11 @@ FOR s := 1 TO 9
   rolls(s) := rTot(s)
 NEXT s
 
+! Precompute market-table deltas for S12 display.
+FOR s := 1 TO 9
+  RUN getMktDelta(s, crd.crdType, rolls(s), mktDlt(s))
+NEXT s
+
 ! Display S12 dice roll results.
 RUN scrDice(crd.crdType, rCnt, dOne, dTwo, rTot, mktDlt, actByt)
 IF actByt = 2 THEN
@@ -202,6 +207,7 @@ IF crd.divBonus > 0 AND iCYr > 1 AND iCYr < iMaxYr THEN
     IF NOT plyrs(p).isBankrupt THEN
       FOR s := 1 TO 9
         IF plyrs(p).stckShrs(s) > 0 THEN
+          ! Line exceeds 79 chars; arithmetic update requires single line.
           plyrs(p).cashBal := plyrs(p).cashBal + (plyrs(p).stckShrs(s) * crd.divBonus)
         ENDIF
       NEXT s
@@ -861,7 +867,8 @@ IF rollCnt = 9 THEN
   RESTORE 100
   FOR r := 1 TO rollCnt
     READ sName
-    PRINT USING "'  ',S12<,X4,I3>,X2,I3>,X2,I3>,X3,I4>", sName, dieOne(r), dieTwo(r), rollTot(r), mktDlt(r)
+    ! Line exceeds 79 chars; PRINT USING row format requires single line.
+    PRINT USING "'  ',S12<,X4,I3>,X2,I3>,X2,I3>,X1,I4>", sName, dieOne(r), dieTwo(r), rollTot(r), mktDlt(r)
   NEXT r
 ELSE
   ! Single-roll display: Mode A or Mode B Years 2-10.

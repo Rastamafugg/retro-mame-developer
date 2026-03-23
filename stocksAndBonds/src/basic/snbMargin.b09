@@ -80,19 +80,20 @@ PROCEDURE applyLiqOrdr
 (* PURPOSE   : Apply forced liquidation sell orders from S21   *)
 (*             to the player record. Recalculates cashBal and  *)
 (*             oblgRem after each order.                       *)
-(*             Stock sell (spec 11.1 + 11.3):                  *)
+(*             Stock sell (forced liquidation rule):           *)
 (*               prcd := qty * stckPrice(s)                    *)
-(*               If mgnHeld(s): repay := MIN(marginTot, prcd)  *)
-(*                   (inline; MIN does not exist in Basic09)   *)
-(*                   marginTot -= repay                        *)
-(*                   cashBal   += prcd - repay                 *)
-(*               Else: cashBal += prcd                         *)
+(*               oblgRem is reduced by proceeds first.         *)
+(*               Any excess after oblgRem reaches 0 is added   *)
+(*               to cashBal. marginTot is NOT reduced here;    *)
+(*               margin repayment happens later via normal     *)
+(*               repayment flow.                               *)
 (*               stckShrs(s) -= qty                            *)
 (*               mgnHeld(s) cleared only when stckShrs(s) = 0  *)
-(*             Bond sell (spec 11.2):                           *)
-(*               cashBal += bPar(b)  (parValue per unit)       *)
+(*             Bond sell (same forced-liquidation rule):       *)
+(*               oblgRem reduced by proceeds first             *)
+(*               excess proceeds added to cashBal              *)
 (*               bondUnts(b) -= qty                            *)
-(*             oblgRem reduced by full proceeds, clamped at 0. *)
+(*             oblgRem is clamped at 0 after each order.       *)
 (*             ordCnt = 0 is a safe no-op.                     *)
 (* PARAMS    : plyr      - player record (modified)            *)
 (*             mkt       - market state (read-only)            *)
@@ -101,7 +102,7 @@ PROCEDURE applyLiqOrdr
 (*             ordQty    - quantity per order                  *)
 (*             ordCnt    - number of orders (0..12)            *)
 (*             oblgRem   - obligation remaining (modified)     *)
-(* SIDE EFX  : Modifies plyr.cashBal, plyr.marginTot,         *)
+(* SIDE EFX  : Modifies plyr.cashBal,                         *)
 (*             plyr.stckShrs, plyr.mgnHeld, plyr.bondUnts.     *)
 (*             Reduces oblgRem; clamps to 0.                   *)
 (* ============================================================ *)
@@ -121,7 +122,7 @@ DIM s       : INTEGER
 DIM b       : INTEGER
 DIM qty     : INTEGER
 DIM prcd    : INTEGER
-DIM repay   : INTEGER
+DIM applyAmt: INTEGER
 
 ON ERROR GOTO 900
 
@@ -140,19 +141,6 @@ FOR i := 1 TO ordCnt
     ! Stock sell
     prcd := qty * mkt.stckPrice(s)
 
-    IF plyr.mgnHeld(s) THEN
-      ! Repay margin from proceeds (spec 11.3)
-      ! Inline MIN: repay := MIN(plyr.marginTot, prcd)
-      repay := plyr.marginTot
-      IF prcd < repay THEN
-        repay := prcd
-      ENDIF
-      plyr.marginTot := plyr.marginTot - repay
-      plyr.cashBal   := plyr.cashBal + (prcd - repay)
-    ELSE
-      plyr.cashBal := plyr.cashBal + prcd
-    ENDIF
-
     plyr.stckShrs(s) := plyr.stckShrs(s) - qty
     IF plyr.stckShrs(s) = 0 THEN
       plyr.mgnHeld(s) := FALSE
@@ -162,13 +150,17 @@ FOR i := 1 TO ordCnt
 
     ! Bond sell
     prcd := qty * bPar(b)
-    plyr.cashBal    := plyr.cashBal + prcd
     plyr.bondUnts(b) := plyr.bondUnts(b) - qty
 
   ENDIF \ENDIF
 
-  ! Reduce obligation by full proceeds; clamp at 0.
-  oblgRem := oblgRem - prcd
+  ! Apply proceeds to obligation first; excess becomes cash.
+  applyAmt := oblgRem
+  IF prcd < applyAmt THEN
+    applyAmt := prcd
+  ENDIF
+  oblgRem := oblgRem - applyAmt
+  plyr.cashBal := plyr.cashBal + (prcd - applyAmt)
   IF oblgRem < 0 THEN
     oblgRem := 0
   ENDIF
@@ -278,6 +270,7 @@ PARAM cashAft  : INTEGER
 PARAM isFrcLiq : BOOLEAN
 PARAM action   : INTEGER
 DIM pStr : STRING[8]
+DIM kIn  : STRING[1]
 
 ON ERROR GOTO 900
 
@@ -312,7 +305,18 @@ IF isFrcLiq THEN
 ENDIF
 
 PRINT "  X=confirm  S=save+exit  Q=quit"
-RUN getPhaseNav(action)
+REPEAT
+  GET #0, kIn
+  PRINT
+! Line exceeds 79 chars; UNTIL key filter requires single line.
+UNTIL kIn = "X" OR kIn = "x" OR kIn = "S" OR kIn = "s" OR kIn = "Q" OR kIn = "q"
+IF kIn = "S" OR kIn = "s" THEN
+  action := 2
+ELSE IF kIn = "Q" OR kIn = "q" THEN
+  action := 3
+ELSE
+  action := 1
+ENDIF \ENDIF
 END
 
 900 PRINT "scrMgnInt error ("; ERR; ")"
@@ -476,6 +480,7 @@ DIM selIdx  : INTEGER
 DIM kIn     : STRING[1]
 DIM simCash : INTEGER
 DIM simMgn  : INTEGER
+DIM simOblg : INTEGER
 DIM repay   : INTEGER
 DIM prcd    : INTEGER
 
@@ -506,21 +511,18 @@ LOOP
 
   simCash := plyr.cashBal
   simMgn  := plyr.marginTot
+  simOblg := oblgRem
   FOR i := 1 TO ordCnt
     IF ordType(i) = 1 THEN
       prcd := ordQty(i) * mkt.stckPrice(ordId(i))
-      IF plyr.mgnHeld(ordId(i)) THEN
-        repay := simMgn
-        IF prcd < repay THEN
-          repay := prcd
-        ENDIF
-        simMgn  := simMgn - repay
-        simCash := simCash + (prcd - repay)
-      ELSE
-        simCash := simCash + prcd
-      ENDIF
+      simCash := simCash + prcd
     ELSE
-      simCash := simCash + (ordQty(i) * bPar(ordId(i)))
+      prcd := ordQty(i) * bPar(ordId(i))
+      simCash := simCash + prcd
+    ENDIF
+    simOblg := simOblg - prcd
+    IF simOblg < 0 THEN
+      simOblg := 0
     ENDIF
   NEXT i
 
@@ -528,14 +530,14 @@ LOOP
   PRINT "=== FORCED LIQUIDATION ==="
   PRINT "  Player: "; plyrNam
   PRINT
-  RUN fmtMoney(oblgRem, pStr)
-  PRINT "  Obligation remaining : $"; pStr
-  RUN fmtMoney(plyr.marginTot, pStr)
-  RUN fmtMoney(simMgn, pStr2)
-  PRINT "  Current margin       : $"; pStr; " [$"; pStr2; "]"
   RUN fmtMoney(plyr.cashBal, pStr)
   RUN fmtMoney(simCash, pStr2)
   PRINT "  Current cash         : $"; pStr; " [$"; pStr2; "]"
+  RUN fmtMoney(plyr.marginTot, pStr)
+  PRINT "  Current margin       : $"; pStr
+  RUN fmtMoney(oblgRem, pStr)
+  RUN fmtMoney(simOblg, pStr2)
+  PRINT "  Obligation remaining : $"; pStr; " [$"; pStr2; "]"
   PRINT
 
   mapCnt := 0
@@ -576,13 +578,13 @@ LOOP
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
       PRINT USING "'  ',S1<,' ',S12<,I5>,' shrs @ $',I4>", keyLbl, sNam(s), plyr.stckShrs(s), mkt.stckPrice(s);
       IF plyr.mgnHeld(s) THEN
-        PRINT " [M]"
+        PRINT " [M]";
       ELSE
-        PRINT
       ENDIF
       IF slotQty > 0 THEN
-        PRINT "    [Sell "; slotQty; "]"
+        PRINT "  [Sell "; slotQty; "]";
       ENDIF
+      PRINT
     ENDIF
   NEXT s
   PRINT
@@ -608,10 +610,11 @@ LOOP
       NEXT i
       keyLbl := CHR$(mapKey(mapCnt))
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
-      PRINT USING "'  ',S1<,' $',I5>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
+      PRINT USING "'  ',S1<,' $',I6>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
-        PRINT "    [Sell "; slotQty; "]"
+        PRINT "  [Sell "; slotQty; "]";
       ENDIF
+      PRINT
     ENDIF
   NEXT b
   PRINT
@@ -926,7 +929,7 @@ LOOP
       NEXT i
       keyLbl := CHR$(mapKey(mapCnt))
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
-      PRINT USING "'  ',S1<,' $',I5>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
+      PRINT USING "'  ',S1<,' $',I6>,' bond  ',I3>,' unit(s)'", keyLbl, bPar(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
         PRINT "    [Sell "; slotQty; "]"
       ENDIF

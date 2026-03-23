@@ -951,7 +951,7 @@ LOOP
       NEXT i
       keyLbl := CHR$(mapKey(mapCnt))
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
-      PRINT USING "'  ',S1<,' $',I5>,'  ',I3>,' unit(s)'", keyLbl, bDen(b), plyr.bondUnts(b);
+      PRINT USING "'  ',S1<,' $',I6>,'  ',I3>,' unit(s)'", keyLbl, bDen(b), plyr.bondUnts(b);
       IF slotQty > 0 THEN
         PRINT "  [Sell "; slotQty; "]"
       ELSE
@@ -1037,7 +1037,7 @@ LOOP
       valid := FALSE
       WHILE NOT valid DO
         IF mapType(selIdx) = 1 THEN
-          PRINT sNam(s); "  "; plyr.stckShrs(s); " shrs held"
+          PRINT "  "; sNam(s); "  "; plyr.stckShrs(s); " shrs held"
           INPUT "  Sell qty (0/Enter=clear, mult of 10): ", qIn
         ELSE
           PRINT "$"; bDen(b); " bond  "; plyr.bondUnts(b); " unit(s) held"

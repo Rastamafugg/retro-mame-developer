@@ -674,20 +674,20 @@ DIM pStr  : STRING[8]
 ON ERROR GOTO 900
 
 RUN clrScr
-PRINT "=== MARGIN REPAYMENT (S18) ==="
+PRINT "=== MARGIN REPAYMENT ==="
 PRINT
 RUN fmtMoney(marginTot, pStr)
-PRINT "Outstanding margin : $"; pStr
+PRINT "  Outstanding margin : $"; pStr
 RUN fmtMoney(cashBal, pStr)
-PRINT "Cash available     : $"; pStr
+PRINT "  Cash available     : $"; pStr
 RUN fmtMoney(maxRpy, pStr)
-PRINT "Maximum repayable  : $"; pStr
+PRINT "  Maximum repayable  : $"; pStr
 PRINT
 
 valid := FALSE
 WHILE NOT valid DO
-  PRINT "Enter repayment amount (0 to "; maxRpy; ", 0=none):"
-  INPUT "> ", qIn
+  PRINT "  Enter repayment amount (0 to "; maxRpy; ", 0=none):"
+  INPUT "  > ", qIn
   IF qIn = "" THEN
     amt   := 0
     valid := TRUE
@@ -887,6 +887,8 @@ DIM mapType(12): INTEGER
 DIM mapId(12)  : INTEGER
 DIM mapKey(12) : INTEGER
 DIM keyLbl   : STRING[1]
+DIM holdQty  : INTEGER
+DIM totalQty : INTEGER
 DIM slotIdx  : INTEGER
 DIM slotQty  : INTEGER
 DIM selIdx   : INTEGER
@@ -995,11 +997,14 @@ LOOP
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
       PRINT USING "'  ',S1<,' ',S12<,'  $',I4>,' ',I2>,'% -> $',I4>", keyLbl, sNam(s), mkt.stckPrice(s), yldPct, divVal;
+      holdQty := plyr.stckShrs(s)
+      PRINT "  Own "; holdQty;
       IF slotQty > 0 THEN
+        totalQty := holdQty + slotQty
         IF purch = 2 THEN
-          PRINT "  [Buy "; slotQty; " M]"
+          PRINT "  [Buy "; slotQty; " M] = "; totalQty; " Total"
         ELSE
-          PRINT "  [Buy "; slotQty; " C]"
+          PRINT "  [Buy "; slotQty; " C] = "; totalQty; " Total"
         ENDIF
       ELSE
         PRINT
@@ -1028,9 +1033,12 @@ LOOP
     ELSE
       divVal := 500
     ENDIF \ENDIF
-    PRINT USING "'  ',S1<,' $',I5>,'  int=$',I4>", keyLbl, bPar(b), divVal;
+    PRINT USING "'  ',S1<,' $',I6>,'  int=$',I4>", keyLbl, bPar(b), divVal;
+    holdQty := plyr.bondUnts(b)
+    PRINT "  Own "; holdQty;
     IF slotQty > 0 THEN
-      PRINT "  [Buy "; slotQty; "]"
+      totalQty := holdQty + slotQty
+      PRINT "  [Buy "; slotQty; "] = "; totalQty; " Total"
     ELSE
       PRINT
     ENDIF
@@ -1149,7 +1157,7 @@ LOOP
       valid := FALSE
       WHILE NOT valid DO
         IF mapType(selIdx) = 1 THEN
-          PRINT sNam(s); " @ $"; mkt.stckPrice(s)
+          PRINT "  "; sNam(s); " @ $"; mkt.stckPrice(s)
           INPUT "  Buy qty (0/Enter=clear, mult of 10): ", qIn
         ELSE
           PRINT "$"; bPar(b); " bond"
