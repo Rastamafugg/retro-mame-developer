@@ -57,6 +57,13 @@ If a syscall detail appears ambiguous or undocumented, use
 ## Implementation Expectations
 
 - Review the full procedure before editing a `.b09` file.
+- For Basic09 control-flow fixes, edit only the named procedure range and use
+  exact local context. Do not patch repeated `ENDIF` or similar closure lines
+  by broad text replacement across the file.
+- For every `IF` or `ELSE IF` added in a procedure edit, verify the matching
+  closure count in that same procedure before making any further edits.
+- After any control-flow edit, immediately re-read the exact edited line block
+  to confirm the patch landed in the intended procedure and nowhere else.
 - Reuse existing utility procedures and established TYPE definitions when
   possible.
 - Check new identifiers against the reserved-word guidance in

@@ -18,6 +18,10 @@ before making changes.
 
 - Keep changes scoped to the user's request.
 - Preserve existing formatting and line structure in source files.
+- For Basic09 control-flow edits, modify only the named procedure or exact
+  target block. Do not apply broad or repeated-text replacements to `IF`,
+  `ELSE IF`, `ENDIF`, `WHILE`, `ENDWHILE`, `LOOP`, or `ENDLOOP` lines outside
+  the intended local context.
 - For `stocksAndBonds`, treat the project documentation under
   `stocksAndBonds/docs` as authoritative over general language assumptions.
 - Before responding that a Basic09 code change is complete, follow the
