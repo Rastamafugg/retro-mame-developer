@@ -812,14 +812,15 @@ PROCEDURE scrBuy
 (* ============================================================ *)
 (* PROCEDURE : scrBuy                                           *)
 (* PURPOSE   : S17 Human Buy Phase screen.                     *)
-(*             Displays cash, margin, eligibility flags, stock *)
-(*             prices, and bond options. Accepts buy orders    *)
-(*             with per-order purchase type (CASH or MARGIN).  *)
-(*             Includes inline margin repayment via scrMgnRepay.*)
-(*             Validates all orders against simulated cash.    *)
-(*             Does NOT modify plyr; caller applies via        *)
-(*             applyBuys. mgnRepay returned for caller to apply*)
-(*             before applyBuys is called.                     *)
+(*             Displays market choices and pending buy orders  *)
+(*             in a persistent keyed editor. Each asset row    *)
+(*             shows its selection key. Selecting a key edits  *)
+(*             only that one security, then returns to the     *)
+(*             main buy screen. M edits margin repayment.      *)
+(*             Stock quantity is entered first, then 1=CASH    *)
+(*             or 2=MARGIN when margin is eligible. Validates  *)
+(*             all orders against simulated cash. Does NOT     *)
+(*             modify plyr; caller applies via applyBuys.      *)
 (*             Bankrupt stocks (price=0) excluded from display.*)
 (* PARAMS    : currYear   - current year (1..10)               *)
 (*             plyr       - player record (read-only)          *)
@@ -827,7 +828,6 @@ PROCEDURE scrBuy
 (*             mgnElig    - margin purchase eligible           *)
 (*                          (plyr.hadCashPur from caller)      *)
 (*             mgnYrOk    - margin allowed this year           *)
-(*                          (currently FALSE while disabled)   *)
 (*             ordType    - output: 1=STOCK 2=BOND per order   *)
 (*             ordId      - output: asset index per order      *)
 (*             ordQty     - output: quantity per order         *)
@@ -836,8 +836,8 @@ PROCEDURE scrBuy
 (*             mgnRepay   - output: repayment amount (0=none)  *)
 (*             action     - output: 1=CONFIRM 2=PASS           *)
 (*                          3=SAVE+EXIT 4=QUIT                *)
-(* SIDE EFX  : Clears screen. Calls scrMgnRepay if repayment  *)
-(*             selected. Uses INPUT for order quantities.      *)
+(* SIDE EFX  : Clears screen. Calls scrMgnRepay if repayment   *)
+(*             selected. Uses GET and INPUT.                   *)
 (* ============================================================ *)
 ! Line exceeds 79 chars; TYPE statement requires single line.
 TYPE PlyrRec = plyrName:STRING[20];plyrType:BYTE;cashBal,marginTot,obligation:INTEGER;isBankrupt,hadCashPur:BOOLEAN;aiTier:BYTE;stckShrs(9):INTEGER;mgnHeld(9):BOOLEAN;bondUnts(3):INTEGER
@@ -862,8 +862,6 @@ DIM i        : INTEGER
 DIM s        : INTEGER
 DIM b        : INTEGER
 DIM qty      : INTEGER
-DIM key      : INTEGER
-DIM passKey  : INTEGER
 DIM purch    : INTEGER
 DIM cashCost : INTEGER
 DIM repayAmt : INTEGER
@@ -877,12 +875,24 @@ DIM dispNam  : STRING[27]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
-DIM minCash  : INTEGER
 DIM divRate(9): INTEGER
 DIM pTypeVal : INTEGER
 DIM aiTierVal: INTEGER
 DIM kIn      : STRING[1]
 DIM sqAct    : INTEGER
+DIM keyCode  : INTEGER
+DIM mapCnt   : INTEGER
+DIM mapType(12): INTEGER
+DIM mapId(12)  : INTEGER
+DIM mapKey(12) : INTEGER
+DIM slotIdx  : INTEGER
+DIM slotQty  : INTEGER
+DIM selIdx   : INTEGER
+DIM baseCash : INTEGER
+DIM baseMgn  : INTEGER
+DIM cost     : INTEGER
+DIM mgnPay   : INTEGER
+DIM cnfIn    : STRING[1]
 
 ON ERROR GOTO 900
 
@@ -913,15 +923,35 @@ bPar(3) := 10000
 ! canMgn: TRUE only when both eligibility conditions met.
 canMgn   := mgnElig AND mgnYrOk
 mgnRepay := 0
-simCash  := plyr.cashBal
-simMgn   := plyr.marginTot
+ordCnt := 0
+FOR i := 1 TO 12
+  ordType(i)  := 0
+  ordId(i)    := 0
+  ordQty(i)   := 0
+  ordPurch(i) := 0
+NEXT i
 
-! ============================================================
-! Phase 1: repayment and enter/pass decision.
-! Loop redisplays after each repayment so updated cash/margin
-! are visible before the player commits to order entry.
-! ============================================================
 LOOP
+
+  simCash := plyr.cashBal - mgnRepay
+  simMgn  := plyr.marginTot - mgnRepay
+  FOR i := 1 TO ordCnt
+    IF ordType(i) = 1 THEN
+      s := ordId(i)
+      cost := ordQty(i) * mkt.stckPrice(s)
+      IF ordPurch(i) = 2 THEN
+        cashCost := cost / 2
+        mgnPay   := cost - cashCost
+        simCash  := simCash - cashCost
+        simMgn   := simMgn + mgnPay
+      ELSE
+        simCash := simCash - cost
+      ENDIF
+    ELSE
+      b := ordId(i)
+      simCash := simCash - (ordQty(i) * bPar(b))
+    ENDIF
+  NEXT i
 
   RUN clrScr
   pTypeVal  := plyr.plyrType
@@ -936,11 +966,28 @@ LOOP
   IF NOT mgnElig THEN
     PRINT "  (No margin: no prior cash purchase)"
   ENDIF
+  IF mgnRepay > 0 THEN
+    RUN fmtMoney(mgnRepay, pStr)
+    PRINT "  Pending repay: $"; pStr
+  ENDIF
   PRINT
 
+  mapCnt := 0
   PRINT "STOCKS:"
   FOR s := 1 TO 9
     IF mkt.stckPrice(s) > 0 THEN
+      mapCnt := mapCnt + 1
+      mapType(mapCnt) := 1
+      mapId(mapCnt)   := s
+      mapKey(mapCnt)  := ASC("0") + mapCnt
+      slotQty := 0
+      purch   := 1
+      FOR i := 1 TO ordCnt
+        IF ordType(i) = 1 AND ordId(i) = s THEN
+          slotQty := ordQty(i)
+          purch   := ordPurch(i)
+        ENDIF
+      NEXT i
       RUN fmtMoney(mkt.stckPrice(s), pStr)
       yldPct := divRate(s)
       divVal := (mkt.stckPrice(s) * divRate(s)) / 100
@@ -948,26 +995,50 @@ LOOP
       IF LEN(sNam(s)) = 11 THEN
         nSep := " "
       ENDIF
-      PRINT " "; s; " "; sNam(s); nSep; "  $"; pStr;
-      PRINT " "; yldPct; "% -> $"; divVal
+      PRINT CHR$(mapKey(mapCnt)); " "; sNam(s); nSep; "  $"; pStr;
+      PRINT " "; yldPct; "% -> $"; divVal;
+      IF slotQty > 0 THEN
+        IF purch = 2 THEN
+          PRINT "  [Buy "; slotQty; " M]"
+        ELSE
+          PRINT "  [Buy "; slotQty; " C]"
+        ENDIF
+      ELSE
+        PRINT
+      ENDIF
     ENDIF
   NEXT s
 
   PRINT
   PRINT "BONDS:"
-  PRINT " 1  Small  par=$1000   int=$50"
-  PRINT " 2  Medium par=$5000   int=$250"
-  PRINT " 3  Large  par=$10000  int=$500"
-  PRINT
+  FOR b := 1 TO 3
+    mapCnt := mapCnt + 1
+    mapType(mapCnt) := 2
+    mapId(mapCnt)   := b
+    mapKey(mapCnt)  := ASC("A") + b - 1
+    slotQty := 0
+    FOR i := 1 TO ordCnt
+      IF ordType(i) = 2 AND ordId(i) = b THEN
+        slotQty := ordQty(i)
+      ENDIF
+    NEXT i
+    PRINT CHR$(mapKey(mapCnt)); " $"; bPar(b); "  int=$";
+    IF b = 1 THEN
+      PRINT "50";
+    ELSE IF b = 2 THEN
+      PRINT "250";
+    ELSE
+      PRINT "500";
+    ENDIF \ENDIF
+    IF slotQty > 0 THEN
+      PRINT "  [Buy "; slotQty; "]"
+    ELSE
+      PRINT
+    ENDIF
+  NEXT b
 
-  ! Build menu based on margin total and simCash.
-  IF simMgn > 0 AND simCash > 0 THEN
-    PRINT "1=Enter orders  2=Repay margin  3=Pass  S=save+exit  Q=quit"
-    passKey := 3
-  ELSE
-    PRINT "1=Enter orders  2=Pass  S=save+exit  Q=quit"
-    passKey := 2
-  ENDIF
+  PRINT
+  PRINT "P=confirm orders  M=repay margin  S=save+exit  Q=quit"
   GET #0, kIn
   PRINT
 
@@ -983,107 +1054,117 @@ LOOP
     action   := 4
     END
   ENDIF \ENDIF
-  IF kIn >= "1" AND kIn <= "3" THEN
-    key := VAL(kIn)
-  ELSE
-    key := 0
-  ENDIF
 
-  IF key = passKey THEN
-    ordCnt := 0
-    action := 2
-    END
-  ENDIF
-
-  EXITIF key = 1 THEN
-  ENDEXIT
-
-  IF key = 2 THEN
-    ! key = 2 with simMgn > 0: call margin repayment sub-screen.
-    maxRpy := simMgn
-    IF simCash < maxRpy THEN
-      maxRpy := simCash
+  IF kIn <> "" THEN
+    keyCode := ASC(kIn)
+    IF keyCode >= ASC("a") AND keyCode <= ASC("z") THEN
+      keyCode := keyCode - 32
     ENDIF
-    repayAmt := 0
-    RUN scrMgnRepay(simMgn, simCash, maxRpy, repayAmt)
-    mgnRepay := mgnRepay + repayAmt
-    simCash  := simCash  - repayAmt
-    simMgn   := simMgn   - repayAmt
+  ELSE
+    keyCode := 0
   ENDIF
 
-ENDLOOP
-
-! ============================================================
-! Phase 2: order entry + summary + confirm/revise loop.
-! ============================================================
-LOOP
-
-  ordCnt := 0
-  FOR i := 1 TO 12
-    ordType(i)  := 0
-    ordId(i)    := 0
-    ordQty(i)   := 0
-    ordPurch(i) := 0
-  NEXT i
-
-  ! Reinitialise simCash to post-repayment balance for this
-  ! entry pass. mgnRepay is already final from Phase 1.
-  simCash := plyr.cashBal - mgnRepay
-
-  RUN clrScr
-  PRINT "BUY ORDERS  YEAR "; currYear; "  "; dispNam
-  RUN fmtMoney(simCash, pStr)
-  PRINT "Available cash: $"; pStr
-  PRINT
-
-  ! --- Stock entries ----------------------------------------
-  FOR s := 1 TO 9
-    IF mkt.stckPrice(s) > 0 THEN
-      minCash := 10 * mkt.stckPrice(s)
-      IF canMgn THEN
-        minCash := minCash / 2
+  IF keyCode = ASC("P") THEN
+    IF ordCnt = 0 AND mgnRepay = 0 THEN
+      PRINT "No pending orders. Select a security first."
+      RUN waitKey
+    ELSE
+      PRINT "Confirm orders. Press Y to continue."
+      GET #0, cnfIn
+      PRINT
+      IF cnfIn = "Y" OR cnfIn = "y" THEN
+        action := 1
+        END
       ENDIF
-      IF simCash >= minCash THEN
-        RUN fmtMoney(mkt.stckPrice(s), pStr)
-        yldPct := divRate(s)
-        divVal := (mkt.stckPrice(s) * divRate(s)) / 100
-        nSep := ""
-        IF LEN(sNam(s)) = 11 THEN
-          nSep := " "
+    ENDIF
+  ELSE IF keyCode = ASC("M") THEN
+    baseCash := simCash + mgnRepay
+    baseMgn  := simMgn + mgnRepay
+    maxRpy := baseMgn
+    IF baseCash < maxRpy THEN
+      maxRpy := baseCash
+    ENDIF
+    IF maxRpy > 0 THEN
+      repayAmt := 0
+      RUN scrMgnRepay(baseMgn, baseCash, maxRpy, repayAmt)
+      mgnRepay := repayAmt
+    ELSE
+      PRINT "No margin repayment available."
+      RUN waitKey
+    ENDIF
+  ELSE
+    selIdx := 0
+    FOR i := 1 TO mapCnt
+      IF mapKey(i) = keyCode THEN
+        selIdx := i
+      ENDIF
+    NEXT i
+
+    IF selIdx > 0 THEN
+      s := mapId(selIdx)
+      b := mapId(selIdx)
+      slotIdx := 0
+      FOR i := 1 TO ordCnt
+        IF ordType(i) = mapType(selIdx) AND ordId(i) = mapId(selIdx) THEN
+          slotIdx := i
         ENDIF
-        PRINT sNam(s); nSep; " @ $"; pStr;
-        PRINT " "; yldPct; "% -> $"; divVal
-        RUN fmtMoney(simCash, pStr)
-        PRINT "  (cash avail: $"; pStr; ")"
+      NEXT i
+
+      baseCash := simCash
+      baseMgn  := simMgn
+      IF slotIdx > 0 THEN
+        IF ordType(slotIdx) = 1 THEN
+          cost := ordQty(slotIdx) * mkt.stckPrice(ordId(slotIdx))
+          IF ordPurch(slotIdx) = 2 THEN
+            cashCost := cost / 2
+            mgnPay   := cost - cashCost
+            baseCash := baseCash + cashCost
+            baseMgn  := baseMgn - mgnPay
+          ELSE
+            baseCash := baseCash + cost
+          ENDIF
+        ELSE
+          baseCash := baseCash + (ordQty(slotIdx) * bPar(ordId(slotIdx)))
+        ENDIF
+      ENDIF
 
       valid := FALSE
       WHILE NOT valid DO
-        INPUT "  Buy qty (0/Enter=skip, mult of 10): ", qIn
+        IF mapType(selIdx) = 1 THEN
+          PRINT sNam(s); " @ $"; mkt.stckPrice(s)
+          INPUT "  Buy qty (0/Enter=clear, mult of 10): ", qIn
+        ELSE
+          PRINT "$"; bPar(b); " bond"
+          INPUT "  Units to buy (0/Enter=clear): ", qIn
+        ENDIF
         IF qIn = "" THEN
-          qty   := 0
+          qty := 0
           valid := TRUE
         ELSE
           RUN getSaveQuitAct(qIn, sqAct)
           IF sqAct = 3 THEN
-            ordCnt  := 0
+            ordCnt   := 0
             mgnRepay := 0
-            action  := 3
+            action   := 3
             END
           ELSE IF sqAct = 4 THEN
-            ordCnt  := 0
+            ordCnt   := 0
             mgnRepay := 0
-            action  := 4
+            action   := 4
             END
           ELSE
             RUN getNumIn(qIn, qty, numOk)
-              IF NOT numOk THEN
-                PRINT "  Invalid: enter a number."
-              ELSE IF qty < 0 THEN
-                PRINT "  Invalid: enter 0 or positive mult of 10."
-              ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+            IF NOT numOk THEN
+              PRINT "  Invalid: enter a number."
+            ELSE IF qty < 0 THEN
+              PRINT "  Invalid: enter 0 or a positive amount."
+            ELSE IF mapType(selIdx) = 1 THEN
+              IF qty > 0 AND MOD(qty, 10) <> 0 THEN
                 PRINT "  Invalid: must be a multiple of 10."
-              ELSE IF qty > 0 THEN
-                ! Determine purchase type.
+              ELSE IF qty = 0 THEN
+                valid := TRUE
+              ELSE
+                purch := 1
                 IF canMgn THEN
                   PRINT "  1=Cash  2=Margin  S=save+exit  Q=quit"
                   GET #0, kIn
@@ -1100,173 +1181,68 @@ LOOP
                     action   := 4
                     END
                   ENDIF \ENDIF
-                  IF kIn >= "1" AND kIn <= "2" THEN
-                    purch := VAL(kIn)
-                  ELSE
-                    purch := 1
+                  IF kIn = "2" THEN
+                    purch := 2
                   ENDIF
+                ENDIF
+                cost := qty * mkt.stckPrice(s)
+                IF purch = 2 THEN
+                  cashCost := cost / 2
+                ELSE
+                  cashCost := cost
+                ENDIF
+                IF cashCost > baseCash THEN
+                  PRINT "  Insufficient cash for that order."
+                ELSE
+                  valid := TRUE
+                ENDIF
+              ENDIF \ENDIF
+            ELSE
+              IF qty = 0 THEN
+                valid := TRUE
+              ELSE
+                cashCost := qty * bPar(b)
+                IF cashCost > baseCash THEN
+                  PRINT "  Insufficient cash for that order."
                 ELSE
                   purch := 1
+                  valid := TRUE
                 ENDIF
-                ! Compute cost based on type.
-                IF purch = 1 THEN
-                  cashCost := qty * mkt.stckPrice(s)
-                ELSE
-                  ! Margin: player pays 50% cash upfront.
-                  cashCost := (qty * mkt.stckPrice(s)) / 2
-                ENDIF
-                IF cashCost > simCash THEN
-                  IF purch = 1 THEN
-                    PRINT "  Insufficient cash (need $"; cashCost; ")."
-                  ELSE
-                    PRINT "  Insufficient cash for margin (need $";
-                    PRINT cashCost; ")."
-                  ENDIF
-                ELSE
-                  simCash := simCash - cashCost
-                  valid   := TRUE
-                ENDIF
-              ELSE
-                valid := TRUE
-              ENDIF \ENDIF \ENDIF \ENDIF
-          ENDIF \ENDIF
-        ENDIF
-      ENDWHILE
-
-        IF qty > 0 THEN
-          ordCnt              := ordCnt + 1
-          ordType(ordCnt)     := 1
-          ordId(ordCnt)       := s
-          ordQty(ordCnt)      := qty
-          ordPurch(ordCnt)    := purch
-        ENDIF
-      ENDIF
-
-    ENDIF
-  NEXT s
-
-  ! --- Bond entries -----------------------------------------
-  FOR b := 1 TO 3
-    IF simCash >= bPar(b) THEN
-      PRINT "$"; bPar(b); " bond  (int=$";
-      IF b = 1 THEN PRINT "50)"
-      ELSE IF b = 2 THEN PRINT "250)"
-      ELSE PRINT "500)"
-      ENDIF \ENDIF
-      RUN fmtMoney(simCash, pStr)
-      PRINT "  (cash avail: $"; pStr; ")"
-
-      valid := FALSE
-      WHILE NOT valid DO
-        INPUT "  Units to buy (0/Enter=skip): ", qIn
-        IF qIn = "" THEN
-          qty   := 0
-          valid := TRUE
-        ELSE
-          RUN getSaveQuitAct(qIn, sqAct)
-          IF sqAct = 3 THEN
-            ordCnt  := 0
-            mgnRepay := 0
-            action  := 3
-            END
-          ELSE IF sqAct = 4 THEN
-            ordCnt  := 0
-            mgnRepay := 0
-            action  := 4
-            END
-          ELSE
-            RUN getNumIn(qIn, qty, numOk)
-            IF NOT numOk THEN
-              PRINT "  Invalid: enter a number."
-            ELSE IF qty < 0 THEN
-              PRINT "  Invalid: enter 0 or a positive number."
-            ELSE IF qty > 0 THEN
-              cashCost := qty * bPar(b)
-              IF cashCost > simCash THEN
-                PRINT "  Insufficient cash (need $"; cashCost; ")."
-              ELSE
-                simCash := simCash - cashCost
-                valid   := TRUE
               ENDIF
-            ELSE
-              valid := TRUE
-            ENDIF \ENDIF \ENDIF
+            ENDIF \ENDIF
           ENDIF \ENDIF
         ENDIF
       ENDWHILE
 
-      IF qty > 0 THEN
-        ordCnt           := ordCnt + 1
-        ordType(ordCnt)  := 2
-        ordId(ordCnt)    := b
-        ordQty(ordCnt)   := qty
-        ordPurch(ordCnt) := 1
+      IF qty = 0 THEN
+        IF slotIdx > 0 THEN
+          FOR i := slotIdx TO ordCnt - 1
+            ordType(i)  := ordType(i + 1)
+            ordId(i)    := ordId(i + 1)
+            ordQty(i)   := ordQty(i + 1)
+            ordPurch(i) := ordPurch(i + 1)
+          NEXT i
+          ordType(ordCnt)  := 0
+          ordId(ordCnt)    := 0
+          ordQty(ordCnt)   := 0
+          ordPurch(ordCnt) := 0
+          ordCnt := ordCnt - 1
+        ENDIF
+      ELSE
+        IF slotIdx = 0 THEN
+          ordCnt := ordCnt + 1
+          slotIdx := ordCnt
+        ENDIF
+        ordType(slotIdx)  := mapType(selIdx)
+        ordId(slotIdx)    := mapId(selIdx)
+        ordQty(slotIdx)   := qty
+        ordPurch(slotIdx) := purch
       ENDIF
     ENDIF
-
-  NEXT b
-
-  ! --- Summary and confirm ----------------------------------
-  RUN clrScr
-  PRINT "BUY SUMMARY  YEAR "; currYear; "  "; dispNam
-  PRINT
-  IF mgnRepay > 0 THEN
-    RUN fmtMoney(mgnRepay, pStr)
-    PRINT "  Margin repayment: $"; pStr
   ENDIF
-  IF ordCnt = 0 AND mgnRepay = 0 THEN
-    PRINT "  (no orders entered)"
-  ELSE IF ordCnt = 0 THEN
-    PRINT "  (no buy orders; repayment only)"
-  ELSE
-    FOR i := 1 TO ordCnt
-      IF ordType(i) = 1 THEN
-        s := ordId(i)
-        RUN fmtMoney(mkt.stckPrice(s), pStr)
-        PRINT "  Buy "; ordQty(i); " "; sNam(s);
-        PRINT " @ $"; pStr;
-        IF ordPurch(i) = 2 THEN
-          PRINT " [MARGIN]"
-        ELSE
-          PRINT
-        ENDIF
-      ELSE IF ordType(i) = 2 THEN
-        b := ordId(i)
-        PRINT "  Buy "; ordQty(i); " $"; bPar(b); " bond";
-        IF ordQty(i) > 1 THEN
-          PRINT "s"
-        ELSE
-          PRINT
-        ENDIF
-      ENDIF \ENDIF
-    NEXT i
-  ENDIF \ENDIF
-  PRINT
-  RUN fmtMoney(simCash, pStr)
-  PRINT "Remaining cash after orders: $"; pStr
-  PRINT
-  PRINT "1=Confirm  2=Revise orders  S=save+exit  Q=quit"
-  GET #0, kIn
-  PRINT
-  RUN getSaveQuitAct(kIn, sqAct)
-  IF sqAct = 3 THEN
-    ordCnt   := 0
-    mgnRepay := 0
-    action   := 3
-    END
-  ELSE IF sqAct = 4 THEN
-    ordCnt   := 0
-    mgnRepay := 0
-    action   := 4
-    END
-  ENDIF \ENDIF
-
-  EXITIF kIn = "1" THEN
-  ENDEXIT
 
 ENDLOOP
 
-action := 1
 END
 
 900 PRINT "scrBuy error ("; ERR; ")"
