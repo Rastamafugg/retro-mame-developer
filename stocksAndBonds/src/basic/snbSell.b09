@@ -1050,7 +1050,7 @@ LOOP
         ordQty(slotIdx)  := qty
       ENDIF
     ENDIF
-  ENDIF
+  ENDIF \ENDIF
 
 ENDLOOP
 

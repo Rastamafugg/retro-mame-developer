@@ -1239,7 +1239,7 @@ LOOP
         ordPurch(slotIdx) := purch
       ENDIF
     ENDIF
-  ENDIF
+  ENDIF \ENDIF
 
 ENDLOOP
 
