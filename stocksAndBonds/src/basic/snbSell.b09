@@ -69,7 +69,7 @@ IF iCYr > 1 THEN
         ELSE IF usrAct = 4 THEN
           RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
           END
-        ENDIF
+        ENDIF \ENDIF
         IF ordCnt > 0 THEN
           RUN applySells(plyrs(p), mkt, ordTyp, ordId, ordQty, ordCnt)
         ENDIF
@@ -97,7 +97,7 @@ IF iCYr > 1 THEN
         ELSE IF navAct = 3 THEN
           RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
           END
-        ENDIF
+        ENDIF \ENDIF
       ENDIF
     ENDIF
   NEXT p
@@ -750,7 +750,7 @@ ELSE IF sqAct = 4 THEN
   ordCnt := 0
   action := 4
   END
-ENDIF
+ENDIF \ENDIF
 IF kIn <> "1" THEN
   ordCnt := 0
   action := 2
@@ -813,7 +813,7 @@ LOOP
             ELSE
               valid := TRUE
             ENDIF \ENDIF \ENDIF \ENDIF
-          ENDIF
+          ENDIF \ENDIF
         ENDIF
       ENDWHILE
       IF qty > 0 THEN
@@ -858,7 +858,7 @@ LOOP
             ELSE
               valid := TRUE
             ENDIF \ENDIF \ENDIF
-          ENDIF
+          ENDIF \ENDIF
         ENDIF
       ENDWHILE
       IF qty > 0 THEN
@@ -918,7 +918,7 @@ LOOP
     ordCnt := 0
     action := 4
     END
-  ENDIF
+  ENDIF \ENDIF
 
   EXITIF kIn = "1" THEN
   ENDEXIT

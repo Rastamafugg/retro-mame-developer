@@ -80,7 +80,7 @@ FOR p := startP TO iPCnt
         ELSE IF usrAct = 4 THEN
           RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
           END
-        ENDIF
+        ENDIF \ENDIF
       IF mgnRpy > 0 THEN
         plyrs(p).cashBal   := plyrs(p).cashBal - mgnRpy
         plyrs(p).marginTot := plyrs(p).marginTot - mgnRpy
@@ -137,7 +137,7 @@ FOR p := startP TO iPCnt
         ELSE IF navAct = 3 THEN
           RUN quitToMenu(hdr, deckOrd, plyrs, mkt)
           END
-        ENDIF
+        ENDIF \ENDIF
     ENDIF
   ENDIF
 NEXT p
@@ -978,7 +978,7 @@ LOOP
     mgnRepay := 0
     action   := 4
     END
-  ENDIF
+  ENDIF \ENDIF
   IF kIn >= "1" AND kIn <= "3" THEN
     key := VAL(kIn)
   ELSE
@@ -1095,7 +1095,7 @@ LOOP
                     mgnRepay := 0
                     action   := 4
                     END
-                  ENDIF
+                  ENDIF \ENDIF
                   IF kIn >= "1" AND kIn <= "2" THEN
                     purch := VAL(kIn)
                   ELSE
@@ -1126,7 +1126,7 @@ LOOP
                 valid := TRUE
               ENDIF \ENDIF \ENDIF \ENDIF
             ENDIF
-          ENDIF
+          ENDIF \ENDIF
         ENDIF
       ENDWHILE
 
@@ -1188,7 +1188,7 @@ LOOP
             ELSE
               valid := TRUE
             ENDIF \ENDIF \ENDIF
-          ENDIF
+          ENDIF \ENDIF
         ENDIF
       ENDWHILE
 
@@ -1256,7 +1256,7 @@ LOOP
     mgnRepay := 0
     action   := 4
     END
-  ENDIF
+  ENDIF \ENDIF
 
   EXITIF kIn = "1" THEN
   ENDEXIT

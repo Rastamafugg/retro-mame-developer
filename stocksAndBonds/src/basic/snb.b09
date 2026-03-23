@@ -370,7 +370,7 @@ ENDLOOP
     ELSE IF iGSt = 3 THEN   \ ! GS_DONE: game over
       gameOver := TRUE
       runEndGame := TRUE
-    ENDIF
+    ENDIF \ENDIF
     RETURN
 
 900 PRINT "SNB error ("; ERR; ")"
