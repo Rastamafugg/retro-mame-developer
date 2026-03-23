@@ -816,7 +816,8 @@ PROCEDURE scrBuy
 (*             in a persistent keyed editor. Each asset row    *)
 (*             shows its selection key. Selecting a key edits  *)
 (*             only that one security, then returns to the     *)
-(*             main buy screen. M edits margin repayment.      *)
+(*             main buy screen. P passes and C confirms orders.*)
+(*             M edits margin repayment.                       *)
 (*             Stock quantity is entered first, then 1=CASH    *)
 (*             or 2=MARGIN when margin is eligible. Validates  *)
 (*             all orders against simulated cash. Does NOT     *)
@@ -1038,7 +1039,11 @@ LOOP
   NEXT b
 
   PRINT
-  PRINT "P=confirm orders  M=repay margin  S=save+exit  Q=quit"
+  IF ordCnt > 0 OR mgnRepay > 0 THEN
+    PRINT "C=confirm orders  P=pass  M=repay margin  S=save+exit  Q=quit"
+  ELSE
+    PRINT "P=pass  M=repay margin  S=save+exit  Q=quit"
+  ENDIF
   GET #0, kIn
   PRINT
 
@@ -1065,17 +1070,24 @@ LOOP
   ENDIF
 
   IF keyCode = ASC("P") THEN
-    IF ordCnt = 0 AND mgnRepay = 0 THEN
-      PRINT "No pending orders. Select a security first."
-      RUN waitKey
-    ELSE
-      PRINT "Confirm orders. Press Y to continue."
+    IF ordCnt > 0 OR mgnRepay > 0 THEN
+      PRINT "Pending orders will be discarded. Press Y to pass."
       GET #0, cnfIn
       PRINT
       IF cnfIn = "Y" OR cnfIn = "y" THEN
-        action := 1
+        ordCnt   := 0
+        mgnRepay := 0
+        action   := 2
         END
       ENDIF
+    ELSE
+      action := 2
+      END
+    ENDIF
+  ELSE IF keyCode = ASC("C") THEN
+    IF ordCnt > 0 OR mgnRepay > 0 THEN
+      action := 1
+      END
     ENDIF
   ELSE IF keyCode = ASC("M") THEN
     baseCash := simCash + mgnRepay
@@ -1239,7 +1251,7 @@ LOOP
         ordPurch(slotIdx) := purch
       ENDIF
     ENDIF
-  ENDIF \ENDIF
+  ENDIF \ENDIF \ENDIF
 
 ENDLOOP
 

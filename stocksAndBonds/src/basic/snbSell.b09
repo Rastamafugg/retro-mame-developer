@@ -724,7 +724,7 @@ PROCEDURE scrSell
 (*             a persistent keyed editor. Each asset row shows *)
 (*             its selection key. Selecting a key edits only   *)
 (*             that one security, then returns to the main     *)
-(*             sell screen. Press P to confirm current orders. *)
+(*             sell screen. P passes and C confirms orders.    *)
 (*             Stock qty: positive multiple of 10, <= shares   *)
 (*             held. Bond qty: 0..units held. Bankrupt stocks  *)
 (*             (price=0) are skipped. Caller must not invoke   *)
@@ -925,7 +925,11 @@ LOOP
   PRINT
   RUN fmtMoney(totProc, pStr)
   PRINT "Pending proceeds: $"; pStr
-  PRINT "P=confirm orders  S=save+exit  Q=quit"
+  IF ordCnt > 0 THEN
+    PRINT "C=confirm orders  P=pass  S=save+exit  Q=quit"
+  ELSE
+    PRINT "P=pass  S=save+exit  Q=quit"
+  ENDIF
   GET #0, kIn
   PRINT
 
@@ -950,17 +954,23 @@ LOOP
   ENDIF
 
   IF keyCode = ASC("P") THEN
-    IF ordCnt = 0 THEN
-      PRINT "No pending orders. Select a security first."
-      RUN waitKey
-    ELSE
-      PRINT "Confirm orders. Press Y to continue."
+    IF ordCnt > 0 THEN
+      PRINT "Pending orders will be discarded. Press Y to pass."
       GET #0, cnfIn
       PRINT
       IF cnfIn = "Y" OR cnfIn = "y" THEN
-        action := 1
+        ordCnt := 0
+        action := 2
         END
       ENDIF
+    ELSE
+      action := 2
+      END
+    ENDIF
+  ELSE IF keyCode = ASC("C") THEN
+    IF ordCnt > 0 THEN
+      action := 1
+      END
     ENDIF
   ELSE
     selIdx := 0
@@ -1050,7 +1060,7 @@ LOOP
         ordQty(slotIdx)  := qty
       ENDIF
     ENDIF
-  ENDIF
+  ENDIF \ENDIF
 
 ENDLOOP
 
