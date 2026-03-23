@@ -165,7 +165,7 @@ FOR i := 1 TO ordCnt
     plyr.cashBal    := plyr.cashBal + prcd
     plyr.bondUnts(b) := plyr.bondUnts(b) - qty
 
-  ENDIF
+  ENDIF \ENDIF
 
   ! Reduce obligation by full proceeds; clamp at 0.
   oblgRem := oblgRem - prcd
