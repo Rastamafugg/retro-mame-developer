@@ -23,3 +23,7 @@ before making changes.
 - Before responding that a Basic09 code change is complete, follow the
   project-local review/checklist instructions for that subtree and fix any
   issues found. Do not treat checklist execution as optional.
+- For `stocksAndBonds`, the required final Basic09 workflow step is the
+  Section 6 "Code Review and QA Checklist" pass in
+  `stocksAndBonds/docs/agents/basic09-software-development-agent.md`. Do not
+  claim completion before performing that pass on the final edited code.
