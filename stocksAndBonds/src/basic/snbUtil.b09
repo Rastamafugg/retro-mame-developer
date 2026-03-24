@@ -143,19 +143,13 @@ LOOP
   ! Line exceeds 79 chars; command row is kept on one line for screen layout.
   PRINT "  1-9=Manual Entry  Enter=Accept Amount  Up/Down=+/-10  X=Confirm"
   IF canMode <> 0 THEN
-    PRINT "  C=Pay Cash              M=Pay on Margin"
+    PRINT "  C=Pay Cash        M=Pay on Margin"
   ENDIF
   IF allowNav <> 0 THEN
-    PRINT "  S=save+exit            Q=quit"
+    PRINT "  S=save+exit       Q=quit"
   ENDIF
   PRINT
   dispTxt := "  Qty (0/Enter=clear, mult of 10): " + buf + "   "
-  PRINT dispTxt
-  IF qty > 0 THEN
-    dispTxt := "  [" + TRIM$(STR$(qty)) + "]   "
-  ELSE
-    dispTxt := "  []   "
-  ENDIF
   PRINT dispTxt
   IF errTxt <> "" THEN
     PRINT
