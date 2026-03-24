@@ -72,7 +72,7 @@ PROCEDURE getLotQty
 (*            allowNav - 1 allows S/Q, else no nav    *)
 (*            navAct   - OUT 1=confirm 3=save 4=quit  *)
 (* EFFECTS:   Clears screen and redraws editor using  *)
-(*            printAt.                                *)
+(*            ordered PRINT statements.               *)
 (* ================================================== *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM title    : STRING
@@ -97,7 +97,6 @@ DIM kIn     : STRING[1]
 DIM lastChr : STRING[1]
 DIM keyCode : INTEGER
 DIM numOk   : BOOLEAN
-DIM rowNo   : INTEGER
 DIM workQty : INTEGER
 DIM totalQty: INTEGER
 DIM regs    : Register
@@ -113,11 +112,11 @@ errTxt := ""
 
 LOOP
   RUN clrScr
-  RUN printAt(0, 1, title)
-  rowNo := 2
+  PRINT title
+  PRINT
   IF info1 <> "" THEN
-    RUN printAt(rowNo, 1, info1)
-    rowNo := rowNo + 2
+    PRINT info1
+    PRINT
   ENDIF
   RUN fmtMoney(price, pStr)
   infoTxt := "  " + stockNm + "  " + TRIM$(STR$(holdQty))
@@ -137,33 +136,30 @@ LOOP
       infoTxt := infoTxt + " Total"
     ENDIF
   ENDIF
-  RUN printAt(rowNo, 1, infoTxt)
-  rowNo := rowNo + 2
-  RUN printAt(rowNo, 1, "  Enter Amount of Stock:")
-  rowNo := rowNo + 2
+  PRINT infoTxt
+  PRINT
+  PRINT "  Enter Amount of Stock:"
+  PRINT
   ! Line exceeds 79 chars; command row is kept on one line for screen layout.
-  RUN printAt(rowNo, 1, "  1-9=Manual Entry  Enter=Accept Amount  Up/Down=+/-10  X=Confirm")
-  rowNo := rowNo + 1
+  PRINT "  1-9=Manual Entry  Enter=Accept Amount  Up/Down=+/-10  X=Confirm"
   IF canMode <> 0 THEN
-    RUN printAt(rowNo, 1, "  C=Pay Cash             M=Pay on Margin")
-    rowNo := rowNo + 1
+    PRINT "  C=Pay Cash              M=Pay on Margin"
   ENDIF
   IF allowNav <> 0 THEN
-    RUN printAt(rowNo, 1, "  S=save+exit            Q=quit")
-    rowNo := rowNo + 1
+    PRINT "  S=save+exit            Q=quit"
   ENDIF
-  rowNo := rowNo + 1
+  PRINT
   dispTxt := "  Qty (0/Enter=clear, mult of 10): " + buf + "   "
-  RUN printAt(rowNo, 1, dispTxt)
-  rowNo := rowNo + 1
+  PRINT dispTxt
   IF qty > 0 THEN
     dispTxt := "  [" + TRIM$(STR$(qty)) + "]   "
   ELSE
     dispTxt := "  []   "
   ENDIF
-  RUN printAt(rowNo, 1, dispTxt)
+  PRINT dispTxt
   IF errTxt <> "" THEN
-    RUN printAt(rowNo + 1, 1, errTxt)
+    PRINT
+    PRINT errTxt
   ENDIF
 
   GET #0, kIn
