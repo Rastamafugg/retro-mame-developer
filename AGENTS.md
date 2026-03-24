@@ -40,6 +40,8 @@ before making changes.
 ## Working Rules
 
 - Keep changes scoped to the user's request.
+- For `stocksAndBonds`, treat the project documentation under
+  `stocksAndBonds/docs` as authoritative over general language assumptions.
 - Preserve existing formatting and line structure in source files.
 - For Basic09 control-flow edits, modify only the named procedure or exact
   target block. Do not apply broad or repeated-text replacements to `IF`,
@@ -48,8 +50,6 @@ before making changes.
 - For Basic09 work, do not use generic repeated-text patches. Every edit must
   be anchored to unique local context in the named procedure or exact target
   block.
-- For `stocksAndBonds`, treat the project documentation under
-  `stocksAndBonds/docs` as authoritative over general language assumptions.
 - Before responding that a Basic09 code change is complete, follow the
   project-local review/checklist instructions for that subtree and fix any
   issues found. Do not treat checklist execution as optional.

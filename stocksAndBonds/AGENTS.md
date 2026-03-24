@@ -44,6 +44,22 @@ implementation approach.
 If a syscall detail appears ambiguous or undocumented, use
 `docs/agents/nitros9-assembly-source-agent.md` as the source-verification guide.
 
+## Required Workflow Step
+
+- Before any final response that claims a Basic09 code change is done, perform
+  an explicit "Section 6 Code Review and QA Checklist" pass using
+  `docs/agents/basic09-software-development-agent.md`.
+- This is a required workflow step, not a reminder. Do not skip it for small
+  edits, refactors, helper extraction, or follow-up fixes.
+- The checklist pass must be done after the final code edit, not earlier in the
+  task.
+- The checklist pass must review each edited procedure top to bottom against the
+  Section 6 items beginning with "Before submitting or approving any Basic09
+  code change, verify:"
+- If any checklist item fails, fix the code first and repeat the checklist
+  pass before responding.
+- Do not give a completion response until that checklist pass has been done.
+
 ## Core Basic09 Rules
 
 - Do not assume syntax from other BASIC dialects.
@@ -62,19 +78,6 @@ If a syscall detail appears ambiguous or undocumented, use
 - Use `RUN` to call procedures, not `CALL`.
 - Do not add `MODULE` or `ENDMODULE`; they are not valid Basic09 syntax here.
 - End-of-line comments must use `\\ ! comment`, never bare `!` after code.
-
-## Project Layout
-
-- `src/basic/`
-  Primary location for Basic09 source.
-- `docs/`
-  Project documentation and design notes.
-- `docs/agents/`
-  Tasking and workflow instructions for coding and research.
-- `docs/prompts/`
-  Prompt templates and worked request examples.
-- `docs/reference/`
-  Coding standards, manuals, and technical references.
 
 ## Implementation Expectations
 
@@ -130,22 +133,6 @@ If a syscall detail appears ambiguous or undocumented, use
   any newly introduced syntax, built-in names, or control-flow forms that were
   not explicitly verified against the Basic09 manual or existing project code.
 
-## Required Workflow Step
-
-- Before any final response that claims a Basic09 code change is done, perform
-  an explicit "Section 6 Code Review and QA Checklist" pass using
-  `docs/agents/basic09-software-development-agent.md`.
-- This is a required workflow step, not a reminder. Do not skip it for small
-  edits, refactors, helper extraction, or follow-up fixes.
-- The checklist pass must be done after the final code edit, not earlier in the
-  task.
-- The checklist pass must review each edited procedure top to bottom against the
-  Section 6 items beginning with "Before submitting or approving any Basic09
-  code change, verify:"
-- If any checklist item fails, fix the code first and repeat the checklist
-  pass before responding.
-- Do not give a completion response until that checklist pass has been done.
-
 ## When Helping With Syscalls
 
 - Treat the Technical Reference Manual workflow in
@@ -155,3 +142,16 @@ If a syscall detail appears ambiguous or undocumented, use
 - Treat carry in `regs.cc` and the error code in `regs.b` according to the
   documented project pattern; confirm exact details in source and docs before
   coding.
+
+## Project Layout
+
+- `src/basic/`
+  Primary location for Basic09 source.
+- `docs/`
+  Project documentation and design notes.
+- `docs/agents/`
+  Tasking and workflow instructions for coding and research.
+- `docs/prompts/`
+  Prompt templates and worked request examples.
+- `docs/reference/`
+  Coding standards, manuals, and technical references.
