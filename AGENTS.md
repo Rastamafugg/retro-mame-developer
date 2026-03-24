@@ -5,6 +5,29 @@ about NitrOS-9, Basic09, the Tandy CoCo 3, or the Stocks and Bonds game,
 prefer the `stocksAndBonds` project and read its local agent instructions
 before making changes.
 
+## Durable Behavior Changes
+
+- If the assistant agrees to change its own ongoing working behavior, review
+  method, patching method, disclosure method, or response protocol in a
+  durable way, it must update the relevant AGENTS file(s) in the same task
+  unless the user explicitly says not to.
+- Do not present such a behavior change as persistent or "going forward"
+  unless the AGENTS update has been made.
+- If the change applies repo-wide, update this root AGENTS file. If it applies
+  to a specific project subtree, update that project's local AGENTS file as
+  well.
+- Place durable behavior-change rules near the top of the AGENTS file so they
+  govern later task-specific instructions.
+
+## Exact Line Citations
+
+- When the user cites exact file lines or a narrow line range, identify any
+  additional same-block findings separately before editing.
+- Distinguish explicitly between:
+  1. the exact cited issue the user asked to fix
+  2. any adjacent same-block issue proposed for bundled repair
+- Do not patch adjacent same-block issues unless they are disclosed first.
+
 ## Project Routing
 
 - `stocksAndBonds/`

@@ -2,6 +2,28 @@
 
 These instructions apply to all work under `stocksAndBonds/`.
 
+## Durable Behavior Changes
+
+- If the assistant agrees to change its own ongoing working behavior, review
+  method, patching method, disclosure method, or response protocol in a
+  durable way, it must update the relevant AGENTS file(s) in the same task
+  unless the user explicitly says not to.
+- Do not present such a behavior change as persistent or "going forward"
+  unless the AGENTS update has been made.
+- If the change applies repo-wide, update the root AGENTS file. If it applies
+  to this project subtree, update this local AGENTS file as well.
+- Place durable behavior-change rules near the top of the AGENTS file so they
+  govern later task-specific instructions.
+
+## Exact Line Citations
+
+- When the user cites exact file lines or a narrow line range, identify any
+  additional same-block findings separately before editing.
+- Distinguish explicitly between:
+  1. the exact cited issue the user asked to fix
+  2. any adjacent same-block issue proposed for bundled repair
+- Do not patch adjacent same-block issues unless they are disclosed first.
+
 ## First Reads
 
 Before writing, editing, or reviewing Basic09 code, read these documents in
