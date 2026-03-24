@@ -2,7 +2,7 @@ PROCEDURE TSTKYIN
 (* ============================================================ *)
 (* PROCEDURE : TSTKYIN                                          *)
 (* PURPOSE   : Test keyboard arrow sensing and stock-lot input  *)
-(*             behavior in two interactive steps.               *)
+(*             behavior in one interactive step.                *)
 (* PARAMS    : None                                             *)
 (* SIDE EFX  : Clears screen. Requires SysCall only.            *)
 (* ============================================================ *)
@@ -21,16 +21,21 @@ DIM msgTxt   : STRING[48]
 ON ERROR GOTO 900
 
 qtyBuf := ""
+qty := 0
 msgTxt := ""
 LOOP
   RUN tClrScr
   RUN tPrintAt(0, 1, "=== KEY INPUT TEST ===")
   RUN tPrintAt(2, 1, "  Up/Down change by 10. Type digits for manual entry.")
-  RUN tPrintAt(3, 1, "  Enter prints the amount. Q quits.")
-  dispTxt := "  Qty (0/Enter=clear, mult of 10): " + qtyBuf + "   "
+  RUN tPrintAt(3, 1, "  Enter replaces the displayed amount. Q quits.")
+  dispTxt := "  Current amount: " + TRIM$(STR$(qty)) + "   "
   RUN tPrintAt(5, 1, dispTxt)
+  IF qtyBuf <> "" THEN
+    dispTxt := "  Typed digits : " + qtyBuf + "   "
+    RUN tPrintAt(6, 1, dispTxt)
+  ENDIF
   IF msgTxt <> "" THEN
-    RUN tPrintAt(7, 1, msgTxt)
+    RUN tPrintAt(8, 1, msgTxt)
   ENDIF
 
   GET #0, kIn
@@ -52,44 +57,26 @@ LOOP
 
   msgTxt := ""
   IF LAND(iBits, $08) <> 0 THEN
-    IF qtyBuf = "" THEN
-      qty := 0
-    ELSE
-      RUN tGetNumIn(qtyBuf, qty, numOk)
-      IF NOT numOk THEN
-        qty := 0
-      ENDIF
-    ENDIF
     qty := qty + 10
-    qtyBuf := TRIM$(STR$(qty))
+    qtyBuf := ""
   ELSE IF LAND(iBits, $10) <> 0 THEN
-    IF qtyBuf = "" THEN
-      qty := 0
-    ELSE
-      RUN tGetNumIn(qtyBuf, qty, numOk)
-      IF NOT numOk THEN
-        qty := 0
-      ENDIF
-    ENDIF
     qty := qty - 10
     IF qty < 0 THEN
       qty := 0
     ENDIF
-    IF qty > 0 THEN
-      qtyBuf := TRIM$(STR$(qty))
-    ELSE
-      qtyBuf := ""
-    ENDIF
+    qtyBuf := ""
   ELSE IF keyCode = 13 THEN
     IF qtyBuf = "" THEN
-      qty := 0
+      msgTxt := "  Amount entered: " + TRIM$(STR$(qty))
     ELSE
       RUN tGetNumIn(qtyBuf, qty, numOk)
       IF NOT numOk THEN
-        qty := 0
+        msgTxt := "  Invalid number."
+      ELSE
+        msgTxt := "  Amount entered: " + TRIM$(STR$(qty))
       ENDIF
+      qtyBuf := ""
     ENDIF
-    msgTxt := "  Amount entered: " + TRIM$(STR$(qty))
   ELSE IF keyCode = ASC("Q") THEN
     END
   ELSE IF keyCode >= ASC("0") AND keyCode <= ASC("9") THEN
