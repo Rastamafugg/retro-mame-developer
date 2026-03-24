@@ -872,7 +872,10 @@ DIM divVal   : INTEGER
 DIM qIn      : STRING[8]
 DIM pStr     : STRING[8]
 DIM pStr2    : STRING[8]
+DIM pStr3    : STRING[8]
+DIM pStr4    : STRING[8]
 DIM dispNam  : STRING[27]
+DIM infoTxt  : STRING[80]
 DIM valid    : BOOLEAN
 DIM numOk    : BOOLEAN
 DIM canMgn   : BOOLEAN
@@ -900,6 +903,8 @@ DIM cnfIn    : STRING[1]
 DIM editTxt  : STRING[48]
 DIM qtyAct   : INTEGER
 DIM maxQty   : INTEGER
+DIM dispCash : INTEGER
+DIM dispMgn  : INTEGER
 
 ON ERROR GOTO 900
 
@@ -1172,9 +1177,28 @@ LOOP
           ENDIF
           maxQty := 32760 / mkt.stckPrice(s)
           maxQty := (maxQty / 10) * 10
+          dispCash := baseCash
+          dispMgn  := baseMgn
+          IF qty > 0 THEN
+            cost := qty * mkt.stckPrice(s)
+            IF purch = 2 THEN
+              cashCost := cost / 2
+              mgnPay   := cost - cashCost
+              dispCash := dispCash - cashCost
+              dispMgn  := dispMgn + mgnPay
+            ELSE
+              dispCash := dispCash - cost
+            ENDIF
+          ENDIF
+          RUN fmtMoney(baseCash, pStr)
+          RUN fmtMoney(dispCash, pStr2)
+          RUN fmtMoney(baseMgn, pStr3)
+          RUN fmtMoney(dispMgn, pStr4)
+          infoTxt := "  Cash: $" + pStr + " [$" + pStr2 + "]"
+          infoTxt := infoTxt + "  Margin: $" + pStr3 + " [$" + pStr4 + "]"
           qtyAct := 1
           ! Line exceeds 79 chars; getLotQty call requires full arguments.
-          RUN getLotQty("=== BUY QUANTITY ===", editTxt, maxQty, qty, 1, qtyAct)
+          RUN getLotQty("=== BUY QUANTITY ===", infoTxt, sNam(s), plyr.stckShrs(s), mkt.stckPrice(s), qty, purch, canMgn, maxQty, 1, qtyAct)
           IF qtyAct = 3 THEN
             ordCnt   := 0
             mgnRepay := 0
@@ -1189,26 +1213,8 @@ LOOP
           IF qty = 0 THEN
             valid := TRUE
           ELSE
-            purch := 1
-            IF canMgn THEN
-              PRINT "  1=Cash  2=Margin  S=save+exit  Q=quit"
-              GET #0, kIn
-              PRINT
-              RUN getSaveQuitAct(kIn, sqAct)
-              IF sqAct = 3 THEN
-                ordCnt   := 0
-                mgnRepay := 0
-                action   := 3
-                END
-              ELSE IF sqAct = 4 THEN
-                ordCnt   := 0
-                mgnRepay := 0
-                action   := 4
-                END
-              ENDIF \ENDIF
-              IF kIn = "2" THEN
-                purch := 2
-              ENDIF
+            IF NOT canMgn THEN
+              purch := 1
             ENDIF
             cost := qty * mkt.stckPrice(s)
             IF purch = 2 THEN

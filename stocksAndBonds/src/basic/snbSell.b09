@@ -1054,7 +1054,7 @@ LOOP
           ENDIF
           qtyAct := 1
           ! Line exceeds 79 chars; getLotQty call requires full arguments.
-          RUN getLotQty("=== SELL QUANTITY ===", editTxt, plyr.stckShrs(s), qty, 0, qtyAct)
+          RUN getLotQty("=== SELL QUANTITY ===", "", sNam(s), plyr.stckShrs(s), mkt.stckPrice(s), qty, 0, 0, plyr.stckShrs(s), 0, qtyAct)
           valid := TRUE
         ELSE
           PRINT "$"; bDen(b); " bond  "; plyr.bondUnts(b); " unit(s) held"

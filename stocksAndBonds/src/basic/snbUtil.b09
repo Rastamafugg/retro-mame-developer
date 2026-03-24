@@ -55,57 +55,115 @@ END
 PROCEDURE getLotQty
 (* ================================================== *)
 (* PROCEDURE: getLotQty                               *)
-(* PURPOSE:   Edit a stock quantity in multiples of   *)
-(*            10 using typed digits or up/down keys.  *)
+(* PURPOSE:   Edit a stock quantity using committed   *)
+(*            amount plus pending typed digits.       *)
+(*            Up/Down alters committed qty by 10.     *)
+(*            Enter commits typed digits or clears.   *)
+(*            X confirms the committed quantity.      *)
 (* PARAMS:    title    - editor title line            *)
-(*            prompt   - stock description line       *)
+(*            info1    - optional status line         *)
+(*            stockNm  - stock display name           *)
+(*            holdQty  - shares currently held        *)
+(*            price    - stock price                  *)
+(*            qty      - IN/OUT committed quantity    *)
+(*            ordMode  - IN/OUT 0=SELL 1=CASH 2=MARG  *)
+(*            canMode  - 1 enables C/M mode toggle    *)
 (*            maxQty   - maximum allowed quantity     *)
-(*            qty      - IN/OUT quantity value        *)
 (*            allowNav - 1 allows S/Q, else no nav    *)
-(*            navAct   - OUT 1=accept 3=save 4=quit   *)
-(* EFFECTS:   Clears screen and redraws editor.       *)
-(*            Uses printAt for prompt placement.      *)
+(*            navAct   - OUT 1=confirm 3=save 4=quit  *)
+(* EFFECTS:   Clears screen and redraws editor using  *)
+(*            printAt.                                *)
 (* ================================================== *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 PARAM title    : STRING
-PARAM prompt   : STRING
-PARAM maxQty   : INTEGER
+PARAM info1    : STRING
+PARAM stockNm  : STRING
+PARAM holdQty  : INTEGER
+PARAM price    : INTEGER
 PARAM qty      : INTEGER
+PARAM ordMode  : INTEGER
+PARAM canMode  : INTEGER
+PARAM maxQty   : INTEGER
 PARAM allowNav : INTEGER
 PARAM navAct   : INTEGER
 
 DIM buf     : STRING[8]
 DIM dispTxt : STRING[48]
+DIM infoTxt : STRING[80]
 DIM errTxt  : STRING[48]
 DIM maxTxt  : STRING[8]
+DIM pStr    : STRING[8]
 DIM kIn     : STRING[1]
+DIM lastChr : STRING[1]
 DIM keyCode : INTEGER
 DIM numOk   : BOOLEAN
-DIM dispRow : INTEGER
+DIM rowNo   : INTEGER
+DIM workQty : INTEGER
+DIM totalQty: INTEGER
+DIM regs    : Register
+DIM callCod : BYTE
+DIM iCC     : INTEGER
+DIM iBits   : INTEGER
 
 ON ERROR GOTO 900
 
 navAct := 1
-IF qty > 0 THEN
-  buf := TRIM$(STR$(qty))
-ELSE
-  buf := ""
-ENDIF
+buf := ""
 errTxt := ""
 
 LOOP
   RUN clrScr
   RUN printAt(0, 1, title)
-  RUN printAt(2, 1, prompt)
-  RUN printAt(4, 1, "  Up/Down=+/-10  Enter=accept  Backspace=edit")
-  dispRow := 6
-  IF allowNav <> 0 THEN
-    RUN printAt(5, 1, "  S=save+exit  Q=quit")
-    dispRow := 7
+  rowNo := 2
+  IF info1 <> "" THEN
+    RUN printAt(rowNo, 1, info1)
+    rowNo := rowNo + 2
   ENDIF
+  RUN fmtMoney(price, pStr)
+  infoTxt := "  " + stockNm + "  " + TRIM$(STR$(holdQty))
+  infoTxt := infoTxt + " shrs @ $" + pStr
+  IF qty > 0 THEN
+    IF ordMode = 0 THEN
+      infoTxt := infoTxt + "  [Sell " + TRIM$(STR$(qty)) + "]"
+    ELSE
+      totalQty := holdQty + qty
+      IF ordMode = 2 THEN
+        infoTxt := infoTxt + "  + [" + TRIM$(STR$(qty))
+        infoTxt := infoTxt + " Shrs M] = " + TRIM$(STR$(totalQty))
+      ELSE
+        infoTxt := infoTxt + "  + [" + TRIM$(STR$(qty))
+        infoTxt := infoTxt + " Shrs C] = " + TRIM$(STR$(totalQty))
+      ENDIF
+      infoTxt := infoTxt + " Total"
+    ENDIF
+  ENDIF
+  RUN printAt(rowNo, 1, infoTxt)
+  rowNo := rowNo + 2
+  RUN printAt(rowNo, 1, "  Enter Amount of Stock:")
+  rowNo := rowNo + 2
+  ! Line exceeds 79 chars; command row is kept on one line for screen layout.
+  RUN printAt(rowNo, 1, "  1-9=Manual Entry  Enter=Accept Amount  Up/Down=+/-10  X=Confirm")
+  rowNo := rowNo + 1
+  IF canMode <> 0 THEN
+    RUN printAt(rowNo, 1, "  C=Pay Cash             M=Pay on Margin")
+    rowNo := rowNo + 1
+  ENDIF
+  IF allowNav <> 0 THEN
+    RUN printAt(rowNo, 1, "  S=save+exit            Q=quit")
+    rowNo := rowNo + 1
+  ENDIF
+  rowNo := rowNo + 1
   dispTxt := "  Qty (0/Enter=clear, mult of 10): " + buf + "   "
-  RUN printAt(dispRow, 1, dispTxt)
+  RUN printAt(rowNo, 1, dispTxt)
+  rowNo := rowNo + 1
+  IF qty > 0 THEN
+    dispTxt := "  [" + TRIM$(STR$(qty)) + "]   "
+  ELSE
+    dispTxt := "  []   "
+  ENDIF
+  RUN printAt(rowNo, 1, dispTxt)
   IF errTxt <> "" THEN
-    RUN printAt(dispRow + 2, 1, errTxt)
+    RUN printAt(rowNo + 1, 1, errTxt)
   ENDIF
 
   GET #0, kIn
@@ -118,82 +176,82 @@ LOOP
   ELSE
     keyCode := 0
   ENDIF
+  callCod := $8D      \ ! I$GetStt
+  regs.a  := 0        \ ! stdin path
+  regs.b  := $27      \ ! SS.KySns
+  RUN SysCall(callCod, regs)
+  iCC := regs.cc
+  IF LAND(iCC, 1) <> 0 THEN
+    iBits := 0
+  ELSE
+    iBits := regs.a
+  ENDIF
 
   errTxt := ""
-  IF keyCode = 13 THEN
-    IF buf = "" THEN
-      qty := 0
-      END
+  IF LAND(iBits, $08) <> 0 THEN
+    buf := ""
+    qty := qty + 10
+    IF qty > maxQty THEN
+      qty := maxQty
     ENDIF
-    RUN getNumIn(buf, qty, numOk)
-    IF NOT numOk THEN
-      errTxt := "  Invalid: enter a number."
-    ELSE IF qty < 0 THEN
-      errTxt := "  Invalid: enter 0 or a positive amount."
-    ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
-      errTxt := "  Invalid: must be a multiple of 10."
-    ELSE IF qty > maxQty THEN
-      maxTxt := TRIM$(STR$(maxQty))
-      errTxt := "  Invalid: maximum is " + maxTxt + "."
+  ELSE IF LAND(iBits, $10) <> 0 THEN
+    buf := ""
+    qty := qty - 10
+    IF qty < 0 THEN
+      qty := 0
+    ENDIF
+  ELSE IF keyCode = ASC("X") THEN
+    IF buf <> "" THEN
+      errTxt := "  Press Enter to accept typed amount."
     ELSE
       END
-    ENDIF \ENDIF \ENDIF \ENDIF
+    ENDIF
+  ELSE IF keyCode = 13 THEN
+    IF buf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(buf, workQty, numOk)
+      IF NOT numOk THEN
+        errTxt := "  Invalid: enter a number."
+      ELSE IF workQty < 0 THEN
+        errTxt := "  Invalid: enter 0 or a positive amount."
+      ELSE
+        lastChr := MID$(buf, LEN(buf), 1)
+        IF lastChr <> "0" THEN
+          workQty := workQty * 10
+        ENDIF
+        IF workQty > maxQty THEN
+          maxTxt := TRIM$(STR$(maxQty))
+          errTxt := "  Invalid: maximum is " + maxTxt + "."
+        ELSE
+          qty := workQty
+          buf := ""
+        ENDIF
+      ENDIF \ENDIF
+    ENDIF
   ELSE IF allowNav <> 0 AND keyCode = ASC("S") THEN
     navAct := 3
     END
   ELSE IF allowNav <> 0 AND keyCode = ASC("Q") THEN
     navAct := 4
     END
+  ELSE IF canMode <> 0 AND keyCode = ASC("C") THEN
+    ordMode := 1
+    buf := ""
+  ELSE IF canMode <> 0 AND keyCode = ASC("M") THEN
+    ordMode := 2
+    buf := ""
   ELSE IF keyCode = 8 THEN
     IF LEN(buf) = 1 THEN
       buf := ""
     ELSE IF LEN(buf) > 1 THEN
       buf := MID$(buf, 1, LEN(buf) - 1)
     ENDIF \ENDIF
-  ELSE IF keyCode = 11 THEN
-    IF buf = "" THEN
-      qty := 0
-    ELSE
-      RUN getNumIn(buf, qty, numOk)
-      IF NOT numOk THEN
-        qty := 0
-      ENDIF
-    ENDIF
-    qty := qty + 10
-    IF qty > maxQty THEN
-      qty := maxQty
-    ENDIF
-    IF qty > 0 AND MOD(qty, 10) <> 0 THEN
-      qty := (qty / 10) * 10
-    ENDIF
-    IF qty > 0 THEN
-      buf := TRIM$(STR$(qty))
-    ELSE
-      buf := ""
-    ENDIF
-  ELSE IF keyCode = 10 THEN
-    IF buf = "" THEN
-      qty := 0
-    ELSE
-      RUN getNumIn(buf, qty, numOk)
-      IF NOT numOk THEN
-        qty := 0
-      ENDIF
-    ENDIF
-    qty := qty - 10
-    IF qty < 0 THEN
-      qty := 0
-    ENDIF
-    IF qty > 0 THEN
-      buf := TRIM$(STR$(qty))
-    ELSE
-      buf := ""
-    ENDIF
   ELSE IF keyCode >= ASC("0") AND keyCode <= ASC("9") THEN
     IF LEN(buf) < 5 THEN
       buf := buf + kIn
     ENDIF
-  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
+  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
 ENDLOOP
 
 END
