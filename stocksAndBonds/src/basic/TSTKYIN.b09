@@ -4,7 +4,7 @@ PROCEDURE TSTKYIN
 (* PURPOSE   : Test keyboard arrow sensing and stock-lot input  *)
 (*             behavior in two interactive steps.               *)
 (* PARAMS    : None                                             *)
-(* SIDE EFX  : Clears screen. Requires SysCall and snbUtil.     *)
+(* SIDE EFX  : Clears screen. Requires SysCall only.            *)
 (* ============================================================ *)
 TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
 DIM kIn      : STRING[1]
@@ -21,7 +21,7 @@ DIM msgTxt   : STRING[48]
 ON ERROR GOTO 900
 
 LOOP
-  RUN clrScr
+  RUN tClrScr
   PRINT "=== KEY INPUT TEST - STEP 1 ==="
   PRINT
   PRINT "  Press Up or Down to test arrow sensing."
@@ -47,11 +47,11 @@ LOOP
   IF LAND(iBits, $08) <> 0 THEN
     PRINT
     PRINT "UP"
-    RUN waitKey
+    RUN tWaitKey
   ELSE IF LAND(iBits, $10) <> 0 THEN
     PRINT
     PRINT "DOWN"
-    RUN waitKey
+    RUN tWaitKey
   ELSE IF keyCode = ASC("N") THEN
     EXITIF TRUE THEN
     ENDEXIT
@@ -60,21 +60,21 @@ LOOP
   ELSE
     PRINT
     PRINT "No arrow detected. raw="; keyCode; " bits="; iBits
-    RUN waitKey
+    RUN tWaitKey
   ENDIF \ENDIF \ENDIF \ENDIF
 ENDLOOP
 
 qtyBuf := ""
 msgTxt := ""
 LOOP
-  RUN clrScr
-  RUN printAt(0, 1, "=== KEY INPUT TEST - STEP 2 ===")
-  RUN printAt(2, 1, "  Up/Down change by 10. Type digits for manual entry.")
-  RUN printAt(3, 1, "  Enter prints the amount. Q quits.")
+  RUN tClrScr
+  RUN tPrintAt(0, 1, "=== KEY INPUT TEST - STEP 2 ===")
+  RUN tPrintAt(2, 1, "  Up/Down change by 10. Type digits for manual entry.")
+  RUN tPrintAt(3, 1, "  Enter prints the amount. Q quits.")
   dispTxt := "  Qty (0/Enter=clear, mult of 10): " + qtyBuf + "   "
-  RUN printAt(5, 1, dispTxt)
+  RUN tPrintAt(5, 1, dispTxt)
   IF msgTxt <> "" THEN
-    RUN printAt(7, 1, msgTxt)
+    RUN tPrintAt(7, 1, msgTxt)
   ENDIF
 
   GET #0, kIn
@@ -99,7 +99,7 @@ LOOP
     IF qtyBuf = "" THEN
       qty := 0
     ELSE
-      RUN getNumIn(qtyBuf, qty, numOk)
+      RUN tGetNumIn(qtyBuf, qty, numOk)
       IF NOT numOk THEN
         qty := 0
       ENDIF
@@ -110,7 +110,7 @@ LOOP
     IF qtyBuf = "" THEN
       qty := 0
     ELSE
-      RUN getNumIn(qtyBuf, qty, numOk)
+      RUN tGetNumIn(qtyBuf, qty, numOk)
       IF NOT numOk THEN
         qty := 0
       ENDIF
@@ -128,7 +128,7 @@ LOOP
     IF qtyBuf = "" THEN
       qty := 0
     ELSE
-      RUN getNumIn(qtyBuf, qty, numOk)
+      RUN tGetNumIn(qtyBuf, qty, numOk)
       IF NOT numOk THEN
         qty := 0
       ENDIF
@@ -146,6 +146,98 @@ ENDLOOP
 END
 
 900 PRINT "TSTKYIN error ("; ERR; ")"
+END
+
+PROCEDURE tPrintAt
+(* ============================================================ *)
+(* PROCEDURE : tPrintAt                                         *)
+(* PURPOSE   : Local cursor-position print helper for TSTKYIN.  *)
+(* PARAMS    : row, col - target position                       *)
+(*             txt      - text to display                       *)
+(* SIDE EFX  : Prints row newlines then TAB to col.             *)
+(* ============================================================ *)
+PARAM row, col : INTEGER
+PARAM txt      : STRING
+DIM r          : INTEGER
+
+ON ERROR GOTO 900
+
+FOR r := 1 TO row
+  PRINT
+NEXT r
+PRINT TAB(col); txt
+END
+
+900 PRINT "tPrintAt error ("; ERR; ")"
+END
+
+PROCEDURE tWaitKey
+(* ============================================================ *)
+(* PROCEDURE : tWaitKey                                         *)
+(* PURPOSE   : Local wait-for-key helper for TSTKYIN.           *)
+(* PARAMS    : None                                             *)
+(* SIDE EFX  : Prints prompt and waits for one key.             *)
+(* ============================================================ *)
+DIM k : STRING[1]
+
+ON ERROR GOTO 900
+
+PRINT
+PRINT "  Press any key to continue...";
+GET #0, k
+PRINT
+END
+
+900 PRINT "tWaitKey error ("; ERR; ")"
+END
+
+PROCEDURE tClrScr
+(* ============================================================ *)
+(* PROCEDURE : tClrScr                                          *)
+(* PURPOSE   : Local clear-screen helper for TSTKYIN.           *)
+(* PARAMS    : None                                             *)
+(* SIDE EFX  : Sends ASCII form-feed to path 1.                 *)
+(* ============================================================ *)
+DIM clsChar : BYTE
+
+ON ERROR GOTO 900
+
+clsChar := 12 \ ! ASCII form-feed clears terminal screen
+PUT #1, clsChar
+END
+
+900 PRINT "tClrScr error ("; ERR; ")"
+END
+
+PROCEDURE tGetNumIn
+(* ============================================================ *)
+(* PROCEDURE : tGetNumIn                                        *)
+(* PURPOSE   : Local safe wrapper around VAL for TSTKYIN.       *)
+(* PARAMS    : str   - input string                             *)
+(*             value - converted INTEGER value                  *)
+(*             ok    - TRUE on success                          *)
+(* SIDE EFX  : None beyond PARAM updates.                       *)
+(* ============================================================ *)
+PARAM str   : STRING[8]
+PARAM value : INTEGER
+PARAM ok    : BOOLEAN
+DIM numErr  : BOOLEAN
+
+ON ERROR GOTO 900
+
+numErr := FALSE
+ON ERROR GOTO 100
+value := VAL(str)
+GOTO 110
+
+100 numErr := TRUE
+    value  := 0
+
+110 ON ERROR GOTO 900
+ok := NOT numErr
+END
+
+900 PRINT "tGetNumIn error ("; ERR; ")"
 END
 
 PROCEDURE getKyBits
