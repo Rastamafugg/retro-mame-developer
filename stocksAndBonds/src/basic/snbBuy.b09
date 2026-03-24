@@ -897,6 +897,9 @@ DIM baseMgn  : INTEGER
 DIM cost     : INTEGER
 DIM mgnPay   : INTEGER
 DIM cnfIn    : STRING[1]
+DIM editTxt  : STRING[48]
+DIM qtyAct   : INTEGER
+DIM maxQty   : INTEGER
 
 ON ERROR GOTO 900
 
@@ -998,7 +1001,9 @@ LOOP
       ! Line exceeds 79 chars; PRINT USING row format requires single line.
       PRINT USING "'  ',S1<,' ',S12<,'  $',I4>,' ',I2>,'% -> $',I4>", keyLbl, sNam(s), mkt.stckPrice(s), yldPct, divVal;
       holdQty := plyr.stckShrs(s)
-      PRINT "  Own "; holdQty;
+      IF holdQty > 0 THEN
+        PRINT "  Own "; holdQty;
+      ENDIF
       IF slotQty > 0 THEN
         totalQty := holdQty + slotQty
         IF purch = 2 THEN
@@ -1035,7 +1040,9 @@ LOOP
     ENDIF \ENDIF
     PRINT USING "'  ',S1<,' $',I6>,'  int=$',I4>", keyLbl, bPar(b), divVal;
     holdQty := plyr.bondUnts(b)
-    PRINT "  Own "; holdQty;
+    IF holdQty > 0 THEN
+      PRINT "  Own "; holdQty;
+    ENDIF
     IF slotQty > 0 THEN
       totalQty := holdQty + slotQty
       PRINT "  [Buy "; slotQty; "] = "; totalQty; " Total"
@@ -1157,74 +1164,89 @@ LOOP
       valid := FALSE
       WHILE NOT valid DO
         IF mapType(selIdx) = 1 THEN
-          PRINT "  "; sNam(s); " @ $"; mkt.stckPrice(s)
-          INPUT "  Buy qty (0/Enter=clear, mult of 10): ", qIn
-        ELSE
-          PRINT "$"; bPar(b); " bond"
-          INPUT "  Units to buy (0/Enter=clear): ", qIn
-        ENDIF
-        IF qIn = "" THEN
+          RUN fmtMoney(mkt.stckPrice(s), pStr)
+          editTxt := "  " + sNam(s) + " @ $" + pStr
           qty := 0
-          valid := TRUE
-        ELSE
-          RUN getSaveQuitAct(qIn, sqAct)
-          IF sqAct = 3 THEN
+          IF slotIdx > 0 THEN
+            qty := ordQty(slotIdx)
+          ENDIF
+          maxQty := 32760 / mkt.stckPrice(s)
+          maxQty := (maxQty / 10) * 10
+          qtyAct := 1
+          ! Line exceeds 79 chars; getLotQty call requires full arguments.
+          RUN getLotQty("=== BUY QUANTITY ===", editTxt, maxQty, qty, 1, qtyAct)
+          IF qtyAct = 3 THEN
             ordCnt   := 0
             mgnRepay := 0
             action   := 3
             END
-          ELSE IF sqAct = 4 THEN
+          ELSE IF qtyAct = 4 THEN
             ordCnt   := 0
             mgnRepay := 0
             action   := 4
             END
+          ENDIF \ENDIF
+          IF qty = 0 THEN
+            valid := TRUE
           ELSE
-            RUN getNumIn(qIn, qty, numOk)
-            IF NOT numOk THEN
-              PRINT "  Invalid: enter a number."
-            ELSE IF qty < 0 THEN
-              PRINT "  Invalid: enter 0 or a positive amount."
-            ELSE IF mapType(selIdx) = 1 THEN
-              IF qty > 0 AND MOD(qty, 10) <> 0 THEN
-                PRINT "  Invalid: must be a multiple of 10."
-              ELSE IF qty = 0 THEN
-                valid := TRUE
-              ELSE
-                purch := 1
-                IF canMgn THEN
-                  PRINT "  1=Cash  2=Margin  S=save+exit  Q=quit"
-                  GET #0, kIn
-                  PRINT
-                  RUN getSaveQuitAct(kIn, sqAct)
-                  IF sqAct = 3 THEN
-                    ordCnt   := 0
-                    mgnRepay := 0
-                    action   := 3
-                    END
-                  ELSE IF sqAct = 4 THEN
-                    ordCnt   := 0
-                    mgnRepay := 0
-                    action   := 4
-                    END
-                  ENDIF \ENDIF
-                  IF kIn = "2" THEN
-                    purch := 2
-                  ENDIF
-                ENDIF
-                cost := qty * mkt.stckPrice(s)
-                IF purch = 2 THEN
-                  cashCost := cost / 2
-                ELSE
-                  cashCost := cost
-                ENDIF
-                IF cashCost > baseCash THEN
-                  PRINT "  Insufficient cash for that order."
-                ELSE
-                  valid := TRUE
-                ENDIF
+            purch := 1
+            IF canMgn THEN
+              PRINT "  1=Cash  2=Margin  S=save+exit  Q=quit"
+              GET #0, kIn
+              PRINT
+              RUN getSaveQuitAct(kIn, sqAct)
+              IF sqAct = 3 THEN
+                ordCnt   := 0
+                mgnRepay := 0
+                action   := 3
+                END
+              ELSE IF sqAct = 4 THEN
+                ordCnt   := 0
+                mgnRepay := 0
+                action   := 4
+                END
               ENDIF \ENDIF
+              IF kIn = "2" THEN
+                purch := 2
+              ENDIF
+            ENDIF
+            cost := qty * mkt.stckPrice(s)
+            IF purch = 2 THEN
+              cashCost := cost / 2
             ELSE
-              IF qty = 0 THEN
+              cashCost := cost
+            ENDIF
+            IF cashCost > baseCash THEN
+              PRINT "  Insufficient cash for that order."
+            ELSE
+              valid := TRUE
+            ENDIF
+          ENDIF
+        ELSE
+          PRINT "$"; bPar(b); " bond"
+          INPUT "  Units to buy (0/Enter=clear): ", qIn
+          IF qIn = "" THEN
+            qty := 0
+            valid := TRUE
+          ELSE
+            RUN getSaveQuitAct(qIn, sqAct)
+            IF sqAct = 3 THEN
+              ordCnt   := 0
+              mgnRepay := 0
+              action   := 3
+              END
+            ELSE IF sqAct = 4 THEN
+              ordCnt   := 0
+              mgnRepay := 0
+              action   := 4
+              END
+            ELSE
+              RUN getNumIn(qIn, qty, numOk)
+              IF NOT numOk THEN
+                PRINT "  Invalid: enter a number."
+              ELSE IF qty < 0 THEN
+                PRINT "  Invalid: enter 0 or a positive amount."
+              ELSE IF qty = 0 THEN
                 valid := TRUE
               ELSE
                 cashCost := qty * bPar(b)
@@ -1234,9 +1256,9 @@ LOOP
                   purch := 1
                   valid := TRUE
                 ENDIF
-              ENDIF
-            ENDIF \ENDIF \ENDIF
-          ENDIF \ENDIF
+              ENDIF \ENDIF \ENDIF
+            ENDIF \ENDIF
+          ENDIF
         ENDIF
       ENDWHILE
 

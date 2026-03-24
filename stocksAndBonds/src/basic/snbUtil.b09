@@ -8,6 +8,7 @@ PROCEDURE snbUtil
 PRINT "snbUtil"
 PRINT "  clrScr"
 PRINT "  printAt"
+PRINT "  getLotQty"
 PRINT "  fmtMoney"
 PRINT "  fmtPlyrName"
 PRINT "  getMenuKey"
@@ -49,6 +50,156 @@ END
 
 900 \ ! Error handler
 PRINT "printAt error ("; ERR; ")"
+END
+
+PROCEDURE getLotQty
+(* ================================================== *)
+(* PROCEDURE: getLotQty                               *)
+(* PURPOSE:   Edit a stock quantity in multiples of   *)
+(*            10 using typed digits or up/down keys.  *)
+(* PARAMS:    title    - editor title line            *)
+(*            prompt   - stock description line       *)
+(*            maxQty   - maximum allowed quantity     *)
+(*            qty      - IN/OUT quantity value        *)
+(*            allowNav - 1 allows S/Q, else no nav    *)
+(*            navAct   - OUT 1=accept 3=save 4=quit   *)
+(* EFFECTS:   Clears screen and redraws editor.       *)
+(*            Uses printAt for prompt placement.      *)
+(* ================================================== *)
+PARAM title    : STRING
+PARAM prompt   : STRING
+PARAM maxQty   : INTEGER
+PARAM qty      : INTEGER
+PARAM allowNav : INTEGER
+PARAM navAct   : INTEGER
+
+DIM buf     : STRING[8]
+DIM dispTxt : STRING[48]
+DIM errTxt  : STRING[48]
+DIM maxTxt  : STRING[8]
+DIM kIn     : STRING[1]
+DIM keyCode : INTEGER
+DIM numOk   : BOOLEAN
+DIM dispRow : INTEGER
+
+ON ERROR GOTO 900
+
+navAct := 1
+IF qty > 0 THEN
+  buf := TRIM$(STR$(qty))
+ELSE
+  buf := ""
+ENDIF
+errTxt := ""
+
+LOOP
+  RUN clrScr
+  RUN printAt(0, 1, title)
+  RUN printAt(2, 1, prompt)
+  RUN printAt(4, 1, "  Up/Down=+/-10  Enter=accept  Backspace=edit")
+  dispRow := 6
+  IF allowNav <> 0 THEN
+    RUN printAt(5, 1, "  S=save+exit  Q=quit")
+    dispRow := 7
+  ENDIF
+  dispTxt := "  Qty (0/Enter=clear, mult of 10): " + buf + "   "
+  RUN printAt(dispRow, 1, dispTxt)
+  IF errTxt <> "" THEN
+    RUN printAt(dispRow + 2, 1, errTxt)
+  ENDIF
+
+  GET #0, kIn
+  IF kIn <> "" THEN
+    keyCode := ASC(kIn)
+    IF keyCode >= ASC("a") AND keyCode <= ASC("z") THEN
+      keyCode := keyCode - 32
+      kIn := CHR$(keyCode)
+    ENDIF
+  ELSE
+    keyCode := 0
+  ENDIF
+
+  errTxt := ""
+  IF keyCode = 13 THEN
+    IF buf = "" THEN
+      qty := 0
+      END
+    ENDIF
+    RUN getNumIn(buf, qty, numOk)
+    IF NOT numOk THEN
+      errTxt := "  Invalid: enter a number."
+    ELSE IF qty < 0 THEN
+      errTxt := "  Invalid: enter 0 or a positive amount."
+    ELSE IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+      errTxt := "  Invalid: must be a multiple of 10."
+    ELSE IF qty > maxQty THEN
+      maxTxt := TRIM$(STR$(maxQty))
+      errTxt := "  Invalid: maximum is " + maxTxt + "."
+    ELSE
+      END
+    ENDIF \ENDIF \ENDIF \ENDIF
+  ELSE IF allowNav <> 0 AND keyCode = ASC("S") THEN
+    navAct := 3
+    END
+  ELSE IF allowNav <> 0 AND keyCode = ASC("Q") THEN
+    navAct := 4
+    END
+  ELSE IF keyCode = 8 THEN
+    IF LEN(buf) = 1 THEN
+      buf := ""
+    ELSE IF LEN(buf) > 1 THEN
+      buf := MID$(buf, 1, LEN(buf) - 1)
+    ENDIF \ENDIF
+  ELSE IF keyCode = 11 THEN
+    IF buf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(buf, qty, numOk)
+      IF NOT numOk THEN
+        qty := 0
+      ENDIF
+    ENDIF
+    qty := qty + 10
+    IF qty > maxQty THEN
+      qty := maxQty
+    ENDIF
+    IF qty > 0 AND MOD(qty, 10) <> 0 THEN
+      qty := (qty / 10) * 10
+    ENDIF
+    IF qty > 0 THEN
+      buf := TRIM$(STR$(qty))
+    ELSE
+      buf := ""
+    ENDIF
+  ELSE IF keyCode = 10 THEN
+    IF buf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(buf, qty, numOk)
+      IF NOT numOk THEN
+        qty := 0
+      ENDIF
+    ENDIF
+    qty := qty - 10
+    IF qty < 0 THEN
+      qty := 0
+    ENDIF
+    IF qty > 0 THEN
+      buf := TRIM$(STR$(qty))
+    ELSE
+      buf := ""
+    ENDIF
+  ELSE IF keyCode >= ASC("0") AND keyCode <= ASC("9") THEN
+    IF LEN(buf) < 5 THEN
+      buf := buf + kIn
+    ENDIF
+  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
+ENDLOOP
+
+END
+
+900 \ ! Error handler
+PRINT "getLotQty error ("; ERR; ")"
 END
 
 PROCEDURE waitKey
