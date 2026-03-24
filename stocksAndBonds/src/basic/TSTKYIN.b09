@@ -1,0 +1,187 @@
+PROCEDURE TSTKYIN
+(* ============================================================ *)
+(* PROCEDURE : TSTKYIN                                          *)
+(* PURPOSE   : Test keyboard arrow sensing and stock-lot input  *)
+(*             behavior in two interactive steps.               *)
+(* PARAMS    : None                                             *)
+(* SIDE EFX  : Clears screen. Requires SysCall and snbUtil.     *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+DIM kIn      : STRING[1]
+DIM keyCode  : INTEGER
+DIM iBits    : INTEGER
+DIM errB     : INTEGER
+DIM ok       : BOOLEAN
+DIM qtyBuf   : STRING[8]
+DIM dispTxt  : STRING[48]
+DIM qty      : INTEGER
+DIM numOk    : BOOLEAN
+DIM msgTxt   : STRING[48]
+
+ON ERROR GOTO 900
+
+LOOP
+  RUN clrScr
+  PRINT "=== KEY INPUT TEST - STEP 1 ==="
+  PRINT
+  PRINT "  Press Up or Down to test arrow sensing."
+  PRINT "  Press N for next step."
+  PRINT "  Press Q to quit."
+  PRINT
+  GET #0, kIn
+  IF kIn <> "" THEN
+    keyCode := ASC(kIn)
+    IF keyCode >= ASC("a") AND keyCode <= ASC("z") THEN
+      keyCode := keyCode - 32
+    ENDIF
+  ELSE
+    keyCode := 0
+  ENDIF
+
+  RUN getKyBits(iBits, errB, ok)
+  IF NOT ok THEN
+    PRINT "SS.KySns read failed, err="; errB
+    END
+  ENDIF
+
+  IF LAND(iBits, $08) <> 0 THEN
+    PRINT
+    PRINT "UP"
+    RUN waitKey
+  ELSE IF LAND(iBits, $10) <> 0 THEN
+    PRINT
+    PRINT "DOWN"
+    RUN waitKey
+  ELSE IF keyCode = ASC("N") THEN
+    EXITIF TRUE THEN
+    ENDEXIT
+  ELSE IF keyCode = ASC("Q") THEN
+    END
+  ELSE
+    PRINT
+    PRINT "No arrow detected. raw="; keyCode; " bits="; iBits
+    RUN waitKey
+  ENDIF \ENDIF \ENDIF \ENDIF
+ENDLOOP
+
+qtyBuf := ""
+msgTxt := ""
+LOOP
+  RUN clrScr
+  RUN printAt(0, 1, "=== KEY INPUT TEST - STEP 2 ===")
+  RUN printAt(2, 1, "  Up/Down change by 10. Type digits for manual entry.")
+  RUN printAt(3, 1, "  Enter prints the amount. Q quits.")
+  dispTxt := "  Qty (0/Enter=clear, mult of 10): " + qtyBuf + "   "
+  RUN printAt(5, 1, dispTxt)
+  IF msgTxt <> "" THEN
+    RUN printAt(7, 1, msgTxt)
+  ENDIF
+
+  GET #0, kIn
+  IF kIn <> "" THEN
+    keyCode := ASC(kIn)
+    IF keyCode >= ASC("a") AND keyCode <= ASC("z") THEN
+      keyCode := keyCode - 32
+      kIn := CHR$(keyCode)
+    ENDIF
+  ELSE
+    keyCode := 0
+  ENDIF
+
+  RUN getKyBits(iBits, errB, ok)
+  IF NOT ok THEN
+    PRINT "SS.KySns read failed, err="; errB
+    END
+  ENDIF
+
+  msgTxt := ""
+  IF LAND(iBits, $08) <> 0 THEN
+    IF qtyBuf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(qtyBuf, qty, numOk)
+      IF NOT numOk THEN
+        qty := 0
+      ENDIF
+    ENDIF
+    qty := qty + 10
+    qtyBuf := TRIM$(STR$(qty))
+  ELSE IF LAND(iBits, $10) <> 0 THEN
+    IF qtyBuf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(qtyBuf, qty, numOk)
+      IF NOT numOk THEN
+        qty := 0
+      ENDIF
+    ENDIF
+    qty := qty - 10
+    IF qty < 0 THEN
+      qty := 0
+    ENDIF
+    IF qty > 0 THEN
+      qtyBuf := TRIM$(STR$(qty))
+    ELSE
+      qtyBuf := ""
+    ENDIF
+  ELSE IF keyCode = 13 THEN
+    IF qtyBuf = "" THEN
+      qty := 0
+    ELSE
+      RUN getNumIn(qtyBuf, qty, numOk)
+      IF NOT numOk THEN
+        qty := 0
+      ENDIF
+    ENDIF
+    msgTxt := "  Amount entered: " + TRIM$(STR$(qty))
+  ELSE IF keyCode = ASC("Q") THEN
+    END
+  ELSE IF keyCode >= ASC("0") AND keyCode <= ASC("9") THEN
+    IF LEN(qtyBuf) < 5 THEN
+      qtyBuf := qtyBuf + kIn
+    ENDIF
+  ENDIF \ENDIF \ENDIF \ENDIF \ENDIF
+ENDLOOP
+
+END
+
+900 PRINT "TSTKYIN error ("; ERR; ")"
+END
+
+PROCEDURE getKyBits
+(* ============================================================ *)
+(* PROCEDURE : getKyBits                                        *)
+(* PURPOSE   : Read SS.KySns via I$GetStt for stdin path 0.     *)
+(* PARAMS    : iBits - OUT key-sense bit mask                   *)
+(*             errB  - OUT error code on failure                *)
+(*             ok    - OUT TRUE on success                      *)
+(* SIDE EFX  : Requires SysCall module resident.                *)
+(* ============================================================ *)
+TYPE Register = cc,a,b,dp:BYTE; x,y,u:INTEGER
+PARAM iBits : INTEGER
+PARAM errB  : INTEGER
+PARAM ok    : BOOLEAN
+DIM regs    : Register
+DIM callCod : BYTE
+DIM iCC     : INTEGER
+
+ON ERROR GOTO 900
+
+ok      := FALSE
+errB    := 0
+iBits   := 0
+callCod := $8D      \ ! I$GetStt
+regs.a  := 0        \ ! stdin path
+regs.b  := $27      \ ! SS.KySns
+RUN SysCall(callCod, regs)
+iCC := regs.cc
+IF LAND(iCC, 1) <> 0 THEN
+  errB := regs.b
+  END
+ENDIF
+iBits := regs.a
+ok := TRUE
+END
+
+900 PRINT "getKyBits error ("; ERR; ")"
+END
